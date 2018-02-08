@@ -13,7 +13,7 @@ test -t 1 && USE_TTY="-it"
 # FIXME dockerize can connect but ssh server is not yet up
 docker cp script.sh ${VM_CID}:/script.sh
 sleep 5
-docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "ssh.sh < script.sh"
+docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < script.sh"
 docker exec ${USE_TTY} ${VM_CID} rm script.sh
 docker exec ${USE_TTY} ${VM_CID} ssh.sh "sudo shutdown -h"
 docker wait ${VM_CID}
