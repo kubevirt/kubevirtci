@@ -20,7 +20,10 @@ if [ ! -e /dev/kvm ]; then
 fi
 
 # Create a transient disk, so that the container runtime does not have to copy the whole file on writes
-qemu-img create -f qcow2 -o backing_file=box.qcow2 provisioned.qcow2
+# Don't create the provion disk if it already exists, to allow multi-step provisioning
+if [ ! -f provisioned.qcow2 ]; then
+  qemu-img create -f qcow2 -o backing_file=box.qcow2 provisioned.qcow2
+fi
 
 echo "SSH will be available via port 22${n}."
 echo "VNC will be available on container port 59${n}."
