@@ -10,10 +10,10 @@ ip addr add dev br0 192.168.66.02/24
 
 for i in $(seq 1 ${NUM_NODES}); do
   n="$(printf "%02d" ${i})"
-  ip tuntap add dev tap${i} mode tap user $(whoami)
-  ip link set tap${i} master br0
-  ip link set dev tap${i} up
-  DHCP_HOSTS="${DHCP_HOSTS} --dhcp-host=52:55:00:d1:55:${n},192.168.66.1${i},node${i},infinite"
+  ip tuntap add dev tap${n} mode tap user $(whoami)
+  ip link set tap${n} master br0
+  ip link set dev tap${n} up
+  DHCP_HOSTS="${DHCP_HOSTS} --dhcp-host=52:55:00:d1:55:${n},192.168.66.1${n},node${n},infinite"
 done
 
 if [ ! -e /dev/kvm ]; then
