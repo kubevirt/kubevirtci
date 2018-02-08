@@ -17,7 +17,7 @@ if [ "$i" = "1" ]; then
 fi
 
 # Create a transient disk, so that the container runtime does not have to copy the whole file on writes
-qemu-img create -f qcow2 -o backing_file=image.qcow2 disk.qcow2
+qemu-img create -f qcow2 -o backing_file=box.qcow2 disk.qcow2
 
 exec qemu-kvm -drive format=qcow2,file=disk.qcow2 \
   -device e1000,netdev=network0,mac=52:55:00:d1:55:${n} \

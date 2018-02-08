@@ -1,10 +1,16 @@
 FROM fedora:27
 
-RUN dnf -y install iproute dnsmasq qemu && dnf clean all
+RUN dnf -y install iproute dnsmasq qemu openssh-clients && dnf clean all
 
-COPY centos7_vagrant_box_image_0.img /image.qcow2
+WORKDIR /
 
-RUN dnf -y update nettle && dnf -y install iptables openssh-clients && dnf clean all
+COPY download_box.sh /download_box.sh
+
+ENV CENTOS_VERSION 1801_02
+
+RUN ./download_box.sh ${CENTOS_VERSION} && qemu-img convert -f raw -O qcow2 box.img box.qcow2 && rm box.img
+
+RUN dnf -y update nettle && dnf -y install iptables && dnf clean all
 
 COPY vagrant.key /vagrant.key
 
