@@ -6,7 +6,7 @@ WORKDIR /
 
 COPY scripts/download_box.sh /download_box.sh
 
-ENV CENTOS_VERSION 1801_02
+ENV CENTOS_VERSION http://cloud.centos.org/centos/7/vagrant/x86_64/images/CentOS-7-x86_64-Vagrant-1608_01.LibVirt.box
 
 RUN ./download_box.sh ${CENTOS_VERSION} && qemu-img convert -O qcow2 box.img box.qcow2 && rm box.img
 
@@ -23,7 +23,5 @@ RUN curl -LO https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_V
   && mv dockerize /usr/local/bin/
 
 COPY scripts/dnsmasq.sh /dnsmasq.sh
-
-COPY scripts/provision.sh /provision.sh
 
 COPY scripts/vm.sh /vm.sh
