@@ -54,10 +54,12 @@ if [ "$PROVISION" == "true" ] ; then
   docker wait ${VM_CID}
   docker commit --change "ENV PROVISIONED TRUE" ${VM_CID} ${TAG}
 else
-  VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} ${BASE} /bin/bash -c /vm.sh)
+  NODE_NUM=01
+  VM_CID=$(docker run -d --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} ${BASE} /bin/bash -c /vm.sh)
   function finish_vm() {
     docker stop ${VM_CID}
     docker rm ${VM_CID}
   }
+  docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < /scripts/node${NODE_NUM}.sh"
   docker wait ${VM_CID}
 fi
