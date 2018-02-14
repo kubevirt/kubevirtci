@@ -15,6 +15,14 @@ done
 NODE_NUM=${NODE_NUM-1}
 n="$(printf "%02d" ${NODE_NUM})"
 
+cat >/usr/local/bin/ssh.sh <<EOL
+#!/bin/bash
+set -e
+dockerize -wait tcp://192.168.66.1${n}:22 -timeout 300s
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@192.168.66.1${n} -i vagrant.key -p 22 \$@
+EOL
+chmod u+x /usr/local/bin/ssh.sh
+
 sleep 0.1
 until ip link show tap${n}; do
   echo "Waiting for tap${n} to become ready"
@@ -44,14 +52,6 @@ echo "VNC will be available on container port 59${n}."
 echo "VM MAC in the guest network will be 52:55:00:d1:55:${n}"
 echo "VM IP in the guest network will be 192.168.66.1${n}"
 echo "VM hostname will be node${n}"
-
-cat >/usr/local/bin/ssh.sh <<EOL
-#!/bin/bash
-set -e
-dockerize -wait tcp://192.168.66.1${n}:22 -timeout 300s
-ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@192.168.66.1${n} -i vagrant.key -p 22 \$@
-EOL
-chmod u+x /usr/local/bin/ssh.sh
 
 exec qemu-kvm -drive format=qcow2,file=${DISK}  \
   -device e1000,netdev=network0,mac=52:55:00:d1:55:${n} \

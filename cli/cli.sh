@@ -40,17 +40,18 @@ trap finish EXIT SIGINT SIGTERM SIGQUIT
 DNSMASQ_CID=$(docker run -d -p 5910:5901 -p 2201:2201 -e NUM_NODES=${NODES} --privileged ${BASE} /bin/bash -c /dnsmasq.sh)
 CONTAINERS=${DNSMASQ_CID}
 
+test -t 1 && USE_TTY="-it"
 if [ "$PROVISION" == "true" ] ; then
   VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} ${BASE} /vm.sh --provision)
   function finish_vm() {
     docker stop ${VM_CID}
     docker rm ${VM_CID}
   }
-  test -t 1 && USE_TTY="-it"
   docker cp ${SCRIPTS} ${VM_CID}:/scripts
-  docker logs ${VM_CID}
+  docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
   docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < /scripts/provision.sh"
   docker exec ${USE_TTY} ${VM_CID} ssh.sh "sudo shutdown -h"
+  docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "rm /usr/local/bin/ssh.sh"
   docker wait ${VM_CID}
   docker commit --change "ENV PROVISIONED TRUE" ${VM_CID} ${TAG}
 else
@@ -58,13 +59,13 @@ else
     NODE_NUM="$(printf "%02d" ${i})"
     VM_CID=$(docker run -d --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} ${BASE} /bin/bash -c /vm.sh)
     CONTAINERS="${CONTAINERS} ${VM_CID}"
+    docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
     if docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "test -f /scripts/node${NODE_NUM}.sh" ; then
       docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < /scripts/node${NODE_NUM}.sh"
     elif docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "test -f /scripts/nodes.sh" ; then
       docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < /scripts/nodes.sh"
     fi
+    docker wait ${VM_CID} &
   done
-  docker wait ${VM_CID} &
+  wait
 fi
-
-wait
