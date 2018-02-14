@@ -1,6 +1,7 @@
 #!/bin/bash
 
 PROVISION=false
+WITH_REGISTRY=false
 NODES=1
 
 while true; do
@@ -10,10 +11,20 @@ while true; do
     -s | --scripts ) SCRIPTS="$2"; shift 2 ;;
     -t | --tag ) TAG="$2"; shift 2 ;;
     -b | --base ) BASE="$2"; shift 2 ;;
+    --tls-port ) TLS_PORT="$2"; shift 2 ;;
+    --ssh-port ) SSH_PORT="$2"; shift 2 ;;
+    --vnc-port ) VNC_PORT="$2"; shift 2 ;;
+    --registry-port ) REGISTRY_PORT="$2"; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
 done
+
+PORTS=""
+if [ -n "${TLS_PORT}" ]; then PORTS="${PORTS} -p ${TLS_PORT}:6443"; fi
+if [ -n "${SSH_PORT}" ]; then PORTS="${PORTS} -p ${SSH_PORT}:2201"; fi
+if [ -n "${VNC_PORT}" ]; then PORTS="${PORTS} -p ${VNC_PORT}:5901"; fi
+if [ -n "${REGISTRY_PORT}" ]; then PORTS="${PORTS} -p ${REGISTRY_PORT}:5000"; fi
 
 if [ -z "${BASE}" ]; then echo "Base image is not set. Use  '-b or --base' to set it."; exit 1; fi
 
@@ -37,16 +48,13 @@ function finish() {
 
 trap finish EXIT SIGINT SIGTERM SIGQUIT
 
-DNSMASQ_CID=$(docker run -d -p 5910:5901 -p 2201:2201 -e NUM_NODES=${NODES} --privileged ${BASE} /bin/bash -c /dnsmasq.sh)
+DNSMASQ_CID=$(docker run -d ${PORTS} -e NUM_NODES=${NODES} --privileged ${BASE} /bin/bash -c /dnsmasq.sh)
 CONTAINERS=${DNSMASQ_CID}
 
 test -t 1 && USE_TTY="-it"
 if [ "$PROVISION" == "true" ] ; then
   VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} ${BASE} /vm.sh --provision)
-  function finish_vm() {
-    docker stop ${VM_CID}
-    docker rm ${VM_CID}
-  }
+  CONTAINERS="${CONTAINERS} ${VM_CID}"
   docker cp ${SCRIPTS} ${VM_CID}:/scripts
   docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
   docker exec ${USE_TTY} ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < /scripts/provision.sh"
@@ -55,6 +63,14 @@ if [ "$PROVISION" == "true" ] ; then
   docker wait ${VM_CID}
   docker commit --change "ENV PROVISIONED TRUE" ${VM_CID} ${TAG}
 else
+  # Start registry
+  REGISTRY_CID=$(docker run -d --net=container:${DNSMASQ_CID} registry:2)
+  CONTAINERS="${CONTAINERS} ${REGISTRY_CID}"
+
+  # Let dnsmasq learn the registry dns name
+  docker exec ${USE_TTY} ${DNSMASQ_CID} /bin/bash -c 'echo 192.168.66.2 registry > /etc/hosts && kill -1 1'
+
+  # Start VMs      
   for i in $(seq 1 ${NODES}); do
     NODE_NUM="$(printf "%02d" ${i})"
     VM_CID=$(docker run -d --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} ${BASE} /bin/bash -c /vm.sh)

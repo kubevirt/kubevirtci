@@ -29,6 +29,7 @@ yum install -y docker
 
 # Log to json files instead of journald
 sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
+sed -i "s#^OPTIONS='#OPTIONS='--insecure-registry http://registry:5000 #" /etc/sysconfig/docker
 
 # Omit pgp checks until https://github.com/kubernetes/kubeadm/issues/643 is resolved.
 yum install --nogpgcheck -y \

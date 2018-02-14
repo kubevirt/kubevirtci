@@ -30,11 +30,14 @@ until ip link show tap${n}; do
 done
 
 # Routhe SSH
-# TODO route other ports
 iptables -t nat -A POSTROUTING --out-interface br0 -j MASQUERADE
 iptables -A FORWARD --in-interface eth0 -j ACCEPT
 iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport 22${n} -j DNAT --to-destination 192.168.66.1${n}:22
 
+# Route 6443 for first node
+if [ "$n" = "01" ] ; then
+  iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport 6443 -j DNAT --to-destination 192.168.66.1${n}:6443
+fi
 
 if [ "$PROVISION" = "true" ]; then
   DISK=provisioned.qcow2
