@@ -2,8 +2,8 @@ FROM fedora:27
 
 RUN dnf -y install docker && dnf clean all
 
-COPY run.sh /run.sh
+COPY cli.sh /cli.sh
 
-ENTRYPOINT [ "/run.sh" ]
+ENTRYPOINT [ "/cli.sh" ]
 
 WORKDIR /

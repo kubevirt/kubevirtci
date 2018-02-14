@@ -32,9 +32,9 @@ sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
 
 # Omit pgp checks until https://github.com/kubernetes/kubeadm/issues/643 is resolved.
 yum install --nogpgcheck -y \
-    kubeadm \
-    kubelet \
-    kubectl \
+    kubeadm-1.9.3 \
+    kubelet-1.9.3 \
+    kubectl-1.9.3 \
     kubernetes-cni
 
 # Latest docker on CentOS uses systemd for cgroup management
