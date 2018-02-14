@@ -15,6 +15,7 @@ while true; do
     --ssh-port ) SSH_PORT="$2"; shift 2 ;;
     --vnc-port ) VNC_PORT="$2"; shift 2 ;;
     --registry-port ) REGISTRY_PORT="$2"; shift 2 ;;
+    --registry-volume ) REGISTRY_VOLUME="$2"; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -64,7 +65,13 @@ if [ "$PROVISION" == "true" ] ; then
   docker commit --change "ENV PROVISIONED TRUE" ${VM_CID} ${TAG}
 else
   # Start registry
-  REGISTRY_CID=$(docker run -d --net=container:${DNSMASQ_CID} registry:2)
+  if [ -n "$REGISTRY_VOLUME" ]; then
+    if [ -z "$(docker volume list | grep ${REGISTRY_VOLUME})" ]; then
+      docker volume create --name ${REGISTRY_VOLUME}
+    fi
+    REGISTRY_VOLUME="-v ${REGISTRY_VOLUME}:/var/lib/registry"
+  fi
+  REGISTRY_CID=$(docker run -d --net=container:${DNSMASQ_CID} ${REGISTRY_VOLUME} registry:2)
   CONTAINERS="${CONTAINERS} ${REGISTRY_CID}"
 
   # Let dnsmasq learn the registry dns name
