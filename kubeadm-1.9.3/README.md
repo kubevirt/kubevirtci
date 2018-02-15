@@ -29,6 +29,11 @@ Running `cli` from withing docker:
 ```bash
 docker run --privileged --rm -v /var/run/docker.sock:/var/run/docker.sock rmohr/cli:latest run --nodes 2 --base rmohr/kubeadm-1.9.3
 ```
+
+`--background` can be added to the `run` subcommand to exit the script after
+the initial provisioning of all vms is done. If an error occures during the
+initialization, the whole cluster is toren down.
+
 ## SSH into a running machine
 
 Running `cli` directly:

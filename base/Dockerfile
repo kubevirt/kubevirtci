@@ -16,6 +16,4 @@ RUN curl -LO https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_V
   && chmod u+x dockerize \
   && mv dockerize /usr/local/bin/
 
-COPY scripts/dnsmasq.sh /dnsmasq.sh
-
-COPY scripts/vm.sh /vm.sh
+COPY scripts/* /
