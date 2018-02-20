@@ -38,8 +38,14 @@ while true; do
 done
 
 if [ "$COMMAND" = "rm" ] ; then
-  docker stop $(docker ps --filter="name=${PREFIX}" -q)
-  docker rm $(docker ps -a --filter="name=${PREFIX}" -q)
+  running_containers="$(docker ps --filter="name=${PREFIX}" -q)"
+  all_containers="$(docker ps -a --filter="name=${PREFIX}" -q)"
+  if [ -n "${running_containers}" ]; then
+    docker stop ${running_containers}
+  fi
+  if [ -n "${all_containers}" ]; then
+    docker rm  ${all_containers}
+  fi
   exit 0
 fi
 
