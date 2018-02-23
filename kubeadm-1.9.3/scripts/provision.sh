@@ -15,6 +15,9 @@ systemctl disable firewalld NetworkManager || :
 # Enabling the firewall destroys the iptable rules
 yum -y remove NetworkManager firewalld
 
+# Required for iscsi demo to work.
+yum -y install iscsi-initiator-utils
+
 cat <<EOF >/etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes
