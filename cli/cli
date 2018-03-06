@@ -33,9 +33,8 @@ while true; do
     -q | --qemu-args ) QEMU_ARGS="$2"; shift 2 ;;
     --background ) BACKGROUND="true"; shift ;;
     -b | --base ) BASE="$2"; shift 2 ;;
-    --tls-port ) TLS_PORT="$2"; shift 2 ;;
-    --k8s-port ) TLS_PORT="$2"; shift 2 ;;
-    --osp-port ) OS_PORT="$2"; shift 2 ;;
+    --k8s-port ) K8S_PORT="$2"; shift 2 ;;
+    --osp-port ) OSP_PORT="$2"; shift 2 ;;
     --ssh-port ) SSH_PORT="$2"; shift 2 ;;
     --vnc-port ) VNC_PORT="$2"; shift 2 ;;
     --registry-port ) REGISTRY_PORT="$2"; shift 2 ;;
@@ -71,8 +70,8 @@ if [ "$COMMAND" = "ssh" ] ; then
 fi
 
 PORTS=""
-if [ -n "${TLS_PORT}" ]; then PORTS="${PORTS} -p ${TLS_PORT}:6443"; fi
-if [ -n "${OS_PORT}" ]; then PORTS="${PORTS} -p ${OS_PORT}:8443"; fi
+if [ -n "${K8S_PORT}" ]; then PORTS="${PORTS} -p ${K8S_PORT}:6443"; fi
+if [ -n "${OSP_PORT}" ]; then PORTS="${PORTS} -p ${OSP_PORT}:8443"; fi
 if [ -n "${SSH_PORT}" ]; then PORTS="${PORTS} -p ${SSH_PORT}:2201"; fi
 if [ -n "${VNC_PORT}" ]; then PORTS="${PORTS} -p ${VNC_PORT}:5901"; fi
 if [ -n "${REGISTRY_PORT}" ]; then PORTS="${PORTS} -p ${REGISTRY_PORT}:5000"; fi
