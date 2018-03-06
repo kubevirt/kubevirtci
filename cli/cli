@@ -8,6 +8,7 @@ PREFIX="kubevirt-"
 SCRIPTS="$PWD/scripts"
 MEMORY=""
 QEMU_ARGS=""
+BACKGROUND=""
 
 COMMAND=$1
 shift
@@ -104,7 +105,7 @@ DNSMASQ_CID=$(docker run -d ${PORTS} -e NUM_NODES=${NODES} --name ${PREFIX}dnsma
 CONTAINERS=${DNSMASQ_CID}
 
 if [ "$COMMAND" == "provision" ] ; then
-  VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}node01 ${BASE} /vm.sh --provision ${MEMORY} ${QEMU_ARGS})
+  VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}node01 ${BASE} /vm.sh ${MEMORY} ${QEMU_ARGS})
   CONTAINERS="${CONTAINERS} ${VM_CID}"
   docker cp ${SCRIPTS} ${VM_CID}:/scripts
   docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
