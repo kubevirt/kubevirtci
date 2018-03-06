@@ -16,7 +16,7 @@ while true; do
 done
 
 function calc_next_disk {
-  last="$(ls -t disk* | head -1 | sed -e 's/disk//' -e 's/.img//')"
+  last="$(ls -t disk* | head -1 | sed -e 's/disk//' -e 's/.qcow2//')"
   last="${last:-00}"
   next=$((last+1))
   next=$(printf "disk%02d.qcow2" $next)
@@ -57,8 +57,8 @@ fi
 
 # For backward compatibility, so that we can just copy over the newer files
 if [ -f provisioned.qcow2 ]; then
-  ln -s provisioned.qcow2 disk01.qcow2
-else
+  ln -sf provisioned.qcow2 disk01.qcow2
+fi
 
 calc_next_disk
 

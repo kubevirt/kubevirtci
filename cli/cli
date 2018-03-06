@@ -17,6 +17,7 @@ if [[    "${COMMAND}" != "run" \
      && "${COMMAND}" != "provision" \
      && "${COMMAND}" != "ssh" \
      && "${COMMAND}" != "ps" \
+     && "${COMMAND}" != "update" \
      && "${COMMAND}" != "rm" ]]; then
         echo "No valid command provides. Valid commands  are 'run', 'provision', 'ssh' and 'rm'."
         exit 1
@@ -79,8 +80,10 @@ if [ -n "${REGISTRY_PORT}" ]; then PORTS="${PORTS} -p ${REGISTRY_PORT}:5000"; fi
 if [ -z "${BASE}" ]; then echo "Base image is not set. Use  '-b or --base' to set it."; exit 1; fi
 
 if [ "$COMMAND" == "provision" ] ; then
-  if [ -z "${TAG}" ]; then echo "Resultin build tag not set. Use  '-t or --tag' to set it."; exit 1; fi
+  if [ -z "${TAG}" ]; then echo "Resulting build tag not set. Use  '-t or --tag' to set it."; exit 1; fi
   if [ -z "${SCRIPTS}" ]; then echo "Provision script is not set. Use  '-s or --script' to set it."; exit 1; fi
+elif [ "$COMMAND" == "update" ] ; then
+  if [ -z "${TAG}" ]; then echo "Resulting build tag not set. Use  '-t or --tag' to set it."; exit 1; fi
 else
   if [ "$NODES" -lt "1" ]; then echo "The number of nodes must be greater or equal to 1."; exit 1 ; fi
 fi
@@ -102,6 +105,19 @@ if [[ "$BACKGROUND" == "true" && "$COMMAND" == "run" ]]; then
   trap finish ERR SIGINT SIGTERM SIGQUIT
 else
   trap finish EXIT SIGINT SIGTERM SIGQUIT
+fi
+
+if [ "$COMMAND" = "update" ] ; then
+  script=$1
+  shift
+  if [ -z "${script}" ]; then echo "No script to update specified"; exit 1; fi
+  VM_CID=$(docker run -d --privileged --name ${PREFIX}node01 ${BASE} /bin/bash -c "sleep 100000")
+  CONTAINERS="${CONTAINERS} ${VM_CID}"
+  docker cp ${script} ${VM_CID}:/$(basename ${script})
+  docker exec ${VM_CID} /bin/bash -c "chmod u+x /$(basename ${script})"
+  docker stop ${VM_CID}
+  docker commit --change "ENV SCRIPT_UPDATE $(basename ${script})" ${VM_CID} ${TAG}
+  exit 0
 fi
 
 DNSMASQ_CID=$(docker run -d ${PORTS} -e NUM_NODES=${NODES} --name ${PREFIX}dnsmasq --privileged ${BASE} /bin/bash -c /dnsmasq.sh)
@@ -142,7 +158,9 @@ else
     elif docker exec ${VM_CID} /bin/bash -c "test -f /scripts/nodes.sh" ; then
       docker exec ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < /scripts/nodes.sh"
     fi
-    docker wait ${VM_CID} &
+    if [ "$BACKGROUND" != "true" ]; then
+      docker wait ${VM_CID} &
+    fi
   done
   if [ "$BACKGROUND" = "true" ]; then
     exit 0
