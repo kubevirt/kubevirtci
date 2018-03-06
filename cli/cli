@@ -6,6 +6,9 @@ WITH_REGISTRY=false
 NODES=1
 PREFIX="kubevirt-"
 SCRIPTS="$PWD/scripts"
+MEMORY=""
+QEMU_ARGS=""
+BACKGROUND=""
 
 COMMAND=$1
 shift
@@ -14,6 +17,7 @@ if [[    "${COMMAND}" != "run" \
      && "${COMMAND}" != "provision" \
      && "${COMMAND}" != "ssh" \
      && "${COMMAND}" != "ps" \
+     && "${COMMAND}" != "update" \
      && "${COMMAND}" != "rm" ]]; then
         echo "No valid command provides. Valid commands  are 'run', 'provision', 'ssh' and 'rm'."
         exit 1
@@ -25,9 +29,13 @@ while true; do
     -n | --nodes ) NODES="$2"; shift 2 ;;
     -s | --scripts ) SCRIPTS="$2"; shift 2 ;;
     -t | --tag ) TAG="$2"; shift 2 ;;
+    -m | --memory ) MEMORY="$2"; shift 2 ;;
+    -q | --qemu-args ) QEMU_ARGS="$2"; shift 2 ;;
     --background ) BACKGROUND="true"; shift ;;
     -b | --base ) BASE="$2"; shift 2 ;;
     --tls-port ) TLS_PORT="$2"; shift 2 ;;
+    --k8s-port ) TLS_PORT="$2"; shift 2 ;;
+    --osp-port ) OS_PORT="$2"; shift 2 ;;
     --ssh-port ) SSH_PORT="$2"; shift 2 ;;
     --vnc-port ) VNC_PORT="$2"; shift 2 ;;
     --registry-port ) REGISTRY_PORT="$2"; shift 2 ;;
@@ -64,6 +72,7 @@ fi
 
 PORTS=""
 if [ -n "${TLS_PORT}" ]; then PORTS="${PORTS} -p ${TLS_PORT}:6443"; fi
+if [ -n "${OS_PORT}" ]; then PORTS="${PORTS} -p ${OS_PORT}:8443"; fi
 if [ -n "${SSH_PORT}" ]; then PORTS="${PORTS} -p ${SSH_PORT}:2201"; fi
 if [ -n "${VNC_PORT}" ]; then PORTS="${PORTS} -p ${VNC_PORT}:5901"; fi
 if [ -n "${REGISTRY_PORT}" ]; then PORTS="${PORTS} -p ${REGISTRY_PORT}:5000"; fi
@@ -71,11 +80,17 @@ if [ -n "${REGISTRY_PORT}" ]; then PORTS="${PORTS} -p ${REGISTRY_PORT}:5000"; fi
 if [ -z "${BASE}" ]; then echo "Base image is not set. Use  '-b or --base' to set it."; exit 1; fi
 
 if [ "$COMMAND" == "provision" ] ; then
-  if [ -z "${TAG}" ]; then echo "Resultin build tag not set. Use  '-t or --tag' to set it."; exit 1; fi
+  if [ -z "${TAG}" ]; then echo "Resulting build tag not set. Use  '-t or --tag' to set it."; exit 1; fi
   if [ -z "${SCRIPTS}" ]; then echo "Provision script is not set. Use  '-s or --script' to set it."; exit 1; fi
+elif [ "$COMMAND" == "update" ] ; then
+  if [ -z "${TAG}" ]; then echo "Resulting build tag not set. Use  '-t or --tag' to set it."; exit 1; fi
 else
   if [ "$NODES" -lt "1" ]; then echo "The number of nodes must be greater or equal to 1."; exit 1 ; fi
 fi
+
+# Process optional qemu arguments
+if [ -n "${MEMORY}" ]; then MEMORY="--memory ${MEMORY}"; fi
+if [ -n "${QEMU_ARGS}" ]; then QEMU_ARGS="--qemu-args ${QEMU_ARGS}"; fi
 
 function finish() {
     set +e
@@ -92,11 +107,24 @@ else
   trap finish EXIT SIGINT SIGTERM SIGQUIT
 fi
 
+if [ "$COMMAND" = "update" ] ; then
+  script=$1
+  shift
+  if [ -z "${script}" ]; then echo "No script to update specified"; exit 1; fi
+  VM_CID=$(docker run -d --privileged --name ${PREFIX}node01 ${BASE} /bin/bash -c "sleep 100000")
+  CONTAINERS="${CONTAINERS} ${VM_CID}"
+  docker cp ${script} ${VM_CID}:/$(basename ${script})
+  docker exec ${VM_CID} /bin/bash -c "chmod u+x /$(basename ${script})"
+  docker stop ${VM_CID}
+  docker commit --change "ENV SCRIPT_UPDATE $(basename ${script})" ${VM_CID} ${TAG}
+  exit 0
+fi
+
 DNSMASQ_CID=$(docker run -d ${PORTS} -e NUM_NODES=${NODES} --name ${PREFIX}dnsmasq --privileged ${BASE} /bin/bash -c /dnsmasq.sh)
 CONTAINERS=${DNSMASQ_CID}
 
 if [ "$COMMAND" == "provision" ] ; then
-  VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}node01 ${BASE} /vm.sh --provision)
+  VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}node01 ${BASE} /vm.sh ${MEMORY} ${QEMU_ARGS})
   CONTAINERS="${CONTAINERS} ${VM_CID}"
   docker cp ${SCRIPTS} ${VM_CID}:/scripts
   docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
@@ -122,7 +150,7 @@ else
   # Start VMs      
   for i in $(seq 1 ${NODES}); do
     NODE_NUM="$(printf "%02d" ${i})"
-    VM_CID=$(docker run -d --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c /vm.sh)
+    VM_CID=$(docker run -d --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c /vm.sh ${MEMORY} ${QEMU_ARGS})
     CONTAINERS="${CONTAINERS} ${VM_CID}"
     docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
     if docker exec ${VM_CID} /bin/bash -c "test -f /scripts/node${NODE_NUM}.sh" ; then
@@ -130,7 +158,9 @@ else
     elif docker exec ${VM_CID} /bin/bash -c "test -f /scripts/nodes.sh" ; then
       docker exec ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < /scripts/nodes.sh"
     fi
-    docker wait ${VM_CID} &
+    if [ "$BACKGROUND" != "true" ]; then
+      docker wait ${VM_CID} &
+    fi
   done
   if [ "$BACKGROUND" = "true" ]; then
     exit 0
