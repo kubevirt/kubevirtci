@@ -123,7 +123,7 @@ DNSMASQ_CID=$(docker run -d ${PORTS} -e NUM_NODES=${NODES} --name ${PREFIX}dnsma
 CONTAINERS=${DNSMASQ_CID}
 
 if [ "$COMMAND" == "provision" ] ; then
-  VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}node01 ${BASE} /vm.sh ${MEMORY} ${QEMU_ARGS})
+  VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}node01 ${BASE} /bin/bash -c "/vm.sh ${MEMORY} ${QEMU_ARGS}")
   CONTAINERS="${CONTAINERS} ${VM_CID}"
   docker cp ${SCRIPTS} ${VM_CID}:/scripts
   docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
@@ -149,7 +149,7 @@ else
   # Start VMs      
   for i in $(seq 1 ${NODES}); do
     NODE_NUM="$(printf "%02d" ${i})"
-    VM_CID=$(docker run -d --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c /vm.sh ${MEMORY} ${QEMU_ARGS})
+    VM_CID=$(docker run -d --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c "/vm.sh ${MEMORY} ${QEMU_ARGS}")
     CONTAINERS="${CONTAINERS} ${VM_CID}"
     docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
     if docker exec ${VM_CID} /bin/bash -c "test -f /scripts/node${NODE_NUM}.sh" ; then
