@@ -4,11 +4,13 @@ set -e
 
 PROVISION=false
 MEMORY=3096M
+CPU=2
 QEMU_ARGS=""
 
 while true; do
   case "$1" in
     -m | --memory ) MEMORY="$2"; shift 2 ;;
+    -c | --cpu ) CPU="$2"; shift 2 ;;
     -q | --qemu-args ) QEMU_ARGS="$2"; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
@@ -75,4 +77,4 @@ echo "VM hostname will be node${n}"
 exec qemu-kvm -drive format=qcow2,file=${next}  \
   -device e1000,netdev=network0,mac=52:55:00:d1:55:${n} \
   -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
-  -vnc :${n} -enable-kvm -cpu host -m ${MEMORY} ${QEMU_ARGS}
+  -vnc :${n} -enable-kvm -cpu host -m ${MEMORY} -smp ${CPU} ${QEMU_ARGS}
