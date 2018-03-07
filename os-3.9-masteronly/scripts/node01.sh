@@ -1,5 +1,9 @@
 #!/bin/bash
 
-set -e
+set +e
 
-# Let's wait until oc can reach the cluster
+/usr/local/bin/oc get nodes
+while [ $? -ne 0 ]; do
+    sleep 5
+    /usr/local/bin/oc get nodes
+done
