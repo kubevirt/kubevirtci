@@ -12,7 +12,7 @@ yum install -y centos-release-openshift-origin
 yum install -y yum-utils ansible wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct docker
 
 sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
-sed -i "s#^OPTIONS='#OPTIONS='--insecure-registry registry:5000 #" /etc/sysconfig/docker
+echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json
 
 systemctl start docker
 systemctl enable docker
