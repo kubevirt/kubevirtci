@@ -17,10 +17,6 @@ sed -i "s#^OPTIONS='#OPTIONS='--insecure-registry registry:5000 #" /etc/sysconfi
 systemctl start docker
 systemctl enable docker
 
-# Set SELinux to permessive mode
-setenforce 0
-sed -i "s/^SELINUX=.*/SELINUX=permissive/" /etc/selinux/config
-
 # Allow connecting to ssh via password
 sed -i -e "s/PasswordAuthentication no/PasswordAuthentication yes/" /etc/ssh/sshd_config
 systemctl restart sshd
@@ -80,6 +76,10 @@ EOF
 # Run OpenShift ansible playbook
 ansible-playbook -e "ansible_user=root ansible_ssh_pass=vagrant" -i $inventory_file $openshift_ansible_dir/playbooks/prerequisites.yml
 ansible-playbook -i $inventory_file $openshift_ansible_dir/playbooks/deploy_cluster.yml
+
+# Set SELinux to permessive mode
+setenforce 0
+sed -i "s/^SELINUX=.*/SELINUX=permissive/" /etc/selinux/config
 
 # Create OpenShift user
 /usr/local/bin/oc create user admin
