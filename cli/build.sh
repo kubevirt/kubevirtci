@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build . -t rmohr/cli
+docker build . -t kubevirtci/cli
