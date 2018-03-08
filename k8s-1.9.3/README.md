@@ -5,13 +5,13 @@
 Running `cli` directly:
 
 ```bash
-cli provision --scripts /scripts --base rmohr/centos:1608_01 --tag rmohr/kubeadm-1.9.3
+cli provision --scripts /scripts --base kubevirtci/centos:1608_01 --tag kubevirtci/k8s-1.9.3
 ```
 
 Running `cli` from withing docker:
 
 ```bash
-docker run --privileged --rm -v ${PWD}/scripts/:/scripts/ -v /var/run/docker.sock:/var/run/docker.sock rmohr/cli provision --scripts /scripts --base rmohr/centos:1608_01 --tag rmohr/kubeadm-1.9.3
+docker run --privileged --rm -v ${PWD}/scripts/:/scripts/ -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/cli provision --scripts /scripts --base kubevirtci/centos:1608_01 --tag kubevirtci/k8s-1.9.3
 ```
 
 ## Run the cluster
@@ -21,13 +21,13 @@ The cluster is self contained.
 Running `cli` directly:
 
 ```bash
-cli run --nodes 2 --base rmohr/kubeadm-1.9.3
+cli run --nodes 2 --base kubevirtci/k8s-1.9.3
 ```
 
 Running `cli` from withing docker:
 
 ```bash
-docker run --privileged --rm -v /var/run/docker.sock:/var/run/docker.sock rmohr/cli:latest run --nodes 2 --base rmohr/kubeadm-1.9.3
+docker run --privileged --rm -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/cli:latest run --nodes 2 --base kubevirtci/k8s-1.9.3
 ```
 
 `--background` can be added to the `run` subcommand to exit the script after
@@ -43,7 +43,7 @@ can be accessed from within the VMs. The DNS name of the nfs server is `nfs`
 inside the the vms.
 
 ```bash
-docker run --privileged --rm -v /var/run/docker.sock:/var/run/docker.sock -v /nfs/data:/nfs/data rmohr/cli:latest run --nfs-data /nfs/data --nodes 2 --base rmohr/kubeadm-1.9.3
+docker run --privileged --rm -v /var/run/docker.sock:/var/run/docker.sock -v /nfs/data:/nfs/data kubevirtci/cli:latest run --nfs-data /nfs/data --nodes 2 --base kubevirtci/k8s-1.9.3
 ```
 
 Within the vm it can be mounted via
@@ -65,7 +65,7 @@ cli ssh node01
 Running `cli` from withing docker:
 
 ```bash
-docker run --privileged --rm -it -v /var/run/docker.sock:/var/run/docker.sock rmohr/cli:latest ssh node01 
+docker run --privileged --rm -it -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/cli:latest ssh node01 
 ```
 ## Stopping the cluster
 
@@ -78,7 +78,7 @@ cli rm
 Running `cli` from withing docker:
 
 ```bash
-docker run --privileged -it -v /var/run/docker.sock:/var/run/docker.sock rmohr/cli:latest rm 
+docker run --privileged -it -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/cli:latest rm 
 ```
 
 
