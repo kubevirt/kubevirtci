@@ -34,6 +34,26 @@ docker run --privileged --rm -v /var/run/docker.sock:/var/run/docker.sock rmohr/
 the initial provisioning of all vms is done. If an error occures during the
 initialization, the whole cluster is toren down.
 
+## Expsosing host data via NFS
+
+In order to share huge files (e.g. images which are only present on CI),
+sharing via NFS is possible. If a directory is added via `--nfs-data` when
+invoking the `run` subcommend, an additional nfs server is started and the data
+can be accessed from within the VMs. The DNS name of the nfs server is `nfs`
+inside the the vms.
+
+```bash
+docker run --privileged --rm -v /var/run/docker.sock:/var/run/docker.sock -v /nfs/data:/nfs/data rmohr/cli:latest run --nfs-data /nfs/data --nodes 2 --base rmohr/kubeadm-1.9.3
+```
+
+Within the vm it can be mounted via
+
+```bash
+sudo mount -t nfs4 nfs:/ /mnt/nfs
+```
+
+It is also very conveninent to share this data via PVs with pods this way.
+
 ## SSH into a running machine
 
 Running `cli` directly:
@@ -60,6 +80,7 @@ Running `cli` from withing docker:
 ```bash
 docker run --privileged -it -v /var/run/docker.sock:/var/run/docker.sock rmohr/cli:latest rm 
 ```
+
 
 ## Parallel execution
 

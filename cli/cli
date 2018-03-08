@@ -10,6 +10,7 @@ MEMORY=""
 CPU=""
 QEMU_ARGS=""
 BACKGROUND=""
+NFS_DATA=""
 
 COMMAND=$1
 shift
@@ -39,6 +40,7 @@ while true; do
     --osp-port ) OSP_PORT="$2"; shift 2 ;;
     --ssh-port ) SSH_PORT="$2"; shift 2 ;;
     --vnc-port ) VNC_PORT="$2"; shift 2 ;;
+    --nfs-data ) NFS_DATA="$2"; shift 2 ;;
     --registry-port ) REGISTRY_PORT="$2"; shift 2 ;;
     --registry-volume ) REGISTRY_VOLUME="$2"; shift 2 ;;
     -- ) shift; break ;;
@@ -125,6 +127,7 @@ fi
 DNSMASQ_CID=$(docker run -d ${PORTS} -e NUM_NODES=${NODES} --name ${PREFIX}dnsmasq --privileged ${BASE} /bin/bash -c /dnsmasq.sh)
 CONTAINERS=${DNSMASQ_CID}
 
+
 if [ "$COMMAND" == "provision" ] ; then
   VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}node01 ${BASE} /bin/bash -c "/vm.sh ${MEMORY} ${CPU} ${QEMU_ARGS}")
   CONTAINERS="${CONTAINERS} ${VM_CID}"
@@ -146,8 +149,18 @@ else
   REGISTRY_CID=$(docker run -d --net=container:${DNSMASQ_CID} --name ${PREFIX}registry ${REGISTRY_VOLUME} registry:2)
   CONTAINERS="${CONTAINERS} ${REGISTRY_CID}"
 
+  if [ -n "${NFS_DATA}" ]; then
+    if [[ "$DIR" != /* ]]; then
+      NFS_DATA=${PWD}/${NFS_DATA}
+    fi
+    NFS_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}nfs-ganesha -v ${NFS_DATA}:/data/nfs  janeczku/nfs-ganesha:latest)
+    CONTAINERS="${CONTAINERS} ${NFS_CID}"
+
+  # Let dnsmasq learn the nfs name
+  docker exec ${DNSMASQ_CID} /bin/bash -c 'echo 192.168.66.2 nfs >> /etc/hosts && kill -1 1'
+  fi
   # Let dnsmasq learn the registry dns name
-  docker exec ${DNSMASQ_CID} /bin/bash -c 'echo 192.168.66.2 registry > /etc/hosts && kill -1 1'
+  docker exec ${DNSMASQ_CID} /bin/bash -c 'echo 192.168.66.2 registry >> /etc/hosts && kill -1 1'
 
   # Start VMs      
   for i in $(seq 1 ${NODES}); do
