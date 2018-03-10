@@ -74,6 +74,11 @@ echo "VM MAC in the guest network will be 52:55:00:d1:55:${n}"
 echo "VM IP in the guest network will be 192.168.66.1${n}"
 echo "VM hostname will be node${n}"
 
+# Try to create /dev/kvm if it does not exist
+if [ ! -e /dev/kvm ]; then
+   mknod /dev/kvm c 10 $(grep '\<kvm\>' /proc/misc | cut -f 1 -d' ')
+fi
+
 exec qemu-kvm -drive format=qcow2,file=${next}  \
   -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
   -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
