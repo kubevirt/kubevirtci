@@ -75,6 +75,6 @@ echo "VM IP in the guest network will be 192.168.66.1${n}"
 echo "VM hostname will be node${n}"
 
 exec qemu-kvm -drive format=qcow2,file=${next}  \
-  -device e1000,netdev=network0,mac=52:55:00:d1:55:${n} \
+  -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
   -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
   -vnc :${n} -enable-kvm -cpu host -m ${MEMORY} -smp ${CPU} ${QEMU_ARGS}
