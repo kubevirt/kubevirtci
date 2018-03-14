@@ -171,9 +171,15 @@ else
    _seq="seq 1 ${NODES}"
   fi
 
+  DOCKER_STORAGE=$(docker system info | grep -i "Storage Driver:" | cut -d' ' -f 3)
+
   for i in $(${_seq}); do
     NODE_NUM="$(printf "%02d" ${i})"
-    VM_CID=$(docker run -d --storage-opt size=20G --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c "/vm.sh ${MEMORY} ${CPU} ${QEMU_ARGS}")
+    DOCKER_RUN="docker run -d"
+    if [ ${DOCKER_STORAGE} = "devicemapper" ]; then
+        DOCKER_RUN="$DOCKER_RUN --storage-opt size=20G"
+    fi
+    VM_CID=$($DOCKER_RUN --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c "/vm.sh ${MEMORY} ${CPU} ${QEMU_ARGS}")
     CONTAINERS="${CONTAINERS} ${VM_CID}"
     docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
     if docker exec ${VM_CID} /bin/bash -c "test -f /scripts/node${NODE_NUM}.sh" ; then
