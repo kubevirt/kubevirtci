@@ -11,6 +11,7 @@ CPU=""
 QEMU_ARGS=""
 BACKGROUND=""
 NFS_DATA=""
+REVERSE=""
 
 COMMAND=$1
 shift
@@ -34,6 +35,7 @@ while true; do
     -m | --memory ) MEMORY="$2"; shift 2 ;;
     -c | --cpu ) CPU="$2"; shift 2 ;;
     -q | --qemu-args ) QEMU_ARGS="$2"; shift 2 ;;
+    -r | --reverse ) REVERSE="true"; shift ;;
     --background ) BACKGROUND="true"; shift ;;
     -b | --base ) BASE="$2"; shift 2 ;;
     --k8s-port ) K8S_PORT="$2"; shift 2 ;;
@@ -131,7 +133,7 @@ CONTAINERS=${DNSMASQ_CID}
 if [ "$COMMAND" == "provision" ] ; then
   VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}node01 ${BASE} /bin/bash -c "/vm.sh ${MEMORY} ${CPU} ${QEMU_ARGS}")
   CONTAINERS="${CONTAINERS} ${VM_CID}"
-  docker cp ${SCRIPTS} ${VM_CID}:/scripts
+  docker cp ${SCRIPTS}/. ${VM_CID}:/scripts/
   docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
   docker exec ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < /scripts/provision.sh"
   docker exec ${VM_CID} ssh.sh "sudo shutdown -h"
@@ -162,8 +164,14 @@ else
   # Let dnsmasq learn the registry dns name
   docker exec ${DNSMASQ_CID} /bin/bash -c 'echo 192.168.66.2 registry >> /etc/hosts && kill -1 1'
 
-  # Start VMs      
-  for i in $(seq 1 ${NODES}); do
+  # Start VMs
+  if [ "${REVERSE}" = "true" ]; then
+   _seq="seq ${NODES} -1 1"
+  else
+   _seq="seq 1 ${NODES}"
+  fi
+
+  for i in $(${_seq}); do
     NODE_NUM="$(printf "%02d" ${i})"
     VM_CID=$(docker run -d --storage-opt size=20G --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c "/vm.sh ${MEMORY} ${CPU} ${QEMU_ARGS}")
     CONTAINERS="${CONTAINERS} ${VM_CID}"

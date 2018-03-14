@@ -16,12 +16,6 @@ for i in $(seq 1 ${NUM_NODES}); do
   DHCP_HOSTS="${DHCP_HOSTS} --dhcp-host=52:55:00:d1:55:${n},192.168.66.1${n},node${n},infinite"
 done
 
-if [ ! -e /dev/kvm ]; then
-   set +e
-   mknod /dev/kvm c 10 $(grep '\<kvm\>' /proc/misc | cut -f 1 -d' ')
-   set -e
-fi
-
 # Make sure that all VMs can reach the internet
 iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
