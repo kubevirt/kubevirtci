@@ -1,4 +1,4 @@
-FROM kubevirtci/base@sha256:840774a6731c52753dddafbcc69b51c25b891ec9622d4ee4ab73686b0c9dece1
+FROM kubevirtci/base@sha256:ab10913d74e7f157b9c18e4a270f707fc1ce9006a96448f97677b91ea36471a5
 
 ENV CENTOS_URL http://cloud.centos.org/centos/7/vagrant/x86_64/images/CentOS-7-x86_64-Vagrant-1802_01.Libvirt.box
 
