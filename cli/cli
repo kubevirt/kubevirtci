@@ -12,6 +12,7 @@ QEMU_ARGS=""
 BACKGROUND=""
 NFS_DATA=""
 REVERSE=""
+RANDOM_PORTS=""
 
 COMMAND=$1
 shift
@@ -21,6 +22,7 @@ if [[    "${COMMAND}" != "run" \
      && "${COMMAND}" != "ssh" \
      && "${COMMAND}" != "ps" \
      && "${COMMAND}" != "update" \
+     && "${COMMAND}" != "port" \
      && "${COMMAND}" != "rm" ]]; then
         echo "No valid command provides. Valid commands  are 'run', 'provision', 'ssh' and 'rm'."
         exit 1
@@ -42,6 +44,7 @@ while true; do
     --osp-port ) OSP_PORT="$2"; shift 2 ;;
     --ssh-port ) SSH_PORT="$2"; shift 2 ;;
     --vnc-port ) VNC_PORT="$2"; shift 2 ;;
+    --random-ports ) RANDOM_PORTS="true"; shift 1 ;;
     --nfs-data ) NFS_DATA="$2"; shift 2 ;;
     --registry-port ) REGISTRY_PORT="$2"; shift 2 ;;
     --registry-volume ) REGISTRY_VOLUME="$2"; shift 2 ;;
@@ -49,6 +52,29 @@ while true; do
     * ) break ;;
   esac
 done
+
+if [ "$COMMAND" = "port" ] ; then
+  dnsmasq_container="$(docker ps --filter="name=${PREFIX}dnsmasq" -q)"
+
+  if [ "$1" = "k8s" ]; then
+    docker port $dnsmasq_container 6443 | cut -d':' -f2
+    exit
+  fi
+  if [ "$1" = "osp" ]; then
+    docker port $dnsmasq_container 8443 | cut -d':' -f2
+    exit
+  fi
+  if [ "$1" = "ssh" ]; then
+    docker port $dnsmasq_container 2201 | cut -d':' -f2
+    exit
+  fi
+  if [ "$1" = "registry" ]; then
+    docker port $dnsmasq_container 5000 | cut -d':' -f2
+    exit
+  fi
+  docker port $dnsmasq_container
+  exit
+fi
 
 if [ "$COMMAND" = "rm" ] ; then
   running_containers="$(docker ps --filter="name=${PREFIX}" -q)"
@@ -76,11 +102,15 @@ if [ "$COMMAND" = "ssh" ] ; then
 fi
 
 PORTS=""
-if [ -n "${K8S_PORT}" ]; then PORTS="${PORTS} -p ${K8S_PORT}:6443"; fi
-if [ -n "${OSP_PORT}" ]; then PORTS="${PORTS} -p ${OSP_PORT}:8443"; fi
-if [ -n "${SSH_PORT}" ]; then PORTS="${PORTS} -p ${SSH_PORT}:2201"; fi
-if [ -n "${VNC_PORT}" ]; then PORTS="${PORTS} -p ${VNC_PORT}:5901"; fi
-if [ -n "${REGISTRY_PORT}" ]; then PORTS="${PORTS} -p ${REGISTRY_PORT}:5000"; fi
+if [ "$RANDOM_PORTS" != "true" ]; then
+  if [ -n "${K8S_PORT}" ]; then PORTS="${PORTS} -p ${K8S_PORT}:6443"; fi
+  if [ -n "${OSP_PORT}" ]; then PORTS="${PORTS} -p ${OSP_PORT}:8443"; fi
+  if [ -n "${SSH_PORT}" ]; then PORTS="${PORTS} -p ${SSH_PORT}:2201"; fi
+  if [ -n "${VNC_PORT}" ]; then PORTS="${PORTS} -p ${VNC_PORT}:5901"; fi
+  if [ -n "${REGISTRY_PORT}" ]; then PORTS="${PORTS} -p ${REGISTRY_PORT}:5000"; fi
+else
+  PORTS="--expose 6443 --expose 8443 --expose 2201 --expose 5901 --expose 5000 -P"
+fi
 
 if [ -z "${BASE}" ]; then echo "Base image is not set. Use  '-b or --base' to set it."; exit 1; fi
 
