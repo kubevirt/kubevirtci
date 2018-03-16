@@ -149,8 +149,13 @@ if [ "$COMMAND" = "update" ] ; then
   if [ -z "${script}" ]; then echo "No script to update specified"; exit 1; fi
   VM_CID=$(docker run -d --privileged --name ${PREFIX}node01 ${BASE} /bin/bash -c "sleep 100000")
   CONTAINERS="${CONTAINERS} ${VM_CID}"
-  docker cp ${script} ${VM_CID}:/$(basename ${script})
-  docker exec ${VM_CID} /bin/bash -c "chmod u+x /$(basename ${script})"
+  if [[ ${script} = *":"* ]]; then
+    script=(${script//:/ })
+    docker cp ${script[0]} ${VM_CID}:/${script[1]}
+  else
+    docker cp ${script} ${VM_CID}:/$(basename ${script})
+    docker exec ${VM_CID} /bin/bash -c "chmod u+x /$(basename ${script})"
+  fi
   docker stop ${VM_CID}
   docker commit --change "ENV SCRIPT_UPDATE $(basename ${script})" ${VM_CID} ${TAG}
   exit 0
