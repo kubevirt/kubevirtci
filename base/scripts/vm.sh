@@ -6,12 +6,14 @@ PROVISION=false
 MEMORY=3096M
 CPU=2
 QEMU_ARGS=""
+NEXT_DISK=""
 
 while true; do
   case "$1" in
     -m | --memory ) MEMORY="$2"; shift 2 ;;
     -c | --cpu ) CPU="$2"; shift 2 ;;
     -q | --qemu-args ) QEMU_ARGS="$2"; shift 2 ;;
+    -n | --next-disk ) NEXT_DISK="$2"; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -21,11 +23,12 @@ function calc_next_disk {
   last="$(ls -t disk* | head -1 | sed -e 's/disk//' -e 's/.qcow2//')"
   last="${last:-00}"
   next=$((last+1))
-  next=$(printf "disk%02d.qcow2" $next)
+  next=$(printf "/disk%02d.qcow2" $next)
+  if [ -n "$NEXT_DISK" ]; then next=${NEXT_DISK}; fi
   if [ "$last" = "00" ]; then
     last="box.qcow2"
   else
-    last=$(printf "disk%02d.qcow2" $last)
+    last=$(printf "/disk%02d.qcow2" $last)
   fi
 }
 
@@ -79,7 +82,7 @@ if [ ! -e /dev/kvm ]; then
    mknod /dev/kvm c 10 $(grep '\<kvm\>' /proc/misc | cut -f 1 -d' ')
 fi
 
-exec qemu-kvm -drive format=qcow2,file=${next}  \
+exec qemu-system-x86_64 -machine accel=kvm -machine pc-i440fx-2.9,accel=kvm,usb=off,dump-guest-core=off -drive format=qcow2,file=${next},if=virtio,cache=none  \
   -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
   -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
-  -vnc :${n} -enable-kvm -cpu host -m ${MEMORY} -smp ${CPU} ${QEMU_ARGS}
+  -vnc :${n} -cpu host -m ${MEMORY} -smp ${CPU} ${QEMU_ARGS}

@@ -79,11 +79,15 @@ fi
 if [ "$COMMAND" = "rm" ] ; then
   running_containers="$(docker ps --filter="name=${PREFIX}" -q)"
   all_containers="$(docker ps -a --filter="name=${PREFIX}" -q)"
+  volumes="$(docker volume ls | tr -s ' ' | grep ${PREFIX} | cut -d' ' -f2)"
   if [ -n "${running_containers}" ]; then
     docker stop ${running_containers}
   fi
   if [ -n "${all_containers}" ]; then
-    docker rm  ${all_containers}
+    docker rm ${all_containers}
+  fi
+  if [ -n "${volumes}" ]; then
+    docker volume rm ${volumes}
   fi
   exit 0
 fi
@@ -133,6 +137,9 @@ function finish() {
     for id in ${CONTAINERS}; do
       docker stop ${id}
       docker rm ${id}
+    done
+    for vol in ${VOLUMES}; do
+      docker volume rm ${vol}
     done
     set -e
 }
@@ -210,11 +217,14 @@ else
 
   for i in $(${_seq}); do
     NODE_NUM="$(printf "%02d" ${i})"
-    DOCKER_RUN="docker run -d"
-    if [ ${DOCKER_STORAGE} = "devicemapper" ]; then
-        DOCKER_RUN="$DOCKER_RUN --storage-opt size=20G"
-    fi
-    VM_CID=$($DOCKER_RUN --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c "/vm.sh ${MEMORY} ${CPU} ${QEMU_ARGS}")
+
+    vol=${PREFIX}node${NODE_NUM}
+    docker volume create --name ${vol}
+    VOLUMES="${VOLUMES} ${vol}"
+
+    vol="-v ${vol}:/var/run/disk/"
+
+    VM_CID=$(docker run -d --privileged -e NODE_NUM=${NODE_NUM} ${vol} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c "/vm.sh -n /var/run/disk/disk.qcow2 ${MEMORY} ${CPU} ${QEMU_ARGS}")
     CONTAINERS="${CONTAINERS} ${VM_CID}"
     docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
     if docker exec ${VM_CID} /bin/bash -c "test -f /scripts/node${NODE_NUM}.sh" ; then
