@@ -8,7 +8,7 @@ kind: MasterConfiguration
 apiServerExtraArgs:
   runtime-config: admissionregistration.k8s.io/v1alpha1
 token: abcdef.1234567890123456
-kubernetes-version: v1.9.3
+kubernetesVersion: v1.9.3
 networking:
   podSubnet: 10.244.0.0/16
 EOF

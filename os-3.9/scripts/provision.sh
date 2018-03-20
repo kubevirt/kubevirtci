@@ -9,7 +9,7 @@ yum -y install iscsi-initiator-utils
 
 # Install OpenShift packages
 yum install -y centos-release-openshift-origin
-yum install -y yum-utils ansible wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct docker
+yum install -y yum-utils ansible wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct docker-1.12.6-71.git3e8e77d.el7.centos
 
 sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
 echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json

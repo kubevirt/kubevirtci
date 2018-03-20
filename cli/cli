@@ -12,6 +12,7 @@ QEMU_ARGS=""
 BACKGROUND=""
 NFS_DATA=""
 REVERSE=""
+RANDOM_PORTS=""
 
 COMMAND=$1
 shift
@@ -21,6 +22,7 @@ if [[    "${COMMAND}" != "run" \
      && "${COMMAND}" != "ssh" \
      && "${COMMAND}" != "ps" \
      && "${COMMAND}" != "update" \
+     && "${COMMAND}" != "port" \
      && "${COMMAND}" != "rm" ]]; then
         echo "No valid command provides. Valid commands  are 'run', 'provision', 'ssh' and 'rm'."
         exit 1
@@ -42,6 +44,7 @@ while true; do
     --osp-port ) OSP_PORT="$2"; shift 2 ;;
     --ssh-port ) SSH_PORT="$2"; shift 2 ;;
     --vnc-port ) VNC_PORT="$2"; shift 2 ;;
+    --random-ports ) RANDOM_PORTS="true"; shift 1 ;;
     --nfs-data ) NFS_DATA="$2"; shift 2 ;;
     --registry-port ) REGISTRY_PORT="$2"; shift 2 ;;
     --registry-volume ) REGISTRY_VOLUME="$2"; shift 2 ;;
@@ -50,14 +53,41 @@ while true; do
   esac
 done
 
+if [ "$COMMAND" = "port" ] ; then
+  dnsmasq_container="$(docker ps --filter="name=${PREFIX}dnsmasq" -q)"
+
+  if [ "$1" = "k8s" ]; then
+    docker port $dnsmasq_container 6443 | cut -d':' -f2
+    exit
+  fi
+  if [ "$1" = "osp" ]; then
+    docker port $dnsmasq_container 8443 | cut -d':' -f2
+    exit
+  fi
+  if [ "$1" = "ssh" ]; then
+    docker port $dnsmasq_container 2201 | cut -d':' -f2
+    exit
+  fi
+  if [ "$1" = "registry" ]; then
+    docker port $dnsmasq_container 5000 | cut -d':' -f2
+    exit
+  fi
+  docker port $dnsmasq_container
+  exit
+fi
+
 if [ "$COMMAND" = "rm" ] ; then
   running_containers="$(docker ps --filter="name=${PREFIX}" -q)"
   all_containers="$(docker ps -a --filter="name=${PREFIX}" -q)"
+  volumes="$(docker volume ls | tr -s ' ' | grep ${PREFIX} | cut -d' ' -f2)"
   if [ -n "${running_containers}" ]; then
     docker stop ${running_containers}
   fi
   if [ -n "${all_containers}" ]; then
-    docker rm  ${all_containers}
+    docker rm ${all_containers}
+  fi
+  if [ -n "${volumes}" ]; then
+    docker volume rm ${volumes}
   fi
   exit 0
 fi
@@ -76,11 +106,15 @@ if [ "$COMMAND" = "ssh" ] ; then
 fi
 
 PORTS=""
-if [ -n "${K8S_PORT}" ]; then PORTS="${PORTS} -p ${K8S_PORT}:6443"; fi
-if [ -n "${OSP_PORT}" ]; then PORTS="${PORTS} -p ${OSP_PORT}:8443"; fi
-if [ -n "${SSH_PORT}" ]; then PORTS="${PORTS} -p ${SSH_PORT}:2201"; fi
-if [ -n "${VNC_PORT}" ]; then PORTS="${PORTS} -p ${VNC_PORT}:5901"; fi
-if [ -n "${REGISTRY_PORT}" ]; then PORTS="${PORTS} -p ${REGISTRY_PORT}:5000"; fi
+if [ "$RANDOM_PORTS" != "true" ]; then
+  if [ -n "${K8S_PORT}" ]; then PORTS="${PORTS} -p ${K8S_PORT}:6443"; fi
+  if [ -n "${OSP_PORT}" ]; then PORTS="${PORTS} -p ${OSP_PORT}:8443"; fi
+  if [ -n "${SSH_PORT}" ]; then PORTS="${PORTS} -p ${SSH_PORT}:2201"; fi
+  if [ -n "${VNC_PORT}" ]; then PORTS="${PORTS} -p ${VNC_PORT}:5901"; fi
+  if [ -n "${REGISTRY_PORT}" ]; then PORTS="${PORTS} -p ${REGISTRY_PORT}:5000"; fi
+else
+  PORTS="--expose 6443 --expose 8443 --expose 2201 --expose 5901 --expose 5000 -P"
+fi
 
 if [ -z "${BASE}" ]; then echo "Base image is not set. Use  '-b or --base' to set it."; exit 1; fi
 
@@ -104,6 +138,9 @@ function finish() {
       docker stop ${id}
       docker rm ${id}
     done
+    for vol in ${VOLUMES}; do
+      docker volume rm ${vol}
+    done
     set -e
 }
 
@@ -119,8 +156,13 @@ if [ "$COMMAND" = "update" ] ; then
   if [ -z "${script}" ]; then echo "No script to update specified"; exit 1; fi
   VM_CID=$(docker run -d --privileged --name ${PREFIX}node01 ${BASE} /bin/bash -c "sleep 100000")
   CONTAINERS="${CONTAINERS} ${VM_CID}"
-  docker cp ${script} ${VM_CID}:/$(basename ${script})
-  docker exec ${VM_CID} /bin/bash -c "chmod u+x /$(basename ${script})"
+  if [[ ${script} = *":"* ]]; then
+    script=(${script//:/ })
+    docker cp ${script[0]} ${VM_CID}:/${script[1]}
+  else
+    docker cp ${script} ${VM_CID}:/$(basename ${script})
+    docker exec ${VM_CID} /bin/bash -c "chmod u+x /$(basename ${script})"
+  fi
   docker stop ${VM_CID}
   docker commit --change "ENV SCRIPT_UPDATE $(basename ${script})" ${VM_CID} ${TAG}
   exit 0
@@ -175,11 +217,14 @@ else
 
   for i in $(${_seq}); do
     NODE_NUM="$(printf "%02d" ${i})"
-    DOCKER_RUN="docker run -d"
-    if [ ${DOCKER_STORAGE} = "devicemapper" ]; then
-        DOCKER_RUN="$DOCKER_RUN --storage-opt size=20G"
-    fi
-    VM_CID=$($DOCKER_RUN --privileged -e NODE_NUM=${NODE_NUM} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c "/vm.sh ${MEMORY} ${CPU} ${QEMU_ARGS}")
+
+    vol=${PREFIX}node${NODE_NUM}
+    docker volume create --name ${vol}
+    VOLUMES="${VOLUMES} ${vol}"
+
+    vol="-v ${vol}:/var/run/disk/"
+
+    VM_CID=$(docker run -d --privileged -e NODE_NUM=${NODE_NUM} ${vol} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c "/vm.sh -n /var/run/disk/disk.qcow2 ${MEMORY} ${CPU} ${QEMU_ARGS}")
     CONTAINERS="${CONTAINERS} ${VM_CID}"
     docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
     if docker exec ${VM_CID} /bin/bash -c "test -f /scripts/node${NODE_NUM}.sh" ; then
