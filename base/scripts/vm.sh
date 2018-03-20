@@ -82,7 +82,8 @@ if [ ! -e /dev/kvm ]; then
    mknod /dev/kvm c 10 $(grep '\<kvm\>' /proc/misc | cut -f 1 -d' ')
 fi
 
-exec qemu-system-x86_64 -machine accel=kvm -machine pc-i440fx-2.9,accel=kvm,usb=off,dump-guest-core=off -drive format=qcow2,file=${next},if=virtio,cache=none  \
+exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=unsafe \
   -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
   -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
+  -device virtio-rng-pci \
   -vnc :${n} -cpu host -m ${MEMORY} -smp ${CPU} ${QEMU_ARGS}

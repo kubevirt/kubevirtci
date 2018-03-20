@@ -28,7 +28,7 @@ repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
-yum install -y docker
+yum install -y docker-1.12.6-71.git3e8e77d.el7.centos
 
 # Log to json files instead of journald
 sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
