@@ -24,7 +24,7 @@ for i in $(seq 2 100); do
   node=$(printf "node%02d" ${i})
   num=$(printf "%02d" ${i})
   set +e
-  ping -4 ${node} -c 1 
+  ping ${node} -c 1
   if [ $? -ne 0 ]; then
       break
   fi
