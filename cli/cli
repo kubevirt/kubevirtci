@@ -80,6 +80,7 @@ if [ "$COMMAND" = "rm" ] ; then
   running_containers="$(docker ps --filter="name=${PREFIX}" -q)"
   all_containers="$(docker ps -a --filter="name=${PREFIX}" -q)"
   volumes="$(docker volume ls | tr -s ' ' | grep ${PREFIX} | cut -d' ' -f2)"
+  set +e
   if [ -n "${running_containers}" ]; then
     docker stop ${running_containers}
   fi
