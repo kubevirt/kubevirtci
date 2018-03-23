@@ -85,10 +85,10 @@ if [ "$COMMAND" = "rm" ] ; then
     docker stop ${running_containers}
   fi
   if [ -n "${all_containers}" ]; then
-    docker rm ${all_containers}
+    docker rm -f ${all_containers}
   fi
   if [ -n "${volumes}" ]; then
-    docker volume rm ${volumes}
+    docker volume rm -f ${volumes}
   fi
   exit 0
 fi
@@ -137,10 +137,10 @@ function finish() {
     set +e
     for id in ${CONTAINERS}; do
       docker stop ${id}
-      docker rm ${id}
+      docker rm -f ${id}
     done
     for vol in ${VOLUMES}; do
-      docker volume rm ${vol}
+      docker volume rm -f ${vol}
     done
     set -e
 }
