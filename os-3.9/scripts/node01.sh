@@ -12,6 +12,9 @@ set -e
 # Update DHCP lease, will also update DNS servers
 dhclient
 
+# Add first node record to SkyDNS dnsmasq
+echo "host-record=node01,192.168.66.101" >> /etc/dnsmasq.d/node-dnsmasq.conf
+
 openshift_ansible_dir="/root/openshift-ansible"
 inventory_file="/root/inventory"
 
@@ -30,11 +33,20 @@ for i in $(seq 2 100); do
   fi
   nodes_found="true"
   set -e
+  # Add additional node record to SkyDNS dnsmasq
+  echo "host-record=${node},192.168.66.1${num}" >> /etc/dnsmasq.d/node-dnsmasq.conf
   echo "Found ${node}. Adding it to the inventory."
   echo "${node} openshift_node_labels=\"{'region': 'infra','zone': 'default'}\" openshift_schedulable=true openshift_ip=192.168.66.1${num}" >> $inventory_file
-done 
+done
+
+# Preserve node-dnsmasq.conf
+cp /etc/dnsmasq.d/node-dnsmasq.conf /tmp/node-dnsmasq.conf.backup
 
 # Run playbook if extra nodes were discovered
 if [ "$nodes_found" = "true"  ]; then
   ansible-playbook -i $inventory_file $openshift_ansible_dir/playbooks/openshift-node/scaleup.yml
 fi
+
+# Restart dnsmasq to apply new records
+mv /tmp/node-dnsmasq.conf.backup /etc/dnsmasq.d/node-dnsmasq.conf
+systemctl restart dnsmasq
