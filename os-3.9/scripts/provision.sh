@@ -11,6 +11,14 @@ yum -y install iscsi-initiator-utils
 yum install -y centos-release-openshift-origin
 yum install -y yum-utils ansible wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct docker-1.12.6-71.git3e8e77d.el7.centos
 
+# Disable spectre and meltdown patches
+sed -i 's/quiet"/quiet spectre_v2=off nopti"/' /etc/default/grub
+grub2-mkconfig -o /boot/grub2/grub.cfg
+
+echo 0 > /sys/kernel/debug/x86/pti_enabled
+echo 0 > /sys/kernel/debug/x86/ibpb_enabled
+echo 0 > /sys/kernel/debug/x86/ibrs_enabled
+
 sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
 echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json
 

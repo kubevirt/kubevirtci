@@ -9,6 +9,14 @@ sed -i "s/^SELINUX=.*/SELINUX=permissive/" /etc/selinux/config
 swapoff -a
 sed -i '/ swap / s/^/#/' /etc/fstab
 
+# Disable spectre and meltdown patches
+sed -i 's/quiet"/quiet spectre_v2=off nopti"/' /etc/default/grub
+grub2-mkconfig -o /boot/grub2/grub.cfg
+
+echo 0 > /sys/kernel/debug/x86/pti_enabled
+echo 0 > /sys/kernel/debug/x86/ibpb_enabled
+echo 0 > /sys/kernel/debug/x86/ibrs_enabled
+
 systemctl stop firewalld NetworkManager || :
 systemctl disable firewalld NetworkManager || :
 # Make sure the firewall is never enabled again
