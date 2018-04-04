@@ -50,7 +50,7 @@ until ip link show tap${n}; do
 done
 
 # Route SSH
-iptables -t nat -A POSTROUTING --out-interface br0 -j MASQUERADE
+iptables -t nat -A POSTROUTING ! -s 192.168.66.0/16 --out-interface br0 -j MASQUERADE
 iptables -A FORWARD --in-interface eth0 -j ACCEPT
 iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport 22${n} -j DNAT --to-destination 192.168.66.1${n}:22
 
