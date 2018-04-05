@@ -45,6 +45,15 @@ cp /etc/dnsmasq.d/node-dnsmasq.conf /tmp/node-dnsmasq.conf.backup
 # Run playbook if extra nodes were discovered
 if [ "$nodes_found" = "true"  ]; then
   ansible-playbook -i $inventory_file $openshift_ansible_dir/playbooks/openshift-node/scaleup.yml
+  cat >restart_openvswitch <<EOF
+- hosts: new_nodes
+  tasks:
+    - name: Restart openvswitch service
+      service:
+        name: openvswitch
+        state: restarted
+EOF
+  ansible-playbook -i $inventory_file restart_openvswitch
 fi
 
 # Restart dnsmasq to apply new records
