@@ -86,10 +86,6 @@ EOF
 ansible-playbook -e "ansible_user=root ansible_ssh_pass=vagrant" -i $inventory_file $openshift_ansible_dir/playbooks/prerequisites.yml
 ansible-playbook -i $inventory_file $openshift_ansible_dir/playbooks/deploy_cluster.yml
 
-# Set SELinux to permessive mode
-setenforce 0
-sed -i "s/^SELINUX=.*/SELINUX=permissive/" /etc/selinux/config
-
 # Create OpenShift user
 /usr/local/bin/oc create user admin
 /usr/local/bin/oc create identity allow_all_auth:admin
