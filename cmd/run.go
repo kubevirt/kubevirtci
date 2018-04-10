@@ -25,11 +25,11 @@ func NewRunCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 	}
 	run.Flags().UintP("nodes", "n", 1, "number of cluster nodes to start")
-	run.Flags().StringP("memory", "m", "3096M", "amount of ram per nodeName")
-	run.Flags().UintP("cpu", "c", 2, "number of cpu cores per nodeName")
+	run.Flags().StringP("memory", "m", "3096M", "amount of ram per node")
+	run.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
 	run.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	run.Flags().BoolP("background", "b", false, "go to background after nodes are up")
-	run.Flags().BoolP("reverse", "r", false, "revert nodeName startup order")
+	run.Flags().BoolP("reverse", "r", false, "revert node startup order")
 	run.Flags().String("registry-volume", "", "cache docker registry content in the specified volume")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	return run
@@ -48,6 +48,11 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	memory, err := cmd.Flags().GetString("memory")
+	if err != nil {
+		return err
+	}
+
+	reverse, err := cmd.Flags().GetBool("reverse")
 	if err != nil {
 		return err
 	}
@@ -136,8 +141,16 @@ func run(cmd *cobra.Command, args []string) error {
 
 	// start one vm after each other
 	for x := 0; x < int(nodes); x++ {
+
+		nodeName := nodeNameFromIndex(x+1)
+		nodeNum := fmt.Sprintf("%02d", x+1)
+		if reverse {
+			nodeName = nodeNameFromIndex((int(nodes) - x))
+			nodeNum = fmt.Sprintf("%02d", (int(nodes) - x))
+		}
+
 		vol, err := cli.VolumeCreate(ctx, volume.VolumesCreateBody{
-			Name: fmt.Sprintf("%s-%s", prefix, nodeName(x+1)),
+			Name: fmt.Sprintf("%s-%s", prefix, nodeName),
 		})
 		if err != nil {
 			return err
@@ -146,7 +159,7 @@ func run(cmd *cobra.Command, args []string) error {
 		node, err := cli.ContainerCreate(ctx, &container.Config{
 			Image: cluster,
 			Env: []string{
-				fmt.Sprintf("NUM_NODES=%d", nodes),
+				fmt.Sprintf("NODE_NUM=%s", nodeNum),
 			},
 			Volumes: map[string]struct{}{
 				"/var/run/disk/": {},
@@ -162,7 +175,7 @@ func run(cmd *cobra.Command, args []string) error {
 			},
 			Privileged:  true,
 			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
-		}, nil, prefix+"-"+nodeName(x+1))
+		}, nil, prefix+"-"+nodeName)
 		if err != nil {
 			return err
 		}
@@ -172,25 +185,25 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 
 		// Wait for vm start
-		success, err := docker.Exec(cli, nodeContainer(prefix, x+1), []string{"/bin/bash", "-c", "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"}, os.Stdout)
+		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"}, os.Stdout)
 		if err != nil {
 			return err
 		}
 
 		if !success {
-			return fmt.Errorf("checking for ssh.sh script for node %s failed", nodeName(x+1))
+			return fmt.Errorf("checking for ssh.sh script for node %s failed", nodeName)
 		}
 
 		//check if we have a special provision script
-		success, err = docker.Exec(cli, nodeContainer(prefix, x+1), []string{"/bin/bash", "-c", fmt.Sprintf("test -f /scripts/%s.sh", nodeName(x+1))}, os.Stdout)
+		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("test -f /scripts/%s.sh", nodeName)}, os.Stdout)
 		if err != nil {
-			return fmt.Errorf("checking for matching provision script for node %s failed", nodeName(x+1))
+			return fmt.Errorf("checking for matching provision script for node %s failed", nodeName)
 		}
 
 		if success {
-			success, err = docker.Exec(cli, nodeContainer(prefix, x+1), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName(x+1))}, os.Stdout)
+			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName)}, os.Stdout)
 		} else {
-			success, err = docker.Exec(cli, nodeContainer(prefix, x+1), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/nodes.sh"}, os.Stdout)
+			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/nodes.sh"}, os.Stdout)
 		}
 
 		if err != nil {
@@ -198,7 +211,7 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 
 		if !success {
-			return fmt.Errorf("provisioning node %s failed", nodeName(x+1))
+			return fmt.Errorf("provisioning node %s failed", nodeName)
 		}
 	}
 
@@ -211,11 +224,10 @@ func run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func nodeName(x int) string {
+func nodeNameFromIndex(x int) string {
 	return fmt.Sprintf("node%02d", x)
 }
 
-func nodeContainer(prefix string, x int) string {
-	n := nodeName(x)
-	return prefix + "-" + n
+func nodeContainer(prefix string, node string) string {
+	return prefix + "-" + node
 }

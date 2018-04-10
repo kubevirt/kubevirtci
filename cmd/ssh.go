@@ -32,6 +32,7 @@ func ssh(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// TODO we can do the ssh session with the native golang client
 	exitCode, err := docker.Terminal(cli, prefix+"-"+node, append([]string{"ssh.sh"}, args[1:]...), os.Stdout)
 	if err != nil {
 		return err
