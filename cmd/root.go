@@ -24,6 +24,7 @@ func NewRootCommand() *cobra.Command {
 		NewPortCommand(),
 		NewRemoveCommand(),
 		NewRunCommand(),
+		NewSSHCommand(),
 	)
 
 	return root

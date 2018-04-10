@@ -12,6 +12,7 @@ import (
 	"golang.org/x/net/context"
 	"io"
 	"os"
+	"os/signal"
 	"strconv"
 )
 
@@ -80,7 +81,7 @@ func run(cmd *cobra.Command, args []string) error {
 	createdVolumes := []string{}
 	ctx := context.Background()
 
-	defer func() {
+	cleanup := func() {
 		for _, c := range createdContainers {
 			err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
 			if err != nil {
@@ -94,6 +95,14 @@ func run(cmd *cobra.Command, args []string) error {
 				fmt.Fprintf(cmd.OutOrStderr(), "%v\n", err)
 			}
 		}
+	}
+
+	defer cleanup()
+	go func() {
+		interrupt := make(chan os.Signal, 1)
+		signal.Notify(interrupt, os.Interrupt)
+		<-interrupt
+		cleanup()
 	}()
 
 	// Pull the cluster image

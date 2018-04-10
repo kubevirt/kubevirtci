@@ -6,7 +6,10 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	"golang.org/x/crypto/ssh/terminal"
 	"io"
+	"os"
+	"os/signal"
 )
 
 func GetPrefixedContainers(cli *client.Client, prefix string) ([]types.Container, error) {
@@ -64,6 +67,7 @@ func Exec(cli *client.Client, container string, args []string, out io.Writer) (b
 	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecConfig{
 		AttachStderr: true,
 		AttachStdout: true,
+		Tty:          false,
 	})
 	if err != nil {
 		return false, err
@@ -72,14 +76,87 @@ func Exec(cli *client.Client, container string, args []string, out io.Writer) (b
 
 	io.Copy(out, attached.Reader)
 
-	err = cli.ContainerExecStart(ctx, id.ID, types.ExecStartCheck{Detach: false, Tty: false})
-	if err != nil {
-		return false, err
-	}
+	/*
+		err = cli.ContainerExecStart(ctx, id.ID, types.ExecStartCheck{Detach: false, Tty: false})
+		if err != nil {
+			return false, err
+		}
+	*/
 
 	resp, err := cli.ContainerExecInspect(ctx, id.ID)
 	if err != nil {
 		return false, err
 	}
 	return resp.ExitCode == 0, nil
+}
+
+func Terminal(cli *client.Client, container string, args []string, file *os.File) (int, error) {
+
+	ctx := context.Background()
+	id, err := cli.ContainerExecCreate(ctx, container, types.ExecConfig{
+		Privileged:   true,
+		Tty:          terminal.IsTerminal(int(file.Fd())),
+		Detach:       false,
+		Cmd:          args,
+		AttachStdout: true,
+		AttachStderr: true,
+		AttachStdin:  true,
+	})
+
+	if err != nil {
+		return -1, err
+	}
+
+	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecConfig{
+		AttachStderr: true,
+		AttachStdout: true,
+		AttachStdin:  true,
+		Tty:          terminal.IsTerminal(int(file.Fd())),
+	})
+	if err != nil {
+		return -1, err
+	}
+	defer attached.Close()
+
+	if terminal.IsTerminal(int(file.Fd())) {
+		state, err := terminal.MakeRaw(int(file.Fd()))
+		if err != nil {
+			return -1, err
+		}
+
+		errChan := make(chan error)
+
+		go func() {
+			interrupt := make(chan os.Signal, 1)
+			signal.Notify(interrupt, os.Interrupt)
+			<-interrupt
+			close(errChan)
+		}()
+
+		go func() {
+			_, err := io.Copy(file, attached.Conn)
+			errChan <- err
+		}()
+
+		go func() {
+			_, err := io.Copy(attached.Conn, file)
+			errChan <- err
+		}()
+
+		defer func() {
+			terminal.Restore(int(file.Fd()), state)
+		}()
+
+		err = <-errChan
+
+		if err != nil {
+			return -1, err
+		}
+	}
+
+	resp, err := cli.ContainerExecInspect(ctx, id.ID)
+	if err != nil {
+		return -1, err
+	}
+	return resp.ExitCode, nil
 }
