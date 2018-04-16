@@ -67,6 +67,11 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	registry_volume, err := cmd.Flags().GetString("registry-volume")
+	if err != nil {
+		return err
+	}
+
 	cluster := args[0]
 
 	background, err := cmd.Flags().GetBool("background")
@@ -139,10 +144,53 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// docker run -d --net=container:${DNSMASQ_CID} --name ${PREFIX}registry ${REGISTRY_VOLUME} registry:2
+
+	// Pull the registry image
+	reader, err = cli.ImagePull(ctx, "docker.io/library/registry:2", types.ImagePullOptions{})
+	if err != nil {
+		panic(err)
+	}
+	io.Copy(os.Stdout, reader)
+
+	// Create registry volume
+	var registryMounts []mount.Mount
+	if registry_volume != "" {
+
+		vol, err := cli.VolumeCreate(ctx, volume.VolumesCreateBody{
+			Name: fmt.Sprintf("%s-%s", prefix, "registry"),
+		})
+		if err != nil {
+			return err
+		}
+		registryMounts = []mount.Mount{
+			{
+				Type:   "volume",
+				Source: vol.Name,
+				Target: "/var/lib/registry",
+			},
+		}
+	}
+
+	// Start registry
+	registry, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: "registry:2",
+	}, &container.HostConfig{
+		Mounts:      registryMounts,
+		NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
+	}, nil, prefix+"-registry")
+	if err != nil {
+		return err
+	}
+	createdContainers = append(createdContainers, registry.ID)
+	if err := cli.ContainerStart(ctx, registry.ID, types.ContainerStartOptions{}); err != nil {
+		return err
+	}
+
 	// start one vm after each other
 	for x := 0; x < int(nodes); x++ {
 
-		nodeName := nodeNameFromIndex(x+1)
+		nodeName := nodeNameFromIndex(x + 1)
 		nodeNum := fmt.Sprintf("%02d", x+1)
 		if reverse {
 			nodeName = nodeNameFromIndex((int(nodes) - x))

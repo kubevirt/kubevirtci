@@ -76,13 +76,6 @@ func Exec(cli *client.Client, container string, args []string, out io.Writer) (b
 
 	io.Copy(out, attached.Reader)
 
-	/*
-		err = cli.ContainerExecStart(ctx, id.ID, types.ExecStartCheck{Detach: false, Tty: false})
-		if err != nil {
-			return false, err
-		}
-	*/
-
 	resp, err := cli.ContainerExecInspect(ctx, id.ID)
 	if err != nil {
 		return false, err
