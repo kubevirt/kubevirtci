@@ -10,6 +10,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/rmohr/cli/docker"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
 	"io"
 	"os"
@@ -35,6 +36,11 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().BoolP("reverse", "r", false, "revert node startup order")
 	run.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
 	run.Flags().String("registry-volume", "", "cache docker registry content in the specified volume")
+	run.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
+	run.Flags().Uint("registry-port", 0, "port on localhost for the docker registry")
+	run.Flags().Uint("ocp-port", 0, "port on localhost for the ocp cluster")
+	run.Flags().Uint("k8s-port", 0, "port on localhost for the k8s cluster")
+	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	return run
 }
@@ -65,6 +71,14 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	portMap := nat.PortMap{}
+
+	appendIfExplicit(portMap, PORT_SSH, cmd.Flags(), "ssh-port")
+	appendIfExplicit(portMap, PORT_VNC, cmd.Flags(), "vnc-port")
+	appendIfExplicit(portMap, PORT_K8S, cmd.Flags(), "k8s-port")
+	appendIfExplicit(portMap, PORT_OCP, cmd.Flags(), "ocp-port")
+	appendIfExplicit(portMap, PORT_REGISTRY, cmd.Flags(), "registry-port")
 
 	qemu_args, err := cmd.Flags().GetString("qemu-args")
 	if err != nil {
@@ -133,6 +147,7 @@ func run(cmd *cobra.Command, args []string) error {
 	io.Copy(os.Stdout, reader)
 
 	// Start dnsmasq
+	fmt.Println(portMap)
 	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: cluster,
 		Env: []string{
@@ -144,10 +159,12 @@ func run(cmd *cobra.Command, args []string) error {
 			tcpPortOrDie(PORT_REGISTRY): {},
 			tcpPortOrDie(PORT_OCP):      {},
 			tcpPortOrDie(PORT_K8S):      {},
+			tcpPortOrDie(PORT_VNC):      {},
 		},
 	}, &container.HostConfig{
 		Privileged:      true,
 		PublishAllPorts: random_ports,
+		PortBindings:    portMap,
 		ExtraHosts: []string{
 			"nfs:192.168.66.2",
 			"registry:192.168.66.2",
@@ -337,4 +354,16 @@ func nodeNameFromIndex(x int) string {
 
 func nodeContainer(prefix string, node string) string {
 	return prefix + "-" + node
+}
+
+func appendIfExplicit(ports nat.PortMap, exposedPort int, flagSet *pflag.FlagSet, flagName string) error {
+	flag := flagSet.Lookup(flagName)
+	if flag != nil && flag.Changed {
+		publicPort, err := flagSet.GetUint(flagName)
+		if err != nil {
+			return err
+		}
+		ports[tcpPortOrDie(exposedPort)] = []nat.PortBinding{{"127.0.0.1", strconv.Itoa(int(publicPort))}}
+	}
+	return nil
 }

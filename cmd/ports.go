@@ -15,11 +15,13 @@ const (
 	PORT_REGISTRY = 5000
 	PORT_OCP      = 8443
 	PORT_K8S      = 6443
+	PORT_VNC      = 5901
 
 	PORT_NAME_SSH      = "ssh"
 	PORT_NAME_OCP      = "ocp"
 	PORT_NAME_REGISTRY = "registry"
 	PORT_NAME_K8S      = "k8s"
+	PORT_NAME_VNC      = "vnc"
 )
 
 func NewPortCommand() *cobra.Command {
@@ -42,7 +44,7 @@ Known port names are 'ssh', 'registry', 'ocp' and 'k8s'.
 
 			if len(args) == 1 {
 				switch args[0] {
-				case PORT_NAME_SSH, PORT_NAME_K8S, PORT_NAME_OCP, PORT_NAME_REGISTRY:
+				case PORT_NAME_SSH, PORT_NAME_K8S, PORT_NAME_OCP, PORT_NAME_REGISTRY, PORT_NAME_VNC:
 					return nil
 				default:
 					return fmt.Errorf("unknown port name %s", args[0])
@@ -86,6 +88,8 @@ func ports(cmd *cobra.Command, args []string) error {
 			err = printPort(PORT_REGISTRY, container.Ports)
 		case PORT_NAME_OCP:
 			err = printPort(PORT_OCP, container.Ports)
+		case PORT_NAME_VNC:
+			err = printPort(PORT_VNC, container.Ports)
 		}
 
 		if err != nil {
