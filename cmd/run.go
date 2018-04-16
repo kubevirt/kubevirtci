@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 )
 
 func NewRunCommand() *cobra.Command {
@@ -79,10 +80,6 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	for x := 0; x < int(nodes); x++ {
-
-	}
-
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return err
@@ -144,8 +141,6 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// docker run -d --net=container:${DNSMASQ_CID} --name ${PREFIX}registry ${REGISTRY_VOLUME} registry:2
-
 	// Pull the registry image
 	reader, err = cli.ImagePull(ctx, "docker.io/library/registry:2", types.ImagePullOptions{})
 	if err != nil {
@@ -187,6 +182,8 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	wg := sync.WaitGroup{}
+	wg.Add(int(nodes))
 	// start one vm after each other
 	for x := 0; x < int(nodes); x++ {
 
@@ -261,12 +258,19 @@ func run(cmd *cobra.Command, args []string) error {
 		if !success {
 			return fmt.Errorf("provisioning node %s failed", nodeName)
 		}
+
+		go func(id string) {
+			cli.ContainerWait(context.Background(), id)
+			wg.Done()
+		}(node.ID)
 	}
 
 	// If background flag was specified, we don't want to clean up if we reach that state
 	if background {
 		createdContainers = []string{}
 		createdVolumes = []string{}
+	} else {
+		wg.Wait()
 	}
 
 	return nil
