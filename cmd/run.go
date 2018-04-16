@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"sync"
 )
@@ -69,6 +70,11 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	registry_volume, err := cmd.Flags().GetString("registry-volume")
+	if err != nil {
+		return err
+	}
+
+	nfs_data, err := cmd.Flags().GetString("nfs-data")
 	if err != nil {
 		return err
 	}
@@ -160,7 +166,7 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 		registryMounts = []mount.Mount{
 			{
-				Type:   "volume",
+				Type:   mount.TypeVolume,
 				Source: vol.Name,
 				Target: "/var/lib/registry",
 			},
@@ -180,6 +186,41 @@ func run(cmd *cobra.Command, args []string) error {
 	createdContainers = append(createdContainers, registry.ID)
 	if err := cli.ContainerStart(ctx, registry.ID, types.ContainerStartOptions{}); err != nil {
 		return err
+	}
+
+	if nfs_data != "" {
+		nfs_data, err := filepath.Abs(nfs_data)
+		if err != nil {
+			return err
+		}
+		// Pull the ganesha image
+		reader, err = cli.ImagePull(ctx, "docker.io/janeczku/nfs-ganesha", types.ImagePullOptions{})
+		if err != nil {
+			panic(err)
+		}
+		io.Copy(os.Stdout, reader)
+
+		// Start the ganesha image
+		nfsServer, err := cli.ContainerCreate(ctx, &container.Config{
+			Image: "janeczku/nfs-ganesha",
+		}, &container.HostConfig{
+			Mounts: []mount.Mount{
+				{
+					Type:   mount.TypeBind,
+					Source: nfs_data,
+					Target: "/data/nfs",
+				},
+			},
+			Privileged:  true,
+			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
+		}, nil, prefix+"-nfs-ganesha")
+		if err != nil {
+			return err
+		}
+		createdContainers = append(createdContainers, nfsServer.ID)
+		if err := cli.ContainerStart(ctx, nfsServer.ID, types.ContainerStartOptions{}); err != nil {
+			return err
+		}
 	}
 
 	wg := sync.WaitGroup{}
