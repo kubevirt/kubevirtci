@@ -53,7 +53,7 @@ func Exec(cli *client.Client, container string, args []string, out io.Writer) (b
 	ctx := context.Background()
 	id, err := cli.ContainerExecCreate(ctx, container, types.ExecConfig{
 		Privileged:   true,
-		Tty:          false,
+		Tty:          true,
 		Detach:       false,
 		Cmd:          args,
 		AttachStdout: true,
@@ -67,7 +67,7 @@ func Exec(cli *client.Client, container string, args []string, out io.Writer) (b
 	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecConfig{
 		AttachStderr: true,
 		AttachStdout: true,
-		Tty:          false,
+		Tty:          true,
 	})
 	if err != nil {
 		return false, err

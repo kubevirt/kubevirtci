@@ -147,7 +147,6 @@ func run(cmd *cobra.Command, args []string) error {
 	io.Copy(os.Stdout, reader)
 
 	// Start dnsmasq
-	fmt.Println(portMap)
 	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: cluster,
 		Env: []string{
