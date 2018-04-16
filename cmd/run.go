@@ -7,6 +7,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"github.com/rmohr/cli/docker"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
@@ -32,6 +33,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	run.Flags().BoolP("background", "b", false, "go to background after nodes are up")
 	run.Flags().BoolP("reverse", "r", false, "revert node startup order")
+	run.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
 	run.Flags().String("registry-volume", "", "cache docker registry content in the specified volume")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	return run
@@ -55,6 +57,11 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	reverse, err := cmd.Flags().GetBool("reverse")
+	if err != nil {
+		return err
+	}
+
+	random_ports, err := cmd.Flags().GetBool("random-ports")
 	if err != nil {
 		return err
 	}
@@ -132,8 +139,15 @@ func run(cmd *cobra.Command, args []string) error {
 			fmt.Sprintf("NUM_NODES=%d", nodes),
 		},
 		Cmd: []string{"/bin/bash", "-c", "/dnsmasq.sh"},
+		ExposedPorts: nat.PortSet{
+			tcpPortOrDie(PORT_SSH):      {},
+			tcpPortOrDie(PORT_REGISTRY): {},
+			tcpPortOrDie(PORT_OCP):      {},
+			tcpPortOrDie(PORT_K8S):      {},
+		},
 	}, &container.HostConfig{
-		Privileged: true,
+		Privileged:      true,
+		PublishAllPorts: random_ports,
 		ExtraHosts: []string{
 			"nfs:192.168.66.2",
 			"registry:192.168.66.2",

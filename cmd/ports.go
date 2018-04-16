@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"github.com/rmohr/cli/docker"
 	"github.com/spf13/cobra"
+	"strconv"
 )
 
 const (
@@ -115,4 +117,12 @@ func printPort(port uint16, ports []types.Port) error {
 	}
 	fmt.Println(p)
 	return nil
+}
+
+func tcpPortOrDie(port int) nat.Port {
+	p, err := nat.NewPort("tcp", strconv.Itoa(port))
+	if err != nil {
+		panic(err)
+	}
+	return p
 }
