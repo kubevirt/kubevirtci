@@ -7,9 +7,18 @@ yum -y install centos-release-gluster
 yum -y install --nogpgcheck -y glusterfs-fuse
 yum -y install iscsi-initiator-utils
 
+# Create Origin latest repo
+cat >/etc/yum.repos.d/origin-latest.repo <<EOF
+[centos-openshift-origin-latest]
+name=CentOS OpenShift Origin Latest
+baseurl=https://cbs.centos.org/repos/paas7-openshift-origin39-candidate/x86_64/os/
+enabled=1
+gpgcheck=0
+EOF
+
 # Install OpenShift packages
 yum install -y centos-release-openshift-origin
-yum install -y yum-utils ansible wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct docker-1.12.6-71.git3e8e77d.el7.centos
+yum install -y yum-utils ansible wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct docker-1.12.6-71.git3e8e77d.el7.centos openshift-ansible
 
 # Disable spectre and meltdown patches
 sed -i 's/quiet"/quiet spectre_v2=off nopti"/' /etc/default/grub
@@ -32,14 +41,9 @@ systemctl restart sshd
 # Disable host key checking under ansible.cfg file
 sed -i '/host_key_checking/s/^#//g' /etc/ansible/ansible.cfg
 
-openshift_ansible_dir="/root/openshift-ansible"
 inventory_file="/root/inventory"
 master_ip="192.168.66.101"
-echo "$master_ip node01" >> /etc/hosts 
-
-mkdir -p /root/openshift-ansible
-# Checkout to the specific version as W/A for https://github.com/openshift/openshift-ansible/issues/6756
-git clone https://github.com/openshift/openshift-ansible.git $openshift_ansible_dir -b openshift-ansible-3.9.0-0.42.0
+echo "$master_ip node01" >> /etc/hosts
 
 # Create ansible inventory file
 cat >$inventory_file <<EOF
@@ -55,10 +59,7 @@ openshift_deployment_type=origin
 openshift_clock_enabled=true
 openshift_master_identity_providers=[{'name': 'allow_all_auth', 'login': 'true', 'challenge': 'true', 'kind': 'AllowAllPasswordIdentityProvider'}]
 openshift_disable_check=memory_availability,disk_availability,docker_storage,package_availability,docker_image_availability
-openshift_repos_enable_testing=True
-openshift_image_tag=v3.9.0-alpha.4
-containerized=true
-enable_excluders=false
+openshift_image_tag=v3.9.0
 ansible_service_broker_registry_whitelist=['.*-apb$']
 openshift_hosted_etcd_storage_kind=nfs
 openshift_hosted_etcd_storage_nfs_options="*(rw,root_squash,sync,no_wdelay)"
@@ -83,11 +84,11 @@ node01 openshift_node_labels="{'region': 'infra','zone': 'default'}" openshift_s
 EOF
 
 # Run OpenShift ansible playbook
-ansible-playbook -e "ansible_user=root ansible_ssh_pass=vagrant" -i $inventory_file $openshift_ansible_dir/playbooks/prerequisites.yml
-ansible-playbook -i $inventory_file $openshift_ansible_dir/playbooks/deploy_cluster.yml
+ansible-playbook -e "ansible_user=root ansible_ssh_pass=vagrant" -i $inventory_file /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
+ansible-playbook -i $inventory_file /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml
 
 # Create OpenShift user
-/usr/local/bin/oc create user admin
-/usr/local/bin/oc create identity allow_all_auth:admin
-/usr/local/bin/oc create useridentitymapping allow_all_auth:admin admin
-/usr/local/bin/oc adm policy add-cluster-role-to-user cluster-admin admin
+/usr/bin/oc create user admin
+/usr/bin/oc create identity allow_all_auth:admin
+/usr/bin/oc create useridentitymapping allow_all_auth:admin admin
+/usr/bin/oc adm policy add-cluster-role-to-user cluster-admin admin

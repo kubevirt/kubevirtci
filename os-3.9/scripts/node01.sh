@@ -2,10 +2,10 @@
 
 # Wait until cluster will be up
 set +e
-/usr/local/bin/oc get nodes
+/usr/bin/oc get nodes
 while [ $? -ne 0 ]; do
     sleep 5
-    /usr/local/bin/oc get nodes
+    /usr/bin/oc get nodes
 done
 set -e
 
@@ -15,7 +15,6 @@ dhclient
 # Add first node record to SkyDNS dnsmasq
 echo "host-record=node01,192.168.66.101" >> /etc/dnsmasq.d/node-dnsmasq.conf
 
-openshift_ansible_dir="/root/openshift-ansible"
 inventory_file="/root/inventory"
 
 # Update inventory
@@ -44,7 +43,7 @@ cp /etc/dnsmasq.d/node-dnsmasq.conf /tmp/node-dnsmasq.conf.backup
 
 # Run playbook if extra nodes were discovered
 if [ "$nodes_found" = "true"  ]; then
-  ansible-playbook -i $inventory_file $openshift_ansible_dir/playbooks/openshift-node/scaleup.yml
+  ansible-playbook -i $inventory_file /usr/share/ansible/openshift-ansible/playbooks/openshift-node/scaleup.yml
   cat >restart_openvswitch <<EOF
 - hosts: new_nodes
   tasks:
