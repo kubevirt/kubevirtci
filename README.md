@@ -12,4 +12,4 @@
 * `kubevirtci/base`: `sha256:67b84e2acefdcd7197989cbab1f2d1324eb87b5a77bd31d52d3000d13eee750c`
 * `kubevirtci/centos:1802_01`: `sha256:31a48682e870c6eb9a60b26e49016f654238a1cb75127f2cca37b7eda29b05e5`
 * `kubevirtci/os-3.9.0:`: `sha256:507263b67ddad581b086418d443c4fd1b2a30954e8fddff12254e0061a529410`
-* `kubevirtci/k8s-1.9.3:`: `sha256:f1506a8aebfb5b5fbf37cd8c9f060bc1f05db683fca15eb11f9fe9e9a58ec9e5`
+* `kubevirtci/k8s-1.9.3:`: `sha256:2ea1e772b13067617a7fc14f14105cfec5f97dd6e55db1827c3e877ba293fa8d`
