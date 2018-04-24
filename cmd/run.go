@@ -208,6 +208,7 @@ func run(cmd *cobra.Command, args []string) error {
 		Image: "registry:2",
 	}, &container.HostConfig{
 		Mounts:      registryMounts,
+		Privileged:true, // fixme we just need proper selinux volume labeling
 		NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
 	}, nil, prefix+"-registry")
 	if err != nil {
