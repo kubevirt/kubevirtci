@@ -113,44 +113,10 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	ctx := context.Background()
-	containers := make(chan string)
-	volumes := make(chan string)
-	done := make(chan error)
 
-	go func() {
-		createdContainers := []string{}
-		createdVolumes := []string{}
-
-		for {
-			select {
-			case container := <-containers:
-				createdContainers = append(createdContainers, container)
-			case volume := <-volumes:
-				createdVolumes = append(createdVolumes, volume)
-			case err := <-done:
-				if err != nil {
-					for _, c := range createdContainers {
-						err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
-						fmt.Printf("container: %v\n", c)
-						if err != nil {
-							fmt.Fprintf(cmd.OutOrStderr(), "%v\n", err)
-						}
-					}
-
-					for _, v := range createdVolumes {
-						err := cli.VolumeRemove(ctx, v, true)
-						fmt.Printf("volume: %v\n", v)
-						if err != nil {
-							fmt.Fprintf(cmd.OutOrStderr(), "%v\n", err)
-						}
-					}
-				}
-			}
-		}
-	}()
+	containers, volumes, done := docker.NewCleanupHandler(cli, cmd.OutOrStderr())
 
 	defer func() {
-		fmt.Printf("error is %v\n", err)
 		done <- err
 	}()
 

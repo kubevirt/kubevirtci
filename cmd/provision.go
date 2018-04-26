@@ -79,32 +79,19 @@ func provision(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	createdContainers := []string{}
-	createdVolumes := []string{}
 	ctx := context.Background()
 
-	cleanup := func() {
-		for _, c := range createdContainers {
-			err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
-			if err != nil {
-				fmt.Fprintf(cmd.OutOrStderr(), "%v\n", err)
-			}
-		}
+	containers, volumes, done := docker.NewCleanupHandler(cli, cmd.OutOrStderr())
 
-		for _, v := range createdVolumes {
-			err := cli.VolumeRemove(ctx, v, true)
-			if err != nil {
-				fmt.Fprintf(cmd.OutOrStderr(), "%v\n", err)
-			}
-		}
-	}
+	defer func() {
+		done <- fmt.Errorf("please clean up")
+	}()
 
-	defer cleanup()
 	go func() {
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
-		cleanup()
+		done <- fmt.Errorf("Interrupt received, clean up")
 	}()
 
 	// Pull the base image
@@ -133,7 +120,7 @@ func provision(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	createdContainers = append(createdContainers, dnsmasq.ID)
+	containers <- dnsmasq.ID
 	if err := cli.ContainerStart(ctx, dnsmasq.ID, types.ContainerStartOptions{}); err != nil {
 		return err
 	}
@@ -147,7 +134,7 @@ func provision(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	createdVolumes = append(createdVolumes, vol.Name)
+	volumes <- vol.Name
 	node, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: base,
 		Env: []string{
@@ -171,7 +158,7 @@ func provision(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	createdContainers = append(createdContainers, node.ID)
+	containers <- node.ID
 	if err := cli.ContainerStart(ctx, node.ID, types.ContainerStartOptions{}); err != nil {
 		return err
 	}
