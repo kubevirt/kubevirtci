@@ -45,7 +45,7 @@ func NewRunCommand() *cobra.Command {
 	return run
 }
 
-func run(cmd *cobra.Command, args []string) error {
+func run(cmd *cobra.Command, args []string) (err error) {
 
 	prefix, err := cmd.Flags().GetString("prefix")
 	if err != nil {
@@ -111,32 +111,54 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	createdContainers := []string{}
-	createdVolumes := []string{}
+
 	ctx := context.Background()
+	containers := make(chan string)
+	volumes := make(chan string)
+	done := make(chan error)
 
-	cleanup := func() {
-		for _, c := range createdContainers {
-			err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
-			if err != nil {
-				fmt.Fprintf(cmd.OutOrStderr(), "%v\n", err)
+	go func() {
+		createdContainers := []string{}
+		createdVolumes := []string{}
+
+		for {
+			select {
+			case container := <-containers:
+				createdContainers = append(createdContainers, container)
+			case volume := <-volumes:
+				createdVolumes = append(createdVolumes, volume)
+			case err := <-done:
+				if err != nil {
+					for _, c := range createdContainers {
+						err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
+						fmt.Printf("container: %v\n", c)
+						if err != nil {
+							fmt.Fprintf(cmd.OutOrStderr(), "%v\n", err)
+						}
+					}
+
+					for _, v := range createdVolumes {
+						err := cli.VolumeRemove(ctx, v, true)
+						fmt.Printf("volume: %v\n", v)
+						if err != nil {
+							fmt.Fprintf(cmd.OutOrStderr(), "%v\n", err)
+						}
+					}
+				}
 			}
 		}
+	}()
 
-		for _, v := range createdVolumes {
-			err := cli.VolumeRemove(ctx, v, true)
-			if err != nil {
-				fmt.Fprintf(cmd.OutOrStderr(), "%v\n", err)
-			}
-		}
-	}
+	defer func() {
+		fmt.Printf("error is %v\n", err)
+		done <- err
+	}()
 
-	defer cleanup()
 	go func() {
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
-		cleanup()
+		done <- fmt.Errorf("Interrupt received, clean up")
 	}()
 
 	// Pull the cluster image
@@ -172,7 +194,7 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	createdContainers = append(createdContainers, dnsmasq.ID)
+	containers <- dnsmasq.ID
 	if err := cli.ContainerStart(ctx, dnsmasq.ID, types.ContainerStartOptions{}); err != nil {
 		return err
 	}
@@ -180,7 +202,7 @@ func run(cmd *cobra.Command, args []string) error {
 	// Pull the registry image
 	reader, err = cli.ImagePull(ctx, "docker.io/library/registry:2", types.ImagePullOptions{})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	io.Copy(os.Stdout, reader)
 
@@ -208,13 +230,13 @@ func run(cmd *cobra.Command, args []string) error {
 		Image: "registry:2",
 	}, &container.HostConfig{
 		Mounts:      registryMounts,
-		Privileged:true, // fixme we just need proper selinux volume labeling
+		Privileged:  true, // fixme we just need proper selinux volume labeling
 		NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
 	}, nil, prefix+"-registry")
 	if err != nil {
 		return err
 	}
-	createdContainers = append(createdContainers, registry.ID)
+	containers <- registry.ID
 	if err := cli.ContainerStart(ctx, registry.ID, types.ContainerStartOptions{}); err != nil {
 		return err
 	}
@@ -248,7 +270,7 @@ func run(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		createdContainers = append(createdContainers, nfsServer.ID)
+		containers <- nfsServer.ID
 		if err := cli.ContainerStart(ctx, nfsServer.ID, types.ContainerStartOptions{}); err != nil {
 			return err
 		}
@@ -272,7 +294,7 @@ func run(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		createdVolumes = append(createdVolumes, vol.Name)
+		volumes <- vol.Name
 		node, err := cli.ContainerCreate(ctx, &container.Config{
 			Image: cluster,
 			Env: []string{
@@ -296,7 +318,7 @@ func run(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		createdContainers = append(createdContainers, node.ID)
+		containers <- node.ID
 		if err := cli.ContainerStart(ctx, node.ID, types.ContainerStartOptions{}); err != nil {
 			return err
 		}
@@ -338,11 +360,9 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// If background flag was specified, we don't want to clean up if we reach that state
-	if background {
-		createdContainers = []string{}
-		createdVolumes = []string{}
-	} else {
+	if !background {
 		wg.Wait()
+		done <- fmt.Errorf("Done. please clean up")
 	}
 
 	return nil
