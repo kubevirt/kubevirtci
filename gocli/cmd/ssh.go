@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/docker/docker/client"
-	"github.com/rmohr/cli/docker"
+	"kubevirt.io/kubevirtci/gocli/docker"
 	"github.com/spf13/cobra"
 	"os"
 )

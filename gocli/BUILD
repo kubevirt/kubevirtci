@@ -14,13 +14,13 @@ load(
 
 gazelle(
     name = "gazelle",
-    prefix = "github.com/rmohr/cli",
+    prefix = "kubevirt.io/kubevirtci/gocli",
 )
 
 go_library(
     name = "go_default_library",
     srcs = ["main.go"],
-    importpath = "github.com/rmohr/cli",
+    importpath = "kubevirt.io/kubevirtci/gocli",
     deps = ["//cmd:go_default_library"],
 )
 
@@ -31,8 +31,8 @@ go_binary(
 
 go_image(
     name = "gocli",
-    binary = ":cli",
     base = "@fedora//image",
+    binary = ":cli",
     cmd = [""],
     visibility = ["//visibility:public"],
 )
@@ -40,7 +40,7 @@ go_image(
 container_bundle(
     name = "container-bundle",
     images = {
-            "index.docker.io/kubevirtci/gocli:latest": "//:gocli",
+        "index.docker.io/kubevirtci/gocli:latest": "//:gocli",
     },
 )
 

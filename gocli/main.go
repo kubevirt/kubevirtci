@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/rmohr/cli/cmd"
+	"kubevirt.io/kubevirtci/gocli/cmd"
 )
 
 func main() {

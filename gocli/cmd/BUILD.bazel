@@ -10,7 +10,7 @@ go_library(
         "run.go",
         "ssh.go",
     ],
-    importpath = "github.com/rmohr/cli/cmd",
+    importpath = "kubevirt.io/kubevirtci/gocli/cmd",
     visibility = ["//visibility:public"],
     deps = [
         "//docker:go_default_library",

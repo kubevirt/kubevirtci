@@ -1,4 +1,4 @@
 *.img
 cli
 .idea
-/bazel**
+/gocli/bazel**
