@@ -3,9 +3,9 @@ package cmd
 import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"kubevirt.io/kubevirtci/gocli/docker"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
+	"kubevirt.io/kubevirtci/gocli/docker"
 )
 
 func NewRemoveCommand() *cobra.Command {

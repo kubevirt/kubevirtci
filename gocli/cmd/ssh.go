@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"github.com/docker/docker/client"
-	"kubevirt.io/kubevirtci/gocli/docker"
 	"github.com/spf13/cobra"
+	"kubevirt.io/kubevirtci/gocli/docker"
 	"os"
 )
 

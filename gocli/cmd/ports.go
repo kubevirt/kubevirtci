@@ -5,8 +5,8 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
-	"kubevirt.io/kubevirtci/gocli/docker"
 	"github.com/spf13/cobra"
+	"kubevirt.io/kubevirtci/gocli/docker"
 	"strconv"
 )
 

@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"github.com/docker/docker/api/types"
@@ -10,6 +11,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 )
 
 func GetPrefixedContainers(cli *client.Client, prefix string) ([]types.Container, error) {
@@ -195,4 +197,24 @@ func NewCleanupHandler(cli *client.Client, errWriter io.Writer) (containers chan
 	}()
 
 	return
+}
+
+func PrintProgress(progressReader io.ReadCloser, writer *os.File) {
+	isTerminal := terminal.IsTerminal(int(writer.Fd()))
+	w, _, err := terminal.GetSize(int(writer.Fd()))
+
+	if isTerminal && err == nil {
+		scanner := bufio.NewScanner(progressReader)
+		for scanner.Scan() {
+			line := scanner.Text()
+			fmt.Print("\r" + line + strings.Repeat(" ", w-len(line)))
+		}
+	} else {
+		fmt.Fprint(writer, "Downloading ...")
+		scanner := bufio.NewScanner(progressReader)
+		for scanner.Scan() {
+			fmt.Print(".")
+		}
+		fmt.Print("\n")
+	}
 }

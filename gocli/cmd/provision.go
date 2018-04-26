@@ -8,10 +8,9 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
-	"kubevirt.io/kubevirtci/gocli/docker"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
-	"io"
+	"kubevirt.io/kubevirtci/gocli/docker"
 	"os"
 	"os/signal"
 	"strconv"
@@ -99,7 +98,7 @@ func provision(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		panic(err)
 	}
-	io.Copy(os.Stdout, reader)
+	docker.PrintProgress(reader, os.Stdout)
 
 	// Start dnsmasq
 	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{

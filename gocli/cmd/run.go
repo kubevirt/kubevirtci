@@ -8,11 +8,10 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
-	"kubevirt.io/kubevirtci/gocli/docker"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
-	"io"
+	"kubevirt.io/kubevirtci/gocli/docker"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -132,7 +131,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	if err != nil {
 		panic(err)
 	}
-	io.Copy(os.Stdout, reader)
+	docker.PrintProgress(reader, os.Stdout)
 
 	// Start dnsmasq
 	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
@@ -170,7 +169,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	io.Copy(os.Stdout, reader)
+	docker.PrintProgress(reader, os.Stdout)
 
 	// Create registry volume
 	var registryMounts []mount.Mount
@@ -217,7 +216,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		if err != nil {
 			panic(err)
 		}
-		io.Copy(os.Stdout, reader)
+		docker.PrintProgress(reader, os.Stdout)
 
 		// Start the ganesha image
 		nfsServer, err := cli.ContainerCreate(ctx, &container.Config{
