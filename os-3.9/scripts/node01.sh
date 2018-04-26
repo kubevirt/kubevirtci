@@ -44,16 +44,42 @@ cp /etc/dnsmasq.d/node-dnsmasq.conf /tmp/node-dnsmasq.conf.backup
 # Run playbook if extra nodes were discovered
 if [ "$nodes_found" = "true"  ]; then
   ansible-playbook -i $inventory_file /usr/share/ansible/openshift-ansible/playbooks/openshift-node/scaleup.yml
-  cat >restart_openvswitch <<EOF
+fi
+
+set +e
+crio=false
+grep crio $inventory_file
+if [ $? -eq 0 ]; then
+  crio=true
+fi
+set -e
+
+cat >post_deployment_configuration <<EOF
 - hosts: new_nodes
   tasks:
     - name: Restart openvswitch service
       service:
         name: openvswitch
         state: restarted
+- hosts: nodes, new_nodes
+  tasks:
+    - name: Configure CRI-O support
+      block:
+        - replace:
+            path: /etc/crio/crio.conf
+            regexp: 'insecure_registries = \[\n""\n\]'
+            replace: 'insecure_registries = ["docker.io", "registry:5000"]'
+        - replace:
+            path: /etc/crio/crio.conf
+            regexp: 'registries = \[\n"docker.io"\n\]'
+            replace: 'registries = ["docker.io", "registry:5000"]'
+        - service:
+            name: cri-o
+            state: restarted
+            enabled: yes
+      when: crio
 EOF
-  ansible-playbook -i $inventory_file restart_openvswitch
-fi
+ansible-playbook -i $inventory_file post_deployment_configuration --extra-vars="crio=${crio}"
 
 # Restart dnsmasq to apply new records
 mv /tmp/node-dnsmasq.conf.backup /etc/dnsmasq.d/node-dnsmasq.conf

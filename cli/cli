@@ -13,6 +13,7 @@ BACKGROUND=""
 NFS_DATA=""
 REVERSE=""
 RANDOM_PORTS=""
+CRIO=""
 
 COMMAND=$1
 shift
@@ -48,6 +49,7 @@ while true; do
     --nfs-data ) NFS_DATA="$2"; shift 2 ;;
     --registry-port ) REGISTRY_PORT="$2"; shift 2 ;;
     --registry-volume ) REGISTRY_VOLUME="$2"; shift 2 ;;
+    --crio ) CRIO="true" ; shift ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -178,7 +180,7 @@ if [ "$COMMAND" == "provision" ] ; then
   CONTAINERS="${CONTAINERS} ${VM_CID}"
   docker cp ${SCRIPTS}/. ${VM_CID}:/scripts/
   docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
-  docker exec ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < /scripts/provision.sh"
+  docker exec ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash -s ${CRIO} < /scripts/provision.sh"
   docker exec ${VM_CID} ssh.sh "sudo shutdown -h"
   docker exec ${VM_CID} /bin/bash -c "rm /usr/local/bin/ssh.sh"
   docker wait ${VM_CID}
@@ -213,8 +215,6 @@ else
   else
    _seq="seq 1 ${NODES}"
   fi
-
-  DOCKER_STORAGE=$(docker system info | grep -i "Storage Driver:" | cut -d' ' -f 3)
 
   for i in $(${_seq}); do
     NODE_NUM="$(printf "%02d" ${i})"

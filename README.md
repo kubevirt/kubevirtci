@@ -5,14 +5,16 @@
 * `cli` contains a tool for provisioning, running and managing the containerized clusters
 * `k8s-1.9.3` k8s-1.9.3 cluster based on the centos7 image, provisioned with kubeadm
 * `os-3.9` os-3.9 cluster based on the centos7 image, provisioned with openshift-ansible
+* `os-3.9-crio` os-3.9 cluster with CRI-O support based on the centos7 image, provisioned with openshift-ansible
 
 ## Versions to use
 
-* `kubevirtci/cli`: `sha256:b0023d1863338ef04fa0b8a8ee5956ae08616200d89ffd2e230668ea3deeaff4`
+* `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
 * `kubevirtci/gocli`: `sha256:34466dacd5710a6900a4d868eac6cef46e69d0f0afebb49e59e6bea0e81f5019`
 * `kubevirtci/base`: `sha256:67b84e2acefdcd7197989cbab1f2d1324eb87b5a77bd31d52d3000d13eee750c`
 * `kubevirtci/centos:1802_01`: `sha256:31a48682e870c6eb9a60b26e49016f654238a1cb75127f2cca37b7eda29b05e5`
-* `kubevirtci/os-3.9.0:`: `sha256:507263b67ddad581b086418d443c4fd1b2a30954e8fddff12254e0061a529410`
+* `kubevirtci/os-3.9.0:`: `sha256:21f21197d9c170d420d95b8fd3a1e2b568650369d590b1141a71675c9877dbbc`
+* `kubevirtci/os-3.9.0-crio:`: `sha256:e0cb3db8afcd1aa352eb8fc31f165738987aa54579de52e027c8d61906eb6fd9`
 * `kubevirtci/k8s-1.9.3:`: `sha256:2ea1e772b13067617a7fc14f14105cfec5f97dd6e55db1827c3e877ba293fa8d`
 
 
