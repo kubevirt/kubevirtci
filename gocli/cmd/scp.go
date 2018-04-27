@@ -45,8 +45,8 @@ NE5OgEXk2wVfZczCZpigBKbKZHNYcelXtTt/nP3rsCuGcM4h53s=
 func NewSCPCommand() *cobra.Command {
 
 	ssh := &cobra.Command{
-		Use:   "scp",
-		Short: "scp copies filed from the nodes to the local host",
+		Use:   "scp SRC DST",
+		Short: "scp copies filed from node01 to the local host",
 		RunE:  scp,
 		Args:  cobra.MinimumNArgs(2),
 	}
@@ -113,9 +113,14 @@ func scp(cmd *cobra.Command, args []string) error {
 	}
 	go io.Copy(os.Stderr, stderr)
 
-	target, err := os.Create(dst)
-	if err != nil {
-		return err
+	var target *os.File
+	if dst == "-" {
+		target = os.Stdout
+	} else {
+		target, err = os.Create(dst)
+		if err != nil {
+			return err
+		}
 	}
 
 	errChan := make(chan error)
@@ -164,7 +169,7 @@ func scp(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(wrPipe, "\x00")
 	}()
 
-	err = session.Run("/usr/bin/scp -vf " + src)
+	err = session.Run("sudo -i /usr/bin/scp -vf " + src)
 
 	copyError := <-errChan
 
