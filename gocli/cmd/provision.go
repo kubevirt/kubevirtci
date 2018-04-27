@@ -134,6 +134,9 @@ func provision(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	volumes <- vol.Name
+	if len(qemu_args) > 0 {
+		qemu_args = "--qemu-args " + qemu_args
+	}
 	node, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: base,
 		Env: []string{
@@ -142,7 +145,7 @@ func provision(cmd *cobra.Command, args []string) error {
 		Volumes: map[string]struct{}{
 			"/var/run/disk/": {},
 		},
-		Cmd: []string{"/bin/bash", "-c", "/vm.sh", "-n", "/var/run/disk/disk.qcow2", "--memory", memory, "--cpu", strconv.Itoa(int(cpu)), "--qemu-args", qemu_args},
+		Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), qemu_args)},
 	}, &container.HostConfig{
 		Mounts: []mount.Mount{
 			{
