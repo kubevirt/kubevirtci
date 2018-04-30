@@ -9,7 +9,7 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:b0023d1863338ef04fa0b8a8ee5956ae08616200d89ffd2e230668ea3deeaff4`
-* `kubevirtci/gocli`: `sha256:2d532e52ceb26a7406f963381b0cbc1ec7573fb31d7fda622bca18bdb40399c7`
+* `kubevirtci/gocli`: `sha256:34466dacd5710a6900a4d868eac6cef46e69d0f0afebb49e59e6bea0e81f5019`
 * `kubevirtci/base`: `sha256:67b84e2acefdcd7197989cbab1f2d1324eb87b5a77bd31d52d3000d13eee750c`
 * `kubevirtci/centos:1802_01`: `sha256:31a48682e870c6eb9a60b26e49016f654238a1cb75127f2cca37b7eda29b05e5`
 * `kubevirtci/os-3.9.0:`: `sha256:507263b67ddad581b086418d443c4fd1b2a30954e8fddff12254e0061a529410`
@@ -23,7 +23,7 @@ ca be used from a docker images, so no need to install it. You can for instance
 use a bash alias:
 
 ```bash
-alias gocli="docker run --privileged --rm -it -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/gocli:latest"
+alias gocli="docker run --net=host --privileged --rm -it -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/gocli:latest"
 gocli help
 ```
 
@@ -44,7 +44,7 @@ Find out the connection details of the cluster:
 ```bash
 $ gocli ports k8s
 33396
-$ gocli ssh node01 -- sudo cat /etc/kubernetes/admin.conf | tail -n +3 > ./kubeconfig
+$ gocli scp /etc/kubernetes/admin.conf - > ./kubeconfig
 $ kubectl --kubeconfig ./kubeconfig --insecure-skip-tls-verify --server https://localhost:33396 get pods -n kube-system
 NAME                             READY     STATUS    RESTARTS   AGE
 etcd-node01                      1/1       Running   0          14m
@@ -65,7 +65,7 @@ or to permamently edit kubeconfig:
 ```bash
 $ gocli ports k8s
 33396
-$ gocli ssh node01 -- sudo cat /etc/kubernetes/admin.conf | tail -n +3 > ./kubeconfig
+$ gocli scp /etc/kubernetes/admin.conf - > ./kubeconfig
 $ kubectl --kubeconfig=./kubeconfig config set-cluster kubernetes --server=https://127.0.0.1:33396
 $ kubectl --kubeconfig=./kubeconfig config set-cluster kubernetes --insecure-skip-tls-verify=true
 $ kubectl --kubeconfig ./kubeconfig get pods -n kube-system
@@ -113,7 +113,7 @@ Find out the connection details of the cluster:
 ```bash
 $ gocli ports k8s
 8443
-$ gocli ssh node01 -- sudo cat /etc/origin/master/admin.kubeconfig | tail -n +3 > ./kubeconfig
+$ gocli scp /etc/origin/master/admin.kubeconfig - > ./kubeconfig
 $ oc --kubeconfig=./kubeconfig config set-cluster node01:8443 --server=127.0.0.1:8443
 $ oc --kubeconfig=./kubeconfig config set-cluster node01:8443 --insecure-skip-tls-verify=true
 $ oc --kubeconfig ./kubeconfig get nodes

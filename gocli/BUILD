@@ -27,11 +27,11 @@ go_library(
 go_binary(
     name = "cli",
     embed = [":go_default_library"],
+    pure = "on",
 )
 
 go_image(
     name = "gocli",
-    base = "@fedora//image",
     binary = ":cli",
     cmd = [""],
     visibility = ["//visibility:public"],

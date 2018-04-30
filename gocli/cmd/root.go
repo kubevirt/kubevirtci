@@ -25,6 +25,7 @@ func NewRootCommand() *cobra.Command {
 		NewRemoveCommand(),
 		NewRunCommand(),
 		NewSSHCommand(),
+		NewSCPCommand(),
 	)
 
 	return root

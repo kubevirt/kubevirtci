@@ -36,10 +36,3 @@ load(
 
 _go_image_repos()
 
-container_pull(
-  name = "fedora",
-  registry = "index.docker.io",
-  repository = "library/fedora",
-  digest = "sha256:1b9bfb4e634dc1e5c19d0fa1eb2e5a28a5c2b498e3d3e4ac742bd7f5dae08611",
-  #tag = "27",
-)

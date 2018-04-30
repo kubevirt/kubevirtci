@@ -33,7 +33,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	run.Flags().BoolP("background", "b", false, "go to background after nodes are up")
 	run.Flags().BoolP("reverse", "r", false, "revert node startup order")
-	run.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
+	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
 	run.Flags().String("registry-volume", "", "cache docker registry content in the specified volume")
 	run.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	run.Flags().Uint("registry-port", 0, "port on localhost for the docker registry")
