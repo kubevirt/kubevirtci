@@ -84,6 +84,11 @@ node01 openshift_ip=$master_ip
 node01 openshift_node_labels="{'region': 'infra','zone': 'default'}" openshift_schedulable=true openshift_ip=$master_ip
 EOF
 
+# Add cri-o variable to inventory file
+if [[ $1 == "true" ]]; then
+    sed -i 's/\[OSEv3\:vars\]/\[OSEv3\:vars\]\nopenshift_use_crio=true\nopenshift_crio_systemcontainer_image_override=docker.io\/kubevirtci\/crio:1.9.10/' $inventory_file
+fi
+
 # Run OpenShift ansible playbook
 ansible-playbook -e "ansible_user=root ansible_ssh_pass=vagrant" -i $inventory_file /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
 ansible-playbook -i $inventory_file /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml
