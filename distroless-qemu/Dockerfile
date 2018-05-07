@@ -14,4 +14,5 @@ ENV QEMU_VERSION v2.10.2
 
 RUN cd / && curl -L -O https://github.com/qemu/qemu/archive/${QEMU_VERSION}.tar.gz && tar xf ${QEMU_VERSION}.tar.gz && rm ${QEMU_VERSION}.tar.gz
 
-RUN cd /qemu-2.10.2/ && ./configure --static --target-list=x86_64-softmmu --enable-kvm && make install -j4
+RUN cd /qemu-2.10.2/ && ./configure --static --target-list=x86_64-softmmu --enable-kvm --disable-werror --prefix=/build/usr \
+    && make install -j4
