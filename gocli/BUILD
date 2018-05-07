@@ -12,18 +12,6 @@ load(
     container_repositories = "repositories",
 )
 
-gazelle(
-    name = "gazelle",
-    prefix = "kubevirt.io/kubevirtci/gocli",
-)
-
-go_library(
-    name = "go_default_library",
-    srcs = ["main.go"],
-    importpath = "kubevirt.io/kubevirtci/gocli",
-    deps = ["//cmd:go_default_library"],
-)
-
 go_binary(
     name = "cli",
     embed = [":go_default_library"],
@@ -47,4 +35,11 @@ container_bundle(
 docker_push(
     name = "push-all",
     bundle = ":container-bundle",
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "kubevirt.io/kubevirtci/gocli",
+    deps = ["//gocli/cmd:go_default_library"],
 )

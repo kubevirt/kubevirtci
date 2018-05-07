@@ -1,17 +1,17 @@
 all: fmt build
 
 build: fmt
-	bazel build //:cli
+	bazel build //gocli:cli
 
 fmt:
-	go fmt ./cmd/...
-	go fmt ./docker/...
+	go fmt gocli/cmd/...
+	go fmt gocli/docker/...
 
 container: fmt
-	bazel build //:gocli
+	bazel build //gocli:gocli
 
 container-run: fmt
-	bazel run //:gocli
+	bazel run //gocli:gocli -- ${ARGS}
 
 push: fmt
 	bazel run //:push-all

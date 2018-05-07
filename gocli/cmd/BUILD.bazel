@@ -14,7 +14,7 @@ go_library(
     importpath = "kubevirt.io/kubevirtci/gocli/cmd",
     visibility = ["//visibility:public"],
     deps = [
-        "//docker:go_default_library",
+        "//gocli/docker:go_default_library",
         "//vendor/github.com/docker/docker/api/types:go_default_library",
         "//vendor/github.com/docker/docker/api/types/container:go_default_library",
         "//vendor/github.com/docker/docker/api/types/mount:go_default_library",

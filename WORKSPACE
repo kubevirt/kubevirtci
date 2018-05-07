@@ -35,4 +35,3 @@ load(
 )
 
 _go_image_repos()
-

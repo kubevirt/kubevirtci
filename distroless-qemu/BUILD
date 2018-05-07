@@ -1,4 +1,4 @@
-package(default_visibility = ["//visibility:public"])
+package(default_visibility = ["//visibility:private"])
 
 load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
 load("@io_bazel_rules_docker//contrib:push-all.bzl", "docker_push")
@@ -13,7 +13,7 @@ genrule(
     name = "qemu-binaries",
     srcs = ["build.sh", "Dockerfile"],
     outs = ["qemu.tar.gz"],
-    cmd = "cp Dockerfile Dockerfile.qemu && ./build.sh Dockerfile.qemu \"$(location qemu.tar.gz)\"",
+    cmd = "./$(location build.sh) $(location qemu.tar.gz)",
 )
 
 passwd_entry(
@@ -43,7 +43,7 @@ container_image(
     name = "qemu_image",
     tars = [":qemu-binaries", ":passwd_tar"],
     user = "qemu",
-    visibility = ["//visibility:private"],
+    visibility = ["//visibility:public"],
     entrypoint = ["qemu-system-x86_64"],
 )
 
@@ -58,7 +58,6 @@ pkg_tar(
     name = "cirros-iso-tar",
     srcs = [":cirros-iso"],
     package_dir = "disk",
-    visibility = ["//visibility:public"],
     owner = "107.107",
     mode = "0777",
 )
@@ -67,6 +66,6 @@ container_image(
     name = "qemu_image_test",
     tars = [":qemu-binaries", ":passwd_tar", ":cirros-iso-tar"],
     user = "qemu",
-    visibility = ["//visibility:private"],
+    visibility = ["//visibility:public"],
     entrypoint = ["qemu-system-x86_64"],
 )
