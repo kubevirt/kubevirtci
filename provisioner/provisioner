@@ -18,14 +18,13 @@ CRIO=""
 COMMAND=$1
 shift
 
-if [[    "${COMMAND}" != "run" \
-     && "${COMMAND}" != "provision" \
+if [[ "${COMMAND}" != "provision" \
      && "${COMMAND}" != "ssh" \
      && "${COMMAND}" != "ps" \
      && "${COMMAND}" != "update" \
      && "${COMMAND}" != "port" \
      && "${COMMAND}" != "rm" ]]; then
-        echo "No valid command provides. Valid commands  are 'run', 'provision', 'ssh' and 'rm'."
+        echo "No valid command provides. Valid commands  are 'provision', 'ssh' and 'rm'."
         exit 1
 fi
 
@@ -185,61 +184,4 @@ if [ "$COMMAND" == "provision" ] ; then
   docker exec ${VM_CID} /bin/bash -c "rm /usr/local/bin/ssh.sh"
   docker wait ${VM_CID}
   docker commit --change "ENV PROVISIONED TRUE" ${VM_CID} ${TAG}
-else
-  # Start registry
-  if [ -n "$REGISTRY_VOLUME" ]; then
-    if [ -z "$(docker volume list | grep ${REGISTRY_VOLUME})" ]; then
-      docker volume create --name ${REGISTRY_VOLUME}
-    fi
-    REGISTRY_VOLUME="-v ${REGISTRY_VOLUME}:/var/lib/registry"
-  fi
-  REGISTRY_CID=$(docker run -d --net=container:${DNSMASQ_CID} --name ${PREFIX}registry ${REGISTRY_VOLUME} registry:2)
-  CONTAINERS="${CONTAINERS} ${REGISTRY_CID}"
-
-  if [ -n "${NFS_DATA}" ]; then
-    if [[ "$DIR" != /* ]]; then
-      NFS_DATA=${PWD}/${NFS_DATA}
-    fi
-    NFS_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}nfs-ganesha -v ${NFS_DATA}:/data/nfs  janeczku/nfs-ganesha:latest)
-    CONTAINERS="${CONTAINERS} ${NFS_CID}"
-
-  # Let dnsmasq learn the nfs name
-  docker exec ${DNSMASQ_CID} /bin/bash -c 'echo 192.168.66.2 nfs >> /etc/hosts && kill -1 1'
-  fi
-  # Let dnsmasq learn the registry dns name
-  docker exec ${DNSMASQ_CID} /bin/bash -c 'echo 192.168.66.2 registry >> /etc/hosts && kill -1 1'
-
-  # Start VMs
-  if [ "${REVERSE}" = "true" ]; then
-   _seq="seq ${NODES} -1 1"
-  else
-   _seq="seq 1 ${NODES}"
-  fi
-
-  for i in $(${_seq}); do
-    NODE_NUM="$(printf "%02d" ${i})"
-
-    vol=${PREFIX}node${NODE_NUM}
-    docker volume create --name ${vol}
-    VOLUMES="${VOLUMES} ${vol}"
-
-    vol="-v ${vol}:/var/run/disk/"
-
-    VM_CID=$(docker run -d --privileged -e NODE_NUM=${NODE_NUM} ${vol} --net=container:${DNSMASQ_CID} --name ${PREFIX}node${NODE_NUM} ${BASE} /bin/bash -c "/vm.sh -n /var/run/disk/disk.qcow2 ${MEMORY} ${CPU} ${QEMU_ARGS}")
-    CONTAINERS="${CONTAINERS} ${VM_CID}"
-    docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
-    if docker exec ${VM_CID} /bin/bash -c "test -f /scripts/node${NODE_NUM}.sh" ; then
-      docker exec ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < /scripts/node${NODE_NUM}.sh"
-    elif docker exec ${VM_CID} /bin/bash -c "test -f /scripts/nodes.sh" ; then
-      docker exec ${VM_CID} /bin/bash -c "ssh.sh sudo /bin/bash < /scripts/nodes.sh"
-    fi
-    if [ "$BACKGROUND" != "true" ]; then
-      docker wait ${VM_CID} &
-    fi
-  done
-  if [ "$BACKGROUND" = "true" ]; then
-    exit 0
-  else
-    wait
-  fi
 fi
