@@ -6,6 +6,12 @@ import (
 	"os"
 )
 
+func init() {
+	if os.Getenv("DOCKER_API_VERSION") == "" {
+		os.Setenv("DOCKER_API_VERSION", "1.24")
+	}
+}
+
 func NewRootCommand() *cobra.Command {
 
 	root := &cobra.Command{
