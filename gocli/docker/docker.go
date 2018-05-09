@@ -207,7 +207,11 @@ func PrintProgress(progressReader io.ReadCloser, writer *os.File) {
 		scanner := bufio.NewScanner(progressReader)
 		for scanner.Scan() {
 			line := scanner.Text()
-			fmt.Print("\r" + line + strings.Repeat(" ", w-len(line)))
+			clearLength := w - len(line)
+			if clearLength < 0 {
+				clearLength = 0
+			}
+			fmt.Print("\r" + line + strings.Repeat(" ", clearLength))
 		}
 	} else {
 		fmt.Fprint(writer, "Downloading ...")
