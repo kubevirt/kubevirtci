@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha1

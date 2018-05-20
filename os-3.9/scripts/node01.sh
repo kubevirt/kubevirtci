@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 # Wait until cluster will be up
 set +e
 /usr/bin/oc get nodes

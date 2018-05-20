@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 # disable all master components, the machine should be a node
 systemctl stop origin-master-api
