@@ -30,6 +30,10 @@ echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json
 systemctl start docker
 systemctl enable docker
 
+dnsmasq_ip="192.168.66.2"
+echo "$dnsmasq_ip nfs" >> /etc/hosts
+echo "$dnsmasq_ip registry" >> /etc/hosts
+
 # Allow connecting to ssh via password
 sed -i -e "s/PasswordAuthentication no/PasswordAuthentication yes/" /etc/ssh/sshd_config
 systemctl restart sshd

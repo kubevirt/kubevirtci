@@ -11,12 +11,6 @@ while [ $? -ne 0 ]; do
 done
 set -e
 
-# Update DHCP lease, will also update DNS servers
-dhclient
-
-# Add first node record to SkyDNS dnsmasq
-echo "host-record=node01,192.168.66.101" >> /etc/dnsmasq.d/node-dnsmasq.conf
-
 inventory_file="/root/inventory"
 
 # Update inventory
@@ -26,22 +20,18 @@ sed -i '/\[OSEv3:children\]/a new_nodes' $inventory_file
 nodes_found="false"
 for i in $(seq 2 100); do
   node=$(printf "node%02d" ${i})
-  num=$(printf "%02d" ${i})
+  node_ip=$(printf "192.168.66.1%02d" ${i})
   set +e
-  ping ${node} -c 1
+  ping ${node_ip} -c 1
   if [ $? -ne 0 ]; then
       break
   fi
   nodes_found="true"
   set -e
-  # Add additional node record to SkyDNS dnsmasq
-  echo "host-record=${node},192.168.66.1${num}" >> /etc/dnsmasq.d/node-dnsmasq.conf
+  echo "$node_ip $node" >> /etc/hosts
   echo "Found ${node}. Adding it to the inventory."
-  echo "${node} openshift_node_labels=\"{'region': 'infra','zone': 'default'}\" openshift_schedulable=true openshift_ip=192.168.66.1${num}" >> $inventory_file
+  echo "${node} openshift_node_labels=\"{'region': 'infra','zone': 'default'}\" openshift_schedulable=true openshift_ip=$node_ip" >> $inventory_file
 done
-
-# Preserve node-dnsmasq.conf
-cp /etc/dnsmasq.d/node-dnsmasq.conf /tmp/node-dnsmasq.conf.backup
 
 # Run playbook if extra nodes were discovered
 if [ "$nodes_found" = "true"  ]; then
@@ -82,7 +72,3 @@ cat >post_deployment_configuration <<EOF
       when: crio
 EOF
 ansible-playbook -i $inventory_file post_deployment_configuration --extra-vars="crio=${crio}"
-
-# Restart dnsmasq to apply new records
-mv /tmp/node-dnsmasq.conf.backup /etc/dnsmasq.d/node-dnsmasq.conf
-systemctl restart dnsmasq
