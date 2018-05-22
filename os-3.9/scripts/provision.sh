@@ -18,21 +18,21 @@ EOF
 
 # Install OpenShift packages
 yum install -y centos-release-openshift-origin
-yum install -y yum-utils ansible wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct docker-1.12.6-71.git3e8e77d.el7.centos openshift-ansible
+yum install -y yum-utils ansible wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct docker openshift-ansible
 
 # Disable spectre and meltdown patches
 sed -i 's/quiet"/quiet spectre_v2=off nopti"/' /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
-
-echo 0 > /sys/kernel/debug/x86/pti_enabled
-echo 0 > /sys/kernel/debug/x86/ibpb_enabled
-echo 0 > /sys/kernel/debug/x86/ibrs_enabled
 
 sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
 echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json
 
 systemctl start docker
 systemctl enable docker
+
+dnsmasq_ip="192.168.66.2"
+echo "$dnsmasq_ip nfs" >> /etc/hosts
+echo "$dnsmasq_ip registry" >> /etc/hosts
 
 # Allow connecting to ssh via password
 sed -i -e "s/PasswordAuthentication no/PasswordAuthentication yes/" /etc/ssh/sshd_config
