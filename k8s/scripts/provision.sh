@@ -40,9 +40,9 @@ echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json
 
 # Omit pgp checks until https://github.com/kubernetes/kubeadm/issues/643 is resolved.
 yum install --nogpgcheck -y \
-    kubeadm-1.9.3 \
-    kubelet-1.9.3 \
-    kubectl-1.9.3 \
+    kubeadm-${version} \
+    kubelet-${version} \
+    kubectl-${version} \
     kubernetes-cni
 
 # Latest docker on CentOS uses systemd for cgroup management
@@ -64,5 +64,17 @@ net.bridge.bridge-nf-call-iptables = 1
 EOF
 sysctl --system
 
-kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v1.9.3 --token abcdef.1234567890123456
+kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
 kubeadm reset
+
+cat > /etc/kubernetes/kubeadm.conf <<EOF
+apiVersion: kubeadm.k8s.io/v1alpha1
+kind: MasterConfiguration
+apiServerExtraArgs:
+  runtime-config: admissionregistration.k8s.io/v1alpha1
+  admission-control: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
+token: abcdef.1234567890123456
+kubernetesVersion: ${version}
+networking:
+  podSubnet: 10.244.0.0/16
+EOF
