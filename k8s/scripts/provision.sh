@@ -65,6 +65,31 @@ EOF
 sysctl --system
 
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
+kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
+
+# Wait at least for one pod
+while [ -z "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system | grep kube)" ]; do
+    echo "Waiting for at least one pod ..."
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
+    sleep 10
+done
+
+# Wait until k8s pods are running
+while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | grep -v Running)" ]; do
+    echo "Waiting for k8s pods to enter the Running state ..."
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | >&2 grep -v Running || true
+    sleep 10
+done
+
+# Make sure all containers are ready
+while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
+    echo "Waiting for all containers to become ready ..."
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
+    sleep 10
+done
+
+kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
+
 kubeadm reset
 
 cat > /etc/kubernetes/kubeadm.conf <<EOF

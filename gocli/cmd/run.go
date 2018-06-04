@@ -41,7 +41,6 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("k8s-port", 0, "port on localhost for the k8s cluster")
 	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
-	run.Flags().String("cni-plugin", "", "CNI plugin that will be used, relevant only for k8s")
 	return run
 }
 
@@ -96,11 +95,6 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	nfs_data, err := cmd.Flags().GetString("nfs-data")
-	if err != nil {
-		return err
-	}
-
-	cniPlugin, err := cmd.Flags().GetString("cni-plugin")
 	if err != nil {
 		return err
 	}
@@ -315,7 +309,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		if success {
-			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo cni_plugin=%s /bin/bash < /scripts/%s.sh", cniPlugin, nodeName)}, os.Stdout)
+			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName)}, os.Stdout)
 		} else {
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/nodes.sh"}, os.Stdout)
 		}

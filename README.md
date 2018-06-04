@@ -11,13 +11,13 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
-* `kubevirtci/gocli`: `sha256:6d8593088ed8326f13e28a05cb253de1efa281097cf7ad1493d86729e7f2a5a1`
+* `kubevirtci/gocli`: `sha256:34466dacd5710a6900a4d868eac6cef46e69d0f0afebb49e59e6bea0e81f5019`
 * `kubevirtci/base`: `sha256:67b84e2acefdcd7197989cbab1f2d1324eb87b5a77bd31d52d3000d13eee750c`
 * `kubevirtci/centos:1804_02`: `sha256:5539557ff8cbe96a3ef05e5705f82b58c38e1ff1cdf09f55a47aa5eb542f4ce8`
 * `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
 * `kubevirtci/os-3.9.0-crio:`: `sha256:107d03dad4da6957e28774b121a45e177f31d7b4ad43c6eab7b24d467e59e213`
-* `kubevirtci/k8s-1.9.3:`: `sha256:6eff7f01c85f8e394992c91947787a51ed5709d04a5c58379cfec78254e8eec1`
-* `kubevirtci/k8s-1.10.3:`: `sha256:9f3477ebe10f9a9277a0713a31292d86ca0e3874d9bc750fb713a712c1f956a1`
+* `kubevirtci/k8s-1.9.3:`: `sha256:c63e25df491c42f8b473122ed6dd753148b48fc298231d5354b4b1c1c823b8a6`
+* `kubevirtci/k8s-1.10.3:`: `sha256:423adc6062291bcf1487c143ffa72d0bc255216d65c262ed0086401589c31518`
 
 
 ## Using gocli
