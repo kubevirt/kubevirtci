@@ -4,6 +4,7 @@
 * `centos7` adds a vagrant centos7 box to the image
 * `cli` contains a tool for provisioning, running and managing the containerized clusters
 * `k8s-1.9.3` k8s-1.9.3 cluster based on the centos7 image, provisioned with kubeadm
+* `k8s-1.10.3` k8s-1.10.3 cluster based on the centos7 image, provisioned with kubeadm
 * `os-3.9` os-3.9 cluster based on the centos7 image, provisioned with openshift-ansible
 * `os-3.9-crio` os-3.9 cluster with CRI-O support based on the centos7 image, provisioned with openshift-ansible
 
@@ -15,7 +16,8 @@
 * `kubevirtci/centos:1804_02`: `sha256:5539557ff8cbe96a3ef05e5705f82b58c38e1ff1cdf09f55a47aa5eb542f4ce8`
 * `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
 * `kubevirtci/os-3.9.0-crio:`: `sha256:107d03dad4da6957e28774b121a45e177f31d7b4ad43c6eab7b24d467e59e213`
-* `kubevirtci/k8s-1.9.3:`: `sha256:265ccfeeb0352a87141d4f0f041fa8cc6409b82fe3456622f4c549ec1bfe65c0`
+* `kubevirtci/k8s-1.9.3:`: `sha256:c63e25df491c42f8b473122ed6dd753148b48fc298231d5354b4b1c1c823b8a6`
+* `kubevirtci/k8s-1.10.3:`: `sha256:423adc6062291bcf1487c143ffa72d0bc255216d65c262ed0086401589c31518`
 
 
 ## Using gocli
@@ -36,7 +38,7 @@ gocli help
 Start a k8s cluster which contains of one master and two nodes:
 
 ```bash
-gocli run --random-ports --nodes 3 --background kubevirtci/k8s-1.9.3
+gocli run --random-ports --nodes 3 --background kubevirtci/k8s-1.10.3
 ```
 
 ### Connect to the cluster
