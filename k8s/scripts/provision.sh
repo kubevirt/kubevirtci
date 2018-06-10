@@ -10,7 +10,7 @@ swapoff -a
 sed -i '/ swap / s/^/#/' /etc/fstab
 
 # Disable spectre and meltdown patches
-sed -i 's/quiet"/quiet spectre_v2=off nopti"/' /etc/default/grub
+sed -i 's/quiet"/quiet spectre_v2=off nopti hugepagesz=2M hugepages=64"/' /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
 
 systemctl stop firewalld NetworkManager || :

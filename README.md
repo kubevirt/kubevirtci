@@ -16,8 +16,8 @@
 * `kubevirtci/centos:1804_02`: `sha256:5539557ff8cbe96a3ef05e5705f82b58c38e1ff1cdf09f55a47aa5eb542f4ce8`
 * `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
 * `kubevirtci/os-3.9.0-crio:`: `sha256:107d03dad4da6957e28774b121a45e177f31d7b4ad43c6eab7b24d467e59e213`
-* `kubevirtci/k8s-1.9.3:`: `sha256:c63e25df491c42f8b473122ed6dd753148b48fc298231d5354b4b1c1c823b8a6`
-* `kubevirtci/k8s-1.10.3:`: `sha256:423adc6062291bcf1487c143ffa72d0bc255216d65c262ed0086401589c31518`
+* `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
+* `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
 
 
 ## Using gocli
