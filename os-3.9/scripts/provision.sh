@@ -2,6 +2,9 @@
 
 set -ex
 
+# Install epel
+yum -y install epel-release
+
 # Install storage requirements for iscsi and cluster
 yum -y install centos-release-gluster
 yum -y install --nogpgcheck -y glusterfs-fuse
