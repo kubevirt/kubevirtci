@@ -2,6 +2,10 @@
 
 set -ex
 
+# Set SELinux to permissive. Still logging the denials.
+setenforce 0
+sed -i "s/^SELINUX=.*/SELINUX=permissive/" /etc/selinux/config
+
 # Install epel
 yum -y install epel-release
 
