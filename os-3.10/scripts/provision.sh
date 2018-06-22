@@ -33,7 +33,6 @@ yum install -y yum-utils \
   sos \
   psacct \
   docker
-yum install -y origin* -x origin-sdn-ovs
 
 # Disable spectre and meltdown patches
 sed -i 's/quiet"/quiet spectre_v2=off nopti"/' /etc/default/grub
@@ -43,24 +42,6 @@ echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json
 
 systemctl start docker
 systemctl enable docker
-
-images=( \
-  docker.io/openshift/origin-service-catalog \
-  docker.io/openshift/origin-web-console \
-  docker.io/openshift/origin-docker-registry \
-  docker.io/openshift/origin-node \
-  docker.io/openshift/origin-haproxy-router \
-  docker.io/openshift/origin-deployer \
-  docker.io/openshift/origin-control-plane \
-  docker.io/openshift/origin-template-service-broker \
-  docker.io/openshift/origin-pod \
-  docker.io/ansibleplaybookbundle/origin-ansible-service-broker \
-  docker.io/cockpit/kubernetes \
-  quay.io/coreos/etcd)
-
-for i in ${images[@]}; do
-  docker pull $i;
-done
 
 dnsmasq_ip="192.168.66.2"
 echo "$dnsmasq_ip nfs" >> /etc/hosts
@@ -116,8 +97,15 @@ node01 openshift_ip=$master_ip
 node01 openshift_ip=$master_ip
 
 [nodes]
-node01 openshift_schedulable=true openshift_ip=$master_ip openshift_node_group_name="node-config-all-in-one"
+node01 openshift_schedulable=true openshift_ip=$master_ip openshift_node_group_name="node-config-master-infra"
 EOF
 
 # Install prerequisites
 ansible-playbook -e "ansible_user=root ansible_ssh_pass=vagrant" -i $inventory_file $openshift_ansible/playbooks/prerequisites.yml
+ansible-playbook -i $inventory_file $openshift_ansible/playbooks/deploy_cluster.yml
+
+# Create OpenShift user
+/usr/bin/oc create user admin
+/usr/bin/oc create identity allow_all_auth:admin
+/usr/bin/oc create useridentitymapping allow_all_auth:admin admin
+/usr/bin/oc adm policy add-cluster-role-to-user cluster-admin admin
