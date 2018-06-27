@@ -41,6 +41,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("k8s-port", 0, "port on localhost for the k8s cluster")
 	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
+	run.Flags().String("log-dir", "", "directory where to store the aggregated logs, deploys the fluent endpoint")
 	return run
 }
 
@@ -95,6 +96,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	nfs_data, err := cmd.Flags().GetString("nfs-data")
+	if err != nil {
+		return err
+	}
+
+	logDir, err := cmd.Flags().GetString("log-dir")
 	if err != nil {
 		return err
 	}
@@ -237,6 +243,42 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 		containers <- nfsServer.ID
 		if err := cli.ContainerStart(ctx, nfsServer.ID, types.ContainerStartOptions{}); err != nil {
+			return err
+		}
+	}
+
+	if logDir != "" {
+		logDir, err := filepath.Abs(logDir)
+		if err != nil {
+			return err
+		}
+
+		// Pull the fluent image
+		reader, err = cli.ImagePull(ctx, "docker.io/pkotas/fluentd", types.ImagePullOptions{})
+		if err != nil {
+			panic(err)
+		}
+		docker.PrintProgress(reader, os.Stdout)
+
+		// Start the fluent image
+		fluentd, err := cli.ContainerCreate(ctx, &container.Config{
+			Image: "pkotas/fluentd",
+		}, &container.HostConfig{
+			Mounts: []mount.Mount{
+				{
+					Type:   mount.TypeBind,
+					Source: logDir,
+					Target: "/fluentd/log/collected",
+				},
+			},
+			Privileged:  true,
+			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
+		}, nil, prefix+"-fluentd")
+		if err != nil {
+			return err
+		}
+		containers <- fluentd.ID
+		if err := cli.ContainerStart(ctx, fluentd.ID, types.ContainerStartOptions{}); err != nil {
 			return err
 		}
 	}
