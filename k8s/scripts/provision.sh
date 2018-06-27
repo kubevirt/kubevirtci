@@ -38,6 +38,12 @@ yum install -y docker
 sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
 echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json
 
+# Enable the permanent logging
+# Required by the fluentd journald plugin
+# The default settings in recent distribution for systemd is set to auto,
+# when on auto journal is permament when /var/log/journal exists
+mkdir -p /var/log/journal
+
 # Omit pgp checks until https://github.com/kubernetes/kubeadm/issues/643 is resolved.
 yum install --nogpgcheck -y \
     kubeadm-${version} \
