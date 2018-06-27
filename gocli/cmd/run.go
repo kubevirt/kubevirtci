@@ -42,6 +42,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().String("log-dir", "", "directory where to store the aggregated logs, deploys the fluent endpoint")
+	run.Flags().Bool("deploy-logging", false, "deploy the default fluent logging onto the cluster")
 	return run
 }
 
@@ -101,6 +102,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	logDir, err := cmd.Flags().GetString("log-dir")
+	if err != nil {
+		return err
+	}
+
+	logEnabled, err := cmd.Flags().GetBool("deploy-logging")
 	if err != nil {
 		return err
 	}
@@ -368,6 +374,22 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			cli.ContainerWait(context.Background(), id)
 			wg.Done()
 		}(node.ID)
+	}
+
+	// If logging is enabled, deploy the default fluent logging
+	if logEnabled {
+		nodeName := nodeNameFromIndex(1)
+		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+			"/bin/bash",
+			"-c",
+			"ssh.sh sudo /bin/bash < /scripts/logging.sh",
+		}, os.Stdout)
+		if err != nil {
+			return err
+		}
+		if !success {
+			return fmt.Errorf("provisioning logging failed")
+		}
 	}
 
 	// If background flag was specified, we don't want to clean up if we reach that state
