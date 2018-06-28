@@ -86,6 +86,7 @@ spec:
         hostPath:
           path: /var/lib/docker/containers"
 
+/usr/bin/oc new-project logging
 /usr/bin/oc project logging
 echo "$MY_USER" | oc --config /etc/origin/master/admin.kubeconfig apply -f - 
 /usr/bin/oc adm policy add-scc-to-user privileged system:serviceaccount:logging:fluentd
