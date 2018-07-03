@@ -6,6 +6,7 @@
 * `k8s-1.9.3` k8s-1.9.3 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.10.3` k8s-1.10.3 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.10.4` k8s-1.10.4 cluster based on the centos7 image, provisioned with kubeadm
+* `k8s-1.11.0` k8s-1.11.0 cluster based on the centos7 image, provisioned with kubeadm
 * `os-3.9` os-3.9 cluster based on the centos7 image, provisioned with openshift-ansible
 * `os-3.9-crio` os-3.9 cluster with CRI-O support based on the centos7 image, provisioned with openshift-ansible
 
