@@ -19,7 +19,7 @@
 * `kubevirtci/os-3.9.0-crio:`: `sha256:107d03dad4da6957e28774b121a45e177f31d7b4ad43c6eab7b24d467e59e213`
 * `kubevirtci/os-3.10.0:`: `sha256:0977f1c716862710c8324798b95802e11a149f4532e33be20dd70877fe8f5332`
 * `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
-* `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
+* `kubevirtci/k8s-1.10.3:`: `sha256:1335ba277ff8bcbacaaed6d19ab7ece84c4da388b3204eb02692bfa8621eaa5f`
 * `kubevirtci/k8s-1.10.4:`: `sha256:09ac918cc16f13a5d0af51d4c98e3e25cbf4f97b7b32fe18ec61b32f04ca1009`
 
 
