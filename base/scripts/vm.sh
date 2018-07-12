@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 PROVISION=false
 MEMORY=3096M

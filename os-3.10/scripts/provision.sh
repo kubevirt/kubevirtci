@@ -14,7 +14,7 @@ yum -y install iscsi-initiator-utils
 cat >/etc/yum.repos.d/origin-latest.repo <<EOF
 [my-origin]
 name=Origin packages v3.10.0-rc.0
-baseurl=http://10.35.4.116/v3.10.0-rc.0/
+baseurl=https://plain.resources.ovirt.org/repos/origin/3.10/v3.10.0-rc.0/
 enabled=1
 gpgcheck=0
 EOF
@@ -35,7 +35,7 @@ yum install -y yum-utils \
   docker
 
 # Disable spectre and meltdown patches
-sed -i 's/quiet"/quiet spectre_v2=off nopti"/' /etc/default/grub
+sed -i 's/quiet"/quiet spectre_v2=off nopti hugepagesz=2M hugepages=64"/' /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
 
 echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json
