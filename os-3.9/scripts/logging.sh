@@ -64,7 +64,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: fluentd
-        image: fluentd/fluentd-kubernetes-daemonset:v1.2-debian-syslog
+        image: fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
         securityContext:
           privileged: true
         env:
