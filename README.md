@@ -6,6 +6,7 @@
 * `k8s-1.9.3` k8s-1.9.3 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.10.3` k8s-1.10.3 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.10.4` k8s-1.10.4 cluster based on the centos7 image, provisioned with kubeadm
+* `k8s-1.11.0` k8s-1.11.0 cluster based on the centos7 image, provisioned with kubeadm
 * `os-3.9` os-3.9 cluster based on the centos7 image, provisioned with openshift-ansible
 * `os-3.9-crio` os-3.9 cluster with CRI-O support based on the centos7 image, provisioned with openshift-ansible
 * `os-3.10.0` os-3.10.0 cluster based on the centos7 image, provisioned with openshift-ansible
@@ -22,7 +23,7 @@
 * `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
 * `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
 * `kubevirtci/k8s-1.10.4:`: `sha256:09ac918cc16f13a5d0af51d4c98e3e25cbf4f97b7b32fe18ec61b32f04ca1009`
-
+* `kubevirtci/k8s-1.11.0:`: `sha256:TODO`
 
 ## Using gocli
 

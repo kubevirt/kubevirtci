@@ -90,14 +90,31 @@ done
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
 
-kubeadm reset
+export k8s11=false
+if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
+    k8s11=true
+fi
+
+# k8s 1.11 asks for confirmation on kubeadm reset, which can be suppressed by a new force flag
+if [[ $k8s11 = true ]]; then
+    kubeadm reset --force
+else
+    kubeadm reset
+fi
+
+# k8s 1.11 uses new flags for admission plugins
+# old one is deprecated only, but can not be combined with new one, which is used in api server config created by kubeadm
+admissionflag=admission-control
+if [[ $k8s11 = true ]]; then
+    admissionflag=enable-admission-plugins
+fi
 
 cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
 apiServerExtraArgs:
   runtime-config: admissionregistration.k8s.io/v1alpha1
-  admission-control: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
+  ${admissionflag}: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
 token: abcdef.1234567890123456
 kubernetesVersion: ${version}
 networking:
