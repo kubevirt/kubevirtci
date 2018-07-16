@@ -64,7 +64,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: fluentd
-        image: pkotas/fluentd-daemonset:latest
+        image: fluentd/fluentd-kubernetes-daemonset:v1.2-debian-syslog
         securityContext:
           privileged: true
         env:
@@ -79,6 +79,8 @@ spec:
           mountPath: /var/log
         - name: varlibdockercontainers
           mountPath: /var/lib/docker/containers
+        - name: configs
+          mountPath: /fluentd/etc/
       terminationGracePeriodSeconds: 30
       volumes:
       - name: varlog
@@ -86,7 +88,11 @@ spec:
           path: /var/log
       - name: varlibdockercontainers
         hostPath:
-          path: /var/lib/docker/containers"
+          path: /var/lib/docker/containers
+      - name: configs
+        configMap: 
+          name: fluentd-daemonset"
+
 
 /usr/bin/oc project logging
 echo "$MY_USER" | oc --config /etc/origin/master/admin.kubeconfig apply -f - 

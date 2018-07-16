@@ -77,6 +77,8 @@ spec:
           mountPath: /var/log
         - name: varlibdockercontainers
           mountPath: /var/lib/docker/containers
+        - name: configs
+          mountPath: /fluentd/etc/
       terminationGracePeriodSeconds: 30
       volumes:
       - name: varlog
@@ -84,7 +86,10 @@ spec:
           path: /var/log
       - name: varlibdockercontainers
         hostPath:
-          path: /var/lib/docker/containers"
+          path: /var/lib/docker/containers
+      - name: configs
+        configMap: 
+          name: fluentd-daemonset"
 
 /usr/bin/oc new-project logging
 /usr/bin/oc project logging

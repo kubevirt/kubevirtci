@@ -82,6 +82,8 @@ spec:
         - name: varlibdockercontainers
           mountPath: /var/lib/docker/containers
           readOnly: true
+        - name: configs
+          mountPath: /fluentd/etc/
       terminationGracePeriodSeconds: 30
       volumes:
       - name: varlog
@@ -89,6 +91,9 @@ spec:
           path: /var/log
       - name: varlibdockercontainers
         hostPath:
-          path: /var/lib/docker/containers"
+          path: /var/lib/docker/containers
+      - name: configs
+        configMap: 
+          name: fluentd-daemonset"
 
 echo "$MY_LOGGING" | kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f - 
