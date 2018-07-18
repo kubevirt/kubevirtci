@@ -115,3 +115,16 @@ kubernetesVersion: ${version}
 networking:
   podSubnet: 10.244.0.0/16
 EOF
+
+# Create local-volume directories
+for i in {1..10}
+do
+  mkdir -p /var/local/kubevirt-storage/local-volume/disk${i}
+  mkdir -p /mnt/local-storage/local/disk${i}
+  echo "/var/local/kubevirt-storage/local-volume/disk${i} /mnt/local-storage/local/disk${i} none defaults,bind 0 0" >> /etc/fstab
+done
+chmod -R 777 /var/local/kubevirt-storage/local-volume
+
+# Setup selinux permissions to local volume directories.
+chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
+
