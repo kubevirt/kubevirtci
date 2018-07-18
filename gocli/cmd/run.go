@@ -41,8 +41,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("k8s-port", 0, "port on localhost for the k8s cluster")
 	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
-	run.Flags().String("log-dir", "", "directory where to store the aggregated logs, deploys the fluent endpoint")
-	run.Flags().Bool("deploy-logging", false, "deploy the default fluent logging onto the cluster")
+	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
 	return run
 }
 
@@ -101,12 +100,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	logDir, err := cmd.Flags().GetString("log-dir")
-	if err != nil {
-		return err
-	}
-
-	logEnabled, err := cmd.Flags().GetBool("deploy-logging")
+	logDir, err := cmd.Flags().GetString("log-to-dir")
 	if err != nil {
 		return err
 	}
@@ -259,6 +253,10 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			return err
 		}
 
+		if _, err = os.Stat(logDir); os.IsNotExist(err) {
+			os.Mkdir(logDir, 0755)
+		}
+
 		// Pull the fluent image
 		reader, err = cli.ImagePull(ctx, "docker.io/pkotas/fluentd", types.ImagePullOptions{})
 		if err != nil {
@@ -377,7 +375,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// If logging is enabled, deploy the default fluent logging
-	if logEnabled {
+	if logDir != "" {
 		nodeName := nodeNameFromIndex(1)
 		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
 			"/bin/bash",
