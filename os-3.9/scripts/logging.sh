@@ -16,6 +16,7 @@ data:
     <match **>
       @type forward 
       @log_level error
+      heartbeat_type none
       <buffer>
         @type file
         path /var/tmp/fluent/myapp.*.buffer
