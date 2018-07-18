@@ -2,6 +2,111 @@
 
 set -xe
 
+MY_CONFIG='---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: logging
+data:
+  fluent.conf: |+
+    @include systemd.conf
+    @include kubernetes.conf
+    
+    <match **>
+      @type forward 
+      @log_level error
+      <buffer>
+        @type file
+        path /var/tmp/fluent/myapp.*.buffer
+      </buffer>
+      <server>
+        name master_fluent
+        host "#{ENV['\''FLUENT_MASTER'\'']}"
+        port "#{ENV['\''FLUENT_PORT'\'']}"
+      </server>
+    </match>
+  kubernetes.conf: |+
+    <match fluent.**>
+      @type null
+    </match>
+
+    <source>
+      @type tail
+      @id in_tail_container_logs
+      format kubernetes
+      path /var/log/pods/**/*.log
+      pos_file /var/log/fluentd-pods.log.pos
+      tag kubernetes.*
+      read_from_head true
+      format json
+      time_format %Y-%m-%dT%H:%M:%S.%NZ
+    </source>
+
+    <source>
+      @type tail
+      @id in_tail_kube_apiserver_audit
+      multiline_flush_interval 5s
+      path /var/log/kubernetes/kube-apiserver-audit.log
+      pos_file /var/tmp/kube-apiserver-audit.log.pos
+      tag kube-apiserver-audit
+      format multiline
+      format_firstline /^\S+\s+AUDIT:/
+      format1 /^(?<time>\S+) AUDIT:(?: (?:id="(?<id>(?:[^"\\]|\\.)*)"|ip="(?<ip>(?:[^"\\]|\\.)*)"|method="(?<method>(?:[^"\\]|\\.)*)"|user="(?<user>(?:[^"\\]|\\.)*)"|groups="(?<groups>(?:[^"\\]|\\.)*)"|as="(?<as>(?:[^"\\]|\\.)*)"|asgroups="(?<asgroups>(?:[^"\\]|\\.)*)"|namespace="(?<namespace>(?:[^"\\]|\\.)*)"|uri="(?<uri>(?:[^"\\]|\\.)*)"|response="(?<response>(?:[^"\\]|\\.)*)"|\w+="(?:[^"\\]|\\.)*"))*/
+      time_format %FT%T.%L%Z
+    </source>
+
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      @id filter_kube_metadata
+    </filter>
+
+  systemd.conf: |+
+    # Logs from kubelet
+    <source>
+      @type systemd
+      @id in_systemd_kubelet
+      path /var/log/journal
+      matches [{ "_SYSTEMD_UNIT": "kubelet.service" }]
+      <storage>
+        @type local
+        persistent true
+        path /var/log/fluentd-journald-kubelet-cursor.json
+      </storage>
+      read_from_head true
+      tag kubelet
+    </source>
+    
+    # Logs from docker-systemd
+    <source>
+      @type systemd
+      @id in_systemd_docker
+      path /var/log/journal
+      matches [{"_SYSTEMD_UNIT": "docker.service" }]
+      <storage>
+        @type local
+        persistent true
+        path /var/log/fluentd-journald-docker-cursor.json
+      </storage>
+      read_from_head true
+      tag docker.systemd
+    </source>
+    
+    # Logs from audit
+    <source>
+      @type systemd
+      @id in_systemd_audit
+      path /var/log/journal
+      matches [{ "_TRANSPORT": "audit" }]
+      <storage>
+        @type local
+        persistent true
+        path /var/log/fluentd-journald-audit-cursor.json
+      </storage>
+      read_from_head true
+      tag audit
+    </source>'
+
 MY_USER="---
 apiVersion: v1
 kind: ServiceAccount
@@ -36,8 +141,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: fluentd
-  namespace: logging
-"
+  namespace: logging"
 
 MY_LOGGING="---
 apiVersion: extensions/v1beta1
@@ -72,8 +176,6 @@ spec:
             value: '192.168.66.2'
           - name:  FLUENT_PORT
             value: '24224'
-          - name: FLUENT_UID
-            value: '1000'
         volumeMounts:
         - name: varlog
           mountPath: /var/log
@@ -94,9 +196,11 @@ spec:
           name: fluentd-daemonset"
 
 
-/usr/bin/oc project logging
-echo "$MY_USER" | oc --config /etc/origin/master/admin.kubeconfig apply -f - 
-/usr/bin/oc adm policy add-scc-to-user privileged system:serviceaccount:logging:fluentd
-/usr/bin/oc adm policy add-cluster-role-to-user cluster-reader system:serviceaccount:logging:fluentd
-/usr/bin/oc patch namespace kube-system -p '{"metadata": {"annotations": {"openshift.io/node-selector": ""}}}'
-echo "$MY_LOGGING" | oc --config /etc/origin/master/admin.kubeconfig apply -f - 
+oc new-project logging
+oc project logging
+oc --config /etc/origin/master/admin.kubeconfig apply -f - <<< "$MY_CONFIG"
+oc --config /etc/origin/master/admin.kubeconfig apply -f - <<< "$MY_USER"
+oc adm policy add-scc-to-user privileged system:serviceaccount:logging:fluentd
+oc adm policy add-cluster-role-to-user cluster-reader system:serviceaccount:logging:fluentd
+oc patch namespace kube-system -p '{"metadata": {"annotations": {"openshift.io/node-selector": ""}}}'
+oc --config /etc/origin/master/admin.kubeconfig apply -f - <<< "$MY_LOGGING"

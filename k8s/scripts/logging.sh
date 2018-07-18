@@ -5,6 +5,9 @@ set -xe
 MY_CONFIG='---
 apiVersion: v1
 kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: logging
 data:
   fluent.conf: |+
     @include systemd.conf
@@ -19,8 +22,8 @@ data:
       </buffer>
       <server>
         name master_fluent
-        host "#{ENV['FLUENT_MASTER']}"
-        port "#{ENV['FLUENT_PORT']}"
+        host "#{ENV['\''FLUENT_MASTER'\'']}"
+        port "#{ENV['\''FLUENT_PORT'\'']}"
       </server>
     </match>
   kubernetes.conf: |+
@@ -104,18 +107,18 @@ data:
       tag audit
     </source>'
 
-MY_LOGGING="---
+MY_USER="---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: fluentd
-  namespace: kube-system
+  namespace: logging
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: fluentd
-  namespace: kube-system
+  namespace: logging
 rules:
 - apiGroups:
   - ''
@@ -138,13 +141,14 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: fluentd
-  namespace: kube-system
----
+  namespace: logging"
+
+MY_LOGGING="---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: fluentd
-  namespace: kube-system
+  namespace: logging
   labels:
     k8s-app: fluentd-logging
     version: v1
@@ -164,20 +168,14 @@ spec:
         effect: NoSchedule
       containers:
       - name: fluentd
-        image: fluentd/fluentd-kubernetes-daemonset:v1.2-debian-syslog
+        image: fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
         securityContext:
-          runAsUser: 0
+          privileged: true
         env:
           - name:  FLUENT_MASTER
             value: '192.168.66.2'
           - name:  FLUENT_PORT
             value: '24224'
-        resources:
-          limits:
-            memory: 200Mi
-          requests:
-            cpu: 100m
-            memory: 200Mi
         volumeMounts:
         - name: varlog
           mountPath: /var/log
@@ -196,7 +194,9 @@ spec:
           path: /var/lib/docker/containers
       - name: configs
         configMap: 
-          name: fluentd-daemonset"
+          name: fluentd-config"
 
-echo "$MY_CONFIG" | kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f - 
-echo "$MY_LOGGING" | kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f - 
+kubectl --kubeconfig /etc/kubernetes/admin.conf create namespace logging
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f - <<< "$MY_CONFIG"
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f - <<< "$MY_USER"
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f - <<< "$MY_LOGGING"
