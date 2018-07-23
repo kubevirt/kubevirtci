@@ -29,3 +29,6 @@ done
 if [ "$nodes_found" = "true"  ]; then
   ansible-playbook -i $inventory_file $openshift_ansible/playbooks/openshift-node/scaleup.yml
 fi
+
+/usr/bin/oc create -f /tmp/local-volume.yaml
+

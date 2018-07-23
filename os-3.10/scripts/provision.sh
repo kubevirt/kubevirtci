@@ -109,3 +109,18 @@ ansible-playbook -i $inventory_file $openshift_ansible/playbooks/deploy_cluster.
 /usr/bin/oc create identity allow_all_auth:admin
 /usr/bin/oc create useridentitymapping allow_all_auth:admin admin
 /usr/bin/oc adm policy add-cluster-role-to-user cluster-admin admin
+
+# Create local-volume directories
+for i in {1..10}
+do
+  mkdir -p /var/local/kubevirt-storage/local-volume/disk${i}
+  mkdir -p /mnt/local-storage/local/disk${i}
+  echo "/var/local/kubevirt-storage/local-volume/disk${i} /mnt/local-storage/local/disk${i} none defaults,bind 0 0" >> /etc/fstab
+done
+chmod -R 777 /var/local/kubevirt-storage/local-volume
+
+# Setup selinux permissions to local volume directories.
+chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
+# Add privileged to local volume provision service account
+/usr/bin/oc adm policy add-scc-to-user privileged -z local-storage-admin
+
