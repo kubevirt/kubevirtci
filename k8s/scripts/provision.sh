@@ -58,11 +58,16 @@ systemctl enable kubelet && systemctl start kubelet
 # Needed for kubernetes service routing and dns
 # https://github.com/kubernetes/kubernetes/issues/33798#issuecomment-250962627
 modprobe bridge
+modprobe br_netfilter
 cat <<EOF >  /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
 EOF
 sysctl --system
+
+echo bridge >> /etc/modules
+echo br_netfilter >> /etc/modules
 
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
 kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
@@ -115,3 +120,16 @@ kubernetesVersion: ${version}
 networking:
   podSubnet: 10.244.0.0/16
 EOF
+
+# Create local-volume directories
+for i in {1..10}
+do
+  mkdir -p /var/local/kubevirt-storage/local-volume/disk${i}
+  mkdir -p /mnt/local-storage/local/disk${i}
+  echo "/var/local/kubevirt-storage/local-volume/disk${i} /mnt/local-storage/local/disk${i} none defaults,bind 0 0" >> /etc/fstab
+done
+chmod -R 777 /var/local/kubevirt-storage/local-volume
+
+# Setup selinux permissions to local volume directories.
+chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
+
