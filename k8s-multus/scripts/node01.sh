@@ -3,12 +3,8 @@
 set -ex
 
 # Wait for the network to really came up
-while [[ `cat /proc/sys/net/ipv4/ip_forward` -eq 0 ]]
-do
- sleep 2
-done
 
-while [[ ! -f /proc/sys/net/bridge/bridge-nf-call-iptables ]]
+while [[ `systemctl status docker | grep active | wc -l` -eq 0 ]]
 do
  sleep 2
 done
@@ -22,5 +18,5 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f crd.yml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f flannel-conf.yml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f macvlan-conf.yml
 
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/intel/multus-cni/dev/network-plumbing-working-group-crd-change/examples/multus-with-flannel.yml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /etc/kubernetes/cni.yml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule- 

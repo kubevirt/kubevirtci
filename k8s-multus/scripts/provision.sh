@@ -106,7 +106,9 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf create clusterrolebinding multus
                                                        --clusterrole=multus-crd-overpowered \
                                                        --user=system:node:`hostname`
 
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/intel/multus-cni/dev/network-plumbing-working-group-crd-change/examples/multus-with-flannel.yml
+curl https://raw.githubusercontent.com/intel/multus-cni/dev/network-plumbing-working-group-crd-change/examples/multus-with-flannel.yml --output /etc/kubernetes/cni.yml
+
+kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /etc/kubernetes/cni.yml
 
 # Wait at least for one pod
 while [ -z "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system | grep kube)" ]; do
