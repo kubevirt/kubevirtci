@@ -58,11 +58,16 @@ systemctl enable kubelet && systemctl start kubelet
 # Needed for kubernetes service routing and dns
 # https://github.com/kubernetes/kubernetes/issues/33798#issuecomment-250962627
 modprobe bridge
+modprobe br_netfilter
 cat <<EOF >  /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
 EOF
 sysctl --system
+
+echo bridge >> /etc/modules
+echo br_netfilter >> /etc/modules
 
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
 kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
