@@ -258,7 +258,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		// Pull the fluent image
-		reader, err = cli.ImagePull(ctx, "docker.io/pkotas/fluentd", types.ImagePullOptions{})
+		reader, err = cli.ImagePull(ctx, "docker.io/kubevirtci/fluentd", types.ImagePullOptions{})
 		if err != nil {
 			panic(err)
 		}
@@ -266,7 +266,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 
 		// Start the fluent image
 		fluentd, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: "pkotas/fluentd",
+			Image: "kubevirtci/fluentd",
 		}, &container.HostConfig{
 			Mounts: []mount.Mount{
 				{
