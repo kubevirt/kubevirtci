@@ -184,3 +184,6 @@ kubernetesVersion: ${version}
 networking:
   podSubnet: 10.244.0.0/16
 EOF
+
+# Pre pull fluentd image used in logging
+docker pull docker.io/fluentd/fluentd

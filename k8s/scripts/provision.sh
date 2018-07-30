@@ -139,3 +139,5 @@ chmod -R 777 /var/local/kubevirt-storage/local-volume
 # Setup selinux permissions to local volume directories.
 chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 
+# Pre pull fluentd image used in logging
+docker pull docker.io/fluentd/fluentd
