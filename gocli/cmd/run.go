@@ -5,6 +5,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
@@ -258,7 +259,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		// Pull the fluent image
-		reader, err = cli.ImagePull(ctx, "docker.io/kubevirtci/fluentd", types.ImagePullOptions{})
+		reader, err = cli.ImagePull(ctx, "docker.io/fluent/fluentd:v1.2-debian", types.ImagePullOptions{})
 		if err != nil {
 			panic(err)
 		}
@@ -267,6 +268,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		// Start the fluent image
 		fluentd, err := cli.ContainerCreate(ctx, &container.Config{
 			Image: "kubevirtci/fluentd",
+			Cmd: strslice.StrSlice{
+				"exec fluentd",
+				"-i \"<system>\n log_level debug\n</system>\n<source>\n@type  forward\n@log_level error\nport  24224\n</source>\n<match **>\n@type file\npath /fluentd/log/collected\n</match>\"",
+				"-p /fluentd/plugins $FLUENTD_OPT -v",
+			},
 		}, &container.HostConfig{
 			Mounts: []mount.Mount{
 				{
