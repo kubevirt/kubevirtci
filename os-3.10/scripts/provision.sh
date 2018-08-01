@@ -19,6 +19,15 @@ enabled=1
 gpgcheck=0
 EOF
 
+# Create Origin 3.10 testing repo
+cat >/etc/yum.repos.d/origin-test.repo <<EOF
+[centos-openshift-origin-test]
+name=CentOS OpenShift Origin 3.10 test
+baseurl=https://cbs.centos.org/repos/paas7-openshift-origin310-testing/x86_64/os/
+enabled=1
+gpgcheck=0
+EOF
+
 # Install OpenShift packages
 yum install -y yum-utils \
   ansible \
@@ -99,6 +108,11 @@ node01 openshift_ip=$master_ip
 [nodes]
 node01 openshift_schedulable=true openshift_ip=$master_ip openshift_node_group_name="node-config-master-infra"
 EOF
+
+# Add cri-o variable to inventory file
+if [[ $1 == "true" ]]; then
+    sed -i 's/\[OSEv3\:vars\]/\[OSEv3\:vars\]\nopenshift_use_crio=true\n/' $inventory_file
+fi
 
 # Install prerequisites
 ansible-playbook -e "ansible_user=root ansible_ssh_pass=vagrant" -i $inventory_file $openshift_ansible/playbooks/prerequisites.yml

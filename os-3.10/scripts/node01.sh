@@ -30,6 +30,35 @@ if [ "$nodes_found" = "true"  ]; then
   ansible-playbook -i $inventory_file $openshift_ansible/playbooks/openshift-node/scaleup.yml
 fi
 
+set +e
+crio=false
+grep crio $inventory_file
+if [ $? -eq 0 ]; then
+  crio=true
+fi
+set -e
+
+cat >post_deployment_configuration <<EOF
+- hosts: nodes, new_nodes
+  tasks:
+    - name: Configure CRI-O support
+      block:
+        - replace:
+            path: /etc/crio/crio.conf
+            regexp: 'insecure_registries = \[\n""\n\]'
+            replace: 'insecure_registries = ["docker.io", "registry:5000"]'
+        - replace:
+            path: /etc/crio/crio.conf
+            regexp: 'registries = \[\n"docker.io"\n\]'
+            replace: 'registries = ["docker.io", "registry:5000"]'
+        - service:
+            name: cri-o
+            state: restarted
+            enabled: yes
+      when: crio
+EOF
+ansible-playbook -i $inventory_file post_deployment_configuration --extra-vars="crio=${crio}"
+
 # Wait for api server to be up.
 set -x
 /usr/bin/oc get nodes --no-headers
