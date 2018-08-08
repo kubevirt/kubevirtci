@@ -43,9 +43,7 @@ yum install --nogpgcheck -y \
     kubeadm-${version} \
     kubelet-${version} \
     kubectl-${version} \
-    kubernetes-cni \
-    git \
-    golang
+    kubernetes-cni
 
 # Latest docker on CentOS uses systemd for cgroup management
 cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
@@ -69,15 +67,15 @@ sysctl --system
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
 
 # install multus
-git clone https://github.com/intel/multus-cni.git -b dev/network-plumbing-working-group-crd-change
-cd multus-cni
-./build
+curl https://raw.githubusercontent.com/intel/multus-cni/master/images/multus-daemonset.yml --output /etc/kubernetes/multus.yml
 
-cp bin/multus /opt/cni/bin/
+kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /etc/kubernetes/multus.yml
 
-cd examples
+curl https://raw.githubusercontent.com/intel/multus-cni/master/images/flannel-daemonset.yml --output /etc/kubernetes/flannel.yml
 
-cat > macvlan-conf.yml <<EOF
+kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /etc/kubernetes/flannel.yml
+
+cat > /etc/kubernetes/macvlan-conf.yml <<EOF
 apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
@@ -100,15 +98,6 @@ spec:
       }
     }'
 EOF
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f clusterrole.yml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create clusterrolebinding multus-node-`hostname` \
-                                                       --clusterrole=multus-crd-overpowered \
-                                                       --user=system:node:`hostname`
-
-curl https://raw.githubusercontent.com/intel/multus-cni/dev/network-plumbing-working-group-crd-change/examples/multus-with-flannel.yml --output /etc/kubernetes/cni.yml
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /etc/kubernetes/cni.yml
 
 # Wait at least for one pod
 while [ -z "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system | grep kube)" ]; do
