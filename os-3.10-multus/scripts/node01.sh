@@ -25,6 +25,19 @@ for i in $(seq 2 100); do
   echo "${node} openshift_node_group_name=\"node-config-compute\" openshift_schedulable=true openshift_ip=$node_ip" >> $inventory_file
 done
 
+# Wait for api server to be up.
+set -x
+/usr/bin/oc get nodes --no-headers
+os_rc=$?
+retry_counter=0
+while [[ $retry_counter -lt 20  && $os_rc -ne 0 ]]; do
+    sleep 10
+    echo "Waiting for api server to be available..."
+    /usr/bin/oc get nodes --no-headers
+    os_rc=$?
+    retry_counter=$((retry_counter + 1))
+done
+
 # Run playbook if extra nodes were discovered
 if [ "$nodes_found" = "true"  ]; then
   ansible-playbook -i $inventory_file $openshift_ansible/playbooks/openshift-node/scaleup.yml
@@ -59,18 +72,4 @@ cat >post_deployment_configuration <<EOF
 EOF
 ansible-playbook -i $inventory_file post_deployment_configuration --extra-vars="crio=${crio}"
 
-# Wait for api server to be up.
-set -x
-/usr/bin/oc get nodes --no-headers
-os_rc=$?
-retry_counter=0
-while [[ $retry_counter -lt 20  && $os_rc -ne 0 ]]; do
-    sleep 10
-    echo "Waiting for api server to be available..."
-    /usr/bin/oc get nodes --no-headers
-    os_rc=$?
-    retry_counter=$((retry_counter + 1))
-done
-
 /usr/bin/oc create -f /tmp/local-volume.yaml
-

@@ -10,33 +10,27 @@ yum -y install centos-release-gluster
 yum -y install --nogpgcheck -y glusterfs-fuse
 yum -y install iscsi-initiator-utils
 
-# Create Origin latest repo, enter correct repository address
 cat >/etc/yum.repos.d/origin-latest.repo <<EOF
-[my-origin]
-name=Origin packages v3.10.0-rc.0
-baseurl=https://plain.resources.ovirt.org/repos/origin/3.10/v3.10.0-rc.0/
-enabled=1
-gpgcheck=0
-EOF
-
-# Create Origin 3.10 testing repo
-cat >/etc/yum.repos.d/origin-test.repo <<EOF
-[centos-openshift-origin-test]
-name=CentOS OpenShift Origin 3.10 test
-baseurl=https://cbs.centos.org/repos/paas7-openshift-origin310-testing/x86_64/os/
-enabled=1
-gpgcheck=0
-EOF
-
-cat <<EOF >/etc/yum.repos.d/kubernetes.repo
-[kubernetes]
-name=Kubernetes
-baseurl=http://yum.kubernetes.io/repos/kubernetes-el7-x86_64
+[centos-openshift-origin310]
+name=CentOS OpenShift Origin
+baseurl=http://mirror.centos.org/centos/7/paas/x86_64/openshift-origin310/
 enabled=1
 gpgcheck=1
-repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-PaaS
+
+[centos-openshift-origin-testing310]
+name=CentOS OpenShift Origin Testing
+baseurl=http://buildlogs.centos.org/centos/7/paas/x86_64/openshift-origin310/
+enabled=0
+gpgcheck=0
+gpgkey=file:///etc/pki/rpm-gpg/openshift-ansible-CentOS-SIG-PaaS
+
+[centos-openshift-origin-source310]
+name=CentOS OpenShift Origin Source
+baseurl=http://vault.centos.org/centos/7/paas/Source/openshift-origin310/
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/openshift-ansible-CentOS-SIG-PaaS
 EOF
 
 # Install OpenShift packages
@@ -52,8 +46,9 @@ yum install -y yum-utils \
   kexec-tools \
   sos \
   psacct \
-  docker \
-  kubernetes-cni \
+  docker
+
+curl https://raw.githubusercontent.com/SchSeba/kubevirt-multus-l2-pxe/master/deployment.yaml --output ./multus.yml
 
 # Disable spectre and meltdown patches
 sed -i 's/quiet"/quiet spectre_v2=off nopti hugepagesz=2M hugepages=64"/' /etc/default/grub
@@ -80,7 +75,7 @@ inventory_file="/root/inventory"
 master_ip="192.168.66.101"
 echo "$master_ip node01" >> /etc/hosts
 
-git clone https://github.com/openshift/openshift-ansible.git -b v3.10.0-rc.0 $openshift_ansible
+git clone https://github.com/openshift/openshift-ansible.git -b v3.10.0 $openshift_ansible
 
 # Create ansible inventory file
 cat >$inventory_file <<EOF
@@ -107,6 +102,7 @@ openshift_hosted_etcd_storage_volume_size=1G
 openshift_hosted_etcd_storage_labels={'storage': 'etcd'}
 openshift_node_kubelet_args={'max-pods': ['40'], 'pods-per-core': ['40']}
 openshift_master_admission_plugin_config={"ValidatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}},"MutatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}}}
+os_sdn_network_plugin_name='redhat/openshift-ovs-networkpolicy'
 
 [nfs]
 node01 openshift_ip=$master_ip
@@ -118,7 +114,7 @@ node01 openshift_ip=$master_ip
 node01 openshift_ip=$master_ip
 
 [nodes]
-node01 openshift_schedulable=true openshift_ip=$master_ip openshift_node_group_name="node-config-master-infra"
+node01 openshift_schedulable=true openshift_ip=$master_ip openshift_node_group_name="node-config-all-in-one"
 EOF
 
 # Add cri-o variable to inventory file
@@ -149,9 +145,6 @@ chmod -R 777 /var/local/kubevirt-storage/local-volume
 chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 # Add privileged to local volume provision service account
 /usr/bin/oc adm policy add-scc-to-user privileged -z local-storage-admin
-
-
-curl https://raw.githubusercontent.com/SchSeba/kubevirt-multus-l2-pxe/master/deployment.yaml --output ./multus.yml
 
 oc apply -f ./multus.yml
 
