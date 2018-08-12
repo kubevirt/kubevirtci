@@ -99,6 +99,43 @@ spec:
     }'
 EOF
 
+cat > /etc/kubernetes/ptp-conf.yml <<EOF
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: ptp-conf
+spec: 
+  config: '{
+        "name": "mynet",
+        "type": "ptp",
+        "ipam": {
+                "type": "host-local",
+                "subnet": "10.1.1.0/24"
+        }
+     }'
+EOF
+
+cat > /etc/kubernetes/bridge-conf.yml <<EOF
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: bridge-conf
+spec: 
+  config: '{
+        "name": "mynet",
+        "type": "bridge",
+        "bridge": "mynet0",
+        "isDefaultGateway": true,
+        "forceAddress": false,
+        "ipMasq": true,
+        "hairpinMode": true,
+        "ipam": {
+                "type": "host-local",
+                "subnet": "10.10.10.0/16"
+        }
+    }'
+EOF
+
 # Wait at least for one pod
 while [ -z "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system | grep kube)" ]; do
     echo "Waiting for at least one pod ..."
