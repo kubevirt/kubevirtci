@@ -179,7 +179,7 @@ apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
   name: ptp-conf
-spec: 
+spec:
   config: '{
         "name": "mynet",
         "type": "ptp",
@@ -197,7 +197,7 @@ apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
   name: bridge-conf
-spec: 
+spec:
   config: '{
         "name": "mynet",
         "type": "bridge",
