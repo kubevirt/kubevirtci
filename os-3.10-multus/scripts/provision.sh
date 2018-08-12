@@ -173,3 +173,44 @@ spec:
 EOF
 
 oc apply -f ./macvlan-conf.yml
+
+cat > ./ptp-conf.yml <<EOF
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: ptp-conf
+spec: 
+  config: '{
+        "name": "mynet",
+        "type": "ptp",
+        "ipam": {
+                "type": "host-local",
+                "subnet": "10.1.1.0/24"
+        }
+     }'
+EOF
+
+oc apply -f ./ptp-conf.yml
+
+cat > ./bridge-conf.yml <<EOF
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: bridge-conf
+spec: 
+  config: '{
+        "name": "mynet",
+        "type": "bridge",
+        "bridge": "mynet0",
+        "isDefaultGateway": true,
+        "forceAddress": false,
+        "ipMasq": true,
+        "hairpinMode": true,
+        "ipam": {
+                "type": "host-local",
+                "subnet": "10.10.10.0/16"
+        }
+    }'
+EOF
+
+oc apply -f ./bridge-conf.yml
