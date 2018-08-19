@@ -7,7 +7,8 @@
 * `k8s-1.10.3` k8s-1.10.3 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.10.4` k8s-1.10.4 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.11.0` k8s-1.11.0 cluster based on the centos7 image, provisioned with kubeadm
-* `k8s-multus-1.11.0:`: k8s-1.11.0 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
+* `k8s-multus-1.10.4:`: k8s-1.10.4 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
+* `k8s-multus-1.11.1:`: k8s-1.11.1 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
 * `os-3.9` os-3.9 cluster based on the centos7 image, provisioned with openshift-ansible
 * `os-3.9-crio` os-3.9 cluster with CRI-O support based on the centos7 image, provisioned with openshift-ansible
 * `os-3.10.0` os-3.10.0 cluster based on the centos7 image, provisioned with openshift-ansible
@@ -27,7 +28,8 @@
 * `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
 * `kubevirtci/k8s-1.10.4:`: `sha256:486064eddea289b17e150e6600fefc89dab9164d5cba07153c02888a35fed4f1`
 * `kubevirtci/k8s-1.11.0:`: `sha256:2e8b82787e4c65bc7cf25ddd7bea30d9e203009c620cf637291b87ed617edd79`
-* `kubevirtci/k8s-multus-1.11.0:`: `sha256:ec8bbe50e588708c625487086f6eac9082f4ee490ee5f481e475f699e34aa55a`
+* `kubevirtci/k8s-multus-1.10.4:`: `sha256:071470af86ec4821a19f42b3d31d7c1f95437461a99cc712ecff2a25defb7642`
+* `kubevirtci/k8s-multus-1.11.1:`: `sha256:748045ec8a8436af817eef7fa96669b3452e39013cf70e18b104d676c76899d2`
 
 ## Using gocli
 
