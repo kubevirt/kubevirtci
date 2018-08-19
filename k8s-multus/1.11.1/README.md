@@ -5,7 +5,7 @@
 Running `cli` directly:
 
 ```bash
-cli provision --scripts /scripts --base kubevirtci/centos:1804_02 --tag kubevirtci/k8s-1.11.1
+cli provision --scripts /scripts --base kubevirtci/centos:1804_02 --tag kubevirtci/k8s-multus-1.11.1
 ```
 
 Running `cli` from withing docker:
@@ -21,7 +21,7 @@ The cluster is self contained.
 Running `cli` directly:
 
 ```bash
-cli run --nodes 2 --base kubevirtci/k8s-1.11.0
+cli run --nodes 2 --base kubevirtci/k8s-multus-1.11.1
 ```
 
 Running `cli` from withing docker:
