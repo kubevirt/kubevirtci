@@ -214,3 +214,17 @@ spec:
 EOF
 
 oc apply -f ./bridge-conf.yml
+
+timeout=300
+sample=30
+current_time=0
+while [ -n "$(kubectl get pods -n kube-system --no-headers | grep -v Running)" ]; do
+echo "Waiting for multus pods to enter the Running state ..."
+kubectl get pods -n kube-system --no-headers | >&2 grep -v Running || true
+sleep $sample
+
+current_time=$((current_time + sample))
+if [ $current_time -gt $timeout ]; then
+  exit 1
+fi
+done
