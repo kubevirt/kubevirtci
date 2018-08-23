@@ -267,7 +267,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 
 		// Start the fluent image
 		fluentd, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: "kubevirtci/fluentd",
+			Image: "docker.io/fluent/fluentd:v1.2-debian",
 			Cmd: strslice.StrSlice{
 				"exec fluentd",
 				"-i \"<system>\n log_level debug\n</system>\n<source>\n@type  forward\n@log_level error\nport  24224\n</source>\n<match **>\n@type file\npath /fluentd/log/collected\n</match>\"",
