@@ -22,8 +22,8 @@
 * `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
 * `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
 * `kubevirtci/os-3.9.0-crio:`: `sha256:107d03dad4da6957e28774b121a45e177f31d7b4ad43c6eab7b24d467e59e213`
-* `kubevirtci/os-3.10.0:`: `sha256:cdc9f998e19915b28b5c5be1ccc4c6fa2c8336435f38a37855f75b206977cbc2`
-* `kubevirtci/os-3.10.0-crio:`: `sha256:36cc53fd72fbd247810b38618c0f3fa058c17bcb6744b0512193eba0728ebf05`
+* `kubevirtci/os-3.10.0:`: `sha256:74309d2d0b03e0ec4297fe2ad2e8641a0689cd75bccd4eac422901d24194f7ea`
+* `kubevirtci/os-3.10.0-crio:`: `sha256:8f93b2e8a561b72ee19c0b9b225019c51fe5d1f1fdbee88c46b8f7336e95e815`
 * `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
 * `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
 * `kubevirtci/k8s-1.10.4:`: `sha256:ee6846957b58e1f56b240d9ba6410f082e4787a4c4f1e0d60f6b907b76146b3e`
