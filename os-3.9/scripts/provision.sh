@@ -103,4 +103,5 @@ ansible-playbook -i $inventory_file /usr/share/ansible/openshift-ansible/playboo
 /usr/bin/oc adm policy add-cluster-role-to-user cluster-admin admin
 
 # Pre pull fluentd image used in logging
-docker pull docker.io/fluentd/fluentd
+docker pull docker.io/fluentd/fluentd:v1.2-debian
+docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog

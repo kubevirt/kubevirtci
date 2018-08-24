@@ -139,4 +139,5 @@ chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 /usr/bin/oc adm policy add-scc-to-user privileged -z local-storage-admin
 
 # Pre pull fluentd image used in logging
-docker pull docker.io/fluentd/fluentd
+docker pull docker.io/fluentd/fluentd:v1.2-debian
+docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
