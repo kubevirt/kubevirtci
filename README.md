@@ -7,7 +7,8 @@
 * `k8s-1.10.3` k8s-1.10.3 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.10.4` k8s-1.10.4 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.11.0` k8s-1.11.0 cluster based on the centos7 image, provisioned with kubeadm
-* `k8s-multus-1.11.0:`: k8s-1.11.0 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
+* `k8s-multus-1.10.4:`: k8s-1.10.4 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
+* `k8s-multus-1.11.1:`: k8s-1.11.1 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
 * `os-3.9` os-3.9 cluster based on the centos7 image, provisioned with openshift-ansible
 * `os-3.9-crio` os-3.9 cluster with CRI-O support based on the centos7 image, provisioned with openshift-ansible
 * `os-3.10.0` os-3.10.0 cluster based on the centos7 image, provisioned with openshift-ansible
@@ -16,18 +17,19 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
-* `kubevirtci/gocli`: `sha256:34466dacd5710a6900a4d868eac6cef46e69d0f0afebb49e59e6bea0e81f5019`
-* `kubevirtci/base`: `sha256:67b84e2acefdcd7197989cbab1f2d1324eb87b5a77bd31d52d3000d13eee750c`
-* `kubevirtci/centos:1804_02`: `sha256:5539557ff8cbe96a3ef05e5705f82b58c38e1ff1cdf09f55a47aa5eb542f4ce8`
+* `kubevirtci/gocli`: `sha256:df958c060ca8d90701a1b592400b33852029979ad6d5c1d9b79683033704b690`
+* `kubevirtci/base`: `sha256:034de1a154409d87498050ccc281d398ce1a0fed32efdbd66d2041a99a46b322`
+* `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
 * `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
 * `kubevirtci/os-3.9.0-crio:`: `sha256:107d03dad4da6957e28774b121a45e177f31d7b4ad43c6eab7b24d467e59e213`
 * `kubevirtci/os-3.10.0:`: `sha256:74309d2d0b03e0ec4297fe2ad2e8641a0689cd75bccd4eac422901d24194f7ea`
 * `kubevirtci/os-3.10.0-crio:`: `sha256:8f93b2e8a561b72ee19c0b9b225019c51fe5d1f1fdbee88c46b8f7336e95e815`
 * `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
 * `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
-* `kubevirtci/k8s-1.10.4:`: `sha256:486064eddea289b17e150e6600fefc89dab9164d5cba07153c02888a35fed4f1`
-* `kubevirtci/k8s-1.11.0:`: `sha256:2e8b82787e4c65bc7cf25ddd7bea30d9e203009c620cf637291b87ed617edd79`
-* `kubevirtci/k8s-multus-1.11.0:`: `sha256:ec8bbe50e588708c625487086f6eac9082f4ee490ee5f481e475f699e34aa55a`
+* `kubevirtci/k8s-1.10.4:`: `sha256:ee6846957b58e1f56b240d9ba6410f082e4787a4c4f1e0d60f6b907b76146b3e`
+* `kubevirtci/k8s-1.11.0:`: `sha256:80e722a040fd6bcc5410239139a2cf0d33e1d52fe82d3cf9bdf5f5c3d09cfa7a`
+* `kubevirtci/k8s-multus-1.10.4:`: `sha256:c66c2e1fdae0f92093b3e462e81c9856d423a918ba4dcdfcf401da284ea2bda1`
+* `kubevirtci/k8s-multus-1.11.1:`: `sha256:ce7b961a449e20cf0628fba4deb90a8f399271659a0dd98eecdd249ec6c9d4b0`
 
 ## Using gocli
 

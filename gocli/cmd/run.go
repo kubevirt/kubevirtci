@@ -293,7 +293,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		// Wait for vm start
-		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"}, os.Stdout)
+		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "while [ ! -f /ssh_ready ] ; do sleep 1; done"}, os.Stdout)
 		if err != nil {
 			return err
 		}

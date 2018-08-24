@@ -42,6 +42,7 @@ dockerize -wait tcp://192.168.66.1${n}:22 -timeout 300s
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@192.168.66.1${n} -i vagrant.key -p 22 -q \$@
 EOL
 chmod u+x /usr/local/bin/ssh.sh
+echo "done" >/ssh_ready
 
 sleep 0.1
 until ip link show tap${n}; do

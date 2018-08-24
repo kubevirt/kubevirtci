@@ -11,12 +11,9 @@ done
 
 kubeadm init --config /etc/kubernetes/kubeadm.conf
 
-cd multus-cni/examples
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f clusterrole.yml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f crd.yml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f flannel-conf.yml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f macvlan-conf.yml
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /etc/kubernetes/cni.yml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/multus.yml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/flannel.yml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/macvlan-conf.yml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/ptp-conf.yml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/bridge-conf.yml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule- 
