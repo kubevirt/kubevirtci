@@ -73,3 +73,11 @@ EOF
 ansible-playbook -i $inventory_file post_deployment_configuration --extra-vars="crio=${crio}"
 
 /usr/bin/oc create -f /tmp/local-volume.yaml
+
+/usr/bin/oc create -f /tmp/multus.yaml
+
+/usr/bin/oc create -f /tmp/macvlan-conf.yaml
+
+/usr/bin/oc create -f /tmp/ptp-conf.yaml
+
+/usr/bin/oc create -f /tmp/bridge-conf.yaml

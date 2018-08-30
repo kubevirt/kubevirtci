@@ -1,0 +1,13 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: ptp-conf
+spec:
+  config: '{
+        "name": "mynet",
+        "type": "ptp",
+        "ipam": {
+                "type": "host-local",
+                "subnet": "10.1.1.0/24"
+        }
+     }'

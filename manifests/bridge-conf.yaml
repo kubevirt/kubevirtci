@@ -1,0 +1,19 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: bridge-conf
+spec:
+  config: '{
+        "name": "mynet",
+        "type": "bridge",
+        "bridge": "mynet0",
+        "isDefaultGateway": true,
+        "forceAddress": false,
+        "ipMasq": true,
+        "hairpinMode": true,
+        "ipam": {
+                "type": "host-local",
+                "subnet": "10.10.10.0/16"
+        }
+        }
+    }'
