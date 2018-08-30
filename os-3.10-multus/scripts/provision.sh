@@ -48,8 +48,6 @@ yum install -y yum-utils \
   psacct \
   docker
 
-curl https://raw.githubusercontent.com/SchSeba/kubevirt-multus-l2-pxe/master/deployment.yaml --output ./multus.yml
-
 # Disable spectre and meltdown patches
 sed -i 's/quiet"/quiet spectre_v2=off nopti hugepagesz=2M hugepages=64"/' /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
@@ -146,7 +144,7 @@ chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 # Add privileged to local volume provision service account
 /usr/bin/oc adm policy add-scc-to-user privileged -z local-storage-admin
 
-oc apply -f ./multus.yml
+oc apply -f /tmp/multus.yaml
 
 cat > ./macvlan-conf.yml <<EOF
 apiVersion: "k8s.cni.cncf.io/v1"
