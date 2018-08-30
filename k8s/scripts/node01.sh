@@ -25,3 +25,8 @@ while [[ $retry_counter -lt 20 && $kubectl_rc -ne 0 ]]; do
     retry_counter=$((retry_counter + 1))
 done
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/local-volume.yaml
+
+# create local block device, backed by raw cirros disk image (see also provision.sh)
+LOOP_DEVICE=`losetup --find --show /mnt/local-storage/cirros.img.raw`
+rm -f /mnt/local-storage/cirros-block-device
+ln -s $LOOP_DEVICE /mnt/local-storage/cirros-block-device

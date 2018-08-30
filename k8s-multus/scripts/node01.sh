@@ -2,11 +2,10 @@
 
 set -ex
 
-# Wait for the network to really came up
-
+# Wait for docker, else network might not be ready yet
 while [[ `systemctl status docker | grep active | wc -l` -eq 0 ]]
 do
- sleep 2
+    sleep 2
 done
 
 kubeadm init --config /etc/kubernetes/kubeadm.conf
@@ -16,4 +15,22 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/flanne
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/macvlan-conf.yml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/ptp-conf.yml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/bridge-conf.yml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule- 
+kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
+
+# Wait for api server to be up.
+kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --no-headers
+kubectl_rc=$?
+retry_counter=0
+while [[ $retry_counter -lt 20 && $kubectl_rc -ne 0 ]]; do
+    sleep 10
+    echo "Waiting for api server to be available..."
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --no-headers
+    kubectl_rc=$?
+    retry_counter=$((retry_counter + 1))
+done
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/local-volume.yaml
+
+# create local block device, backed by raw cirros disk image (see also provision.sh)
+LOOP_DEVICE=`losetup --find --show /mnt/local-storage/cirros.img.raw`
+rm -f /mnt/local-storage/cirros-block-device
+ln -s $LOOP_DEVICE /mnt/local-storage/cirros-block-device

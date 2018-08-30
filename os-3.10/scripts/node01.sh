@@ -6,10 +6,7 @@ inventory_file="/root/inventory"
 openshift_ansible="/root/openshift-ansible"
 
 # Update inventory
-echo "[new_nodes]" >> $inventory_file
-sed -i '/\[OSEv3:children\]/a new_nodes' $inventory_file
-
-nodes_found="false"
+nodes_found=0
 for i in $(seq 2 100); do
   node=$(printf "node%02d" ${i})
   node_ip=$(printf "192.168.66.1%02d" ${i})
@@ -18,15 +15,19 @@ for i in $(seq 2 100); do
   if [ $? -ne 0 ]; then
       break
   fi
-  nodes_found="true"
-  set -e
+  echo "Found ${node}. Adding it to inventory and hosts files."
+  # add after first "hosts:" line
+  sed -i "0,/hosts:/{s//hosts:\n        ${node}:\n          openshift_ip: $node_ip\n          openshift_node_group_name: node-config-compute-kubevirt\n          openshift_schedulable: true/}" $inventory_file
   echo "$node_ip $node" >> /etc/hosts
-  echo "Found ${node}. Adding it to the inventory."
-  echo "${node} openshift_node_group_name=\"node-config-compute\" openshift_schedulable=true openshift_ip=$node_ip" >> $inventory_file
+  let "nodes_found++"
 done
 
 # Run playbook if extra nodes were discovered
-if [ "$nodes_found" = "true"  ]; then
+if [ "$nodes_found" -gt 0 ]; then
+  # first modify inventory: add new_nodes to OSEv3 children (which is the first children line prefixed with 6 spaces)
+  let last_node_nr=nodes_found+1
+  last_node_nr=$(printf "%02d" ${last_node_nr})
+  sed -i "0,/      children:/{s//      children:\n        new_nodes:\n          hosts:\n            node[02:${last_node_nr}]:/}" $inventory_file
   ansible-playbook -i $inventory_file $openshift_ansible/playbooks/openshift-node/scaleup.yml
 fi
 
@@ -100,3 +101,7 @@ sleep 200
 
 ansible-playbook -i $inventory_file post_deployment_cpu_manager_config
 
+# create local block device, backed by raw cirros disk image (see also provision.sh)
+LOOP_DEVICE=`losetup --find --show /mnt/local-storage/cirros.img.raw`
+rm -f /mnt/local-storage/cirros-block-device
+ln -s $LOOP_DEVICE /mnt/local-storage/cirros-block-device

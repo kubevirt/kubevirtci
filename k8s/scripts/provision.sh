@@ -22,6 +22,9 @@ yum -y remove NetworkManager firewalld
 # Required for iscsi demo to work.
 yum -y install iscsi-initiator-utils
 
+# Required for local image conversion
+yum -y install qemu-img
+
 cat <<EOF >/etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes
@@ -52,10 +55,19 @@ yum install --nogpgcheck -y \
     kubernetes-cni
 
 # Latest docker on CentOS uses systemd for cgroup management
-cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
-[Service]
-Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
+# kubeadm 1.11 uses a new config method for the kubelet
+if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
+    # TODO use config file! this is deprecated
+    cat <<EOT >/etc/sysconfig/kubelet
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates=BlockVolume=true
 EOT
+else
+    cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
+[Service]
+Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates=BlockVolume=true"
+EOT
+fi
+
 systemctl daemon-reload
 
 systemctl enable docker && systemctl start docker
@@ -115,12 +127,16 @@ fi
 
 $reset_command
 
+# TODO new format since 1.11, this old format will be removed with 1.12, see https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file
 cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
 apiServerExtraArgs:
   runtime-config: admissionregistration.k8s.io/v1alpha1
   ${admission_flag}: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
+  feature-gates: "BlockVolume=true"
+controllerManagerExtraArgs:
+  feature-gates: "BlockVolume=true"
 token: abcdef.1234567890123456
 kubernetesVersion: ${version}
 networking:
@@ -142,3 +158,7 @@ chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 # Pre pull fluentd image used in logging
 docker pull fluent/fluentd:v1.2-debian
 docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
+
+# convert cirros image and copy it into the vm (used in node01.sh)
+qemu-img convert -f qcow2 -O raw /tmp/cirros.img /tmp/cirros.img.raw
+cp /tmp/cirros.img.raw /mnt/local-storage/
