@@ -28,8 +28,8 @@
 * `kubevirtci/os-3.10.0-multus`: `sha256:a7c82d5e8cbf7dd83b0ae0d852733a54828975cd9d6a24ef27b5d64a8aed741b`
 * `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
 * `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
-* `kubevirtci/k8s-1.10.4:`: `sha256:ee6846957b58e1f56b240d9ba6410f082e4787a4c4f1e0d60f6b907b76146b3e`
-* `kubevirtci/k8s-1.11.0:`: `sha256:80e722a040fd6bcc5410239139a2cf0d33e1d52fe82d3cf9bdf5f5c3d09cfa7a`
+* `kubevirtci/k8s-1.10.4:`: `sha256:e697f59d5b3b09130a8854b08417959eb70197fcc1b47cf64fe83c5164f00cfa`
+* `kubevirtci/k8s-1.11.0:`: `sha256:de5606811adba4945e01d07ee77b5c1a7cddeed5412b020219dadb8fb96d77be`
 * `kubevirtci/k8s-multus-1.10.4:`: `sha256:c66c2e1fdae0f92093b3e462e81c9856d423a918ba4dcdfcf401da284ea2bda1`
 * `kubevirtci/k8s-multus-1.11.1:`: `sha256:ce7b961a449e20cf0628fba4deb90a8f399271659a0dd98eecdd249ec6c9d4b0`
 
