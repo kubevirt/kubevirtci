@@ -186,5 +186,5 @@ networking:
 EOF
 
 # Pre pull fluentd image used in logging
-docker pull docker.io/fluentd/fluentd:v1.2-debian
+docker pull docker.io/fluent/fluentd:v1.2-debian
 docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
