@@ -21,13 +21,13 @@
 * `kubevirtci/gocli`: `sha256:2ff1e9cddfa2cfdf268301a52d1a5ec252ace6908196609e001844e5458b746a`
 * `kubevirtci/base`: `sha256:034de1a154409d87498050ccc281d398ce1a0fed32efdbd66d2041a99a46b322`
 * `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
-* `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
-* `kubevirtci/os-3.9.0-crio:`: `sha256:107d03dad4da6957e28774b121a45e177f31d7b4ad43c6eab7b24d467e59e213`
+* **Deprecated**: `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
+* **Deprecated**: `kubevirtci/os-3.9.0-crio:`: `sha256:107d03dad4da6957e28774b121a45e177f31d7b4ad43c6eab7b24d467e59e213`
 * `kubevirtci/os-3.10.0:`: `sha256:c0c929e28cb64a4391f2d1e612c7fdea11f162e57ead5e52b935b5d8e9b0e83d`
 * `kubevirtci/os-3.10.0-crio:`: `sha256:7ec0a18f2b29b31f8f2325e4c3a24761acbbe6541e63aa660d45a3d032e73656`
 * `kubevirtci/os-3.10.0-multus`: `sha256:4ddd2e946a0487a9df5192118cc5d52d77d3a0b4ec78cf44ba6b89d6aa784e8d`
-* `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
-* `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
+* **Deprecated**: `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
+* **Deprecated**: `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
 * `kubevirtci/k8s-1.10.4:`: `sha256:c340a67190364b0e0c5864a8ce8edf38ccc35af6c4284a56118b2c38adf619cd`
 * `kubevirtci/k8s-1.11.0:`: `sha256:39c1567b7caeae3f4845454bfeb2730a7d32abcac4a8dcedb62729c3248dd49c`
 * `kubevirtci/k8s-multus-1.10.4:`: `sha256:a2ff7cef71441a1a7839d65e64bf4e2180b17b04bc1fa5203c2a8e98d77ac1d0`
