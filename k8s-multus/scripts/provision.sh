@@ -184,3 +184,7 @@ kubernetesVersion: ${version}
 networking:
   podSubnet: 10.244.0.0/16
 EOF
+
+# Pre pull fluentd image used in logging
+docker pull docker.io/fluent/fluentd:v1.2-debian
+docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog

@@ -144,6 +144,10 @@ chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 # Add privileged to local volume provision service account
 /usr/bin/oc adm policy add-scc-to-user privileged -z local-storage-admin
 
+# Pre pull fluentd image used in logging
+docker pull docker.io/fluent/fluentd:v1.2-debian
+docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
+
 # Download the docker Images oc create runs on the node01.sh script
 docker pull docker.io/nfvpe/multus
 docker pull quay.io/schseba/l2-bridge-cni-plugin

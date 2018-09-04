@@ -5,6 +5,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
@@ -41,6 +42,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("k8s-port", 0, "port on localhost for the k8s cluster")
 	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
+	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
 	return run
 }
 
@@ -95,6 +97,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	nfs_data, err := cmd.Flags().GetString("nfs-data")
+	if err != nil {
+		return err
+	}
+
+	logDir, err := cmd.Flags().GetString("log-to-dir")
 	if err != nil {
 		return err
 	}
@@ -241,6 +248,51 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
+	if logDir != "" {
+		logDir, err := filepath.Abs(logDir)
+		if err != nil {
+			return err
+		}
+
+		if _, err = os.Stat(logDir); os.IsNotExist(err) {
+			os.Mkdir(logDir, 0755)
+		}
+
+		// Pull the fluent image
+		reader, err = cli.ImagePull(ctx, "docker.io/fluent/fluentd:v1.2-debian", types.ImagePullOptions{})
+		if err != nil {
+			panic(err)
+		}
+		docker.PrintProgress(reader, os.Stdout)
+
+		// Start the fluent image
+		fluentd, err := cli.ContainerCreate(ctx, &container.Config{
+			Image: "docker.io/fluent/fluentd:v1.2-debian",
+			Cmd: strslice.StrSlice{
+				"exec fluentd",
+				"-i \"<system>\n log_level debug\n</system>\n<source>\n@type  forward\n@log_level error\nport  24224\n</source>\n<match **>\n@type file\npath /fluentd/log/collected\n</match>\"",
+				"-p /fluentd/plugins $FLUENTD_OPT -v",
+			},
+		}, &container.HostConfig{
+			Mounts: []mount.Mount{
+				{
+					Type:   mount.TypeBind,
+					Source: logDir,
+					Target: "/fluentd/log/collected",
+				},
+			},
+			Privileged:  true,
+			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
+		}, nil, prefix+"-fluentd")
+		if err != nil {
+			return err
+		}
+		containers <- fluentd.ID
+		if err := cli.ContainerStart(ctx, fluentd.ID, types.ContainerStartOptions{}); err != nil {
+			return err
+		}
+	}
+
 	wg := sync.WaitGroup{}
 	wg.Add(int(nodes))
 	// start one vm after each other
@@ -326,6 +378,22 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			cli.ContainerWait(context.Background(), id)
 			wg.Done()
 		}(node.ID)
+	}
+
+	// If logging is enabled, deploy the default fluent logging
+	if logDir != "" {
+		nodeName := nodeNameFromIndex(1)
+		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+			"/bin/bash",
+			"-c",
+			"ssh.sh sudo /bin/bash < /scripts/logging.sh",
+		}, os.Stdout)
+		if err != nil {
+			return err
+		}
+		if !success {
+			return fmt.Errorf("provisioning logging failed")
+		}
 	}
 
 	// If background flag was specified, we don't want to clean up if we reach that state
