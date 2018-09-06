@@ -10,11 +10,12 @@ done
 
 kubeadm init --config /etc/kubernetes/kubeadm.conf
 
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/multus.yml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/flannel.yml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/macvlan-conf.yml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/ptp-conf.yml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/bridge-conf.yml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-multus.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ovs.yaml
+
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ovs-net-vlan100.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ptp-conf.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
 
 # Wait for api server to be up.
