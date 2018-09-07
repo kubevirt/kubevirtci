@@ -86,6 +86,7 @@ openshift_master_identity_providers=[{'name': 'allow_all_auth', 'login': 'true',
 openshift_disable_check=memory_availability,disk_availability,docker_storage,package_availability,docker_image_availability
 openshift_image_tag=v3.10.0-rc.0
 ansible_service_broker_registry_whitelist=['.*-apb$']
+ansible_service_broker_image=docker.io/ansibleplaybookbundle/origin-ansible-service-broker:ansible-service-broker-1.2.17-1
 openshift_hosted_etcd_storage_kind=nfs
 openshift_hosted_etcd_storage_nfs_options="*(rw,root_squash,sync,no_wdelay)"
 openshift_hosted_etcd_storage_nfs_directory=/opt/etcd-vol
