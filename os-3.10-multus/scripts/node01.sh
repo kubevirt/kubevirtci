@@ -74,6 +74,32 @@ ansible-playbook -i $inventory_file post_deployment_configuration --extra-vars="
 
 /usr/bin/oc create -f /tmp/local-volume.yaml
 
+# enable the CPU manager on compute nodes, besides master
+# updating it on the master as nodes cannot update comfigmaps
+
+sed -i 's/kubeletArguments:/kubeletArguments:\n  cpu-manager-policy:\n  - static\n  system-reserved:\n  - cpu=500m\n  kube-reserved:\n  - cpu=500m/' /etc/origin/node/node-config.yaml
+sed -i 's/feature-gates:/feature-gates:\n  - CPUManager=true/' /etc/origin/node/node-config.yaml
+
+/usr/bin/oc create cm node-config-compute -n openshift-node --from-file=/etc/origin/node/node-config.yaml -o yaml --dry-run |oc replace -f -
+
+cat >post_deployment_cpu_manager_config <<EOF
+- hosts: nodes, new_nodes
+  tasks:
+    - name: Clean cpu manager state
+      block:
+        - file:
+            state: absent
+            path: /var/lib/origin/openshift.local.volumes/cpu_manager_state
+        - service:
+            name: origin-node
+            state: restarted
+            enabled: yes
+EOF
+
+sleep 200
+
+ansible-playbook -i $inventory_file post_deployment_cpu_manager_config
+
 /usr/bin/oc create -f /tmp/multus.yaml
 
 /usr/bin/oc create -f /tmp/macvlan-conf.yaml
