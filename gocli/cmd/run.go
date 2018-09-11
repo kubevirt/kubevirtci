@@ -314,7 +314,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		volumes <- vol.Name
 
 		if len(qemu_args) > 0 {
-			qemu_args = "--qemu-args " + qemu_args
+			qemu_args = fmt.Sprintf("--qemu-args '%s'", qemu_args)
 		}
 		node, err := cli.ContainerCreate(ctx, &container.Config{
 			Image: cluster,
