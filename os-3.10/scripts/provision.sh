@@ -160,7 +160,16 @@ all:
           edits:
           - key: kubeletArguments.feature-gates
             value:
-            - RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true,BlockVolume=true
+            - RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true,BlockVolume=true,CPUManager=true
+          - key: kubeletArguments.cpu-manager-policy
+            value:
+            - static
+          - key: kubeletArguments.system-reserved
+            value:
+            - cpu=500m
+          - key: kubeletArguments.kube-reserved
+            value:
+            - cpu=500m
           - key: kubeletArguments.max-pods
             value:
             - '40'

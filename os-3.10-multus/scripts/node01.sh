@@ -57,6 +57,15 @@ cat >post_deployment_configuration <<EOF
             state: restarted
             enabled: yes
       when: crio
+    - name: Clean cpu manager state
+      block:
+        - file:
+            state: absent
+            path: /var/lib/origin/openshift.local.volumes/cpu_manager_state
+        - service:
+            name: origin-node
+            state: restarted
+            enabled: yes
 EOF
 ansible-playbook -i $inventory_file post_deployment_configuration --extra-vars="crio=${crio}"
 
