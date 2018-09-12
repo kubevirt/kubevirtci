@@ -48,9 +48,6 @@ yum install -y yum-utils \
   psacct \
   docker
 
-# Required for local image conversion
-yum -y install qemu-img
-
 # Disable spectre and meltdown patches
 sed -i 's/quiet"/quiet spectre_v2=off nopti hugepagesz=2M hugepages=64"/' /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
@@ -222,7 +219,3 @@ docker pull docker.io/nfvpe/multus
 docker pull quay.io/schseba/l2-bridge-cni-plugin
 docker pull quay.io/schseba/cni-plugins
 docker pull quay.io/external_storage/local-volume-provisioner:v2.1.0
-
-# convert cirros image and copy it into the vm (used in node01.sh)
-qemu-img convert -f qcow2 -O raw /tmp/cirros.img /tmp/cirros.img.raw
-cp /tmp/cirros.img.raw /mnt/local-storage/

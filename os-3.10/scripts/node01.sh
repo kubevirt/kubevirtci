@@ -84,8 +84,3 @@ while [[ $retry_counter -lt 20  && $os_rc -ne 0 ]]; do
 done
 
 /usr/bin/oc create -f /tmp/local-volume.yaml
-
-# create local block device, backed by raw cirros disk image (see also provision.sh)
-LOOP_DEVICE=`losetup --find --show /mnt/local-storage/cirros.img.raw`
-rm -f /mnt/local-storage/cirros-block-device
-ln -s $LOOP_DEVICE /mnt/local-storage/cirros-block-device

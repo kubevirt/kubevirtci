@@ -22,9 +22,6 @@ yum -y remove NetworkManager firewalld
 # Required for iscsi demo to work.
 yum -y install iscsi-initiator-utils
 
-# Required for local image conversion
-yum -y install qemu-img
-
 cat <<EOF >/etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes
@@ -158,7 +155,3 @@ chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 # Pre pull fluentd image used in logging
 docker pull fluent/fluentd:v1.2-debian
 docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
-
-# convert cirros image and copy it into the vm (used in node01.sh)
-qemu-img convert -f qcow2 -O raw /tmp/cirros.img /tmp/cirros.img.raw
-cp /tmp/cirros.img.raw /mnt/local-storage/

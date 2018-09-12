@@ -43,9 +43,6 @@ yum install -y yum-utils \
   psacct \
   docker
 
-# Required for local image conversion
-yum -y install qemu-img
-
 # Disable spectre and meltdown patches
 sed -i 's/quiet"/quiet spectre_v2=off nopti hugepagesz=2M hugepages=64"/' /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
@@ -210,8 +207,3 @@ chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 # Pre pull fluentd image used in logging
 docker pull docker.io/fluent/fluentd:v1.2-debian
 docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
-
-# convert cirros image and copy it into the vm (used in node01.sh)
-qemu-img convert -f qcow2 -O raw /tmp/cirros.img /tmp/cirros.img.raw
-cp /tmp/cirros.img.raw /mnt/local-storage/
-
