@@ -72,6 +72,7 @@ ansible-playbook -i $inventory_file post_deployment_configuration --extra-vars="
 
 # Wait for api server to be up.
 set -x
+set +e
 /usr/bin/oc get nodes --no-headers
 os_rc=$?
 retry_counter=0
@@ -82,5 +83,6 @@ while [[ $retry_counter -lt 20  && $os_rc -ne 0 ]]; do
     os_rc=$?
     retry_counter=$((retry_counter + 1))
 done
+set -e
 
 /usr/bin/oc create -f /tmp/local-volume.yaml
