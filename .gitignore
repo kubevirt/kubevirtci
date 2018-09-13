@@ -2,3 +2,4 @@
 cli
 .idea
 /gocli/bazel**
+log.txt
