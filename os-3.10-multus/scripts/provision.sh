@@ -183,7 +183,7 @@ EOF
 
 # Add cri-o variable to inventory file
 if [[ $1 == "true" ]]; then
-    sed -i 's/vars\:/vars\:\n        openshift_use_crio=true/' $inventory_file
+    sed -i "s/vars\:/vars\:\n        openshift_use_crio: 'true'/" $inventory_file
 fi
 
 # Install prerequisites
