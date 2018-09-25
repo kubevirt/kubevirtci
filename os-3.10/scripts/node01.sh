@@ -6,10 +6,7 @@ inventory_file="/root/inventory"
 openshift_ansible="/root/openshift-ansible"
 
 # Update inventory
-echo "[new_nodes]" >> $inventory_file
-sed -i '/\[OSEv3:children\]/a new_nodes' $inventory_file
-
-nodes_found="false"
+nodes_found=0
 for i in $(seq 2 100); do
   node=$(printf "node%02d" ${i})
   node_ip=$(printf "192.168.66.1%02d" ${i})
@@ -18,15 +15,19 @@ for i in $(seq 2 100); do
   if [ $? -ne 0 ]; then
       break
   fi
-  nodes_found="true"
-  set -e
+  echo "Found ${node}. Adding it to inventory and hosts files."
+  # add after first "hosts:" line
+  sed -i "0,/hosts:/{s//hosts:\n        ${node}:\n          openshift_ip: $node_ip\n          openshift_node_group_name: node-config-compute-kubevirt\n          openshift_schedulable: true/}" $inventory_file
   echo "$node_ip $node" >> /etc/hosts
-  echo "Found ${node}. Adding it to the inventory."
-  echo "${node} openshift_node_group_name=\"node-config-compute\" openshift_schedulable=true openshift_ip=$node_ip" >> $inventory_file
+  let "nodes_found++"
 done
 
 # Run playbook if extra nodes were discovered
-if [ "$nodes_found" = "true"  ]; then
+if [ "$nodes_found" -gt 0 ]; then
+  # first modify inventory: add new_nodes to OSEv3 children (which is the first children line prefixed with 6 spaces)
+  let last_node_nr=nodes_found+1
+  last_node_nr=$(printf "%02d" ${last_node_nr})
+  sed -i "0,/      children:/{s//      children:\n        new_nodes:\n          hosts:\n            node[02:${last_node_nr}]:/}" $inventory_file
   ansible-playbook -i $inventory_file $openshift_ansible/playbooks/openshift-node/scaleup.yml
 fi
 
@@ -56,11 +57,22 @@ cat >post_deployment_configuration <<EOF
             state: restarted
             enabled: yes
       when: crio
+    - name: Clean cpu manager state
+      block:
+        - file:
+            state: absent
+            path: /var/lib/origin/openshift.local.volumes/cpu_manager_state
+        - service:
+            name: origin-node
+            state: restarted
+            enabled: yes
+
 EOF
 ansible-playbook -i $inventory_file post_deployment_configuration --extra-vars="crio=${crio}"
 
 # Wait for api server to be up.
 set -x
+set +e
 /usr/bin/oc get nodes --no-headers
 os_rc=$?
 retry_counter=0
@@ -71,32 +83,6 @@ while [[ $retry_counter -lt 20  && $os_rc -ne 0 ]]; do
     os_rc=$?
     retry_counter=$((retry_counter + 1))
 done
+set -e
 
 /usr/bin/oc create -f /tmp/local-volume.yaml
-
-# enable the CPU manager on compute nodes, besides master
-# updating it on the master as nodes cannot update comfigmaps
-
-sed -i 's/kubeletArguments:/kubeletArguments:\n  cpu-manager-policy:\n  - static\n  system-reserved:\n  - cpu=500m\n  kube-reserved:\n  - cpu=500m/' /etc/origin/node/node-config.yaml
-sed -i 's/feature-gates:/feature-gates:\n  - CPUManager=true/' /etc/origin/node/node-config.yaml
-
-/usr/bin/oc create cm node-config-compute -n openshift-node --from-file=/etc/origin/node/node-config.yaml -o yaml --dry-run |oc replace -f -
-
-cat >post_deployment_cpu_manager_config <<EOF
-- hosts: nodes, new_nodes
-  tasks:
-    - name: Clean cpu manager state
-      block:
-        - file:
-            state: absent
-            path: /var/lib/origin/openshift.local.volumes/cpu_manager_state
-        - service:
-            name: origin-node
-            state: restarted
-            enabled: yes
-EOF
-
-sleep 200
-
-ansible-playbook -i $inventory_file post_deployment_cpu_manager_config
-

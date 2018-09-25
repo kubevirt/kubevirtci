@@ -68,51 +68,116 @@ inventory_file="/root/inventory"
 master_ip="192.168.66.101"
 echo "$master_ip node01" >> /etc/hosts
 
-git clone https://github.com/openshift/openshift-ansible.git -b v3.10.0-rc.0 $openshift_ansible
+git clone https://github.com/openshift/openshift-ansible.git -b v3.10.0 $openshift_ansible
 
 # Create ansible inventory file
 cat >$inventory_file <<EOF
-[OSEv3:children]
-masters
-nodes
-
-[OSEv3:vars]
-ansible_ssh_user=root
-ansible_ssh_pass=vagrant
-deployment_type=origin
-openshift_deployment_type=origin
-openshift_clock_enabled=true
-openshift_master_identity_providers=[{'name': 'allow_all_auth', 'login': 'true', 'challenge': 'true', 'kind': 'AllowAllPasswordIdentityProvider'}]
-openshift_disable_check=memory_availability,disk_availability,docker_storage,package_availability,docker_image_availability
-openshift_image_tag=v3.10.0-rc.0
-ansible_service_broker_registry_whitelist=['.*-apb$']
-ansible_service_broker_image=docker.io/ansibleplaybookbundle/origin-ansible-service-broker:ansible-service-broker-1.2.17-1
-openshift_hosted_etcd_storage_kind=nfs
-openshift_hosted_etcd_storage_nfs_options="*(rw,root_squash,sync,no_wdelay)"
-openshift_hosted_etcd_storage_nfs_directory=/opt/etcd-vol
-openshift_hosted_etcd_storage_volume_name=etcd-vol
-openshift_hosted_etcd_storage_access_modes=["ReadWriteOnce"]
-openshift_hosted_etcd_storage_volume_size=1G
-openshift_hosted_etcd_storage_labels={'storage': 'etcd'}
-openshift_node_kubelet_args={'max-pods': ['40'], 'pods-per-core': ['40']}
-openshift_master_admission_plugin_config={"ValidatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}},"MutatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}}}
-
-[nfs]
-node01 openshift_ip=$master_ip
-
-[masters]
-node01 openshift_ip=$master_ip
-
-[etcd]
-node01 openshift_ip=$master_ip
-
-[nodes]
-node01 openshift_schedulable=true openshift_ip=$master_ip openshift_node_group_name="node-config-master-infra"
+all:
+  children:
+    OSEv3:
+      hosts:
+        node01:
+          openshift_ip: $master_ip
+          openshift_node_group_name: node-config-master-infra-kubevirt
+          openshift_schedulable: true
+      children:
+        masters:
+          hosts:
+            node01:
+        nodes:
+          hosts:
+            node01:
+        nfs:
+          hosts:
+            node01:
+        etcd:
+          hosts:
+            node01:
+      vars:
+        ansible_service_broker_registry_whitelist:
+        - .*-apb$
+        ansible_service_broker_image: docker.io/ansibleplaybookbundle/origin-ansible-service-broker:ansible-service-broker-1.2.17-1
+        ansible_ssh_pass: vagrant
+        ansible_ssh_user: root
+        deployment_type: origin
+        openshift_clock_enabled: true
+        openshift_deployment_type: origin
+        openshift_disable_check: memory_availability,disk_availability,docker_storage,package_availability,docker_image_availability
+        openshift_hosted_etcd_storage_access_modes:
+        - ReadWriteOnce
+        openshift_hosted_etcd_storage_kind: nfs
+        openshift_hosted_etcd_storage_labels:
+          storage: etcd
+        openshift_hosted_etcd_storage_nfs_directory: /opt/etcd-vol
+        openshift_hosted_etcd_storage_nfs_options: '*(rw,root_squash,sync,no_wdelay)'
+        openshift_hosted_etcd_storage_volume_name: etcd-vol
+        openshift_hosted_etcd_storage_volume_size: 1G
+        openshift_image_tag: v3.10.0
+        openshift_master_admission_plugin_config:
+          MutatingAdmissionWebhook:
+            configuration:
+              apiVersion: v1
+              disable: false
+              kind: DefaultAdmissionConfig
+          ValidatingAdmissionWebhook:
+            configuration:
+              apiVersion: v1
+              disable: false
+              kind: DefaultAdmissionConfig
+        openshift_master_identity_providers:
+        - challenge: 'true'
+          kind: AllowAllPasswordIdentityProvider
+          login: 'true'
+          name: allow_all_auth
+        osm_api_server_args:
+          feature-gates:
+          - BlockVolume=true
+        osm_controller_args:
+          feature-gates:
+          - BlockVolume=true
+        openshift_node_groups:
+        - name: node-config-master-infra-kubevirt
+          labels:
+          - node-role.kubernetes.io/master=true
+          - node-role.kubernetes.io/infra=true
+          - node-role.kubernetes.io/compute=true
+          edits:
+          - key: kubeletArguments.feature-gates
+            value:
+            - RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true,BlockVolume=true
+          - key: kubeletArguments.max-pods
+            value:
+            - '40'
+          - key: kubeletArguments.pods-per-core
+            value:
+            - '40'
+        - name: node-config-compute-kubevirt
+          labels:
+          - node-role.kubernetes.io/compute=true
+          edits:
+          - key: kubeletArguments.feature-gates
+            value:
+            - RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true,BlockVolume=true,CPUManager=true
+          - key: kubeletArguments.cpu-manager-policy
+            value:
+            - static
+          - key: kubeletArguments.system-reserved
+            value:
+            - cpu=500m
+          - key: kubeletArguments.kube-reserved
+            value:
+            - cpu=500m
+          - key: kubeletArguments.max-pods
+            value:
+            - '40'
+          - key: kubeletArguments.pods-per-core
+            value:
+            - '40'
 EOF
 
 # Add cri-o variable to inventory file
 if [[ $1 == "true" ]]; then
-    sed -i 's/\[OSEv3\:vars\]/\[OSEv3\:vars\]\nopenshift_use_crio=true\n/' $inventory_file
+    sed -i "s/vars\:/vars\:\n        openshift_use_crio: 'true'/" $inventory_file
 fi
 
 # Install prerequisites

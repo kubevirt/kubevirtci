@@ -23,15 +23,15 @@
 * `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
 * **Deprecated**: `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
 * **Deprecated**: `kubevirtci/os-3.9.0-crio:`: `sha256:107d03dad4da6957e28774b121a45e177f31d7b4ad43c6eab7b24d467e59e213`
-* `kubevirtci/os-3.10.0:`: `sha256:b026dba96571a6732171c45b1f9fbdbbb3c3bbb1aa2118e99e12368c15ffb6f6`
-* `kubevirtci/os-3.10.0-crio:`: `sha256:f79ae12ab7e0934c0786fcd08632c5b372163459b3e6c10aa85b329c1085e8e3`
-* `kubevirtci/os-3.10.0-multus`: `sha256:7254ea84efcf8ae12ea0a97cbf5f2118803197ca9edfb422efe32dc3c1332fa0`
+* `kubevirtci/os-3.10.0:`: `sha256:45e0b2797134c147da5f3cba1ca768340ef6da1f7d52978c81b6813421833501`
+* `kubevirtci/os-3.10.0-crio:`: `sha256:88b64f9efc17281427aba67b3499831c03a28990f2f5fc4a540472f98e64cfb4`
+* `kubevirtci/os-3.10.0-multus`: `sha256:fa6d763af28634417200ee35e095cc56d8ad4039e58f70c3a04a59d498011ec5`
 * **Deprecated**: `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
 * **Deprecated**: `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
-* `kubevirtci/k8s-1.10.4:`: `sha256:c340a67190364b0e0c5864a8ce8edf38ccc35af6c4284a56118b2c38adf619cd`
-* `kubevirtci/k8s-1.11.0:`: `sha256:39c1567b7caeae3f4845454bfeb2730a7d32abcac4a8dcedb62729c3248dd49c`
-* `kubevirtci/k8s-multus-1.10.4:`: `sha256:a2ff7cef71441a1a7839d65e64bf4e2180b17b04bc1fa5203c2a8e98d77ac1d0`
-* `kubevirtci/k8s-multus-1.11.1:`: `sha256:fe44e74ef12ae23e40d2a8a4e864c3a70bbb26923b5eeec5d365d69b13010ef8`
+* `kubevirtci/k8s-1.10.4:`: `sha256:9341db6774ccc7d81a2fe90417fcced02867d7109e7c21a12dc6791b2746cccc`
+* `kubevirtci/k8s-1.11.0:`: `sha256:b407bce5ab0c4fce5cd58e78d84eca086e2a0ac28f5672b89c3ae75a40b14418`
+* `kubevirtci/k8s-multus-1.10.4:`: `sha256:e1825b9fc75ea9b0e9ed5b56b205e283987614ed2077942f1da02ff9c3bd3617`
+* `kubevirtci/k8s-multus-1.11.1:`: `sha256:47ea6a0bef30846c72f194d4899ca1e2fd6b15061e928734610c6255f73fe56b`
 
 ## Using gocli
 

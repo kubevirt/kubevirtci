@@ -184,8 +184,9 @@ if [ "$COMMAND" == "provision" ] ; then
   docker exec ${VM_CID} /bin/bash -c "mkdir /manifests"
   docker cp ${SCRIPTS}/../../manifests/. ${VM_CID}:/manifests/
   docker exec ${VM_CID} /bin/bash -c "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"
-  docker exec ${VM_CID} /bin/bash -c "ssh.sh sudo version=${K8S_VERSION} /bin/bash -s ${CRIO} < /scripts/provision.sh"
+  docker exec ${VM_CID} /bin/bash -c "ssh.sh echo VM is up"
   docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/*.yaml vagrant@192.168.66.101:/tmp"
+  docker exec ${VM_CID} /bin/bash -c "ssh.sh sudo version=${K8S_VERSION} /bin/bash -s ${CRIO} < /scripts/provision.sh"
   docker exec ${VM_CID} ssh.sh "sudo shutdown -h"
   docker exec ${VM_CID} /bin/bash -c "rm /usr/local/bin/ssh.sh"
   docker wait ${VM_CID}

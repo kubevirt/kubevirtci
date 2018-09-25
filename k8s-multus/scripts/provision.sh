@@ -38,6 +38,12 @@ yum install -y docker
 sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
 echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json
 
+# Enable the permanent logging
+# Required by the fluentd journald plugin
+# The default settings in recent distribution for systemd is set to auto,
+# when on auto journal is permament when /var/log/journal exists
+mkdir -p /var/log/journal
+
 # Omit pgp checks until https://github.com/kubernetes/kubeadm/issues/643 is resolved.
 yum install --nogpgcheck -y \
     kubeadm-${version} \
@@ -46,10 +52,19 @@ yum install --nogpgcheck -y \
     kubernetes-cni
 
 # Latest docker on CentOS uses systemd for cgroup management
-cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
-[Service]
-Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
+# kubeadm 1.11 uses a new config method for the kubelet
+if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
+    # TODO use config file! this is deprecated
+    cat <<EOT >/etc/sysconfig/kubelet
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates=BlockVolume=true
 EOT
+else
+    cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
+[Service]
+Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates=BlockVolume=true"
+EOT
+fi
+
 systemctl daemon-reload
 
 systemctl enable docker && systemctl start docker
@@ -80,7 +95,7 @@ apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
   name: macvlan-conf
-spec: 
+spec:
   config: '{
       "cniVersion": "0.3.0",
       "type": "macvlan",
@@ -104,7 +119,7 @@ apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
   name: ptp-conf
-spec: 
+spec:
   config: '{
         "name": "mynet",
         "type": "ptp",
@@ -120,7 +135,7 @@ apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
   name: bridge-conf
-spec: 
+spec:
   config: '{
         "name": "mynet",
         "type": "bridge",
@@ -173,18 +188,34 @@ fi
 
 $reset_command
 
+# TODO new format since 1.11, this old format will be removed with 1.12, see https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file
 cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
 apiServerExtraArgs:
   runtime-config: admissionregistration.k8s.io/v1alpha1
   ${admission_flag}: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
+  feature-gates: "BlockVolume=true"
+controllerManagerExtraArgs:
+  feature-gates: "BlockVolume=true"
 token: abcdef.1234567890123456
 kubernetesVersion: ${version}
 networking:
   podSubnet: 10.244.0.0/16
 EOF
 
+# Create local-volume directories
+for i in {1..10}
+do
+  mkdir -p /var/local/kubevirt-storage/local-volume/disk${i}
+  mkdir -p /mnt/local-storage/local/disk${i}
+  echo "/var/local/kubevirt-storage/local-volume/disk${i} /mnt/local-storage/local/disk${i} none defaults,bind 0 0" >> /etc/fstab
+done
+chmod -R 777 /var/local/kubevirt-storage/local-volume
+
+# Setup selinux permissions to local volume directories.
+chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
+
 # Pre pull fluentd image used in logging
-docker pull docker.io/fluent/fluentd:v1.2-debian
+docker pull fluent/fluentd:v1.2-debian
 docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
