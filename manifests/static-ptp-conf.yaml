@@ -1,0 +1,8 @@
+{
+    "name": "mynet",
+    "type": "ptp",
+    "ipam": {
+        "type": "host-local",
+        "subnet": "10.1.1.0/24"
+    }
+}
