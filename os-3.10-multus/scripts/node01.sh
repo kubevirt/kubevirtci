@@ -88,5 +88,8 @@ set -e
 # openshift-sdn remove the content of the cni folder on restart.
 # Needs to recreate the multus cni config after the openshift-sdn is up.
 oc -n kube-system delete po `oc get po -n kube-system | grep kube-multus-ds | awk '{print $1}'`
+oc -n kube-system delete po `oc get po -n kube-system | grep kube-cni-plugins | awk '{print $1}'`
+oc -n kube-system delete po `oc get po -n kube-system | grep ovs-cni-plugin | awk '{print $1}'`
+oc -n kube-system delete po `oc get po -n kube-system | grep ovs-vsctl-amd64 | awk '{print $1}'`
 
 /usr/bin/oc create -f /tmp/local-volume.yaml

@@ -23,7 +23,8 @@ spec:
         effect: NoSchedule
       containers:
       - name: cni-plugins
-        image: quay.io/schseba/cni-plugins
+        image: quay.io/schseba/cni-plugins@sha256:e76ae2b1f393ea9056d9964c8664647f1c4afafcc0bfd949aacdc32f30b7b779
+        imagePullPolicy: IfNotPresent
         resources:
           requests:
             cpu: "100m"

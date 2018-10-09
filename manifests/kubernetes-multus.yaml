@@ -109,7 +109,8 @@ spec:
       - name: kube-multus
         command: ["/entrypoint.sh"]
         args: ["--multus-conf-file=/usr/src/multus-cni/images/00-multus.conf"]
-        image: docker.io/nfvpe/multus:latest
+        image: docker.io/nfvpe/multus@sha256:0a45fff0fa48853a384e4c40400eb39aea7840113ac8cbf4de2eacf4f3d8ad53
+        imagePullPolicy: IfNotPresent
         resources:
           requests:
             cpu: "100m"

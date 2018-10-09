@@ -105,6 +105,7 @@ spec:
       initContainers:
       - name: install-cni
         image: quay.io/coreos/flannel:v0.10.0-amd64
+        imagePullPolicy: IfNotPresent
         command:
         - cp
         args:
