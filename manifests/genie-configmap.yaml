@@ -24,4 +24,3 @@ data:
         "romana_root": "http://__ROMANA_SERVICE_HOST__:__ROMANA_SERVICE_PORT__",
         "segment_label_name": "romanaSegment"
     }
-    

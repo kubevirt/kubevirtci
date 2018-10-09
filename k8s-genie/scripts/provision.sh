@@ -82,14 +82,10 @@ sysctl --system
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
 
 # install genie
-curl https://raw.githubusercontent.com/Huawei-PaaS/CNI-Genie/master/conf/1.8/genie-plugin.yaml --output /etc/kubernetes/genie.yml
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /etc/kubernetes/genie.yml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /tmp/genie.yaml
 
 # install flannel
-curl https://raw.githubusercontent.com/coreos/flannel/v0.10.0/Documentation/kube-flannel.yml --output /etc/kubernetes/flannel.yml
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /etc/kubernetes/flannel.yml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /tmp/flannel.yaml
 
 # set ptp cni static configuration
 mkdir -p /etc/cni/net.d/

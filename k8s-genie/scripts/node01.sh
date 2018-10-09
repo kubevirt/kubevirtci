@@ -10,8 +10,8 @@ done
 
 kubeadm init --config /etc/kubernetes/kubeadm.conf
 
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/genie.yml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/flannel.yml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/genie.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
 
 # set ptp cni static configuration
