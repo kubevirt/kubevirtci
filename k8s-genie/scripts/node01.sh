@@ -14,10 +14,6 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/genie.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
 
-# set ptp cni static configuration
-mkdir -p /etc/cni/net.d/
-cp /tmp/static-ptp-conf.yaml /etc/cni/net.d/10-ptp.conf
-
 # update the genie configuration to use flannel as default cni lugin
 kubectl --kubeconfig=/etc/kubernetes/admin.conf replace -f /tmp/genie-configmap.yaml
 
@@ -33,3 +29,13 @@ while [[ $retry_counter -lt 20 && $kubectl_rc -ne 0 ]]; do
     retry_counter=$((retry_counter + 1))
 done
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/local-volume.yaml
+
+# set ptp cni static configuration after genie already injected itself into that directory
+set +x
+echo "wait for genie to inject its configuration to /etc/cni/net.d/"
+while [ "$(ls -A /etc/cni/net.d/ | wc -l)" -eq 0 ]; do
+     sleep 1
+done
+set -x
+
+cp /tmp/static-ptp-conf.yaml /etc/cni/net.d/10-ptp.conf

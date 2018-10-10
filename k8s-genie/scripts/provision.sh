@@ -87,10 +87,6 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /tmp/genie.yaml
 # install flannel
 kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /tmp/flannel.yaml
 
-# set ptp cni static configuration
-mkdir -p /etc/cni/net.d/
-cp /tmp/static-ptp-conf.yaml /etc/cni/net.d/10-ptp.conf
-
 # update the genie configuration to use flannel as default cni lugin
 kubectl --kubeconfig=/etc/kubernetes/admin.conf replace -f /tmp/genie-configmap.yaml
 
