@@ -169,7 +169,7 @@ func provision(cmd *cobra.Command, args []string) error {
 	fmt.Println(scripts)
 
 	// Wait for vm start
-	success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "while [ ! -f /usr/local/bin/ssh.sh ] ; do sleep 1; done"}, os.Stdout)
+	success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "while [ ! -f /ssh_ready ] ; do sleep 1; done"}, os.Stdout)
 	if err != nil {
 		return err
 	}
@@ -193,6 +193,9 @@ func provision(cmd *cobra.Command, args []string) error {
 	if !success {
 		return fmt.Errorf("provisioning node %s failed", nodeName)
 	}
+
+	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "rm /usr/local/bin/ssh.sh"}, os.Stdout)
+	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "rm /ssh_ready"}, os.Stdout)
 
 	go func(id string) {
 		cli.ContainerWait(context.Background(), id)
