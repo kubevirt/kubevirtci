@@ -30,7 +30,7 @@ EOF
 
 # Install OpenShift packages
 yum install -y yum-utils \
-  ansible \
+  ansible-2.5.3-1.el7 \
   wget \
   git \
   net-tools \
@@ -68,7 +68,7 @@ inventory_file="/root/inventory"
 master_ip="192.168.66.101"
 echo "$master_ip node01" >> /etc/hosts
 
-git clone https://github.com/openshift/openshift-ansible.git -b v3.10.0 $openshift_ansible
+git clone https://github.com/openshift/openshift-ansible.git -b v3.10.0 --depth 1 $openshift_ansible
 
 # Create ansible inventory file
 cat >$inventory_file <<EOF
