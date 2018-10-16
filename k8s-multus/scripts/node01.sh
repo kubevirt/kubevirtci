@@ -14,8 +14,6 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-multus.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ovs.yaml
 
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ovs-net-vlan100.yaml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ptp-conf.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
 
 # Wait for api server to be up.

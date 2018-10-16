@@ -91,9 +91,6 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-multus.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ovs.yaml
 
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ovs-net-vlan100.yaml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ptp-conf.yaml
-
 # Wait at least for one pod
 while [ -z "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system | grep kube)" ]; do
     echo "Waiting for at least one pod ..."

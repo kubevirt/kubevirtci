@@ -219,9 +219,6 @@ docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
 /usr/bin/oc create -f /tmp/ovs.yaml
 /usr/bin/oc create -f /tmp/openshift-ovs-vsctl.yaml
 
-/usr/bin/oc create -f /tmp/ptp-conf.yaml
-/usr/bin/oc create -f /tmp/ovs-net-vlan100.yaml
-
 # Wait before checking the pod status.
 # Give time to the scheduler to create the pods.
 sleep 10
