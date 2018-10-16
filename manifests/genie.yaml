@@ -83,6 +83,7 @@ data:
         "type": "genie",
         "log_level": "info",
         "datastore_type": "kubernetes",
+        "default_plugin": "flannel",
         "hostname": "__KUBERNETES_NODE_NAME__",
         "policy": {
             "type": "k8s",

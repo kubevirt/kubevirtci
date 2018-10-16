@@ -31,3 +31,13 @@ if [[ $kubelet_rc -ne 0 ]]; then
 fi
 
 kubeadm join --token abcdef.1234567890123456 192.168.66.101:6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true
+
+# set ptp cni static configuration after genie already injected itself into that directory
+set +x
+echo "wait for genie to inject its configuration to /etc/cni/net.d/"
+while [ "$(ls -A /etc/cni/net.d/ | wc -l)" -eq 0 ]; do
+     sleep 1
+done
+set -x
+
+cp /tmp/static-ptp-conf.yaml /etc/cni/net.d/10-ptp.conf

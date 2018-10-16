@@ -81,14 +81,11 @@ sysctl --system
 
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
 
-# install genie
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /tmp/genie.yaml
-
 # install flannel
 kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /tmp/flannel.yaml
 
-# update the genie configuration to use flannel as default cni lugin
-kubectl --kubeconfig=/etc/kubernetes/admin.conf replace -f /tmp/genie-configmap.yaml
+# install genie
+kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /tmp/genie.yaml
 
 # Wait at least for one pod
 while [ -z "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system | grep kube)" ]; do

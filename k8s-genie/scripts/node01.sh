@@ -10,12 +10,9 @@ done
 
 kubeadm init --config /etc/kubernetes/kubeadm.conf
 
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/genie.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/genie.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
-
-# update the genie configuration to use flannel as default cni plugin
-kubectl --kubeconfig=/etc/kubernetes/admin.conf replace -f /tmp/genie-configmap.yaml
 
 # Wait for api server to be up.
 kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --no-headers
