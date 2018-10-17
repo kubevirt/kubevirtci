@@ -33,7 +33,7 @@
 * `kubevirtci/k8s-1.11.0:`: `sha256:3412f158ecad53543c9b0aa8468db84dd043f01832a66f0db90327b7dc36a8e8`
 * `kubevirtci/k8s-multus-1.10.4:`: `sha256:1d16d436347fcb9eba28cad08f6e074d4628e9a097a7325eb1ab87351e7f6d5c`
 * `kubevirtci/k8s-multus-1.11.1:`: `sha256:f37109a50354d7f34ba71a85bcfe0bc6c62897b9dded28e8dfd819598d5cde43`
-* `kubevirtci/k8s-genie-1.11.1:`: `sha256:e831f952063934d1d0c241c8d2ea6ab97d425df3b2be494bf4c201e3780a45b3`
+* `kubevirtci/k8s-genie-1.11.1:`: `sha256:6038b8dfe5f7ec4f0a8844cec2e66c82022260e21964e579055324cce6d256ce`
 
 ## Using gocli
 
