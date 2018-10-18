@@ -8,7 +8,7 @@ Running `cli` directly:
 cli provision --scripts /scripts --base kubevirtci/centos:1804_02 --tag kubevirtci/k8s-1.11.0
 ```
 
-Running `cli` from withing docker:
+Running `cli` from within docker:
 
 ```bash
 docker run --privileged --rm -v ${PWD}/scripts/:/scripts/ -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/cli provision --scripts /scripts --base kubevirtci/centos:1804_02 --tag kubevirtci/k8s-1.11.0 --k8s-version 1.11.0
@@ -24,7 +24,7 @@ Running `cli` directly:
 cli run --nodes 2 --base kubevirtci/k8s-1.11.0
 ```
 
-Running `cli` from withing docker:
+Running `cli` from within docker:
 
 ```bash
 docker run --privileged --rm -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/cli:latest run --nodes 2 --base kubevirtci/k8s-1.11.0
@@ -38,7 +38,7 @@ initialization, the whole cluster is toren down.
 
 In order to share huge files (e.g. images which are only present on CI),
 sharing via NFS is possible. If a directory is added via `--nfs-data` when
-invoking the `run` subcommend, an additional nfs server is started and the data
+invoking the `run` sub-command, an additional nfs server is started and the data
 can be accessed from within the VMs. The DNS name of the nfs server is `nfs`
 inside the the vms.
 
@@ -62,7 +62,7 @@ Running `cli` directly:
 cli ssh node01
 ```
 
-Running `cli` from withing docker:
+Running `cli` from within docker:
 
 ```bash
 docker run --privileged --rm -it -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/cli:latest ssh node01 
@@ -75,7 +75,7 @@ Running `cli` directly:
 cli rm
 ```
 
-Running `cli` from withing docker:
+Running `cli` from within docker:
 
 ```bash
 docker run --privileged -it -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/cli:latest rm 
