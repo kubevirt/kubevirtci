@@ -214,8 +214,27 @@ chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 docker pull docker.io/fluent/fluentd:v1.2-debian
 docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
 
-# Download the docker Images oc create runs on the node01.sh script
-docker pull docker.io/nfvpe/multus
-docker pull quay.io/schseba/l2-bridge-cni-plugin
-docker pull quay.io/schseba/cni-plugins
-docker pull quay.io/external_storage/local-volume-provisioner:v2.1.0
+/usr/bin/oc create -f /tmp/openshift-multus.yaml
+/usr/bin/oc create -f /tmp/cni-plugins-ds.yaml
+/usr/bin/oc create -f /tmp/ovs.yaml
+/usr/bin/oc create -f /tmp/openshift-ovs-vsctl.yaml
+
+# Wait before checking the pod status.
+# Give time to the scheduler to create the pods.
+sleep 10
+
+while [[ $(/usr/bin/oc get po -n kube-system --no-headers | grep -v Running | wc -l) -ne 0 ]]
+do
+    echo "Waiting for all the containers to be running"
+    sleep 5
+done
+
+# Wait for the daemonset to create the ovs file
+while  [ ! -f /usr/bin/ovs-vsctl ]
+do
+    echo "ovs-vsctl not found!"
+    sleep 5
+done
+
+# Create a bridge for the tests
+ovs-vsctl add-br br1

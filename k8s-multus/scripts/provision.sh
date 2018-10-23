@@ -49,7 +49,13 @@ yum install --nogpgcheck -y \
     kubeadm-${version} \
     kubelet-${version} \
     kubectl-${version} \
-    kubernetes-cni
+    kubernetes-cni \
+    openvswitch
+
+systemctl start openvswitch
+systemctl enable openvswitch
+
+ovs-vsctl add-br br1
 
 # Latest docker on CentOS uses systemd for cgroup management
 # kubeadm 1.11 uses a new config method for the kubelet
@@ -81,75 +87,9 @@ sysctl --system
 
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
 
-# install multus
-curl https://raw.githubusercontent.com/intel/multus-cni/master/images/multus-daemonset.yml --output /etc/kubernetes/multus.yml
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /etc/kubernetes/multus.yml
-
-curl https://raw.githubusercontent.com/intel/multus-cni/master/images/flannel-daemonset.yml --output /etc/kubernetes/flannel.yml
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /etc/kubernetes/flannel.yml
-
-cat > /etc/kubernetes/macvlan-conf.yml <<EOF
-apiVersion: "k8s.cni.cncf.io/v1"
-kind: NetworkAttachmentDefinition
-metadata:
-  name: macvlan-conf
-spec:
-  config: '{
-      "cniVersion": "0.3.0",
-      "type": "macvlan",
-      "master": "eth0",
-      "mode": "bridge",
-      "ipam": {
-        "type": "host-local",
-        "subnet": "192.168.66.0/24",
-        "rangeStart": "192.168.66.200",
-        "rangeEnd": "192.168.66.216",
-        "routes": [
-          { "dst": "0.0.0.0/0" }
-        ],
-        "gateway": "192.168.66.2"
-      }
-    }'
-EOF
-
-cat > /etc/kubernetes/ptp-conf.yml <<EOF
-apiVersion: "k8s.cni.cncf.io/v1"
-kind: NetworkAttachmentDefinition
-metadata:
-  name: ptp-conf
-spec:
-  config: '{
-        "name": "mynet",
-        "type": "ptp",
-        "ipam": {
-                "type": "host-local",
-                "subnet": "10.1.1.0/24"
-        }
-     }'
-EOF
-
-cat > /etc/kubernetes/bridge-conf.yml <<EOF
-apiVersion: "k8s.cni.cncf.io/v1"
-kind: NetworkAttachmentDefinition
-metadata:
-  name: bridge-conf
-spec:
-  config: '{
-        "name": "mynet",
-        "type": "bridge",
-        "bridge": "mynet0",
-        "isDefaultGateway": true,
-        "forceAddress": false,
-        "ipMasq": true,
-        "hairpinMode": true,
-        "ipam": {
-                "type": "host-local",
-                "subnet": "10.10.10.0/16"
-        }
-    }'
-EOF
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-multus.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ovs.yaml
 
 # Wait at least for one pod
 while [ -z "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system | grep kube)" ]; do

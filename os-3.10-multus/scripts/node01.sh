@@ -84,9 +84,12 @@ while [[ $retry_counter -lt 20  && $os_rc -ne 0 ]]; do
 done
 set -e
 
-/usr/bin/oc create -f /tmp/local-volume.yaml
+# Remove the multus pod to recreate it.
+# openshift-sdn remove the content of the cni folder on restart.
+# Needs to recreate the multus cni config after the openshift-sdn is up.
+oc -n kube-system delete po `oc get po -n kube-system | grep kube-multus-ds | awk '{print $1}'`
+oc -n kube-system delete po `oc get po -n kube-system | grep kube-cni-plugins | awk '{print $1}'`
+oc -n kube-system delete po `oc get po -n kube-system | grep ovs-cni-plugin | awk '{print $1}'`
+oc -n kube-system delete po `oc get po -n kube-system | grep ovs-vsctl-amd64 | awk '{print $1}'`
 
-/usr/bin/oc create -f /tmp/multus.yaml
-/usr/bin/oc create -f /tmp/macvlan-conf.yaml
-/usr/bin/oc create -f /tmp/ptp-conf.yaml
-/usr/bin/oc create -f /tmp/bridge-conf.yaml
+/usr/bin/oc create -f /tmp/local-volume.yaml
