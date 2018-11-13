@@ -15,6 +15,8 @@
 * `os-3.10.0` os-3.10.0 cluster based on the centos7 image, provisioned with openshift-ansible
 * `os-3.10-crio` os-3.10 cluster with CRI-O support based on the centos7 image, provisioned with openshift-ansible
 * `os-3.10-multus` os-3.10 cluster with multus cni support based on the centos7 image, provisioned with openshift-ansible
+* `os-3.11.0` os-3.11.0 cluster based on the centos7 image, provisioned with openshift-ansible
+* `os-3.11-crio` os-3.11 cluster with CRI-O support based on the centos7 image, provisioned
 
 ## Versions to use
 
@@ -24,9 +26,11 @@
 * `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
 * **Deprecated**: `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
 * **Deprecated**: `kubevirtci/os-3.9.0-crio:`: `sha256:107d03dad4da6957e28774b121a45e177f31d7b4ad43c6eab7b24d467e59e213`
-* `kubevirtci/os-3.10.0:`: `sha256:cc418c0c837d8e6c9a31a063762d9e4c8bfc70a1fcca10823b11c6d8a7ae2394`
-* `kubevirtci/os-3.10.0-crio:`: `sha256:56debd7bc2ce87dd616ebc30f06971e388b6983c0cda8646a7563e1dafadb69b`
+* **Deprecated**: `kubevirtci/os-3.10.0:`: `sha256:cc418c0c837d8e6c9a31a063762d9e4c8bfc70a1fcca10823b11c6d8a7ae2394`
+* **Deprecated**: `kubevirtci/os-3.10.0-crio:`: `sha256:56debd7bc2ce87dd616ebc30f06971e388b6983c0cda8646a7563e1dafadb69b`
 * `kubevirtci/os-3.10.0-multus`: `sha256:dfeaa7c1f7c264f953e44c93b50bb76c9bb58b0df8bb94dcaa108db254f87eb3`
+* `kubevirtci/os-3.11.0:`: `sha256:09c667db028e40a3646ba070a0de78c09ba6ccbabf6df4937f064688da0745ee`
+* `kubevirtci/os-3.11.0-crio:`: `sha256:e2629b93e98a7f7a30a70acd9e478fa526977ee86a84d6a5514a33421e91863a`
 * **Deprecated**: `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
 * **Deprecated**: `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
 * `kubevirtci/k8s-1.10.4:`: `sha256:b60a61ca03a1a6c504481020709a04f65e4dd9c929a8bcad18821c5f80d1b2b6`
