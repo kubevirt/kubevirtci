@@ -27,6 +27,7 @@
 * `kubevirtci/os-3.10.0:`: `sha256:cc418c0c837d8e6c9a31a063762d9e4c8bfc70a1fcca10823b11c6d8a7ae2394`
 * `kubevirtci/os-3.10.0-crio:`: `sha256:56debd7bc2ce87dd616ebc30f06971e388b6983c0cda8646a7563e1dafadb69b`
 * `kubevirtci/os-3.10.0-multus`: `sha256:dfeaa7c1f7c264f953e44c93b50bb76c9bb58b0df8bb94dcaa108db254f87eb3`
+* `kubevirtci/os-3.11.0:`: `sha256:17bd0edd40960308c5f6efdc0c59b97ed3390f4de4e4790b0bda99beb27c8939`
 * **Deprecated**: `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
 * **Deprecated**: `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
 * `kubevirtci/k8s-1.10.4:`: `sha256:b60a61ca03a1a6c504481020709a04f65e4dd9c929a8bcad18821c5f80d1b2b6`
@@ -115,7 +116,7 @@ $ gocli rm
 Start a k8s cluster which contains of one master and two nodes:
 
 ```bash
-gocli run --random-ports --nodes 2 --reverse --ocp-port 8443 --background kubevirtci/os-3.9.0
+gocli run --random-ports --nodes 2 --reverse --ocp-port 8443 --background kubevirtci/os-3.11.0
 ```
 
 Note the extra `--reverse` flag. Normally we start the master first and nodes
