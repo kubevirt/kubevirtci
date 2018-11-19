@@ -144,6 +144,35 @@ networking:
   podSubnet: 10.244.0.0/16
 EOF
 
+# New configuration for kubernetes >= 1.12
+if [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
+cat > /etc/kubernetes/kubeadm.conf <<EOF
+apiVersion: kubeadm.k8s.io/v1alpha3
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: abcdef.1234567890123456
+  ttl: 24h0m0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+---
+apiServerExtraArgs:
+  enable-admission-plugins: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
+  feature-gates: BlockVolume=true
+  runtime-config: admissionregistration.k8s.io/v1alpha1
+apiVersion: kubeadm.k8s.io/v1alpha3
+controllerManagerExtraArgs:
+  feature-gates: BlockVolume=true
+kind: ClusterConfiguration
+kubernetesVersion: ${version}
+networking:
+  podSubnet: 10.244.0.0/16
+
+EOF
+fi
+
 # Create local-volume directories
 for i in {1..10}
 do
