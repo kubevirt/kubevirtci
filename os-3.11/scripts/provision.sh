@@ -64,6 +64,9 @@ git clone https://github.com/openshift/openshift-ansible.git -b v3.11.0 --depth 
 # Create ansible inventory file
 cat >$inventory_file <<EOF
 all:
+  vars:
+    olm_operator_image: quay.io/coreos/olm:master-08ea39b7
+    olm_catalog_operator_image: quay.io/coreos/catalog:master-57dd618d
   children:
     OSEv3:
       hosts:
@@ -168,12 +171,14 @@ EOF
 
 # Add cri-o variable to inventory file
 if [[ $1 == "true" ]]; then
-    sed -i "s/vars\:/vars\:\n        openshift_use_crio: 'true'/" $inventory_file
+    sed -i "s/    vars\:/    vars\:\n        openshift_use_crio: 'true'/" $inventory_file
 fi
 
 # Install prerequisites
 ansible-playbook -e "ansible_user=root ansible_ssh_pass=vagrant" -i $inventory_file $openshift_ansible/playbooks/prerequisites.yml
 ansible-playbook -i $inventory_file $openshift_ansible/playbooks/deploy_cluster.yml
+# Install OLM
+ansible-playbook -i $inventory_file $openshift_ansible/playbooks/olm/config.yml
 
 # Create OpenShift user
 /usr/bin/oc create user admin
