@@ -3,4 +3,4 @@
 set -xe
 
 kubectl --kubeconfig /etc/kubernetes/admin.conf create namespace logging
-kubectl apply -f /tmp/logging.yaml
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /tmp/logging.yaml
