@@ -22,7 +22,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: ovs-cni-plugin
-        image: quay.io/kubevirt/ovs-cni-plugin@sha256:dc241f83c8cdef9bff579dcc6a3018785f60ed12bf4f5594024131e06e0b5685
+        image: quay.io/kubevirt/ovs-cni-plugin@sha256:a1e994f516fc3325f430815b9bf86ed1b3cb7654b7b315c1d758e0035b3f1e58
         imagePullPolicy: IfNotPresent
         resources:
           requests:

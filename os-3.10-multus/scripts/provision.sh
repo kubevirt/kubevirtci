@@ -35,7 +35,7 @@ EOF
 
 # Install OpenShift packages
 yum install -y yum-utils \
-  ansible-2.5.3-1.el7 \
+  ansible \
   wget \
   git \
   net-tools \
@@ -46,7 +46,13 @@ yum install -y yum-utils \
   kexec-tools \
   sos \
   psacct \
-  docker
+  docker-common-1.13.1-75.git8633870.el7.centos.x86_64 \
+  origin-docker-excluder-3.11.0-1.el7.git.0.62803d0.noarch \
+  python-docker-py-1.10.6-4.el7.noarch \
+  docker-client-1.13.1-75.git8633870.el7.centos.x86_64 \
+  cockpit-docker-176-2.el7.centos.x86_64 \
+  docker-1.13.1-75.git8633870.el7.centos.x86_64 \
+  python-docker-pycreds-1.10.6-4.el7.noarch
 
 # Disable spectre and meltdown patches
 sed -i 's/quiet"/quiet spectre_v2=off nopti hugepagesz=2M hugepages=64"/' /etc/default/grub
@@ -74,6 +80,10 @@ master_ip="192.168.66.101"
 echo "$master_ip node01" >> /etc/hosts
 
 git clone https://github.com/openshift/openshift-ansible.git -b v3.10.0 --depth 1 $openshift_ansible
+
+# Apply fix https://github.com/openshift/openshift-ansible/pull/10459
+# TODO: remove it when the fix will be available under the v3.11.0 tag
+sed -i 's/python-docker/python-docker-py/' $openshift_ansible/playbooks/init/base_packages.yml
 
 # Create ansible inventory file
 cat >$inventory_file <<EOF
