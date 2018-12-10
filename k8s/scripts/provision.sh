@@ -32,7 +32,15 @@ repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
-yum install -y docker
+yum install -y \
+  docker-common-1.13.1-75.git8633870.el7.centos.x86_64 \
+  origin-docker-excluder-3.11.0-1.el7.git.0.62803d0.noarch \
+  python-docker-py-1.10.6-4.el7.noarch \
+  docker-client-1.13.1-75.git8633870.el7.centos.x86_64 \
+  cockpit-docker-176-2.el7.centos.x86_64 \
+  docker-1.13.1-75.git8633870.el7.centos.x86_64 \
+  python-docker-pycreds-1.10.6-4.el7.noarch
+
 
 # Log to json files instead of journald
 sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
@@ -87,9 +95,9 @@ echo br_netfilter >> /etc/modules
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
 kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
 
-# Wait at least for one pod
-while [ -z "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system | grep kube)" ]; do
-    echo "Waiting for at least one pod ..."
+# Wait at least for 7 pods
+while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
+    echo "Waiting for at least 7 pods to appear ..."
     kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
     sleep 10
 done
