@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-IMAGES="k8s/1.10.4 k8s/1.11.0 k8s-multus/1.10.4 k8s-multus/1.11.1 os-3.10 os-3.10-crio os-3.10-multus"
+IMAGES="k8s/1.10.4 k8s/1.11.0 k8s-multus/1.10.4 k8s-multus/1.11.1 os-3.10 os-3.10-crio os-3.10-multus os-3.11-multus-sriov"
 LOG=`pwd`/log.txt
 
 echo

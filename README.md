@@ -19,6 +19,7 @@
 * `os-3.11.0` os-3.11.0 cluster based on the centos7 image, provisioned with openshift-ansible
 * `os-3.11-crio` os-3.11 cluster with CRI-O support based on the centos7 image, provisioned
 * `os-3.11-multus` os-3.11 cluster with multus cni support based on the centos7 image, provisioned with openshift-ansible
+* `os-3.11-multus-sriov` os-3.11 cluster with multus and sriov cni support based on the centos7 image, provisioned with openshift-ansible
 
 ## Versions to use
 
@@ -32,6 +33,7 @@
 * **Deprecated**: `kubevirtci/os-3.10.0-crio:`: `sha256:56debd7bc2ce87dd616ebc30f06971e388b6983c0cda8646a7563e1dafadb69b`
 * **Deprecated**: `kubevirtci/os-3.10.0-multus`: `sha256:875c973099141ab2013aaf51ec2b35b5326be943ef1437e4a87e041405e724ca`
 * `kubevirtci/os-3.11.0-multus`: `sha256:46155f973cb4637be5f73cf0307bb09e4caf5c66bd921cf5d1988db2598a8995`
+* `kubevirtci/os-3.11.0-multus-sriov`: `sha256:7141ff31cc9d044dd52a9362e37c592ec4a820fb954349df34f689bf8a656b6b`
 * `kubevirtci/os-3.11.0:`: `sha256:2d0a8f59dfebe181f550c4fbcd90d491a56a7d642d761c32a3c7732644325c0b`
 * `kubevirtci/os-3.11.0-crio:`: `sha256:3f11a6f437fcdf2d70de4fcc31e0383656f994d0d05f9a83face114ea7254bc0`
 * **Deprecated**: `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`

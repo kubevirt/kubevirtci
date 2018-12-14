@@ -1,17 +1,18 @@
+---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  name: ovs-cni-plugin-amd64
+  name: kube-sriov-cni-amd64
   namespace: kube-system
   labels:
     tier: node
-    app: ovs-cni
+    app: sriov-cni
 spec:
   template:
     metadata:
       labels:
         tier: node
-        app: ovs-cni
+        app: sriov-cni
     spec:
       hostNetwork: true
       nodeSelector:
@@ -21,9 +22,10 @@ spec:
         operator: Exists
         effect: NoSchedule
       containers:
-      - name: ovs-cni-plugin
-        image: quay.io/kubevirt/ovs-cni-plugin@sha256:66225e9eb1eae46a0dd9ce52b216ee856e9f495d94eda65967d6d92ae52956f2
-        imagePullPolicy: IfNotPresent
+      - name: kube-sriov-cni
+        image: docker.io/nfvpe/sriov-cni:latest
+        securityContext:
+          privileged: true
         resources:
           requests:
             cpu: "100m"
@@ -31,8 +33,6 @@ spec:
           limits:
             cpu: "100m"
             memory: "50Mi"
-        securityContext:
-          privileged: true
         volumeMounts:
         - name: cnibin
           mountPath: /host/opt/cni/bin
