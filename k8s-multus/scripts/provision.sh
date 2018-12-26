@@ -13,6 +13,9 @@ sed -i '/ swap / s/^/#/' /etc/fstab
 sed -i 's/quiet"/quiet spectre_v2=off nopti hugepagesz=2M hugepages=64"/' /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
 
+# Allow user namespaces
+sysctl -w user.max_user_namespaces=1024
+
 systemctl stop firewalld NetworkManager || :
 systemctl disable firewalld NetworkManager || :
 # Make sure the firewall is never enabled again

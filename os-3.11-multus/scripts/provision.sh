@@ -46,6 +46,9 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
 
 echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json
 
+# Allow user namespaces
+sysctl -w user.max_user_namespaces=1024
+
 systemctl start docker
 systemctl enable docker
 
