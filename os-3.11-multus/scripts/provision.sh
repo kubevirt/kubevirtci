@@ -152,10 +152,10 @@ all:
             - RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true,BlockVolume=true
           - key: kubeletArguments.max-pods
             value:
-            - '40'
+            - '60'
           - key: kubeletArguments.pods-per-core
             value:
-            - '40'
+            - '60'
         - name: node-config-compute-kubevirt
           labels:
           - node-role.kubernetes.io/compute=true
@@ -174,10 +174,10 @@ all:
             - cpu=500m
           - key: kubeletArguments.max-pods
             value:
-            - '40'
+            - '60'
           - key: kubeletArguments.pods-per-core
             value:
-            - '40'
+            - '60'
 EOF
 
 # Add cri-o variable to inventory file
@@ -216,9 +216,9 @@ docker pull docker.io/fluent/fluentd:v1.2-debian
 docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
 
 /usr/bin/oc create -f /tmp/openshift-multus.yaml
+/usr/bin/oc create -f /tmp/multus.yaml
 /usr/bin/oc create -f /tmp/cni-plugins-ds.yaml
-/usr/bin/oc create -f /tmp/ovs.yaml
-/usr/bin/oc create -f /tmp/openshift-ovs-vsctl.yaml
+/usr/bin/oc create -f /tmp/openshift-ovs-cni.yaml
 
 # Wait before checking the pod status.
 # Give time to the scheduler to create the pods.

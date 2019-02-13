@@ -23,8 +23,15 @@ spec:
         effect: NoSchedule
       containers:
       - name: cni-plugins
-        image: quay.io/schseba/cni-plugins@sha256:e76ae2b1f393ea9056d9964c8664647f1c4afafcc0bfd949aacdc32f30b7b779
+        image: quay.io/kubevirt/cni-default-plugins@sha256:15727044c5b00fc41b06796373b00768b7b30b7d2e6c0b68ab33a83cd70adea1
         imagePullPolicy: IfNotPresent
+        command:
+          - /bin/bash
+          - -c
+          - |
+            cp -rf /usr/src/containernetworking/plugins/bin/* /opt/cni/bin/
+            echo "Entering sleep... (success)"
+            sleep infinity
         resources:
           requests:
             cpu: "100m"

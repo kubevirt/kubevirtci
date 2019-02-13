@@ -11,8 +11,12 @@ done
 kubeadm init --config /etc/kubernetes/kubeadm.conf
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
+
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-multus.yaml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ovs.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/multus.yaml
+
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/cni-plugins-ds.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-ovs-cni.yaml
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
 
