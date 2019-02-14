@@ -20,6 +20,10 @@ import (
 	"sync"
 )
 
+const NFSGaneshaImage = "docker.io/janeczku/nfs-ganesha@sha256:17fe1813fd20d9fdfa497a26c8a2e39dd49748cd39dbb0559df7627d9bcf4c53"
+const DockerRegistryImage = "docker.io/library/registry:2.7.1"
+const FluentdImage = "docker.io/fluent/fluentd:v1.2-debian"
+
 func NewRunCommand() *cobra.Command {
 
 	run := &cobra.Command{
@@ -118,7 +122,8 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	ctx := context.Background()
+	b := context.Background()
+	ctx, cancel := context.WithCancel(b)
 
 	containers, volumes, done := docker.NewCleanupHandler(cli, cmd.OutOrStderr())
 
@@ -130,15 +135,15 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
+		cancel()
 		done <- fmt.Errorf("Interrupt received, clean up")
 	}()
 
 	// Pull the cluster image
-	reader, err := cli.ImagePull(ctx, "docker.io/"+cluster, types.ImagePullOptions{})
+	err = docker.ImagePull(cli, ctx, "docker.io/"+cluster, types.ImagePullOptions{})
 	if err != nil {
 		panic(err)
 	}
-	docker.PrintProgress(reader, os.Stdout)
 
 	// Start dnsmasq
 	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
@@ -172,11 +177,10 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// Pull the registry image
-	reader, err = cli.ImagePull(ctx, "docker.io/library/registry:2", types.ImagePullOptions{})
+	err = docker.ImagePull(cli, ctx, DockerRegistryImage, types.ImagePullOptions{})
 	if err != nil {
-		return err
+		panic(err)
 	}
-	docker.PrintProgress(reader, os.Stdout)
 
 	// Create registry volume
 	var registryMounts []mount.Mount
@@ -199,7 +203,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 
 	// Start registry
 	registry, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: "registry:2",
+		Image: DockerRegistryImage,
 	}, &container.HostConfig{
 		Mounts:      registryMounts,
 		Privileged:  true, // fixme we just need proper selinux volume labeling
@@ -219,15 +223,14 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			return err
 		}
 		// Pull the ganesha image
-		reader, err = cli.ImagePull(ctx, "docker.io/janeczku/nfs-ganesha", types.ImagePullOptions{})
+		err = docker.ImagePull(cli, ctx, NFSGaneshaImage, types.ImagePullOptions{})
 		if err != nil {
 			panic(err)
 		}
-		docker.PrintProgress(reader, os.Stdout)
 
 		// Start the ganesha image
 		nfsServer, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: "janeczku/nfs-ganesha",
+			Image: NFSGaneshaImage,
 		}, &container.HostConfig{
 			Mounts: []mount.Mount{
 				{
@@ -259,15 +262,14 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		// Pull the fluent image
-		reader, err = cli.ImagePull(ctx, "docker.io/fluent/fluentd:v1.2-debian", types.ImagePullOptions{})
+		err = docker.ImagePull(cli, ctx, FluentdImage, types.ImagePullOptions{})
 		if err != nil {
 			panic(err)
 		}
-		docker.PrintProgress(reader, os.Stdout)
 
 		// Start the fluent image
 		fluentd, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: "docker.io/fluent/fluentd:v1.2-debian",
+			Image: FluentdImage,
 			Cmd: strslice.StrSlice{
 				"exec fluentd",
 				"-i \"<system>\n log_level debug\n</system>\n<source>\n@type  forward\n@log_level error\nport  24224\n</source>\n<match **>\n@type file\npath /fluentd/log/collected\n</match>\"",
@@ -375,7 +377,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		go func(id string) {
-			cli.ContainerWait(context.Background(), id)
+			cli.ContainerWait(ctx, id)
 			wg.Done()
 		}(node.ID)
 	}

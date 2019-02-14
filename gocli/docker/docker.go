@@ -3,15 +3,18 @@ package docker
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"golang.org/x/crypto/ssh/terminal"
 	"io"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 )
 
 func GetPrefixedContainers(cli *client.Client, prefix string) ([]types.Container, error) {
@@ -36,6 +39,25 @@ func GetPrefixedVolumes(cli *client.Client, prefix string) ([]*types.Volume, err
 		return nil, err
 	}
 	return volumes.Volumes, nil
+}
+
+func ImagePull(cli *client.Client, ctx context.Context, ref string, options types.ImagePullOptions) error {
+
+	for _, i := range []int{0, 1, 2, 6} {
+		time.Sleep(time.Duration(i) * time.Second)
+		reader, err := cli.ImagePull(ctx, ref, options)
+		if err != nil {
+			log.Printf("failed to download %s: %v\n", ref, err)
+			continue
+		}
+		err = PrintProgress(reader, os.Stdout)
+		if err != nil {
+			log.Printf("failed to download %s: %v\n", ref, err)
+			continue
+		}
+		return nil
+	}
+	return fmt.Errorf("failed to download %s four times, giving up.", ref)
 }
 
 func GetDDNSMasqContainer(cli *client.Client, prefix string) (*types.Container, error) {
@@ -199,7 +221,7 @@ func NewCleanupHandler(cli *client.Client, errWriter io.Writer) (containers chan
 	return
 }
 
-func PrintProgress(progressReader io.ReadCloser, writer *os.File) {
+func PrintProgress(progressReader io.ReadCloser, writer *os.File) error {
 	isTerminal := terminal.IsTerminal(int(writer.Fd()))
 	w, _, err := terminal.GetSize(int(writer.Fd()))
 
@@ -207,6 +229,9 @@ func PrintProgress(progressReader io.ReadCloser, writer *os.File) {
 		scanner := bufio.NewScanner(progressReader)
 		for scanner.Scan() {
 			line := scanner.Text()
+			if err := checkForError(line); err != nil {
+				return err
+			}
 			clearLength := w - len(line)
 			if clearLength < 0 {
 				clearLength = 0
@@ -217,8 +242,32 @@ func PrintProgress(progressReader io.ReadCloser, writer *os.File) {
 		fmt.Fprint(writer, "Downloading ...")
 		scanner := bufio.NewScanner(progressReader)
 		for scanner.Scan() {
+			line := scanner.Text()
+			if err := checkForError(line); err != nil {
+				return err
+			}
 			fmt.Print(".")
 		}
 		fmt.Print("\n")
 	}
+	return nil
+}
+
+func checkForError(line string) error {
+	pullStatus := &PullStatus{}
+	if line != "" {
+		err := json.Unmarshal([]byte(line), pullStatus)
+		if err != nil {
+			return err
+		}
+	}
+	if pullStatus.Error != "" {
+		return fmt.Errorf("%s", pullStatus.Error)
+	}
+	return nil
+}
+
+type PullStatus struct {
+	Status string `json:"status,omitempty"`
+	Error  string `json:"error,omitempty"`
 }
