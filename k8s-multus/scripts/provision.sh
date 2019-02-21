@@ -88,8 +88,12 @@ sysctl --system
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
+
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-multus.yaml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/ovs.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/multus.yaml
+
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/cni-plugins-ds.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-ovs-cni.yaml
 
 # Wait at least for one pod
 while [ -z "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system | grep kube)" ]; do
