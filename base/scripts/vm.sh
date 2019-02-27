@@ -83,8 +83,33 @@ if [ ! -e /dev/kvm ]; then
    mknod /dev/kvm c 10 $(grep '\<kvm\>' /proc/misc | cut -f 1 -d' ')
 fi
 
+# Provisioning happens from outside, just start qemu and wait until the vmi shuts down from inside
+if [ "${HOSTNAME}" == "provision" ] ; then
 exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=unsafe \
   -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
   -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
   -device virtio-rng-pci \
   -vnc :${n} -cpu host -m ${MEMORY} -smp ${CPU} ${QEMU_ARGS}
+fi
+
+function finish {
+  kill -9 $(jobs -p)
+}
+
+trap finish EXIT
+
+qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=unsafe \
+  -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
+  -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
+  -device virtio-rng-pci \
+  -vnc :${n} -cpu host -m ${MEMORY} -smp ${CPU} ${QEMU_ARGS} &
+
+if [ -e /scripts/${HOSTNAME}.sh ]
+then
+  ssh.sh sudo /bin/bash < /scripts/${HOSTNAME}.sh
+else
+  ssh.sh sudo /bin/bash < /scripts/nodes.sh
+fi
+
+touch /shared/${HOSTNAME}.ready
+wait

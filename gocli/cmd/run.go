@@ -360,6 +360,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			qemu_args = "--qemu-args " + qemu_args
 		}
 		node, err := cli.ContainerCreate(ctx, &container.Config{
+			Hostname: nodeName,
 			Image: cluster,
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
@@ -387,28 +388,8 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			return err
 		}
 
-		// Wait for vm start
-		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "while [ ! -f /ssh_ready ] ; do sleep 1; done"}, os.Stdout)
-		if err != nil {
-			return err
-		}
-
-		if !success {
-			return fmt.Errorf("checking for ssh.sh script for node %s failed", nodeName)
-		}
-
-		//check if we have a special provision script
-		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("test -f /scripts/%s.sh", nodeName)}, os.Stdout)
-		if err != nil {
-			return fmt.Errorf("checking for matching provision script for node %s failed", nodeName)
-		}
-
-		if success {
-			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName)}, os.Stdout)
-		} else {
-			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/nodes.sh"}, os.Stdout)
-		}
-
+		// Wait for vm to be started and provisioned
+		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{fmt.Sprintf("/bin/bash", "-c", "while [ ! -f /shared/%s.ready ] ; do sleep 1; done", nodeName)}, os.Stdout)
 		if err != nil {
 			return err
 		}
