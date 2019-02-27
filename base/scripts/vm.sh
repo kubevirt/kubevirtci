@@ -104,12 +104,25 @@ qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=
   -device virtio-rng-pci \
   -vnc :${n} -cpu host -m ${MEMORY} -smp ${CPU} ${QEMU_ARGS} &
 
-if [ -e /scripts/${HOSTNAME}.sh ]
-then
+# wait until it is our turn if we are not the first node
+if [ "${FIRST_NODE}" != "true" ]; then
+  while [ ! -f /shared/${HOSTNAME}.start ] ; do
+    echo "Waiting for previous container to be done."
+    sleep 1;
+  done
+fi
+
+if [ -e /scripts/${HOSTNAME}.sh ]; then
   ssh.sh sudo /bin/bash < /scripts/${HOSTNAME}.sh
 else
   ssh.sh sudo /bin/bash < /scripts/nodes.sh
 fi
 
+# node is ready
 touch /shared/${HOSTNAME}.ready
+
+# Tell the next node that it can provision
+if [ -n "${NEXT_HOST}" ]; then
+  touch /shared/${NEXT_HOST}.start
+fi
 wait

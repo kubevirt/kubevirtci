@@ -21,4 +21,9 @@ iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 iptables -A FORWARD -i br0 -o eth0 -j ACCEPT
 
+# Tell the first node that it can start provisioning
+if [ -n "${NEXT_HOST}" ]; then
+  touch /shared/${NEXT_HOST}.start
+fi
+
 exec dnsmasq -d ${DHCP_HOSTS} --dhcp-range=192.168.66.10,192.168.66.200,infinite

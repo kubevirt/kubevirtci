@@ -359,11 +359,15 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		if len(qemu_args) > 0 {
 			qemu_args = "--qemu-args " + qemu_args
 		}
+
+		// for docker we manage the startup ourselves, they should just start if it is their turn,
+		// tell them all that they are the first node.
 		node, err := cli.ContainerCreate(ctx, &container.Config{
 			Hostname: nodeName,
-			Image: cluster,
+			Image:    cluster,
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
+				"FIRST_NODE=true",
 			},
 			Volumes: map[string]struct{}{
 				"/var/run/disk/": {},
