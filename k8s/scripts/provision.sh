@@ -138,8 +138,8 @@ apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
 apiServerExtraArgs:
   runtime-config: admissionregistration.k8s.io/v1alpha1
-  ${admission_flag}: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota,CustomResourceSubresources
-  feature-gates: "BlockVolume=true"
+  ${admission_flag}: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
+  feature-gates: "BlockVolume=true,CustomResourceSubresources=true"
 controllerManagerExtraArgs:
   feature-gates: "BlockVolume=true"
 token: abcdef.1234567890123456
