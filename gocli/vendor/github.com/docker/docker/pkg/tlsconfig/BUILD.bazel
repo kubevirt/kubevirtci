@@ -7,6 +7,7 @@ go_library(
         "tlsconfig_clone_go16.go",
         "tlsconfig_clone_go17.go",
     ],
+    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/docker/docker/pkg/tlsconfig",
     importpath = "github.com/docker/docker/pkg/tlsconfig",
     visibility = ["//visibility:public"],
 )
