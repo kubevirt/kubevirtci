@@ -9,7 +9,6 @@ load("@io_bazel_rules_docker//go:image.bzl", "go_image")
 load(
     "@io_bazel_rules_docker//container:container.bzl",
     "container_bundle",
-    container_repositories = "repositories",
 )
 
 gazelle(

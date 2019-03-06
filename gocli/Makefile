@@ -1,6 +1,7 @@
 all: fmt build
 
 build: fmt
+	bazel run //:gazelle
 	bazel build //:cli
 
 fmt:
