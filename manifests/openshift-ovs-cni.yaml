@@ -49,7 +49,7 @@ spec:
               mountPath: /host/usr/bin
       containers:
         - name: ovs-cni-plugin
-          image: quay.io/kubevirt/ovs-cni-plugin@sha256:cfa17cbdb6e1561ecdeebbbde0919e29c46f69c0eac8868c8453090d528780b0
+          image: quay.io/kubevirt/ovs-cni-plugin@sha256:86b188c07c62a4bd0847f19a9519f2bb4169a54bb4c74851ea4d8312f778fdf0
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -64,7 +64,7 @@ spec:
             - name: cnibin
               mountPath: /host/opt/cni/bin
         - name: ovs-cni-marker
-          image: quay.io/kubevirt/ovs-cni-marker@sha256:0f37c06306d1e224cf8cdcbd453f85608aefb9e0969988ca726c07923d1b5e76
+          image: quay.io/kubevirt/ovs-cni-marker@sha256:cc31f483039be6f17ea4fce417c01c98d1263f1c86d1ae37de06ec69cbb5fb11
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
