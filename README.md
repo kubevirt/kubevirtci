@@ -44,7 +44,7 @@
 * **Deprecated**: `kubevirtci/k8s-multus-1.10.4:`: `sha256:1d16d436347fcb9eba28cad08f6e074d4628e9a097a7325eb1ab87351e7f6d5c`
 * **Deprecated**: `kubevirtci/k8s-multus-1.11.1:`: `sha256:3d35b19105344e270be168920e98287fbefcd5366fdf78681712d05725204559`
 * **Deprecated**: `kubevirtci/k8s-multus-1.12.2:`: `sha256:4974496beb19a30156c125d7721912b54a705926dcbf66c41f570dca286996ba`
-* `kubevirtci/k8s-multus-1.13.3:`: `sha256:d562b9c7d0192fdf7b2570887d05191bc7ecbf75555b5bc0ddb9782eab5a7517`
+* `kubevirtci/k8s-multus-1.13.3:`: `sha256:2ae2dfd20adf163e9cb3923c713932353670692d119f330e547aa1881872de58`
 * `kubevirtci/k8s-genie-1.11.1:`: `sha256:bd62afe346d81f5d3bc0dd3255aaaaa3ae4d91787de2db3ecd94cc22f809b587`
 
 ## Using gocli
