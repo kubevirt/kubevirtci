@@ -64,7 +64,7 @@ yum install --nogpgcheck -y \
 if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
     # TODO use config file! this is deprecated
     cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates="BlockVolume=true,CSIBlockVolume=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
 EOT
 else
     cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
@@ -152,12 +152,12 @@ kind: InitConfiguration
 ---
 apiServerExtraArgs:
   enable-admission-plugins: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
-  feature-gates: "BlockVolume=true,CSIBlockVolume=true"
+  feature-gates: "BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
   allow-privileged: "true"
   runtime-config: admissionregistration.k8s.io/v1alpha1
 apiVersion: kubeadm.k8s.io/v1alpha3
 controllerManagerExtraArgs:
-  feature-gates: "BlockVolume=true,,CSIBlockVolume=true"
+  feature-gates: "BlockVolume=true,,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
 kind: ClusterConfiguration
 kubernetesVersion: ${version}
 networking:
