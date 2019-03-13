@@ -64,12 +64,12 @@ yum install --nogpgcheck -y \
 if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
     # TODO use config file! this is deprecated
     cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates=BlockVolume=true
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
 EOT
 else
     cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
 [Service]
-Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates=BlockVolume=true"
+Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates=BlockVolume=true,CSIBlockVolume=true"
 EOT
 fi
 
@@ -93,7 +93,11 @@ echo bridge >> /etc/modules
 echo br_netfilter >> /etc/modules
 
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
+if [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
+kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/coreos/flannel/a70459be0084506e4ec919aa1c114638878db11b/Documentation/kube-flannel.yml
+else
 kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
+fi
 
 # Wait at least for 7 pods
 while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
@@ -132,21 +136,51 @@ fi
 
 $reset_command
 
-# TODO new format since 1.11, this old format will be removed with 1.12, see https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file
+# New configuration for kubernetes >= 1.12
+if [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
+cat > /etc/kubernetes/kubeadm.conf <<EOF
+apiVersion: kubeadm.k8s.io/v1alpha3
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: abcdef.1234567890123456
+  ttl: 24h0m0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+---
+apiServerExtraArgs:
+  enable-admission-plugins: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
+  feature-gates: "BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
+  allow-privileged: "true"
+  runtime-config: admissionregistration.k8s.io/v1alpha1
+apiVersion: kubeadm.k8s.io/v1alpha3
+controllerManagerExtraArgs:
+  feature-gates: "BlockVolume=true,,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
+kind: ClusterConfiguration
+kubernetesVersion: ${version}
+networking:
+  podSubnet: 10.244.0.0/16
+
+EOF
+else
 cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
 apiServerExtraArgs:
   runtime-config: admissionregistration.k8s.io/v1alpha1
   ${admission_flag}: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
-  feature-gates: "BlockVolume=true,CustomResourceSubresources=true"
+  feature-gates: "BlockVolume=true,CustomResourceSubresources=true,CSIBlockVolume=true"
+  allow-privileged: "true"
 controllerManagerExtraArgs:
-  feature-gates: "BlockVolume=true"
+  feature-gates: "BlockVolume=true,CSIBlockVolume=true"
 token: abcdef.1234567890123456
 kubernetesVersion: ${version}
 networking:
   podSubnet: 10.244.0.0/16
 EOF
+fi
 
 # Create local-volume directories
 for i in {1..10}
@@ -163,3 +197,10 @@ chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 # Pre pull fluentd image used in logging
 docker pull fluent/fluentd:v1.2-debian
 docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
+
+# Pre pull images used in Ceph CSI
+docker pull quay.io/k8scsi/csi-attacher:v1.0.1
+docker pull quay.io/k8scsi/csi-provisioner:v1.0.1
+docker pull quay.io/k8scsi/csi-snapshotter:v1.0.1
+docker pull quay.io/cephcsi/rbdplugin:v1.0.0
+docker pull quay.io/k8scsi/csi-node-driver-registrar:v1.0.2

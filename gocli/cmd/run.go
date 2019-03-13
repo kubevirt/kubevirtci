@@ -1,7 +1,14 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"strconv"
+	"sync"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -13,14 +20,10 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
 	"kubevirt.io/kubevirtci/gocli/docker"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"strconv"
-	"sync"
 )
 
 const NFSGaneshaImage = "docker.io/janeczku/nfs-ganesha@sha256:17fe1813fd20d9fdfa497a26c8a2e39dd49748cd39dbb0559df7627d9bcf4c53"
+const CephImage = "docker.io/ceph/daemon@sha256:939b053df0d0c92a3df24426f1ec5c31bc263560b152417a060e7caf41c0cc7e"
 const DockerRegistryImage = "docker.io/library/registry:2.7.1"
 const FluentdImage = "docker.io/fluent/fluentd:v1.2-debian"
 
@@ -47,6 +50,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
+	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	return run
 }
 
@@ -110,6 +114,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	cephEnabled, err := cmd.Flags().GetBool("enable-ceph")
+	if err != nil {
+		return err
+	}
+
 	cluster := args[0]
 
 	background, err := cmd.Flags().GetBool("background")
@@ -166,6 +175,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		ExtraHosts: []string{
 			"nfs:192.168.66.2",
 			"registry:192.168.66.2",
+			"ceph:192.168.66.2",
 		},
 	}, nil, prefix+"-dnsmasq")
 	if err != nil {
@@ -247,6 +257,37 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 		containers <- nfsServer.ID
 		if err := cli.ContainerStart(ctx, nfsServer.ID, types.ContainerStartOptions{}); err != nil {
+			return err
+		}
+	}
+
+	if cephEnabled {
+		// Pull Ceph image
+		err = docker.ImagePull(cli, ctx, CephImage, types.ImagePullOptions{})
+		if err != nil {
+			panic(err)
+		}
+
+		cephStorage, err := cli.ContainerCreate(ctx, &container.Config{
+			Image: CephImage,
+			Env: []string{
+				"MON_IP=192.168.66.2",
+				"CEPH_PUBLIC_NETWORK=0.0.0.0/0",
+				"DEMO_DAEMONS=osd,mds",
+				"CEPH_DEMO_UID=demo",
+			},
+			Cmd: strslice.StrSlice{
+				"demo",
+			},
+		}, &container.HostConfig{
+			Privileged:  true,
+			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
+		}, nil, prefix+"-ceph")
+		if err != nil {
+			return err
+		}
+		containers <- cephStorage.ID
+		if err := cli.ContainerStart(ctx, cephStorage.ID, types.ContainerStartOptions{}); err != nil {
 			return err
 		}
 	}
@@ -380,6 +421,39 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			cli.ContainerWait(ctx, id)
 			wg.Done()
 		}(node.ID)
+	}
+
+	if cephEnabled {
+		keyRing := new(bytes.Buffer)
+		success, err := docker.Exec(cli, nodeContainer(prefix, "ceph"), []string{
+			"/bin/bash",
+			"-c",
+			"ceph auth print-key client.admin | base64",
+		}, keyRing)
+		if err != nil {
+			return err
+		}
+		nodeName := nodeNameFromIndex(1)
+		key := bytes.TrimSpace(keyRing.Bytes())
+		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+			"/bin/bash",
+			"-c",
+			fmt.Sprintf("ssh.sh sudo sed -i \"s/replace-me/%s/g\" /tmp/ceph/ceph-secret.yaml", key),
+		}, os.Stdout)
+		if err != nil {
+			return err
+		}
+		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+			"/bin/bash",
+			"-c",
+			"ssh.sh sudo /bin/bash < /scripts/ceph-csi.sh",
+		}, os.Stdout)
+		if err != nil {
+			return err
+		}
+		if !success {
+			return fmt.Errorf("provisioning Ceph CSI failed")
+		}
 	}
 
 	// If logging is enabled, deploy the default fluent logging

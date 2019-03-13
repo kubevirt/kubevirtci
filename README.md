@@ -8,6 +8,7 @@
 * `k8s-1.10.4` k8s-1.10.4 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.10.11` k8s-1.10.11 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.11.0` k8s-1.11.0 cluster based on the centos7 image, provisioned with kubeadm
+* `k8s-1.13.3` k8s-1.13.3 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-multus-1.10.4:`: k8s-1.10.4 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
 * `k8s-multus-1.11.1:`: k8s-1.11.1 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
 * `k8s-multus-1.12.2:`: k8s-1.12.2 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
@@ -25,7 +26,7 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
-* `kubevirtci/gocli`: `sha256:4a4565eb4487be95f464cb942590bbaa980a5b56acb32d955f7a9f81f4ba843c`
+* `kubevirtci/gocli`: `sha256:fa7f615a1b07925b27027c57bf09bba0e9874ca92e4f67559556950665598c49`
 * `kubevirtci/base`: `sha256:034de1a154409d87498050ccc281d398ce1a0fed32efdbd66d2041a99a46b322`
 * `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
 * **Deprecated**: `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
@@ -41,6 +42,7 @@
 * **Deprecated**: `kubevirtci/k8s-1.10.4:`: `sha256:2ed70abfa8f6c30d990b76b816577040c0709258cbbd7c70f71a70d547f5544f`
 * `kubevirtci/k8s-1.10.11:`: `sha256:b97e556795a56b9aa1763ddf3a49322b49f96877dccb7a164bbca779df078536`
 * `kubevirtci/k8s-1.11.0:`: `sha256:e02ec414c7673a3644b5ba742b550a124c9195eaacb280151406bf9e8201a95f`
+* `kubevirtci/k8s-1.13.3:`: `sha256:734690023598ca6e3e91cb5cd7ffd1561f58a42761a9e9c5e755c6d9ca0667f7`
 * **Deprecated**: `kubevirtci/k8s-multus-1.10.4:`: `sha256:1d16d436347fcb9eba28cad08f6e074d4628e9a097a7325eb1ab87351e7f6d5c`
 * **Deprecated**: `kubevirtci/k8s-multus-1.11.1:`: `sha256:3d35b19105344e270be168920e98287fbefcd5366fdf78681712d05725204559`
 * **Deprecated**: `kubevirtci/k8s-multus-1.12.2:`: `sha256:4974496beb19a30156c125d7721912b54a705926dcbf66c41f570dca286996ba`
