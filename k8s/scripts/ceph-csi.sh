@@ -15,6 +15,28 @@ kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/csi-rbdplugi
 # Deploy RBD CSI driver
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/csi-rbdplugin.yaml
 
-# Deploy Ceph secret and storageclass
+# Deploy Ceph secret, storageclass and snapshotclass
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/ceph-secret.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/ceph-storageclass.yaml
+
+sleep 10
+
+set +e
+
+status=`kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods --all-namespaces --no-headers --field-selector status.phase!=Running --output=name | grep rbdplugin`
+retry_counter=0
+while [[ $retry_counter -lt 30 && ! -z "$status" ]]; do
+    sleep 10
+    echo "Waiting for rbd plugin to be available..."
+    status=`kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods --all-namespaces --no-headers --field-selector status.phase!=Running --output=name | grep rbdplugin`
+    retry_counter=$((retry_counter + 1))
+done
+
+set -e
+
+if [[ -z "$status" ]]
+then
+    kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/ceph-snapshotclass.yaml
+else
+    echo "SnapshotClass not created- RBD plugin not Ready"
+fi
