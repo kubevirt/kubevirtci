@@ -87,7 +87,11 @@ sysctl --system
 
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
 
+if [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel-ge-12.yaml
+else
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
+fi
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-multus.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/multus.yaml

@@ -10,7 +10,11 @@ done
 
 kubeadm init --config /etc/kubernetes/kubeadm.conf
 
+if [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel-ge-12.yaml
+else
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
+fi
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-multus.yaml
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/multus.yaml
