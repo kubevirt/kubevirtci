@@ -1,0 +1,23 @@
+package: kubevirt.io/kubevirtci/gocli
+import:
+- package: github.com/docker/docker
+  subpackages:
+  - api/types
+  - api/types/container
+  - api/types/filters
+  - api/types/mount
+  - api/types/strslice
+  - api/types/volume
+  - client
+- package: github.com/docker/go-connections
+  subpackages:
+  - nat
+- package: github.com/spf13/cobra
+- package: github.com/spf13/pflag
+- package: golang.org/x/crypto
+  subpackages:
+  - ssh
+  - ssh/terminal
+- package: golang.org/x/net
+  subpackages:
+  - context

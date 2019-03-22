@@ -88,10 +88,9 @@ func Exec(cli *client.Client, container string, args []string, out io.Writer) (b
 		return false, err
 	}
 
-	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecConfig{
-		AttachStderr: true,
-		AttachStdout: true,
-		Tty:          true,
+	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecStartCheck{
+		Detach: false,
+		Tty:    true,
 	})
 	if err != nil {
 		return false, err
@@ -124,11 +123,9 @@ func Terminal(cli *client.Client, container string, args []string, file *os.File
 		return -1, err
 	}
 
-	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecConfig{
-		AttachStderr: true,
-		AttachStdout: true,
-		AttachStdin:  true,
-		Tty:          terminal.IsTerminal(int(file.Fd())),
+	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecStartCheck{
+		Detach: false,
+		Tty:    terminal.IsTerminal(int(file.Fd())),
 	})
 	if err != nil {
 		return -1, err

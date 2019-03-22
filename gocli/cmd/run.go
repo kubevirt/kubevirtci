@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"github.com/docker/go-connections/nat"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -15,7 +16,6 @@ import (
 	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/nat"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
@@ -196,7 +196,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	var registryMounts []mount.Mount
 	if registry_volume != "" {
 
-		vol, err := cli.VolumeCreate(ctx, volume.VolumesCreateBody{
+		vol, err := cli.VolumeCreate(ctx, volume.VolumeCreateBody{
 			Name: fmt.Sprintf("%s-%s", prefix, "registry"),
 		})
 		if err != nil {
@@ -348,7 +348,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			nodeNum = fmt.Sprintf("%02d", (int(nodes) - x))
 		}
 
-		vol, err := cli.VolumeCreate(ctx, volume.VolumesCreateBody{
+		vol, err := cli.VolumeCreate(ctx, volume.VolumeCreateBody{
 			Name: fmt.Sprintf("%s-%s", prefix, nodeName),
 		})
 		if err != nil {
@@ -403,7 +403,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		go func(id string) {
-			cli.ContainerWait(ctx, id)
+			cli.ContainerWait(ctx, id, container.WaitConditionNotRunning)
 			wg.Done()
 		}(node.ID)
 	}
