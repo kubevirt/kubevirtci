@@ -18,5 +18,5 @@ push: fmt
 	bazel run //:push-all
 
 generate:
-	dep ensure
+	glide install --strip-vendor
 	bazel run //:gazelle
