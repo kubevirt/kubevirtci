@@ -127,7 +127,7 @@ func provision(cmd *cobra.Command, args []string) error {
 	nodeName := nodeNameFromIndex(1)
 	nodeNum := fmt.Sprintf("%02d", 1)
 
-	vol, err := cli.VolumeCreate(ctx, volume.VolumesCreateBody{
+	vol, err := cli.VolumeCreate(ctx, volume.VolumeCreateBody{
 		Name: fmt.Sprintf("%s-%s", prefix, nodeName),
 	})
 	if err != nil {
@@ -198,7 +198,7 @@ func provision(cmd *cobra.Command, args []string) error {
 	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "rm /ssh_ready"}, os.Stdout)
 
 	go func(id string) {
-		cli.ContainerWait(context.Background(), id)
+		cli.ContainerWait(context.Background(), id, container.WaitConditionNotRunning)
 	}(node.ID)
 
 	return nil
