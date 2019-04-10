@@ -11,12 +11,12 @@ done
 kubeadm init --config /etc/kubernetes/kubeadm.conf
 
 version=`kubectl version --short --client | cut -d":" -f2 |sed  's/ //g' | cut -c2- | cut -d"." -f2`
-
-if [[ $version -ge "12" ]]; then
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/coreos/flannel/a70459be0084506e4ec919aa1c114638878db11b/Documentation/kube-flannel.yml
+if [[ ${version} -ge "12" ]]; then
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel-ge-12.yaml
 else
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
 fi
+
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
 
 # Wait for api server to be up.
