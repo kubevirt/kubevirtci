@@ -61,15 +61,20 @@ yum install --nogpgcheck -y \
 
 # Latest docker on CentOS uses systemd for cgroup management
 # kubeadm 1.11 uses a new config method for the kubelet
-if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
+if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
     # TODO use config file! this is deprecated
     cat <<EOT >/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
 EOT
+elif [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
+    # TODO use config file! this is deprecated
+    cat <<EOT >/etc/sysconfig/kubelet
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates="BlockVolume=true,CSIBlockVolume=true"
+EOT
 else
     cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
 [Service]
-Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates=BlockVolume=true,CSIBlockVolume=true"
+Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates=BlockVolume=true"
 EOT
 fi
 
@@ -94,9 +99,9 @@ echo br_netfilter >> /etc/modules
 
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
 if [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/coreos/flannel/a70459be0084506e4ec919aa1c114638878db11b/Documentation/kube-flannel.yml
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel-ge-12.yaml
 else
-kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
 fi
 
 # Wait at least for 7 pods
@@ -157,14 +162,14 @@ apiServerExtraArgs:
   runtime-config: admissionregistration.k8s.io/v1alpha1
 apiVersion: kubeadm.k8s.io/v1alpha3
 controllerManagerExtraArgs:
-  feature-gates: "BlockVolume=true,,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
+  feature-gates: "BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
 kind: ClusterConfiguration
 kubernetesVersion: ${version}
 networking:
   podSubnet: 10.244.0.0/16
 
 EOF
-else
+elif [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
 cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
@@ -175,6 +180,22 @@ apiServerExtraArgs:
   allow-privileged: "true"
 controllerManagerExtraArgs:
   feature-gates: "BlockVolume=true,CSIBlockVolume=true"
+token: abcdef.1234567890123456
+kubernetesVersion: ${version}
+networking:
+  podSubnet: 10.244.0.0/16
+EOF
+else
+cat > /etc/kubernetes/kubeadm.conf <<EOF
+apiVersion: kubeadm.k8s.io/v1alpha1
+kind: MasterConfiguration
+apiServerExtraArgs:
+  runtime-config: admissionregistration.k8s.io/v1alpha1
+  ${admission_flag}: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
+  feature-gates: "BlockVolume=true,CustomResourceSubresources=true"
+  allow-privileged: "true"
+controllerManagerExtraArgs:
+  feature-gates: "BlockVolume=true"
 token: abcdef.1234567890123456
 kubernetesVersion: ${version}
 networking:

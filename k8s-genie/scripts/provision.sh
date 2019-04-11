@@ -49,7 +49,7 @@ yum install --nogpgcheck -y \
     kubeadm-${version} \
     kubelet-${version} \
     kubectl-${version} \
-    kubernetes-cni
+    kubernetes-cni-0.6.0
 
 # Latest docker on CentOS uses systemd for cgroup management
 # kubeadm 1.11 uses a new config method for the kubelet

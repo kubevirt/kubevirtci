@@ -49,7 +49,7 @@ yum install --nogpgcheck -y \
     kubeadm-${version} \
     kubelet-${version} \
     kubectl-${version} \
-    kubernetes-cni \
+    kubernetes-cni-0.6.0 \
     openvswitch
 
 systemctl start openvswitch

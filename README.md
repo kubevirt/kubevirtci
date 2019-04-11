@@ -40,14 +40,14 @@
 * **Deprecated**: `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
 * **Deprecated**: `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
 * **Deprecated**: `kubevirtci/k8s-1.10.4:`: `sha256:2ed70abfa8f6c30d990b76b816577040c0709258cbbd7c70f71a70d547f5544f`
-* `kubevirtci/k8s-1.10.11:`: `sha256:b97e556795a56b9aa1763ddf3a49322b49f96877dccb7a164bbca779df078536`
-* `kubevirtci/k8s-1.11.0:`: `sha256:e02ec414c7673a3644b5ba742b550a124c9195eaacb280151406bf9e8201a95f`
-* `kubevirtci/k8s-1.13.3:`: `sha256:bc0f02d6b970650eb16d12f97e5aa1376b3a13b0ffed6227db98675be2ca1184`
+* `kubevirtci/k8s-1.10.11:`: `sha256:f563a8ab4719e53c2372c4f41dfe55256677ec7afc442dfaebd494926005e3e5`
+* `kubevirtci/k8s-1.11.0:`: `sha256:4d28fb90ac31fad9788fb0316e3bfd268d7ad322bd1b442075183eacacd1ace2`
+* `kubevirtci/k8s-1.13.3:`: `sha256:9c2b78e11c25b3fd0b24b0ed684a112052dff03eee4ca4bdcc4f3168f9a14396`
 * **Deprecated**: `kubevirtci/k8s-multus-1.10.4:`: `sha256:1d16d436347fcb9eba28cad08f6e074d4628e9a097a7325eb1ab87351e7f6d5c`
 * **Deprecated**: `kubevirtci/k8s-multus-1.11.1:`: `sha256:3d35b19105344e270be168920e98287fbefcd5366fdf78681712d05725204559`
-* **Deprecated**: `kubevirtci/k8s-multus-1.12.2:`: `sha256:4974496beb19a30156c125d7721912b54a705926dcbf66c41f570dca286996ba`
-* `kubevirtci/k8s-multus-1.13.3:`: `sha256:d037d12a7c847067b051a627925a344ffcfe191adf5b53dc84ccdabbac510995`
-* `kubevirtci/k8s-genie-1.11.1:`: `sha256:bd62afe346d81f5d3bc0dd3255aaaaa3ae4d91787de2db3ecd94cc22f809b587`
+* **Deprecated**: `kubevirtci/k8s-multus-1.12.2:`: `sha256:d3ebf4a59ed379e59552ce8165596ade121d32e6b8782c192ff4f29863547c78`
+* `kubevirtci/k8s-multus-1.13.3:`: `sha256:75a4433cee49381d1715dcb7fff6599754614d6fc815826a48645621f7fc0ce6`
+* `kubevirtci/k8s-genie-1.11.1:`: `sha256:f1e2e729302bc0f2d4a176807f36c02b44c62605ad80d10249bb85682433b3a4`
 
 ## Using gocli
 
