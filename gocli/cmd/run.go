@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"text/template"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -26,6 +27,25 @@ const NFSGaneshaImage = "docker.io/janeczku/nfs-ganesha@sha256:17fe1813fd20d9fdf
 const CephImage = "docker.io/ceph/daemon@sha256:939b053df0d0c92a3df24426f1ec5c31bc263560b152417a060e7caf41c0cc7e"
 const DockerRegistryImage = "docker.io/library/registry:2.7.1"
 const FluentdImage = "docker.io/fluent/fluentd:v1.2-debian"
+
+const proxySettings = `
+mkdir -p /etc/systemd/system/docker.service.d/
+
+cat <<EOT  >/etc/systemd/system/docker.service.d/proxy.conf
+[Service]
+Environment="HTTP_PROXY={{.Proxy}}"
+Environment="HTTPS_PROXY={{.Proxy}}"
+Environment="NO_PROXY=localhost,127.0.0.1"
+EOT
+
+systemctl daemon-reload
+systemctl restart docker
+EOF
+`
+
+type dockerSetting struct {
+	Proxy string
+}
 
 func NewRunCommand() *cobra.Command {
 
@@ -51,6 +71,8 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
+	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
+
 	return run
 }
 
@@ -110,6 +132,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	logDir, err := cmd.Flags().GetString("log-to-dir")
+	if err != nil {
+		return err
+	}
+
+	dockerProxy, err := cmd.Flags().GetString("docker-proxy")
 	if err != nil {
 		return err
 	}
@@ -397,6 +424,21 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			return fmt.Errorf("checking for ssh.sh script for node %s failed", nodeName)
 		}
 
+		if dockerProxy != "" {
+			//if dockerProxy has value, genterate a shell script`/script/docker-proxy.sh` which can be applied to set proxy settings
+			proxyConfig, err := getDockerProxyConfig(dockerProxy)
+			if err != nil {
+				return fmt.Errorf("parsing proxy settings for node %s failed", nodeName)
+			}
+			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("cat <<EOF >/scripts/docker-proxy.sh %s", proxyConfig)}, os.Stdout)
+			if err != nil {
+				return fmt.Errorf("write failed for proxy provision script for node %s", nodeName)
+			}
+			if success {
+				success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/docker-proxy.sh")}, os.Stdout)
+			}
+		}
+
 		//check if we have a special provision script
 		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("test -f /scripts/%s.sh", nodeName)}, os.Stdout)
 		if err != nil {
@@ -499,4 +541,19 @@ func appendIfExplicit(ports nat.PortMap, exposedPort int, flagSet *pflag.FlagSet
 		ports[tcpPortOrDie(exposedPort)] = []nat.PortBinding{{"127.0.0.1", strconv.Itoa(int(publicPort))}}
 	}
 	return nil
+}
+
+func getDockerProxyConfig(proxy string) (string, error) {
+	p := dockerSetting{Proxy: proxy}
+	buf := new(bytes.Buffer)
+
+	t, err := template.New("docker-proxy").Parse(proxySettings)
+	if err != nil {
+		return "", err
+	}
+	err = t.Execute(buf, p)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
