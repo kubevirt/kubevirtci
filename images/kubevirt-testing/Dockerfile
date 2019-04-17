@@ -8,4 +8,5 @@ RUN dnf install -y \
         scsi-target-utils \
         procps-ng \
         nmap-ncat \
+        e2fsprogs \
     && dnf -y clean all

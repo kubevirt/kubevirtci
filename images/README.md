@@ -6,7 +6,7 @@ This folder containes different base images for the projects under KubeVirt orga
 
 ## Versions to use
 
-* `kubevirt-testing` - `sha256:2e43d16abaaea55672b125515e89ae69d8c6424fc2c110273aaf7db047f0b82f`
+* `kubevirt-testing` - `sha256:eb86f7388217bb18611c8c4e6169af3463c2a18f420314eb4d742b3d3669b16f`
 
 ## How to modify images
 
