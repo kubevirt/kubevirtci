@@ -139,6 +139,11 @@ all:
         osm_controller_args:
           feature-gates:
           - BlockVolume=true
+        openshift_master_audit_config:
+          enabled: true
+          logFormat: json
+          auditFilePath: "/var/lib/origin/audit-ocp.log"
+          policyFile: "/etc/origin/master/adv-audit.yaml"
         openshift_node_groups:
         - name: node-config-master-infra-kubevirt
           labels:
@@ -177,6 +182,27 @@ all:
           - key: kubeletArguments.pods-per-core
             value:
             - '40'
+EOF
+
+mkdir -p /etc/origin/master
+cat >/etc/origin/master/adv-audit.yaml <<EOF
+apiVersion: audit.k8s.io/v1beta1
+kind: Policy
+rules:
+- level: Request
+  users: ["system:admin"]
+  resources:
+  - group: kubevirt.io
+    resources:
+    - virtualmachines
+    - virtualmachineinstances
+    - virtualmachineinstancereplicasets
+    - virtualmachineinstancepresets
+    - virtualmachineinstancemigrations
+  omitStages:
+  - RequestReceived
+  - ResponseStarted
+  - Panic
 EOF
 
 # Add cri-o variable to inventory file
