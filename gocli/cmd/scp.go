@@ -50,16 +50,30 @@ func NewSCPCommand() *cobra.Command {
 
 	ssh := &cobra.Command{
 		Use:   "scp SRC DST",
-		Short: "scp copies filed from node01 to the local host",
+		Short: "scp copies files from master node to the local host",
 		RunE:  scp,
 		Args:  cobra.MinimumNArgs(2),
 	}
+
+	ssh.Flags().String("container-name", "dnsmasq", "the container name to SSH copy from")
+	ssh.Flags().String("ssh-user", "vagrant", "the user that used to connect via SSH to the node")
+
 	return ssh
 }
 
 func scp(cmd *cobra.Command, args []string) error {
 
 	prefix, err := cmd.Flags().GetString("prefix")
+	if err != nil {
+		return err
+	}
+
+	containerName, err := cmd.Flags().GetString("container-name")
+	if err != nil {
+		return err
+	}
+
+	sshUser, err := cmd.Flags().GetString("ssh-user")
 	if err != nil {
 		return err
 	}
@@ -72,12 +86,16 @@ func scp(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	container, err := docker.GetDDNSMasqContainer(cli, prefix)
+	containers, err := docker.GetPrefixedContainers(cli, prefix+"-"+containerName)
 	if err != nil {
 		return err
 	}
 
-	sshPort, err := utils.GetPublicPort(utils.PortSSH, container.Ports)
+	if len(containers) != 1 {
+		return fmt.Errorf("failed to found the container with name %s", prefix+"-"+containerName)
+	}
+
+	sshPort, err := utils.GetPublicPort(utils.PortSSH, containers[0].Ports)
 	if err != nil {
 		return err
 	}
@@ -88,7 +106,7 @@ func scp(cmd *cobra.Command, args []string) error {
 	}
 
 	config := &ssh1.ClientConfig{
-		User: "vagrant",
+		User: sshUser,
 		Auth: []ssh1.AuthMethod{
 			ssh1.PublicKeys(signer),
 		},

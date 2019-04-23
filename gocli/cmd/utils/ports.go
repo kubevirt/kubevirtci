@@ -27,7 +27,8 @@ const (
 	// PortNameRegistry contains registry port name
 	PortNameRegistry = "registry"
 	// PortNameAPI contains API port name
-	PortNameAPI = "api"
+	// TODO: change the name to API
+	PortNameAPI = "k8s"
 	// PortNameVNC contains VNC port name
 	PortNameVNC = "vnc"
 )

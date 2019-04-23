@@ -40,6 +40,9 @@ Known port names are 'ssh', 'registry', 'ocp' and 'k8s'.
 			return nil
 		},
 	}
+
+	port.Flags().String("container-name", "dnsmasq", "the container name to SSH copy from")
+
 	return port
 }
 
@@ -50,13 +53,23 @@ func ports(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	containerName, err := cmd.Flags().GetString("container-name")
+	if err != nil {
+		return err
+	}
+
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return err
 	}
-	container, err := docker.GetDDNSMasqContainer(cli, prefix)
+
+	containers, err := docker.GetPrefixedContainers(cli, prefix+"-"+containerName)
 	if err != nil {
 		return err
+	}
+
+	if len(containers) != 1 {
+		return fmt.Errorf("failed to found the container with name %s", prefix+"-"+containerName)
 	}
 
 	portName := ""
@@ -68,15 +81,15 @@ func ports(cmd *cobra.Command, args []string) error {
 		err = nil
 		switch portName {
 		case utils.PortNameSSH:
-			err = utils.PrintPublicPort(utils.PortSSH, container.Ports)
+			err = utils.PrintPublicPort(utils.PortSSH, containers[0].Ports)
 		case utils.PortNameAPI:
-			err = utils.PrintPublicPort(utils.PortAPI, container.Ports)
+			err = utils.PrintPublicPort(utils.PortAPI, containers[0].Ports)
 		case utils.PortNameRegistry:
-			err = utils.PrintPublicPort(utils.PortRegistry, container.Ports)
+			err = utils.PrintPublicPort(utils.PortRegistry, containers[0].Ports)
 		case utils.PortNameOCP:
-			err = utils.PrintPublicPort(utils.PortOCP, container.Ports)
+			err = utils.PrintPublicPort(utils.PortOCP, containers[0].Ports)
 		case utils.PortNameVNC:
-			err = utils.PrintPublicPort(utils.PortVNC, container.Ports)
+			err = utils.PrintPublicPort(utils.PortVNC, containers[0].Ports)
 		}
 
 		if err != nil {
@@ -84,7 +97,7 @@ func ports(cmd *cobra.Command, args []string) error {
 		}
 
 	} else {
-		for _, p := range container.Ports {
+		for _, p := range containers[0].Ports {
 			fmt.Printf("%d/%s -> %s:%d\n", p.PrivatePort, p.Type, p.IP, p.PublicPort)
 		}
 	}
