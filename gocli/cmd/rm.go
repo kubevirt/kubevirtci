@@ -8,6 +8,7 @@ import (
 	"kubevirt.io/kubevirtci/gocli/docker"
 )
 
+// NewRemoveCommand returns command to remove the cluster
 func NewRemoveCommand() *cobra.Command {
 
 	port := &cobra.Command{

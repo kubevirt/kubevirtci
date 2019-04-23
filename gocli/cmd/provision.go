@@ -2,6 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"strconv"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -10,12 +14,13 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
+
+	"kubevirt.io/kubevirtci/gocli/cmd/okd"
+	"kubevirt.io/kubevirtci/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/gocli/docker"
-	"os"
-	"os/signal"
-	"strconv"
 )
 
+// NewProvisionCommand provision given cluster
 func NewProvisionCommand() *cobra.Command {
 
 	provision := &cobra.Command{
@@ -31,6 +36,11 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
+
+	provision.AddCommand(
+		okd.NewProvisionCommand(),
+	)
+
 	return provision
 }
 
@@ -51,17 +61,17 @@ func provision(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	random_ports, err := cmd.Flags().GetBool("random-ports")
+	randomPorts, err := cmd.Flags().GetBool("random-ports")
 	if err != nil {
 		return err
 	}
 
 	portMap := nat.PortMap{}
 
-	appendIfExplicit(portMap, PORT_SSH, cmd.Flags(), "ssh-port")
-	appendIfExplicit(portMap, PORT_VNC, cmd.Flags(), "vnc-port")
+	utils.AppendIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
+	utils.AppendIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
 
-	qemu_args, err := cmd.Flags().GetString("qemu-args")
+	qemuArgs, err := cmd.Flags().GetString("qemu-args")
 	if err != nil {
 		return err
 	}
@@ -108,12 +118,12 @@ func provision(cmd *cobra.Command, args []string) error {
 		},
 		Cmd: []string{"/bin/bash", "-c", "/dnsmasq.sh"},
 		ExposedPorts: nat.PortSet{
-			tcpPortOrDie(PORT_SSH): {},
-			tcpPortOrDie(PORT_VNC): {},
+			utils.TCPPortOrDie(utils.PortSSH): {},
+			utils.TCPPortOrDie(utils.PortVNC): {},
 		},
 	}, &container.HostConfig{
 		Privileged:      true,
-		PublishAllPorts: random_ports,
+		PublishAllPorts: randomPorts,
 		PortBindings:    portMap,
 	}, nil, prefix+"-dnsmasq")
 	if err != nil {
@@ -134,8 +144,8 @@ func provision(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	volumes <- vol.Name
-	if len(qemu_args) > 0 {
-		qemu_args = "--qemu-args " + qemu_args
+	if len(qemuArgs) > 0 {
+		qemuArgs = "--qemu-args " + qemuArgs
 	}
 	node, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: base,
@@ -145,7 +155,7 @@ func provision(cmd *cobra.Command, args []string) error {
 		Volumes: map[string]struct{}{
 			"/var/run/disk/": {},
 		},
-		Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), qemu_args)},
+		Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), qemuArgs)},
 	}, &container.HostConfig{
 		Mounts: []mount.Mount{
 			{
@@ -179,7 +189,7 @@ func provision(cmd *cobra.Command, args []string) error {
 	}
 
 	//check if we have a special provision script
-	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("test -f /scripts/provision.sh", nodeName)}, os.Stdout)
+	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "test -f /scripts/provision.sh"}, os.Stdout)
 	if err != nil {
 		return fmt.Errorf("checking for a provision script failed failed: %v", err)
 	}

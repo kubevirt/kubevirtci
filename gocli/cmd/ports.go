@@ -2,28 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/docker/docker/api/types"
+
 	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/nat"
 	"github.com/spf13/cobra"
+
+	"kubevirt.io/kubevirtci/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/gocli/docker"
-	"strconv"
 )
 
-const (
-	PORT_SSH      = 2201
-	PORT_REGISTRY = 5000
-	PORT_OCP      = 8443
-	PORT_K8S      = 6443
-	PORT_VNC      = 5901
-
-	PORT_NAME_SSH      = "ssh"
-	PORT_NAME_OCP      = "ocp"
-	PORT_NAME_REGISTRY = "registry"
-	PORT_NAME_K8S      = "k8s"
-	PORT_NAME_VNC      = "vnc"
-)
-
+// NewPortCommand returns new command to expose public ports for the cluster
 func NewPortCommand() *cobra.Command {
 
 	port := &cobra.Command{
@@ -44,7 +31,7 @@ Known port names are 'ssh', 'registry', 'ocp' and 'k8s'.
 
 			if len(args) == 1 {
 				switch args[0] {
-				case PORT_NAME_SSH, PORT_NAME_K8S, PORT_NAME_OCP, PORT_NAME_REGISTRY, PORT_NAME_VNC:
+				case utils.PortNameSSH, utils.PortNameAPI, utils.PortNameOCP, utils.PortNameRegistry, utils.PortNameVNC:
 					return nil
 				default:
 					return fmt.Errorf("unknown port name %s", args[0])
@@ -80,16 +67,16 @@ func ports(cmd *cobra.Command, args []string) error {
 	if portName != "" {
 		err = nil
 		switch portName {
-		case PORT_NAME_SSH:
-			err = printPort(PORT_SSH, container.Ports)
-		case PORT_NAME_K8S:
-			err = printPort(PORT_K8S, container.Ports)
-		case PORT_NAME_REGISTRY:
-			err = printPort(PORT_REGISTRY, container.Ports)
-		case PORT_NAME_OCP:
-			err = printPort(PORT_OCP, container.Ports)
-		case PORT_NAME_VNC:
-			err = printPort(PORT_VNC, container.Ports)
+		case utils.PortNameSSH:
+			err = utils.PrintPublicPort(utils.PortSSH, container.Ports)
+		case utils.PortNameAPI:
+			err = utils.PrintPublicPort(utils.PortAPI, container.Ports)
+		case utils.PortNameRegistry:
+			err = utils.PrintPublicPort(utils.PortRegistry, container.Ports)
+		case utils.PortNameOCP:
+			err = utils.PrintPublicPort(utils.PortOCP, container.Ports)
+		case utils.PortNameVNC:
+			err = utils.PrintPublicPort(utils.PortVNC, container.Ports)
 		}
 
 		if err != nil {
@@ -103,30 +90,4 @@ func ports(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
-}
-
-func getPort(port uint16, ports []types.Port) (uint16, error) {
-	for _, p := range ports {
-		if p.PrivatePort == port {
-			return p.PublicPort, nil
-		}
-	}
-	return 0, fmt.Errorf("port is not exposed")
-}
-
-func printPort(port uint16, ports []types.Port) error {
-	p, err := getPort(port, ports)
-	if err != nil {
-		return err
-	}
-	fmt.Println(p)
-	return nil
-}
-
-func tcpPortOrDie(port int) nat.Port {
-	p, err := nat.NewPort("tcp", strconv.Itoa(port))
-	if err != nil {
-		panic(err)
-	}
-	return p
 }

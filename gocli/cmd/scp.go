@@ -1,20 +1,23 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
+	"kubevirt.io/kubevirtci/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/gocli/docker"
-	"os"
 
 	"bytes"
 	"fmt"
-	ssh1 "golang.org/x/crypto/ssh"
 	"io"
 	"strconv"
 	"strings"
+
+	ssh1 "golang.org/x/crypto/ssh"
 )
 
-const ssh_key = `-----BEGIN RSA PRIVATE KEY-----
+const sshKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzI
 w+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoP
 kcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2
@@ -42,6 +45,7 @@ kda/AoGANWrLCz708y7VYgAtW2Uf1DPOIYMdvo6fxIB5i9ZfISgcJ/bbCUkFrhoH
 NE5OgEXk2wVfZczCZpigBKbKZHNYcelXtTt/nP3rsCuGcM4h53s=
 -----END RSA PRIVATE KEY-----`
 
+// NewSCPCommand returns command to copy files via SSH from the cluster node to localhost
 func NewSCPCommand() *cobra.Command {
 
 	ssh := &cobra.Command{
@@ -73,12 +77,12 @@ func scp(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	sshPort, err := getPort(PORT_SSH, container.Ports)
+	sshPort, err := utils.GetPublicPort(utils.PortSSH, container.Ports)
 	if err != nil {
 		return err
 	}
 
-	signer, err := ssh1.ParsePrivateKey([]byte(ssh_key))
+	signer, err := ssh1.ParsePrivateKey([]byte(sshKey))
 	if err != nil {
 		return err
 	}

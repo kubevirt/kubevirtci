@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -12,6 +13,7 @@ func init() {
 	}
 }
 
+// NewRootCommand returns entrypoint command to interact with all other commands
 func NewRootCommand() *cobra.Command {
 
 	root := &cobra.Command{
@@ -28,6 +30,7 @@ func NewRootCommand() *cobra.Command {
 
 	root.AddCommand(
 		NewPortCommand(),
+		NewProvisionCommand(),
 		NewRemoveCommand(),
 		NewRunCommand(),
 		NewSSHCommand(),
@@ -38,6 +41,7 @@ func NewRootCommand() *cobra.Command {
 
 }
 
+// Execute executes root command
 func Execute() {
 	if err := NewRootCommand().Execute(); err != nil {
 		fmt.Println(err)
