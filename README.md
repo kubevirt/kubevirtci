@@ -96,10 +96,8 @@ kube-scheduler-node01            1/1       Running   0          13m
 or to permamently edit kubeconfig:
 
 ```bash
-$ gocli ports k8s
-33396
 $ gocli scp /etc/kubernetes/admin.conf - > ./kubeconfig
-$ kubectl --kubeconfig=./kubeconfig config set-cluster kubernetes --server=https://127.0.0.1:33396
+$ kubectl --kubeconfig=./kubeconfig config set-cluster kubernetes --server=https://127.0.0.1:$(gocli ports k8s|tr -d '\r\n')
 $ kubectl --kubeconfig=./kubeconfig config set-cluster kubernetes --insecure-skip-tls-verify=true
 $ kubectl --kubeconfig ./kubeconfig get pods -n kube-system
 NAME                             READY     STATUS    RESTARTS   AGE
