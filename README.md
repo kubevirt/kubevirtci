@@ -52,12 +52,12 @@
 # OKD clusters in the container with libvirt
 
 * `okd-base` contains all needed packages to provision and run OKD cluster on top of the libvirt provider
-* `okd-4.0.9` okd-4.0.9 cluster provisioned with OpenShift installer on top of the libvirt provider
+* `okd-4.1.0-rc.0` okd-4.1.0-rc.0 cluster provisioned with OpenShift installer on top of the libvirt provider
 
 ## Versions to use
 
 * `kubevirtci/okd-base`: `sha256:918d3c7f7c5ec94057715897f589c11b38e74c80927ee5af857e24817baeebaf`
-* `kubevirtci/okd-4.0.9`: `sha256:2304acdb1022934efc46f7df45837b06bb341636d0b59023ec6044e24f70e595`
+* `kubevirtci/okd-4.1.0-rc.0`: `sha256:7b5badcf46fceae521706161622ee447608d8ff84f831729ea98e061da49f4d7`
 
 ## Using gocli
 
@@ -80,13 +80,13 @@ pullSecret: <pull secret>
 and after you should run `gocli` command:
 ```bash
 gocli provision okd \
---prefix okd-4.0.9 \
+--prefix okd-4.1.0-rc.0 \
 --dir-scripts <scripts_folder>/scripts \
 --dir-hacks <hacks_folder>/hacks \
 --master-memory 10240 \
 --installer-pull-token-file <installer_pull_token_file> \
---installer-repo-tag v0.16.1 \
---installer-release-image quay.io/openshift-release-dev/ocp-release:4.0.0-0.9 \
+--installer-repo-tag release-4.1 \
+--installer-release-image quay.io/openshift-release-dev/ocp-release:4.1.0-rc.0 \
 kubevirtci/okd-base@sha256:918d3c7f7c5ec94057715897f589c11b38e74c80927ee5af857e24817baeebaf
 ```
 
@@ -102,7 +102,7 @@ NOTE: OpenShift cluster consumes a lot of resources, you should have at least 18
 
 You should run `gocli` command:
 ```bash
-gocli run okd --prefix okd-4.0.9 --background kubevirtci/okd-4.0.9@sha256:2304acdb1022934efc46f7df45837b06bb341636d0b59023ec6044e24f70e595
+gocli run okd --prefix okd-4.1.0-rc.0 --background kubevirtci/okd-4.1.0-rc.0@sha256:7b5badcf46fceae521706161622ee447608d8ff84f831729ea98e061da49f4d7
 ```
 
 ## Quickstart Kubernetes
