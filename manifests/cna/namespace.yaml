@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cluster-network-addons-operator
+  labels:
+    name: cluster-network-addons-operator
