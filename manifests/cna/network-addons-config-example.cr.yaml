@@ -1,0 +1,10 @@
+---
+apiVersion: networkaddonsoperator.network.kubevirt.io/v1alpha1
+kind: NetworkAddonsConfig
+metadata:
+  name: cluster
+spec:
+  imagePullPolicy: Always
+  kubeMacPool: {}
+  linuxBridge: {}
+  multus: {}

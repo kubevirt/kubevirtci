@@ -93,10 +93,18 @@ else
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
 fi
 
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-multus.yaml
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/multus.yaml
+# we need this command to allow the cluster-network-addons-operator to start and deploy all the requested components
+kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
 
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/cni-plugins-ds.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/cna/namespace.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/cna/network-addons-config.crd.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/cna/operator.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/cna/network-addons-config-example.cr.yaml
+
+# Wait until flannel cluster-network-addons-operator and core dns pods are running.
+# Wait until all the network components are ready.
+kubectl --kubeconfig=/etc/kubernetes/admin.conf wait networkaddonsconfig cluster --for condition=Ready --timeout=800s
+
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/kubernetes-ovs-cni.yaml
 
 # Wait at least for one pod
