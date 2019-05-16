@@ -2,6 +2,12 @@
 
 set -xe
 
+if [ ! -z $INSTALLER_RELEASE_IMAGE ]; then
+    until  export INSTALLER_COMMIT=$(oc adm release info $INSTALLER_RELEASE_IMAGE --commits | grep installer | awk '{print $3}' | head -n 1); do
+        sleep 1
+    done
+fi
+
 compile_installer () {
     # install build dependencies
     local build_pkgs="git golang-bin gcc-c++"
@@ -11,7 +17,13 @@ compile_installer () {
     local installer_dir="/root/go/src/github.com/openshift/installer"
     mkdir -p ${installer_dir}
     cd ${installer_dir}
-    git clone https://github.com/openshift/installer.git -b $INSTALLER_TAG --depth 1 ${installer_dir}
+    git clone https://github.com/openshift/installer.git ${installer_dir}
+
+    if [ ! -z $INSTALLER_COMMIT ]; then
+        git checkout $INSTALLER_COMMIT
+    else
+        git checkout $INSTALLER_TAG
+    fi
 
     # compile the installer
     if [ -d "/hacks" ]; then
@@ -101,6 +113,23 @@ sed -i -e "s/domainVcpu: 2/domainVcpu: $WORKERS_CPU/" /root/install/openshift/99
 export TF_VAR_libvirt_master_memory=$MASTER_MEMORY
 export TF_VAR_libvirt_master_vcpu=$MASTER_CPU
 /openshift-install create cluster --dir=/root/install
+
+export KUBECONFIG=/root/install/auth/kubeconfig
+
+# Create OpenShift user
+oc create user admin
+oc create identity allow_all_auth:admin
+oc create useridentitymapping allow_all_auth:admin admin
+oc adm policy add-cluster-role-to-user cluster-admin admin
+
+# Apply network addons
+oc create -f /manifests/cna/namespace.yaml
+oc create -f /manifests/cna/network-addons-config.crd.yaml
+oc create -f /manifests/cna/operator.yaml
+oc create -f /manifests/cna/network-addons-config-example.cr.yaml
+
+ # Wait until all the network components are ready
+oc wait networkaddonsconfig cluster --for condition=Ready --timeout=300s
 
 # Make sure that all VMs can reach the internet
 iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE

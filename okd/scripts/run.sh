@@ -44,11 +44,11 @@ while [[ "$(virsh list --name --all)" != "$(virsh list --name)" ]]; do
     sleep 1
 done
 
-# Wait for API server to be up
 export KUBECONFIG=/root/install/auth/kubeconfig
 oc config set-cluster test-1 --server=https://127.0.0.1:6443
 oc config set-cluster test-1 --insecure-skip-tls-verify=true
 
+# Wait for API server to be up
 until oc get nodes
 do
     sleep 5

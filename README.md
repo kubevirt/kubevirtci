@@ -26,7 +26,7 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
-* `kubevirtci/gocli`: `sha256:847a23412eb08217f9f062f90fd075af0f20b75e51462b1b170eba2eab7e1092`
+* `kubevirtci/gocli`: `sha256:34a5886e7d6db62f7499519fa130293a3010e86e14631a8ba80d63b29c4eb40e`
 * `kubevirtci/base`: `sha256:034de1a154409d87498050ccc281d398ce1a0fed32efdbd66d2041a99a46b322`
 * `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
 * **Deprecated**: `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
@@ -57,7 +57,7 @@
 ## Versions to use
 
 * `kubevirtci/okd-base`: `sha256:918d3c7f7c5ec94057715897f589c11b38e74c80927ee5af857e24817baeebaf`
-* `kubevirtci/okd-4.1.0-rc.0`: `sha256:7b5badcf46fceae521706161622ee447608d8ff84f831729ea98e061da49f4d7`
+* `kubevirtci/okd-4.1.0-rc.0`: `sha256:71afc34d9299aa11313b43a584e7e9d7e2f962279453b53d853a9d3bcb8b3255`
 
 ## Using gocli
 
@@ -102,7 +102,7 @@ NOTE: OpenShift cluster consumes a lot of resources, you should have at least 18
 
 You should run `gocli` command:
 ```bash
-gocli run okd --prefix okd-4.1.0-rc.0 --background kubevirtci/okd-4.1.0-rc.0@sha256:7b5badcf46fceae521706161622ee447608d8ff84f831729ea98e061da49f4d7
+gocli run okd --prefix okd-4.1.0-rc.0 --background kubevirtci/okd-4.1.0-rc.0@sha256:71afc34d9299aa11313b43a584e7e9d7e2f962279453b53d853a9d3bcb8b3255
 ```
 
 ## Quickstart Kubernetes

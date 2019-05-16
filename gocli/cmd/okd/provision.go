@@ -33,6 +33,7 @@ func NewProvisionCommand() *cobra.Command {
 	}
 
 	provision.Flags().String("dir-hacks", "", "directory with installer hack that should be copied to the container")
+	provision.Flags().String("dir-manifests", "", "directory with additional manifests that should be installed")
 	provision.Flags().String("dir-scripts", "", "directory with scripts that should be copied to the container")
 	provision.Flags().String("master-memory", "8192", "amount of RAM in MB on the master")
 	provision.Flags().String("master-cpu", "4", "number of CPU cores on the master")
@@ -52,6 +53,11 @@ func provision(cmd *cobra.Command, args []string) error {
 	}
 
 	dirHacks, err := cmd.Flags().GetString("dir-hacks")
+	if err != nil {
+		return err
+	}
+
+	dirManifests, err := cmd.Flags().GetString("dir-manifests")
 	if err != nil {
 		return err
 	}
@@ -181,6 +187,20 @@ func provision(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Copy hacks directory to the container %s\n", clusterContainerName)
 		config := &copyConfig{
 			srcPath:   dirHacks,
+			dstPath:   "/",
+			container: cluster.ID,
+		}
+		err = copyToContainer(ctx, cli, config)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Copy manifests directory to the container
+	if dirManifests != "" {
+		fmt.Printf("Copy manifests directory to the container %s\n", clusterContainerName)
+		config := &copyConfig{
+			srcPath:   dirManifests,
 			dstPath:   "/",
 			container: cluster.ID,
 		}
