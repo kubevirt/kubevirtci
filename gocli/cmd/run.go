@@ -18,15 +18,12 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
+
+	"kubevirt.io/kubevirtci/gocli/cmd/okd"
+	"kubevirt.io/kubevirtci/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/gocli/docker"
 )
-
-const NFSGaneshaImage = "docker.io/janeczku/nfs-ganesha@sha256:17fe1813fd20d9fdfa497a26c8a2e39dd49748cd39dbb0559df7627d9bcf4c53"
-const CephImage = "docker.io/ceph/daemon@sha256:939b053df0d0c92a3df24426f1ec5c31bc263560b152417a060e7caf41c0cc7e"
-const DockerRegistryImage = "docker.io/library/registry:2.7.1"
-const FluentdImage = "docker.io/fluent/fluentd:v1.2-debian"
 
 const proxySettings = `
 mkdir -p /etc/systemd/system/docker.service.d/
@@ -47,6 +44,7 @@ type dockerSetting struct {
 	Proxy string
 }
 
+// NewRunCommand returns command that runs given cluster
 func NewRunCommand() *cobra.Command {
 
 	run := &cobra.Command{
@@ -73,6 +71,9 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
 
+	run.AddCommand(
+		okd.NewRunCommand(),
+	)
 	return run
 }
 
@@ -98,20 +99,20 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	random_ports, err := cmd.Flags().GetBool("random-ports")
+	randomPorts, err := cmd.Flags().GetBool("random-ports")
 	if err != nil {
 		return err
 	}
 
 	portMap := nat.PortMap{}
 
-	appendIfExplicit(portMap, PORT_SSH, cmd.Flags(), "ssh-port")
-	appendIfExplicit(portMap, PORT_VNC, cmd.Flags(), "vnc-port")
-	appendIfExplicit(portMap, PORT_K8S, cmd.Flags(), "k8s-port")
-	appendIfExplicit(portMap, PORT_OCP, cmd.Flags(), "ocp-port")
-	appendIfExplicit(portMap, PORT_REGISTRY, cmd.Flags(), "registry-port")
+	utils.AppendIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
+	utils.AppendIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
+	utils.AppendIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port")
+	utils.AppendIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port")
+	utils.AppendIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port")
 
-	qemu_args, err := cmd.Flags().GetString("qemu-args")
+	qemuArgs, err := cmd.Flags().GetString("qemu-args")
 	if err != nil {
 		return err
 	}
@@ -121,12 +122,12 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	registry_volume, err := cmd.Flags().GetString("registry-volume")
+	registryVol, err := cmd.Flags().GetString("registry-volume")
 	if err != nil {
 		return err
 	}
 
-	nfs_data, err := cmd.Flags().GetString("nfs-data")
+	nfsData, err := cmd.Flags().GetString("nfs-data")
 	if err != nil {
 		return err
 	}
@@ -189,15 +190,15 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		},
 		Cmd: []string{"/bin/bash", "-c", "/dnsmasq.sh"},
 		ExposedPorts: nat.PortSet{
-			tcpPortOrDie(PORT_SSH):      {},
-			tcpPortOrDie(PORT_REGISTRY): {},
-			tcpPortOrDie(PORT_OCP):      {},
-			tcpPortOrDie(PORT_K8S):      {},
-			tcpPortOrDie(PORT_VNC):      {},
+			utils.TCPPortOrDie(utils.PortSSH):      {},
+			utils.TCPPortOrDie(utils.PortRegistry): {},
+			utils.TCPPortOrDie(utils.PortOCP):      {},
+			utils.TCPPortOrDie(utils.PortAPI):      {},
+			utils.TCPPortOrDie(utils.PortVNC):      {},
 		},
 	}, &container.HostConfig{
 		Privileged:      true,
-		PublishAllPorts: random_ports,
+		PublishAllPorts: randomPorts,
 		PortBindings:    portMap,
 		ExtraHosts: []string{
 			"nfs:192.168.66.2",
@@ -214,14 +215,14 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// Pull the registry image
-	err = docker.ImagePull(cli, ctx, DockerRegistryImage, types.ImagePullOptions{})
+	err = docker.ImagePull(cli, ctx, utils.DockerRegistryImage, types.ImagePullOptions{})
 	if err != nil {
 		panic(err)
 	}
 
 	// Create registry volume
 	var registryMounts []mount.Mount
-	if registry_volume != "" {
+	if registryVol != "" {
 
 		vol, err := cli.VolumeCreate(ctx, volume.VolumesCreateBody{
 			Name: fmt.Sprintf("%s-%s", prefix, "registry"),
@@ -240,7 +241,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 
 	// Start registry
 	registry, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: DockerRegistryImage,
+		Image: utils.DockerRegistryImage,
 	}, &container.HostConfig{
 		Mounts:      registryMounts,
 		Privileged:  true, // fixme we just need proper selinux volume labeling
@@ -254,25 +255,25 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	if nfs_data != "" {
-		nfs_data, err := filepath.Abs(nfs_data)
+	if nfsData != "" {
+		nfsData, err := filepath.Abs(nfsData)
 		if err != nil {
 			return err
 		}
 		// Pull the ganesha image
-		err = docker.ImagePull(cli, ctx, NFSGaneshaImage, types.ImagePullOptions{})
+		err = docker.ImagePull(cli, ctx, utils.NFSGaneshaImage, types.ImagePullOptions{})
 		if err != nil {
 			panic(err)
 		}
 
 		// Start the ganesha image
 		nfsServer, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: NFSGaneshaImage,
+			Image: utils.NFSGaneshaImage,
 		}, &container.HostConfig{
 			Mounts: []mount.Mount{
 				{
 					Type:   mount.TypeBind,
-					Source: nfs_data,
+					Source: nfsData,
 					Target: "/data/nfs",
 				},
 			},
@@ -290,13 +291,13 @@ func run(cmd *cobra.Command, args []string) (err error) {
 
 	if cephEnabled {
 		// Pull Ceph image
-		err = docker.ImagePull(cli, ctx, CephImage, types.ImagePullOptions{})
+		err = docker.ImagePull(cli, ctx, utils.CephImage, types.ImagePullOptions{})
 		if err != nil {
 			panic(err)
 		}
 
 		cephStorage, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: CephImage,
+			Image: utils.CephImage,
 			Env: []string{
 				"MON_IP=192.168.66.2",
 				"CEPH_PUBLIC_NETWORK=0.0.0.0/0",
@@ -330,14 +331,14 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		// Pull the fluent image
-		err = docker.ImagePull(cli, ctx, FluentdImage, types.ImagePullOptions{})
+		err = docker.ImagePull(cli, ctx, utils.FluentdImage, types.ImagePullOptions{})
 		if err != nil {
 			panic(err)
 		}
 
 		// Start the fluent image
 		fluentd, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: FluentdImage,
+			Image: utils.FluentdImage,
 			Cmd: strslice.StrSlice{
 				"exec fluentd",
 				"-i \"<system>\n log_level debug\n</system>\n<source>\n@type  forward\n@log_level error\nport  24224\n</source>\n<match **>\n@type file\npath /fluentd/log/collected\n</match>\"",
@@ -383,8 +384,8 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 		volumes <- vol.Name
 
-		if len(qemu_args) > 0 {
-			qemu_args = "--qemu-args " + qemu_args
+		if len(qemuArgs) > 0 {
+			qemuArgs = "--qemu-args " + qemuArgs
 		}
 		node, err := cli.ContainerCreate(ctx, &container.Config{
 			Image: cluster,
@@ -394,7 +395,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			Volumes: map[string]struct{}{
 				"/var/run/disk/": {},
 			},
-			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), qemu_args)},
+			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), qemuArgs)},
 		}, &container.HostConfig{
 			Mounts: []mount.Mount{
 				{
@@ -529,18 +530,6 @@ func nodeNameFromIndex(x int) string {
 
 func nodeContainer(prefix string, node string) string {
 	return prefix + "-" + node
-}
-
-func appendIfExplicit(ports nat.PortMap, exposedPort int, flagSet *pflag.FlagSet, flagName string) error {
-	flag := flagSet.Lookup(flagName)
-	if flag != nil && flag.Changed {
-		publicPort, err := flagSet.GetUint(flagName)
-		if err != nil {
-			return err
-		}
-		ports[tcpPortOrDie(exposedPort)] = []nat.PortBinding{{"127.0.0.1", strconv.Itoa(int(publicPort))}}
-	}
-	return nil
 }
 
 func getDockerProxyConfig(proxy string) (string, error) {

@@ -14,6 +14,8 @@ go_library(
     importpath = "kubevirt.io/kubevirtci/gocli/cmd",
     visibility = ["//visibility:public"],
     deps = [
+        "//cmd/okd:go_default_library",
+        "//cmd/utils:go_default_library",
         "//docker:go_default_library",
         "//vendor/github.com/docker/docker/api/types:go_default_library",
         "//vendor/github.com/docker/docker/api/types/container:go_default_library",
@@ -23,7 +25,6 @@ go_library(
         "//vendor/github.com/docker/docker/client:go_default_library",
         "//vendor/github.com/docker/go-connections/nat:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
-        "//vendor/github.com/spf13/pflag:go_default_library",
         "//vendor/golang.org/x/crypto/ssh:go_default_library",
         "//vendor/golang.org/x/net/context:go_default_library",
     ],

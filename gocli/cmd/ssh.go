@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 	"kubevirt.io/kubevirtci/gocli/docker"
-	"os"
 )
 
+// NewSSHCommand returns command to SSH to the cluster node
 func NewSSHCommand() *cobra.Command {
 
 	ssh := &cobra.Command{

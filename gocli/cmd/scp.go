@@ -1,20 +1,23 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
+	"kubevirt.io/kubevirtci/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/gocli/docker"
-	"os"
 
 	"bytes"
 	"fmt"
-	ssh1 "golang.org/x/crypto/ssh"
 	"io"
 	"strconv"
 	"strings"
+
+	ssh1 "golang.org/x/crypto/ssh"
 )
 
-const ssh_key = `-----BEGIN RSA PRIVATE KEY-----
+const sshKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzI
 w+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoP
 kcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2
@@ -42,20 +45,35 @@ kda/AoGANWrLCz708y7VYgAtW2Uf1DPOIYMdvo6fxIB5i9ZfISgcJ/bbCUkFrhoH
 NE5OgEXk2wVfZczCZpigBKbKZHNYcelXtTt/nP3rsCuGcM4h53s=
 -----END RSA PRIVATE KEY-----`
 
+// NewSCPCommand returns command to copy files via SSH from the cluster node to localhost
 func NewSCPCommand() *cobra.Command {
 
 	ssh := &cobra.Command{
 		Use:   "scp SRC DST",
-		Short: "scp copies filed from node01 to the local host",
+		Short: "scp copies files from master node to the local host",
 		RunE:  scp,
 		Args:  cobra.MinimumNArgs(2),
 	}
+
+	ssh.Flags().String("container-name", "dnsmasq", "the container name to SSH copy from")
+	ssh.Flags().String("ssh-user", "vagrant", "the user that used to connect via SSH to the node")
+
 	return ssh
 }
 
 func scp(cmd *cobra.Command, args []string) error {
 
 	prefix, err := cmd.Flags().GetString("prefix")
+	if err != nil {
+		return err
+	}
+
+	containerName, err := cmd.Flags().GetString("container-name")
+	if err != nil {
+		return err
+	}
+
+	sshUser, err := cmd.Flags().GetString("ssh-user")
 	if err != nil {
 		return err
 	}
@@ -68,23 +86,27 @@ func scp(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	container, err := docker.GetDDNSMasqContainer(cli, prefix)
+	containers, err := docker.GetPrefixedContainers(cli, prefix+"-"+containerName)
 	if err != nil {
 		return err
 	}
 
-	sshPort, err := getPort(PORT_SSH, container.Ports)
+	if len(containers) != 1 {
+		return fmt.Errorf("failed to found the container with name %s", prefix+"-"+containerName)
+	}
+
+	sshPort, err := utils.GetPublicPort(utils.PortSSH, containers[0].Ports)
 	if err != nil {
 		return err
 	}
 
-	signer, err := ssh1.ParsePrivateKey([]byte(ssh_key))
+	signer, err := ssh1.ParsePrivateKey([]byte(sshKey))
 	if err != nil {
 		return err
 	}
 
 	config := &ssh1.ClientConfig{
-		User: "vagrant",
+		User: sshUser,
 		Auth: []ssh1.AuthMethod{
 			ssh1.PublicKeys(signer),
 		},

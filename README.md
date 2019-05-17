@@ -1,4 +1,4 @@
-# k8s clusters in qemu in docker
+# k8s clusters in QEMU in docker
 
 * `base` contains the base image with some scripts, qemu and dnsmasq
 * `centos7` adds a vagrant centos7 box to the image
@@ -9,11 +9,11 @@
 * `k8s-1.10.11` k8s-1.10.11 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.11.0` k8s-1.11.0 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.13.3` k8s-1.13.3 cluster based on the centos7 image, provisioned with kubeadm
-* `k8s-multus-1.10.4:`: k8s-1.10.4 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
-* `k8s-multus-1.11.1:`: k8s-1.11.1 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
-* `k8s-multus-1.12.2:`: k8s-1.12.2 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
-* `k8s-multus-1.13.3:`: k8s-1.13.3 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
-* `k8s-genie-1.11.1:`: k8s-1.11.1 cluster based on the centos7 image and uses genie CNI, provisioned with kubeadm
+* `k8s-multus-1.10.4` k8s-1.10.4 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
+* `k8s-multus-1.11.1` k8s-1.11.1 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
+* `k8s-multus-1.12.2` k8s-1.12.2 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
+* `k8s-multus-1.13.3` k8s-1.13.3 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
+* `k8s-genie-1.11.1` k8s-1.11.1 cluster based on the centos7 image and uses genie CNI, provisioned with kubeadm
 * `os-3.9` os-3.9 cluster based on the centos7 image, provisioned with openshift-ansible
 * `os-3.9-crio` os-3.9 cluster with CRI-O support based on the centos7 image, provisioned with openshift-ansible
 * `os-3.10.0` os-3.10.0 cluster based on the centos7 image, provisioned with openshift-ansible
@@ -26,7 +26,7 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
-* `kubevirtci/gocli`: `sha256:837ab7fff4e00d74ad9d6b8952c79dbf3df1db380da1fc13a87df34d70745003`
+* `kubevirtci/gocli`: `sha256:34a5886e7d6db62f7499519fa130293a3010e86e14631a8ba80d63b29c4eb40e`
 * `kubevirtci/base`: `sha256:034de1a154409d87498050ccc281d398ce1a0fed32efdbd66d2041a99a46b322`
 * `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
 * **Deprecated**: `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
@@ -49,6 +49,16 @@
 * `kubevirtci/k8s-multus-1.13.3:`: `sha256:8418163abbc4acddefa26a63706446af9fd67aab20388a5e8d453cff0c0169f1`
 * `kubevirtci/k8s-genie-1.11.1:`: `sha256:f1e2e729302bc0f2d4a176807f36c02b44c62605ad80d10249bb85682433b3a4`
 
+# OKD clusters in the container with libvirt
+
+* `okd-base` contains all needed packages to provision and run OKD cluster on top of the libvirt provider
+* `okd-4.1.0-rc.0` okd-4.1.0-rc.0 cluster provisioned with OpenShift installer on top of the libvirt provider
+
+## Versions to use
+
+* `kubevirtci/okd-base`: `sha256:918d3c7f7c5ec94057715897f589c11b38e74c80927ee5af857e24817baeebaf`
+* `kubevirtci/okd-4.1.0-rc.0`: `sha256:71afc34d9299aa11313b43a584e7e9d7e2f962279453b53d853a9d3bcb8b3255`
+
 ## Using gocli
 
 `gocli` is a tiny go binary which helps managing the containerized clusters. It
@@ -58,6 +68,41 @@ use a bash alias:
 ```bash
 alias gocli="docker run --net=host --privileged --rm -it -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/gocli:latest"
 gocli help
+```
+
+### How to provision OKD cluster
+
+First you will need to create installer pull token file with the content:
+```
+pullSecret: <pull secret>
+```
+
+and after you should run `gocli` command:
+```bash
+gocli provision okd \
+--prefix okd-4.1.0-rc.0 \
+--dir-scripts <scripts_folder>/scripts \
+--dir-hacks <hacks_folder>/hacks \
+--master-memory 10240 \
+--installer-pull-token-file <installer_pull_token_file> \
+--installer-repo-tag release-4.1 \
+--installer-release-image quay.io/openshift-release-dev/ocp-release:4.1.0-rc.0 \
+kubevirtci/okd-base@sha256:918d3c7f7c5ec94057715897f589c11b38e74c80927ee5af857e24817baeebaf
+```
+
+***
+NOTE: you can get the pull secret [here](https://developers.redhat.com/auth/realms/rhd/protocol/openid-connect/auth?client_id=uhc&redirect_uri=https%3A%2F%2Fcloud.openshift.com%2Fclusters%2Finstall%23pull-secret&state=109aa48e-1779-45d6-9bdc-c156b1e699b4&response_mode=fragment&response_type=code&scope=openid&nonce=b9fe0085-f2c9-4fd7-bd17-e8629f01bbaf).
+***
+
+***
+NOTE: OpenShift cluster consumes a lot of resources, you should have at least 18Gb of the memory on the machine where do you run the container.
+***
+
+### How to run OKD cluster
+
+You should run `gocli` command:
+```bash
+gocli run okd --prefix okd-4.1.0-rc.0 --background kubevirtci/okd-4.1.0-rc.0@sha256:71afc34d9299aa11313b43a584e7e9d7e2f962279453b53d853a9d3bcb8b3255
 ```
 
 ## Quickstart Kubernetes
