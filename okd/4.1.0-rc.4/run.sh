@@ -2,10 +2,9 @@
 
 set -x
 
-# TODO CREATE IMAGE HASH
-#okd_image_hash="sha256:71afc34d9299aa11313b43a584e7e9d7e2f962279453b53d853a9d3bcb8b3255"
-gocli_image_hash="sha256:8677844b0c66aa02182c9d2c70b2b3bbe6f0f049e8617b630278622ca2a4228d"
-okd_version="4.1.0-rc4"
+okd_image_hash="sha256:0fda220dca5569230d507e68a80d8ff9c6d34a778f4178f3a1a316137408c609"
+gocli_image_hash="sha256:8cc901ae21608d6d1689d7e70aa5e69889f3f945d52f1b140fd8286428a0bc3a"
+okd_version="4.1.0-rc.4"
 
 gocli="docker run --privileged --net=host --rm -t -v /var/run/docker.sock:/var/run/docker.sock docker.io/kubevirtci/gocli@${gocli_image_hash}"
 

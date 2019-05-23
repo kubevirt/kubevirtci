@@ -54,17 +54,13 @@ do
     sleep 5
 done
 
+# wait a few seconds just to be sure we do not get old cluster state
+sleep 30
+
 # TODO: do not sure if it is better way to check that the whole cluster is up, under the cluster we should have
-# only one router pod in the pending state, because we have only one worker node, but router deployment wants to have
-# two replicas
-until [[ $(oc get pods --all-namespaces --no-headers | grep -v Running | grep -v Completed | wc -l) == 1 ]]; do
-    sleep 10
-done
-
-# wait minute, just to be sure we do not get old cluster state
-sleep 60
-
-until [[ $(oc get pods --all-namespaces --no-headers | grep -v Running | grep -v Completed | wc -l) == 1 ]]; do
+# only one router pod in the pending state and two ectd pods in pending state because we have only one worker node
+until [[ $(oc get pods --all-namespaces --no-headers | grep -v Running | grep -v Completed | wc -l) -gt 3 ]]; do
+    echo "waiting for pods to come online"
     sleep 10
 done
 
