@@ -1,0 +1,180 @@
+diff --git a/cmd/openshift-install/create.go b/cmd/openshift-install/create.go
+index 2e3d442c6..898204f00 100644
+--- a/cmd/openshift-install/create.go
++++ b/cmd/openshift-install/create.go
+@@ -317,7 +317,7 @@ func waitForBootstrapConfigMap(ctx context.Context, client *kubernetes.Clientset
+ // waitForInitializedCluster watches the ClusterVersion waiting for confirmation
+ // that the cluster has been initialized.
+ func waitForInitializedCluster(ctx context.Context, config *rest.Config) error {
+-	timeout := 30 * time.Minute
++	timeout := 60 * time.Minute
+ 	logrus.Infof("Waiting up to %v for the cluster at %s to initialize...", timeout, config.Host)
+ 	cc, err := configclient.NewForConfig(config)
+ 	if err != nil {
+diff --git a/data/data/libvirt/main.tf b/data/data/libvirt/main.tf
+index 680919974..127d830d3 100644
+--- a/data/data/libvirt/main.tf
++++ b/data/data/libvirt/main.tf
+@@ -133,6 +133,24 @@ data "libvirt_network_dns_host_template" "etcds" {
+   hostname = "etcd-${count.index}.${var.cluster_domain}"
+ }
+ 
++data "libvirt_network_dns_host_template" "authi1" {
++  count    = "${var.master_count}"
++  ip       = "${var.libvirt_auth_ip}"
++  hostname = "oauth-openshift.apps.${var.cluster_domain}"
++}
++
++data "libvirt_network_dns_host_template" "auth2" {
++  count    = "${var.master_count}"
++  ip       = "${var.libvirt_auth_ip}"
++  hostname = "openshift-authentication-openshift-authentication.apps.${var.cluster_domain}"
++}
++
++data "libvirt_network_dns_host_template" "console" {
++  count    = "${var.master_count}"
++  ip       = "${var.libvirt_auth_ip}"
++  hostname = "console-openshift-console.apps.${var.cluster_domain}"
++}
++
+ data "libvirt_network_dns_srv_template" "etcd_cluster" {
+   count    = var.master_count
+   service  = "etcd-server-ssl"
+diff --git a/data/data/libvirt/variables-libvirt.tf b/data/data/libvirt/variables-libvirt.tf
+index 53cf68bae..3c5f7f905 100644
+--- a/data/data/libvirt/variables-libvirt.tf
++++ b/data/data/libvirt/variables-libvirt.tf
+@@ -28,6 +28,11 @@ variable "libvirt_master_ips" {
+   description = "the list of desired master ips. Must match master_count"
+ }
+ 
++variable "libvirt_auth_ip" {
++  type        = "string"
++  description = "node with authentication server ip"
++}
++
+ # It's definitely recommended to bump this if you can.
+ variable "libvirt_master_memory" {
+   type        = string
+diff --git a/pkg/asset/tls/aggregator.go b/pkg/asset/tls/aggregator.go
+index 9ec6432da..6dac0b736 100644
+--- a/pkg/asset/tls/aggregator.go
++++ b/pkg/asset/tls/aggregator.go
+@@ -27,7 +27,7 @@ func (a *AggregatorCA) Generate(dependencies asset.Parents) error {
+ 	cfg := &CertCfg{
+ 		Subject:   pkix.Name{CommonName: "aggregator", OrganizationalUnit: []string{"bootkube"}},
+ 		KeyUsages: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+-		Validity:  ValidityOneDay,
++		Validity:  ValidityOneYear,
+ 		IsCA:      true,
+ 	}
+ 
+@@ -65,7 +65,7 @@ func (a *APIServerProxyCertKey) Generate(dependencies asset.Parents) error {
+ 		Subject:      pkix.Name{CommonName: "system:kube-apiserver-proxy", Organization: []string{"kube-master"}},
+ 		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+ 		ExtKeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+-		Validity:     ValidityOneDay,
++		Validity:     ValidityOneYear,
+ 	}
+ 
+ 	return a.SignedCertKey.Generate(cfg, aggregatorCA, "apiserver-proxy", DoNotAppendParent)
+@@ -93,7 +93,7 @@ func (c *AggregatorSignerCertKey) Generate(parents asset.Parents) error {
+ 	cfg := &CertCfg{
+ 		Subject:   pkix.Name{CommonName: "aggregator-signer", OrganizationalUnit: []string{"openshift"}},
+ 		KeyUsages: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+-		Validity:  ValidityOneDay,
++		Validity:  ValidityOneYear,
+ 		IsCA:      true,
+ 	}
+ 
+@@ -158,7 +158,7 @@ func (a *AggregatorClientCertKey) Generate(dependencies asset.Parents) error {
+ 		Subject:      pkix.Name{CommonName: "system:kube-apiserver-proxy", Organization: []string{"kube-master"}},
+ 		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+ 		ExtKeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+-		Validity:     ValidityOneDay,
++		Validity:     ValidityOneYear,
+ 	}
+ 
+ 	return a.SignedCertKey.Generate(cfg, ca, "aggregator-client", DoNotAppendParent)
+diff --git a/pkg/asset/tls/apiserver.go b/pkg/asset/tls/apiserver.go
+index a50bee836..cd63ff13c 100644
+--- a/pkg/asset/tls/apiserver.go
++++ b/pkg/asset/tls/apiserver.go
+@@ -185,7 +185,7 @@ func (a *KubeAPIServerLocalhostServerCertKey) Generate(dependencies asset.Parent
+ 		Subject:      pkix.Name{CommonName: "system:kube-apiserver", Organization: []string{"kube-master"}},
+ 		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+ 		ExtKeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+-		Validity:     ValidityOneDay,
++		Validity:     ValidityOneYear,
+ 		DNSNames: []string{
+ 			"localhost",
+ 		},
+@@ -288,7 +288,7 @@ func (a *KubeAPIServerServiceNetworkServerCertKey) Generate(dependencies asset.P
+ 		Subject:      pkix.Name{CommonName: "system:kube-apiserver", Organization: []string{"kube-master"}},
+ 		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+ 		ExtKeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+-		Validity:     ValidityOneDay,
++		Validity:     ValidityOneYear,
+ 		DNSNames: []string{
+ 			"kubernetes", "kubernetes.default",
+ 			"kubernetes.default.svc",
+@@ -392,7 +392,7 @@ func (a *KubeAPIServerExternalLBServerCertKey) Generate(dependencies asset.Paren
+ 		Subject:      pkix.Name{CommonName: "system:kube-apiserver", Organization: []string{"kube-master"}},
+ 		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+ 		ExtKeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+-		Validity:     ValidityOneDay,
++		Validity:     ValidityOneYear,
+ 		DNSNames: []string{
+ 			apiAddress(installConfig.Config),
+ 		},
+@@ -431,7 +431,7 @@ func (a *KubeAPIServerInternalLBServerCertKey) Generate(dependencies asset.Paren
+ 		Subject:      pkix.Name{CommonName: "system:kube-apiserver", Organization: []string{"kube-master"}},
+ 		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+ 		ExtKeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+-		Validity:     ValidityOneDay,
++		Validity:     ValidityOneYear,
+ 		DNSNames: []string{
+ 			internalAPIAddress(installConfig.Config),
+ 		},
+diff --git a/pkg/asset/tls/kubelet.go b/pkg/asset/tls/kubelet.go
+index 01264e898..32cc8059d 100644
+--- a/pkg/asset/tls/kubelet.go
++++ b/pkg/asset/tls/kubelet.go
+@@ -24,7 +24,7 @@ func (c *KubeletCSRSignerCertKey) Generate(parents asset.Parents) error {
+ 	cfg := &CertCfg{
+ 		Subject:   pkix.Name{CommonName: "kubelet-signer", OrganizationalUnit: []string{"openshift"}},
+ 		KeyUsages: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+-		Validity:  ValidityOneDay,
++		Validity:  ValidityOneYear,
+ 		IsCA:      true,
+ 	}
+ 
+@@ -181,7 +181,7 @@ func (a *KubeletClientCertKey) Generate(dependencies asset.Parents) error {
+ 		Subject:      pkix.Name{CommonName: "system:serviceaccount:openshift-machine-config-operator:node-bootstrapper", Organization: []string{"system:serviceaccounts:openshift-machine-config-operator"}},
+ 		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+ 		ExtKeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+-		Validity:     ValidityOneDay,
++		Validity:     ValidityOneYear,
+ 	}
+ 
+ 	return a.SignedCertKey.Generate(cfg, ca, "kubelet-client", DoNotAppendParent)
+diff --git a/pkg/tfvars/libvirt/libvirt.go b/pkg/tfvars/libvirt/libvirt.go
+index 4b7b7f50b..056bc2de1 100644
+--- a/pkg/tfvars/libvirt/libvirt.go
++++ b/pkg/tfvars/libvirt/libvirt.go
+@@ -17,6 +17,7 @@ type config struct {
+ 	IfName      string   `json:"libvirt_network_if"`
+ 	MasterIPs   []string `json:"libvirt_master_ips,omitempty"`
+ 	BootstrapIP string   `json:"libvirt_bootstrap_ip,omitempty"`
++	AuthNodeIP  string   `json:"libvirt_auth_ip,omitempty"`
+ }
+ 
+ // TFVars generates libvirt-specific Terraform variables.
+@@ -42,6 +43,7 @@ func TFVars(masterConfig *v1beta1.LibvirtMachineProviderConfig, osImage string,
+ 		IfName:      bridge,
+ 		BootstrapIP: bootstrapIP.String(),
+ 		MasterIPs:   masterIPs,
++		AuthNodeIP:  "192.168.126.51",
+ 	}
+ 
+ 	return json.MarshalIndent(cfg, "", "  ")
