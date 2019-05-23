@@ -119,7 +119,7 @@ func provision(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("you should provide the installer tag or installer commit hash")
 	}
 	envs = append(envs, fmt.Sprintf("INSTALLER_TAG=%s", installerTag))
-	envs = append(envs, fmt.Sprintf("INSTALLER_TAG=%s", installerCommit))
+	envs = append(envs, fmt.Sprintf("INSTALLER_COMMIT=%s", installerCommit))
 
 	installerReleaseImage, err := cmd.Flags().GetString("installer-release-image")
 	if err != nil {

@@ -26,7 +26,7 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
-* `kubevirtci/gocli`: `sha256:8677844b0c66aa02182c9d2c70b2b3bbe6f0f049e8617b630278622ca2a4228d`
+* `kubevirtci/gocli`: `sha256:8cc901ae21608d6d1689d7e70aa5e69889f3f945d52f1b140fd8286428a0bc3a`
 * `kubevirtci/base`: `sha256:034de1a154409d87498050ccc281d398ce1a0fed32efdbd66d2041a99a46b322`
 * `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
 * **Deprecated**: `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
@@ -58,6 +58,7 @@
 
 * `kubevirtci/okd-base`: `sha256:918d3c7f7c5ec94057715897f589c11b38e74c80927ee5af857e24817baeebaf`
 * `kubevirtci/okd-4.1.0-rc.0`: `sha256:71afc34d9299aa11313b43a584e7e9d7e2f962279453b53d853a9d3bcb8b3255`
+* `kubevirtci/okd-4.1.0-rc.0`: `sha256:e3e9165d5ae387c1369b4c338eca81a4ebff5707135d747e8d0bca7df6d8b779`
 
 ## Using gocli
 
