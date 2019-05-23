@@ -2,10 +2,12 @@
 
 set -xe
 
-if [ ! -z $INSTALLER_RELEASE_IMAGE ]; then
-    until  export INSTALLER_COMMIT=$(oc adm release info $INSTALLER_RELEASE_IMAGE --commits | grep installer | awk '{print $3}' | head -n 1); do
-        sleep 1
-    done
+if [ -z $INSTALLER_COMMIT ]; then
+    if [ ! -z $INSTALLER_RELEASE_IMAGE ]; then
+        until  export INSTALLER_COMMIT=$(oc adm release info $INSTALLER_RELEASE_IMAGE --commits | grep installer | awk '{print $3}' | head -n 1); do
+            sleep 1
+        done
+    fi
 fi
 
 compile_installer () {
@@ -26,8 +28,12 @@ compile_installer () {
     fi
 
     # compile the installer
-    if [ -d "/hacks" ]; then
+    if [ -d "/hacks" ] && [ ! -z $INSTALLER_TAG ]; then
         git apply /hacks/$INSTALLER_TAG
+    fi
+
+    if [ -d "/hacks" ] && [ ! -z $INSTALLER_COMMIT ]; then
+        git apply /hacks/$INSTALLER_COMMIT
     fi
 
     TAGS=libvirt ./hack/build.sh
@@ -64,6 +70,7 @@ echo "nameserver 127.0.0.1" > /etc/resolv.conf
 
 mkdir -p /etc/dnsmasq.d
 echo "server=/tt.testing/192.168.126.1" >> /etc/dnsmasq.d/openshift.conf
+echo "address=/apps.tt.testing/192.168.126.51" >> /etc/dnsmasq.d/openshift.conf
 for dns in $original_dnss; do
     echo "server=/#/$dns" >> /etc/dnsmasq.d/openshift.conf
 done
@@ -112,7 +119,7 @@ sed -i -e "s/domainVcpu: 2/domainVcpu: $WORKERS_CPU/" /root/install/openshift/99
 # run installer
 export TF_VAR_libvirt_master_memory=$MASTER_MEMORY
 export TF_VAR_libvirt_master_vcpu=$MASTER_CPU
-/openshift-install create cluster --dir=/root/install
+/openshift-install create cluster --dir=/root/install --log-level=debug
 
 export KUBECONFIG=/root/install/auth/kubeconfig
 

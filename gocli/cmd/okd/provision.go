@@ -41,6 +41,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().String("workers-cpu", "2", "number of CPU per worker")
 	provision.Flags().String("installer-pull-token-file", "", "path to the file that contains installer pull token")
 	provision.Flags().String("installer-repo-tag", "", "installer repository tag that you want to compile from")
+	provision.Flags().String("installer-repo-commit", "", "installer repository commit hash that you want to compile from")
 	provision.Flags().String("installer-release-image", "", "the OKD release image that you want to use")
 
 	return provision
@@ -109,11 +110,16 @@ func provision(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	installerCommit, err := cmd.Flags().GetString("installer-repo-commit")
+	if err != nil {
+		return err
+	}
 
-	if installerTag == "" {
-		return fmt.Errorf("you should provide the installer tag")
+	if installerTag == "" && installerCommit == "" {
+		return fmt.Errorf("you should provide the installer tag or installer commit hash")
 	}
 	envs = append(envs, fmt.Sprintf("INSTALLER_TAG=%s", installerTag))
+	envs = append(envs, fmt.Sprintf("INSTALLER_TAG=%s", installerCommit))
 
 	installerReleaseImage, err := cmd.Flags().GetString("installer-release-image")
 	if err != nil {

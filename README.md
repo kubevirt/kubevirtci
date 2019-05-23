@@ -26,7 +26,7 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
-* `kubevirtci/gocli`: `sha256:34a5886e7d6db62f7499519fa130293a3010e86e14631a8ba80d63b29c4eb40e`
+* `kubevirtci/gocli`: `sha256:8677844b0c66aa02182c9d2c70b2b3bbe6f0f049e8617b630278622ca2a4228d`
 * `kubevirtci/base`: `sha256:034de1a154409d87498050ccc281d398ce1a0fed32efdbd66d2041a99a46b322`
 * `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
 * **Deprecated**: `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
