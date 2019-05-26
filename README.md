@@ -41,13 +41,13 @@
 * **Deprecated**: `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
 * **Deprecated**: `kubevirtci/k8s-1.10.4:`: `sha256:2ed70abfa8f6c30d990b76b816577040c0709258cbbd7c70f71a70d547f5544f`
 * `kubevirtci/k8s-1.10.11:`: `sha256:f563a8ab4719e53c2372c4f41dfe55256677ec7afc442dfaebd494926005e3e5`
-* `kubevirtci/k8s-1.11.0:`: `sha256:5c3c9151730d8c9005197290581306786548986a5ddd0f03904e148d564c33cb`
-* `kubevirtci/k8s-1.13.3:`: `sha256:6495fb0b831d0b7c9cd0ed5622a863d647ebdb0b5309c6bfcfb449461d065ab1`
+* `kubevirtci/k8s-1.11.0:`: `sha256:4d28fb90ac31fad9788fb0316e3bfd268d7ad322bd1b442075183eacacd1ace2`
+* `kubevirtci/k8s-1.13.3:`: `sha256:9c2b78e11c25b3fd0b24b0ed684a112052dff03eee4ca4bdcc4f3168f9a14396`
 * **Deprecated**: `kubevirtci/k8s-multus-1.10.4:`: `sha256:1d16d436347fcb9eba28cad08f6e074d4628e9a097a7325eb1ab87351e7f6d5c`
 * **Deprecated**: `kubevirtci/k8s-multus-1.11.1:`: `sha256:3d35b19105344e270be168920e98287fbefcd5366fdf78681712d05725204559`
 * **Deprecated**: `kubevirtci/k8s-multus-1.12.2:`: `sha256:d3ebf4a59ed379e59552ce8165596ade121d32e6b8782c192ff4f29863547c78`
-* `kubevirtci/k8s-multus-1.13.3:`: `sha256:1e69de08f5bcc1d27a9039250f605dd268b338f605fb85f1c4c88f2318c663ca`
-* `kubevirtci/k8s-genie-1.11.1:`: `sha256:868eefe20800be1eb789d316ccb3972be582ab397192f7220649a263e4237d8e`
+* `kubevirtci/k8s-multus-1.13.3:`: `sha256:8418163abbc4acddefa26a63706446af9fd67aab20388a5e8d453cff0c0169f1`
+* `kubevirtci/k8s-genie-1.11.1:`: `sha256:f1e2e729302bc0f2d4a176807f36c02b44c62605ad80d10249bb85682433b3a4`
 
 # OKD clusters in the container with libvirt
 
