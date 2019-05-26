@@ -175,7 +175,7 @@ bootstrapTokens:
 kind: InitConfiguration
 ---
 apiServerExtraArgs:
-  enable-admission-plugins: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota,PodSecurityPolicy
+  enable-admission-plugins: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
   feature-gates: BlockVolume=true
   runtime-config: admissionregistration.k8s.io/v1alpha1
 apiVersion: kubeadm.k8s.io/v1alpha3
