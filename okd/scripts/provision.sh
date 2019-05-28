@@ -86,7 +86,7 @@ done
 sleep 5
 
 if [ ! -f "/etc/installer/token" ]; then
-    echo "You need to provide installer token file the container"
+    echo "You need to provide installer token file to the container"
     exit 1
 fi
 
@@ -116,10 +116,27 @@ export TF_VAR_libvirt_master_vcpu=$MASTER_CPU
 
 export KUBECONFIG=/root/install/auth/kubeconfig
 
-# Create OpenShift user
-oc create user admin
-oc create identity allow_all_auth:admin
-oc create useridentitymapping allow_all_auth:admin admin
+# Create htpasswd with user admin
+htpasswd -c -B -b /root/htpasswd admin admin
+
+# Create OpenShift HTPasswd provider with user and password admin
+oc create secret generic htpass-secret --from-file=htpasswd=/root/htpasswd -n openshift-config
+oc apply -f - <<EOF
+apiVersion: config.openshift.io/v1
+kind: OAuth
+metadata:
+  name: cluster
+spec:
+  identityProviders:
+  - name: htpasswd_provider
+    mappingMethod: claim
+    type: HTPasswd
+    htpasswd:
+      fileData:
+        name: htpass-secret
+EOF
+
+# Grant to admin user cluster-admin permissions
 oc adm policy add-cluster-role-to-user cluster-admin admin
 
 # Apply network addons
@@ -129,7 +146,32 @@ oc create -f /manifests/cna/operator.yaml
 oc create -f /manifests/cna/network-addons-config-example.cr.yaml
 
  # Wait until all the network components are ready
-oc wait networkaddonsconfig cluster --for condition=Ready --timeout=300s
+oc wait networkaddonsconfig cluster --for condition=Ready --timeout=600s
+
+# Remove master schedulable taint from masters
+masters=$(oc get nodes -l node-role.kubernetes.io/master -o'custom-columns=name:metadata.name' --no-headers)
+for master in ${masters}; do
+    oc adm taint nodes ${master} node-role.kubernetes.io/master-
+done
+
+# Add registry:5000 to insecure registries
+until oc patch image.config.openshift.io/cluster --type merge --patch '{"spec": {"registrySources": {"insecureRegistries": ["registry:5000"]}}}'
+do
+    sleep 5
+done
+
+until [[ $(oc get nodes --no-headers | grep Ready,SchedulingDisabled | wc -l) -ge 1 ]]; do
+    sleep 10
+done
+
+# Make master nodes schedulable
+for master in ${masters}; do
+    oc adm uncordon ${master}
+done
+
+until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready | wc -l) -ge 2 ]]; do
+    sleep 10
+done
 
 # Make sure that all VMs can reach the internet
 iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE

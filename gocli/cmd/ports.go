@@ -31,7 +31,7 @@ Known port names are 'ssh', 'registry', 'ocp' and 'k8s'.
 
 			if len(args) == 1 {
 				switch args[0] {
-				case utils.PortNameSSH, utils.PortNameAPI, utils.PortNameOCP, utils.PortNameRegistry, utils.PortNameVNC:
+				case utils.PortNameSSH, utils.PortNameSSHWorker, utils.PortNameAPI, utils.PortNameOCP, utils.PortNameOCPConsole, utils.PortNameRegistry, utils.PortNameVNC:
 					return nil
 				default:
 					return fmt.Errorf("unknown port name %s", args[0])
@@ -82,12 +82,16 @@ func ports(cmd *cobra.Command, args []string) error {
 		switch portName {
 		case utils.PortNameSSH:
 			err = utils.PrintPublicPort(utils.PortSSH, containers[0].Ports)
+		case utils.PortNameSSHWorker:
+			err = utils.PrintPublicPort(utils.PortSSHWorker, containers[0].Ports)
 		case utils.PortNameAPI:
 			err = utils.PrintPublicPort(utils.PortAPI, containers[0].Ports)
 		case utils.PortNameRegistry:
 			err = utils.PrintPublicPort(utils.PortRegistry, containers[0].Ports)
 		case utils.PortNameOCP:
 			err = utils.PrintPublicPort(utils.PortOCP, containers[0].Ports)
+		case utils.PortNameOCPConsole:
+			err = utils.PrintPublicPort(utils.PortOCPConsole, containers[0].Ports)
 		case utils.PortNameVNC:
 			err = utils.PrintPublicPort(utils.PortVNC, containers[0].Ports)
 		}

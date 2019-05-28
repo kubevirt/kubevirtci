@@ -15,7 +15,8 @@ haproxy \
 virt-install \
 socat \
 selinux-policy \
-selinux-policy-targeted && \
+selinux-policy-targeted \
+httpd-tools && \
 dnf clean all
 
 # configure libvirt

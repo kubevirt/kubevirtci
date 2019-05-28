@@ -9,19 +9,25 @@ import (
 )
 
 const (
-	// PortSSH contains SSH port
+	// PortSSH contains SSH port for the master node
 	PortSSH = 2201
-	// PortRegistry contains SSH port
+	// PortSSHWorker contains SSH port for the worker node
+	PortSSHWorker = 2202
+	// PortRegistry contains private image registry port
 	PortRegistry = 5000
-	// PortOCP contains SSH port
+	// PortOCP contains OCP API server port
 	PortOCP = 8443
-	// PortAPI contains SSH port
+	// PortAPI contains API server port
 	PortAPI = 6443
-	// PortVNC contains SSH port
+	// PortVNC contains first VM VNC port
 	PortVNC = 5901
+	//PortOCPConsole contains OCP console port
+	PortOCPConsole = 443
 
-	// PortNameSSH contains SSH port name
+	// PortNameSSH contains master node SSH port name
 	PortNameSSH = "ssh"
+	// PortNameSSHWorker contains worker node SSH port name
+	PortNameSSHWorker = "ssh-worker"
 	// PortNameOCP contains OCP port name
 	PortNameOCP = "ocp"
 	// PortNameRegistry contains registry port name
@@ -31,6 +37,8 @@ const (
 	PortNameAPI = "k8s"
 	// PortNameVNC contains VNC port name
 	PortNameVNC = "vnc"
+	// PortNameOCPConsole contains OCP console port
+	PortNameOCPConsole = "console"
 )
 
 // GetPublicPort returns public port by private port
