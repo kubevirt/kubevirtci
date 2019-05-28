@@ -19,8 +19,17 @@ enabled=1
 gpgcheck=0
 EOF
 
+cat >/etc/yum.repos.d/ansible.repo <<EOF
+[Ansible]
+name=Ansible
+baseurl=https://releases.ansible.com/ansible/rpm/release/epel-7-x86_64/
+enabled=1
+gpgcheck=0
+EOF
+
+
 # Install OpenShift packages
-yum install -y ansible \
+yum install -y ansible-2.7.11-1.el7.ans \
   wget \
   git \
   net-tools \
@@ -191,6 +200,11 @@ ansible-playbook -i $inventory_file $openshift_ansible/playbooks/deploy_cluster.
 # Install OLM
 ansible-playbook -i $inventory_file $openshift_ansible/playbooks/olm/config.yml
 
+# install the container networking cni plugins
+wget https://github.com/containernetworking/plugins/releases/download/v0.8.0/cni-plugins-linux-amd64-v0.8.0.tgz -P /opt/cni/bin/
+tar -xvf /opt/cni/bin/cni-plugins-linux-amd64-v0.8.0.tgz -C /opt/cni/bin/
+rm -rf /opt/cni/bin/cni-plugins-linux-amd64-v0.8.0.tgz
+
 # Create OpenShift user
 /usr/bin/oc create user admin
 /usr/bin/oc create identity allow_all_auth:admin
@@ -215,9 +229,24 @@ chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 docker pull docker.io/fluent/fluentd:v1.2-debian
 docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
 
-/usr/bin/oc create -f /tmp/openshift-multus.yaml
-/usr/bin/oc create -f /tmp/multus.yaml
-/usr/bin/oc create -f /tmp/cni-plugins-ds.yaml
+/usr/bin/oc create -f /tmp/cna/namespace.yaml
+/usr/bin/oc create -f /tmp/cna/network-addons-config.crd.yaml
+/usr/bin/oc create -f /tmp/cna/operator.yaml
+
+# Wait until flannel cluster-network-addons-operator and core dns pods are running
+# Sleep to give the controller time to create the operator pod
+sleep 10
+while [ -n "$(/usr/bin/oc get pods --all-namespaces --no-headers | grep -v Running)" ]; do
+    echo "Waiting for flannel cluster-network-addons-operator and core dns pods to enter the Running state ..."
+    /usr/bin/oc get pods --all-namespaces --no-headers | >&2 grep -v Running || true
+    sleep 10
+done
+
+/usr/bin/oc create -f /tmp/cna/network-addons-config-example.cr.yaml
+
+# Wait until all the network components are ready
+/usr/bin/oc wait networkaddonsconfig cluster --for condition=Ready --timeout=800s
+
 /usr/bin/oc create -f /tmp/openshift-ovs-cni.yaml
 
 # Wait before checking the pod status.
