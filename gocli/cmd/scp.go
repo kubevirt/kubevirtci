@@ -191,7 +191,7 @@ func scp(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(wrPipe, "\x00")
 	}()
 
-	err = session.Run("sudo -i /usr/bin/scp -vf " + src)
+	err = session.Run("sudo -i /usr/bin/scp -qf " + src)
 
 	copyError := <-errChan
 
