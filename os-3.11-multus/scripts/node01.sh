@@ -93,3 +93,5 @@ oc -n linux-bridge delete po `oc get po -n linux-bridge | grep bridge | awk '{pr
 oc -n kube-system delete po `oc get po -n kube-system | grep ovs-cni | awk '{print $1}'`
 
 /usr/bin/oc create -f /tmp/local-volume.yaml
+
+oc get po -n openshift-sdn | grep ovs | awk '{print "oc exec -n openshift-sdn",$1,"-- ovs-vsctl --may-exist add-br br1"}' | sh
