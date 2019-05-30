@@ -130,7 +130,7 @@ spec:
         - name: MULTUS_IMAGE
           value: quay.io/kubevirt/cluster-network-addon-multus:v3.2.0-1.gitbf61002
         - name: LINUX_BRIDGE_IMAGE
-          value: quay.io/kubevirt/cni-default-plugins:v0.1.0
+          value: quay.io/kubevirt/cni-default-plugins:v0.8.0
         - name: LINUX_BRIDGE_MARKER_IMAGE
           value: quay.io/kubevirt/bridge-marker:0.1.0
         - name: SRIOV_DP_IMAGE
@@ -145,7 +145,7 @@ spec:
         - name: KUBEMACPOOL_IMAGE
           value: quay.io/kubevirt/kubemacpool:v0.3.0
         - name: OPERATOR_IMAGE
-          value: quay.io/kubevirt/cluster-network-addons-operator:0.7.0
+          value: quay.io/kubevirt/cluster-network-addons-operator:0.8.0
         - name: OPERATOR_NAME
           value: cluster-network-addons-operator
         - name: OPERATOR_NAMESPACE
@@ -157,7 +157,7 @@ spec:
             fieldRef:
               fieldPath: metadata.name
         - name: WATCH_NAMESPACE
-        image: quay.io/kubevirt/cluster-network-addons-operator:0.7.0
+        image: quay.io/kubevirt/cluster-network-addons-operator:0.8.0
         imagePullPolicy: Always
         name: cluster-network-addons-operator
         resources: {}
