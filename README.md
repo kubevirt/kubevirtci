@@ -34,7 +34,7 @@
 * **Deprecated**: `kubevirtci/os-3.10.0:`: `sha256:cc418c0c837d8e6c9a31a063762d9e4c8bfc70a1fcca10823b11c6d8a7ae2394`
 * **Deprecated**: `kubevirtci/os-3.10.0-crio:`: `sha256:56debd7bc2ce87dd616ebc30f06971e388b6983c0cda8646a7563e1dafadb69b`
 * **Deprecated**: `kubevirtci/os-3.10.0-multus`: `sha256:875c973099141ab2013aaf51ec2b35b5326be943ef1437e4a87e041405e724ca`
-* `kubevirtci/os-3.11.0-multus`: `sha256:278b5eb240fcf968add7bb2ae32b629ac056b56b8dd1d2d33446edb44f7e27b3`
+* `kubevirtci/os-3.11.0-multus`: `sha256:b799a707e2c42caa1e3a7e7677cd14bbd834b3e3f6f1bce48b7a32d705e383fb`
 * `kubevirtci/os-3.11.0:`: `sha256:2d0a8f59dfebe181f550c4fbcd90d491a56a7d642d761c32a3c7732644325c0b`
 * `kubevirtci/os-3.11.0-crio:`: `sha256:3f11a6f437fcdf2d70de4fcc31e0383656f994d0d05f9a83face114ea7254bc0`
 * **Deprecated**: `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
