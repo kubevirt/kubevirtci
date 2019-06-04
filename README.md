@@ -1,9 +1,9 @@
 # Getting Started with a multi-node Kubernetes Provider
 
-Download cluster-up repo
+Download this repo
 ```
-git clone https://github.com/davidvossel/cluster-up.git
-cd cluster-up
+git clone https://github.com/kubevirt/kubevirtci.git
+cd kubevirtci
 ```
 
 Start multi node k8s cluster
@@ -28,7 +28,7 @@ Use your own kubectl client by defining the KUBECONFIG environment variable
 export KUBECONFIG=$(cluster-up/kubeconfig.sh)
 
 kubectl get nodes
-kubect apply -f <some file>
+kubectl apply -f <some file>
 ```
 
 SSH into a node
@@ -38,10 +38,10 @@ cluster-up/ssh.sh node01
 
 # Getting Started with multi-node OKD Provider
 
-Download cluster-up repo
+Download this repo
 ```
-git clone https://github.com/davidvossel/cluster-up.git
-cd cluster-up
+git clone https://github.com/kubevirt/kubevirtci.git
+cd kubevirtci
 ```
 
 Start okd cluster (pre-configured with a master and worker node)
