@@ -4,8 +4,8 @@ set -x
 
 PARENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/../.. && pwd )"
 
-okd_base_hash="sha256:918d3c7f7c5ec94057715897f589c11b38e74c80927ee5af857e24817baeebaf"
-gocli_image_hash="sha256:34a5886e7d6db62f7499519fa130293a3010e86e14631a8ba80d63b29c4eb40e"
+okd_base_hash="sha256:90b0522eed6dc2593300b33b05977d3a2d30581e58f05943658791c87d2bae89"
+gocli_image_hash="sha256:b52e44d4e44e4c03811a42af9136492fd22f725523c4a3b9258ca9556447736d"
 
 gocli="docker run \
 --privileged \
@@ -16,12 +16,12 @@ gocli="docker run \
 docker.io/kubevirtci/gocli@${gocli_image_hash}"
 
 ${gocli} provision okd \
---prefix okd-4.1.0-rc.0 \
+--prefix okd-4.1.0 \
 --dir-scripts ${PARENT_DIR}/okd/scripts \
 --dir-manifests ${PARENT_DIR}/manifests \
 --dir-hacks ${PARENT_DIR}/okd/hacks \
 --master-memory 10240 \
 --installer-pull-token-file ${INSTALLER_PULL_SECRET} \
 --installer-repo-tag release-4.1 \
---installer-release-image quay.io/openshift-release-dev/ocp-release:4.1.0-rc.0 \
+--installer-release-image quay.io/openshift-release-dev/ocp-release:4.1.0-rc.7 \
 "kubevirtci/okd-base@${okd_base_hash}"

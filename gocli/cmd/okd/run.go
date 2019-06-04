@@ -34,11 +34,11 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("workers-cpu", "2", "number of CPU per worker")
 	run.Flags().String("registry-volume", "", "cache docker registry content in the specified volume")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
-	run.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	run.Flags().Uint("registry-port", 0, "port on localhost for the docker registry")
-	run.Flags().Uint("ocp-port", 0, "port on localhost for the ocp cluster")
+	run.Flags().Uint("ocp-console-port", 0, "port on localhost for the ocp console")
 	run.Flags().Uint("k8s-port", 0, "port on localhost for the k8s cluster")
-	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
+	run.Flags().Uint("ssh-master-port", 0, "port on localhost to ssh to master node")
+	run.Flags().Uint("ssh-worker-port", 0, "port on localhost to ssh to worker node")
 	run.Flags().Bool("background", false, "go to background after nodes are up")
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
 	return run
@@ -89,10 +89,10 @@ func run(cmd *cobra.Command, args []string) (err error) {
 
 	portMap := nat.PortMap{}
 
-	utils.AppendIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
-	utils.AppendIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
+	utils.AppendIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-master-port")
+	utils.AppendIfExplicit(portMap, utils.PortSSHWorker, cmd.Flags(), "ssh-worker-port")
 	utils.AppendIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port")
-	utils.AppendIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port")
+	utils.AppendIfExplicit(portMap, utils.PortOCPConsole, cmd.Flags(), "ocp-console-port")
 	utils.AppendIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port")
 
 	registryVol, err := cmd.Flags().GetString("registry-volume")
@@ -147,11 +147,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		Image: cluster,
 		Env:   envs,
 		ExposedPorts: nat.PortSet{
-			utils.TCPPortOrDie(utils.PortSSH):      {},
-			utils.TCPPortOrDie(utils.PortRegistry): {},
-			utils.TCPPortOrDie(utils.PortOCP):      {},
-			utils.TCPPortOrDie(utils.PortAPI):      {},
-			utils.TCPPortOrDie(utils.PortVNC):      {},
+			utils.TCPPortOrDie(utils.PortSSH):        {},
+			utils.TCPPortOrDie(utils.PortSSHWorker):  {},
+			utils.TCPPortOrDie(utils.PortRegistry):   {},
+			utils.TCPPortOrDie(utils.PortOCPConsole): {},
+			utils.TCPPortOrDie(utils.PortAPI):        {},
 		},
 	}, &container.HostConfig{
 		Privileged:      true,
