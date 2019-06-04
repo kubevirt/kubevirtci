@@ -20,14 +20,14 @@ function up() {
 
     # Copy k8s config and kubectl
     cluster_container_id=$(docker ps -f "name=$provider_prefix-cluster" --format "{{.ID}}")
-    docker cp $cluster_container_id:/bin/oc ${KUBEVIRTCI_PATH}cluster/$KUBEVIRT_PROVIDER/.kubectl
-    chmod u+x ${KUBEVIRTCI_PATH}cluster/$KUBEVIRT_PROVIDER/.kubectl
-    docker cp $cluster_container_id:/root/install/auth/kubeconfig ${KUBEVIRTCI_PATH}cluster/$KUBEVIRT_PROVIDER/.kubeconfig
+    docker cp $cluster_container_id:/bin/oc ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+    chmod u+x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+    docker cp $cluster_container_id:/root/install/auth/kubeconfig ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
 
     # Set server and disable tls check
-    export KUBECONFIG=${KUBEVIRTCI_PATH}cluster/$KUBEVIRT_PROVIDER/.kubeconfig
-    ${KUBEVIRTCI_PATH}cluster/$KUBEVIRT_PROVIDER/.kubectl config set-cluster test-1 --server=https://$(_main_ip):$(_port k8s)
-    ${KUBEVIRTCI_PATH}cluster/$KUBEVIRT_PROVIDER/.kubectl config set-cluster test-1 --insecure-skip-tls-verify=true
+    export KUBECONFIG=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+    ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl config set-cluster test-1 --server=https://$(_main_ip):$(_port k8s)
+    ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl config set-cluster test-1 --insecure-skip-tls-verify=true
 
     # Make sure that local config is correct
     prepare_config
