@@ -28,4 +28,4 @@ fi
 
 source ${KUBEVIRTCI_PATH}/hack/common.sh
 
-echo "${KUBEVIRTCI_PATH}cluster/$KUBEVIRT_PROVIDER/.kubeconfig"
+echo "${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"

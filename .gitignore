@@ -3,3 +3,4 @@ cli
 .idea
 /gocli/bazel**
 log.txt
+_ci-configs/*

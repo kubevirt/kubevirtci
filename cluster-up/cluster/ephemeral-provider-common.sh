@@ -15,11 +15,11 @@ function _port() {
 }
 
 function prepare_config() {
-    BASE_PATH=${KUBEVIRTCI_PATH:-$PWD}
-    cat >$BASE_PATH/hack/config-provider-$KUBEVIRT_PROVIDER.sh <<EOF
+    BASE_PATH=${KUBEVIRTCI_CONFIG_PATH:-$PWD}
+    cat >$BASE_PATH/$KUBEVIRT_PROVIDER/config-provider-$KUBEVIRT_PROVIDER.sh <<EOF
 master_ip=$(_main_ip)
-kubeconfig=${BASE_PATH}/cluster/$KUBEVIRT_PROVIDER/.kubeconfig
-kubectl=${BASE_PATH}/cluster/$KUBEVIRT_PROVIDER/.kubectl
+kubeconfig=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+kubectl=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubectl
 docker_prefix=localhost:$(_port registry)/kubevirt
 manifest_docker_prefix=registry:5000/kubevirt
 EOF
@@ -40,8 +40,8 @@ function _add_common_params() {
 }
 
 function _kubectl() {
-    export KUBECONFIG=${KUBEVIRTCI_PATH}cluster/$KUBEVIRT_PROVIDER/.kubeconfig
-    ${KUBEVIRTCI_PATH}cluster/$KUBEVIRT_PROVIDER/.kubectl "$@"
+    export KUBECONFIG=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+    ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl "$@"
 }
 
 function down() {
