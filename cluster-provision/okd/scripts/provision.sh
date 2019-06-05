@@ -155,7 +155,7 @@ for master in ${masters}; do
 done
 
 # Add registry:5000 to insecure registries
-until oc patch image.config.openshift.io/cluster --type merge --patch '{"spec": {"registrySources": {"insecureRegistries": ["registry:5000"]}}}'
+until oc patch image.config.openshift.io/cluster --type merge --patch '{"spec": {"registrySources": {"insecureRegistries": ["registry:5000", "brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888"]}}}'
 do
     sleep 5
 done
