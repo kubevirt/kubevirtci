@@ -20,8 +20,7 @@ gpgcheck=0
 EOF
 
 # Install OpenShift packages
-yum install -y ansible \
-  wget \
+yum install -y wget \
   git \
   net-tools \
   bind-utils \
@@ -39,6 +38,9 @@ yum install -y ansible \
   cockpit-docker-176-2.el7.centos.x86_64 \
   docker-1.13.1-75.git8633870.el7.centos.x86_64 \
   python-docker-pycreds-1.10.6-4.el7.noarch
+
+wget https://releases.ansible.com/ansible/rpm/release/epel-7-x86_64/ansible-2.7.9-1.el7.ans.noarch.rpm
+yum -y localinstall ansible-2.7.9-1.el7.ans.noarch.rpm
 
 # Disable spectre and meltdown patches
 sed -i 's/quiet"/quiet spectre_v2=off nopti hugepagesz=2M hugepages=64"/' /etc/default/grub
@@ -71,6 +73,10 @@ git clone https://github.com/openshift/openshift-ansible.git -b v3.11.0 --depth 
 # TODO: remove it when the fix will be available under the v3.11.0 tag
 sed -i 's/python-docker/python-docker-py/' $openshift_ansible/playbooks/init/base_packages.yml
 
+# Apply fix https://github.com/openshift/openshift-ansible/issues/11213
+# TODO: remove it when the fix will be available under the v3.11.0 tag
+sed -i 's/origin-ansible-service-broker:latest/origin-ansible-service-broker:${version}/' $openshift_ansible/roles/ansible_service_broker/defaults/main.yml
+
 # Create ansible inventory file
 cat >$inventory_file <<EOF
 all:
@@ -100,7 +106,7 @@ all:
       vars:
         ansible_service_broker_registry_whitelist:
         - .*-apb$
-        ansible_service_broker_image: docker.io/ansibleplaybookbundle/origin-ansible-service-broker:ansible-service-broker-1.2.17-1
+        ansible_service_broker_image: docker.io/ansibleplaybookbundle/origin-ansible-service-broker:ansible-service-broker-1.3.22-1
         ansible_ssh_pass: vagrant
         ansible_ssh_user: root
         deployment_type: origin
