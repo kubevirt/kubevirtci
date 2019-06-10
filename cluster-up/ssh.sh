@@ -39,7 +39,8 @@ if [[ $provider_prefix =~ okd.* ]]; then
         echo "no ssh port found for $node"
         exit 1
     fi
-    ssh -lcore -p $port core@127.0.0.1 -i ${ssh_key}
+    shift
+    ssh -lcore -p $port core@127.0.0.1 -i ${ssh_key} $@
 else
-    ${_cli} --prefix $provider_prefix ssh "$1"
+    ${_cli} --prefix $provider_prefix ssh "$@"
 fi
