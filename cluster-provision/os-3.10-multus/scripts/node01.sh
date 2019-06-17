@@ -93,3 +93,9 @@ oc -n kube-system delete po `oc get po -n kube-system | grep ovs-cni-plugin | aw
 oc -n kube-system delete po `oc get po -n kube-system | grep ovs-vsctl-amd64 | awk '{print $1}'`
 
 /usr/bin/oc create -f /tmp/local-volume.yaml
+
+# Setup Linux bridge used in functional tests on nodes. This won't be needed once we
+# finish kubernetes-nmstate and use it for the setup instead.
+./cluster-up/kubectl.sh apply -f /tmp/linux-bridge-config-iptables.yaml
+while [ "$(./cluster-up/kubectl.sh get ds linux-bridge-config -o 'jsonpath={.status.numberDesiredNumberScheduled}')" == "0" ]; do sleep 1; done
+while [ "$(./cluster-up/kubectl.sh get ds linux-bridge-config -o 'jsonpath={.status.numberReady}')" != "$(./cluster-up/kubectl.sh get ds linux-bridge-config -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do sleep 1; done

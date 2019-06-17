@@ -185,5 +185,11 @@ while [[ "$(virsh list --name)" != "" ]]; do
     sleep 1
 done
 
+# Setup Linux bridge used in functional tests on nodes. This won't be needed once we
+# finish kubernetes-nmstate and use it for the setup instead.
+./cluster-up/kubectl.sh apply -f /tmp/linux-bridge-config-nftables.yaml
+while [ "$(./cluster-up/kubectl.sh get ds linux-bridge-config -o 'jsonpath={.status.numberDesiredNumberScheduled}')" == "0" ]; do sleep 1; done
+while [ "$(./cluster-up/kubectl.sh get ds linux-bridge-config -o 'jsonpath={.status.numberReady}')" != "$(./cluster-up/kubectl.sh get ds linux-bridge-config -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do sleep 1; done
+
 # remove the cache
 rm -rf /root/.cache/*

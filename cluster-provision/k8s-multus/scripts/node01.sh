@@ -42,3 +42,9 @@ while [[ $retry_counter -lt 20 && $kubectl_rc -ne 0 ]]; do
     retry_counter=$((retry_counter + 1))
 done
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/local-volume.yaml
+
+# Setup Linux bridge used in functional tests on nodes. This won't be needed once we
+# finish kubernetes-nmstate and use it for the setup instead.
+./cluster-up/kubectl.sh apply -f /tmp/linux-bridge-config-iptables.yaml
+while [ "$(./cluster-up/kubectl.sh get ds linux-bridge-config -o 'jsonpath={.status.numberDesiredNumberScheduled}')" == "0" ]; do sleep 1; done
+while [ "$(./cluster-up/kubectl.sh get ds linux-bridge-config -o 'jsonpath={.status.numberReady}')" != "$(./cluster-up/kubectl.sh get ds linux-bridge-config -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do sleep 1; done

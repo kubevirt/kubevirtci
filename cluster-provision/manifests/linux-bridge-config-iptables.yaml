@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: linux-bridge-config
+spec:
+  selector:
+    matchLabels:
+      name: linux-bridge-config
+  template:
+    metadata:
+      labels:
+        name: linux-bridge-config
+    spec:
+      hostNetwork: true
+      containers:
+      - name: linux-bridge-config
+        image: centos:7
+        command:
+        - sh
+        - -c
+        - |
+          set -ex
+          yum -y install epel-release
+          yum -y install \
+            https://kojipkgs.fedoraproject.org/packages/nmstate/0.0.6/2.el7/noarch/python2-libnmstate-0.0.6-2.el7.noarch.rpm \
+            https://kojipkgs.fedoraproject.org/packages/nmstate/0.0.6/2.el7/noarch/nmstate-0.0.6-2.el7.noarch.rpm \
+            iptables
+          echo '
+          interfaces:
+          - description: Linux bridge used for KubeVirt functional tests
+            name: br10
+            type: linux-bridge
+            state: up
+          ' > state.yml
+          nmstatectl set state.yml
+          iptables -I FORWARD 1 -i br10 -j ACCEPT
+          touch /tmp/ready
+          sleep INF
+        volumeMounts:
+        - name: dbus-socket
+          mountPath: /run/dbus/system_bus_socket
+        securityContext:
+          privileged: true
+        readinessProbe:
+          exec:
+            command:
+            - cat
+            - /tmp/ready
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: dbus-socket
+        hostPath:
+          path: /run/dbus/system_bus_socket
+          type: Socket
