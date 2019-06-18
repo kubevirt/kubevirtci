@@ -3,22 +3,11 @@
 * `base` contains the base image with some scripts, qemu and dnsmasq
 * `centos7` adds a vagrant centos7 box to the image
 * `cli` contains a tool for provisioning, running and managing the containerized clusters
-* `k8s-1.9.3` k8s-1.9.3 cluster based on the centos7 image, provisioned with kubeadm
-* `k8s-1.10.3` k8s-1.10.3 cluster based on the centos7 image, provisioned with kubeadm
-* `k8s-1.10.4` k8s-1.10.4 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.10.11` k8s-1.10.11 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.11.0` k8s-1.11.0 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.13.3` k8s-1.13.3 cluster based on the centos7 image, provisioned with kubeadm
-* `k8s-multus-1.10.4` k8s-1.10.4 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
-* `k8s-multus-1.11.1` k8s-1.11.1 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
-* `k8s-multus-1.12.2` k8s-1.12.2 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
 * `k8s-multus-1.13.3` k8s-1.13.3 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
 * `k8s-genie-1.11.1` k8s-1.11.1 cluster based on the centos7 image and uses genie CNI, provisioned with kubeadm
-* `os-3.9` os-3.9 cluster based on the centos7 image, provisioned with openshift-ansible
-* `os-3.9-crio` os-3.9 cluster with CRI-O support based on the centos7 image, provisioned with openshift-ansible
-* `os-3.10.0` os-3.10.0 cluster based on the centos7 image, provisioned with openshift-ansible
-* `os-3.10-crio` os-3.10 cluster with CRI-O support based on the centos7 image, provisioned with openshift-ansible
-* `os-3.10-multus` os-3.10 cluster with multus cni support based on the centos7 image, provisioned with openshift-ansible
 * `os-3.11.0` os-3.11.0 cluster based on the centos7 image, provisioned with openshift-ansible
 * `os-3.11-crio` os-3.11 cluster with CRI-O support based on the centos7 image, provisioned
 * `os-3.11-multus` os-3.11 cluster with multus cni support based on the centos7 image, provisioned with openshift-ansible
@@ -29,23 +18,12 @@
 * `kubevirtci/gocli`: `sha256:b52e44d4e44e4c03811a42af9136492fd22f725523c4a3b9258ca9556447736d`
 * `kubevirtci/base`: `sha256:034de1a154409d87498050ccc281d398ce1a0fed32efdbd66d2041a99a46b322`
 * `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
-* **Deprecated**: `kubevirtci/os-3.9.0:`: `sha256:234b3ae5c335c9fa32fa3bc01d5833f8f4d45420d82a8f8b12adc02687eb88b1`
-* **Deprecated**: `kubevirtci/os-3.9.0-crio:`: `sha256:107d03dad4da6957e28774b121a45e177f31d7b4ad43c6eab7b24d467e59e213`
-* **Deprecated**: `kubevirtci/os-3.10.0:`: `sha256:cc418c0c837d8e6c9a31a063762d9e4c8bfc70a1fcca10823b11c6d8a7ae2394`
-* **Deprecated**: `kubevirtci/os-3.10.0-crio:`: `sha256:56debd7bc2ce87dd616ebc30f06971e388b6983c0cda8646a7563e1dafadb69b`
-* **Deprecated**: `kubevirtci/os-3.10.0-multus`: `sha256:875c973099141ab2013aaf51ec2b35b5326be943ef1437e4a87e041405e724ca`
 * `kubevirtci/os-3.11.0-multus`: `sha256:f2d03ccbe60157e60a5be3b41536e1ba046fc1820c1ceec1f0018b0362c7808c`
 * `kubevirtci/os-3.11.0:`: `sha256:ce98292a3e11f6b69a8c2db173c586fd1aea5a2f34031e5e5bc16802320cec82`
 * `kubevirtci/os-3.11.0-crio:`: `sha256:ec798b0399f7ffeb0477a077574205cd379b79710a14965eab52c798be2bdc52`
-* **Deprecated**: `kubevirtci/k8s-1.9.3:`: `sha256:f6ffb23261fb8aa15ed45b8d17e1299e284ea75e1d2814ee6b4ec24ecea6f24b`
-* **Deprecated**: `kubevirtci/k8s-1.10.3:`: `sha256:d6290260e7e6b84419984f12719cf592ccbe327373b8df76aa0481f8ec01d357`
-* **Deprecated**: `kubevirtci/k8s-1.10.4:`: `sha256:2ed70abfa8f6c30d990b76b816577040c0709258cbbd7c70f71a70d547f5544f`
 * `kubevirtci/k8s-1.10.11:`: `sha256:f563a8ab4719e53c2372c4f41dfe55256677ec7afc442dfaebd494926005e3e5`
 * `kubevirtci/k8s-1.11.0:`: `sha256:4d28fb90ac31fad9788fb0316e3bfd268d7ad322bd1b442075183eacacd1ace2`
 * `kubevirtci/k8s-1.13.3:`: `sha256:9c2b78e11c25b3fd0b24b0ed684a112052dff03eee4ca4bdcc4f3168f9a14396`
-* **Deprecated**: `kubevirtci/k8s-multus-1.10.4:`: `sha256:1d16d436347fcb9eba28cad08f6e074d4628e9a097a7325eb1ab87351e7f6d5c`
-* **Deprecated**: `kubevirtci/k8s-multus-1.11.1:`: `sha256:3d35b19105344e270be168920e98287fbefcd5366fdf78681712d05725204559`
-* **Deprecated**: `kubevirtci/k8s-multus-1.12.2:`: `sha256:d3ebf4a59ed379e59552ce8165596ade121d32e6b8782c192ff4f29863547c78`
 * `kubevirtci/k8s-multus-1.13.3:`: `sha256:8418163abbc4acddefa26a63706446af9fd67aab20388a5e8d453cff0c0169f1`
 * `kubevirtci/k8s-genie-1.11.1:`: `sha256:f1e2e729302bc0f2d4a176807f36c02b44c62605ad80d10249bb85682433b3a4`
 
