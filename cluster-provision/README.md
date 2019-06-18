@@ -31,11 +31,13 @@
 
 * `okd-base` contains all needed packages to provision and run OKD cluster on top of the libvirt provider
 * `okd-4.1.0` okd-4.1.0 cluster provisioned with OpenShift installer on top of the libvirt provider
+* `okd-4.1.2` okd-4.1.2 cluster provisioned with OpenShift installer on top of the libvirt provider, this image contains custom libvirt image that includes fixes to deploy new nodes without need to apply any W/A
 
 ## Versions to use
 
 * `kubevirtci/okd-base`: `sha256:90b0522eed6dc2593300b33b05977d3a2d30581e58f05943658791c87d2bae89`
 * `kubevirtci/okd-4.1.0`: `sha256:8a89ea659ffcfc6402d7d6ee43418bf2194b27ea74c239699e8268e29639aaa4`
+* `kubevirtci/okd-4.1.2`: `sha256:7cdb7357a7d9e8055ae2b26a9d8c926fb81440c3c5cf917407ec51297c31479f`
 
 ## Using gocli
 

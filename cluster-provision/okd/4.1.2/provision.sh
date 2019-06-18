@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -x
+
+PARENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/../.. && pwd )"
+
+okd_base_hash="sha256:90b0522eed6dc2593300b33b05977d3a2d30581e58f05943658791c87d2bae89"
+gocli_image_hash="sha256:b52e44d4e44e4c03811a42af9136492fd22f725523c4a3b9258ca9556447736d"
+
+gocli="docker run \
+--privileged \
+--net=host \
+--rm -t \
+-v /var/run/docker.sock:/var/run/docker.sock \
+-v ${PARENT_DIR}:${PARENT_DIR} \
+docker.io/kubevirtci/gocli@${gocli_image_hash}"
+
+# Custom release image contains libvirt provider PR's
+# https://github.com/openshift/cluster-api-provider-libvirt/pull/155
+# https://github.com/openshift/cluster-api-provider-libvirt/pull/156
+# https://github.com/openshift/cluster-api-provider-libvirt/pull/157
+${gocli} provision okd \
+--prefix okd-4.1.2 \
+--dir-scripts ${PARENT_DIR}/okd/scripts \
+--dir-manifests ${PARENT_DIR}/manifests \
+--dir-hacks ${PARENT_DIR}/okd/hacks \
+--master-memory 10240 \
+--installer-pull-token-file ${INSTALLER_PULL_SECRET} \
+--installer-repo-tag release-4.1 \
+--installer-release-image docker.io/alukiano/ocp-release:4.1.2 \
+"kubevirtci/okd-base@${okd_base_hash}"

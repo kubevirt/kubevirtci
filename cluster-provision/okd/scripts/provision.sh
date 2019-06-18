@@ -155,12 +155,11 @@ for master in ${masters}; do
 done
 
 # Add registry:5000 to insecure registries
-until oc patch image.config.openshift.io/cluster --type merge --patch '{"spec": {"registrySources": {"insecureRegistries": ["registry:5000", "brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888"]}}}'
-do
+until oc patch image.config.openshift.io/cluster --type merge --patch '{"spec": {"registrySources": {"insecureRegistries": ["registry:5000", "brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888"]}}}'; do
     sleep 5
 done
 
-until [[ $(oc get nodes --no-headers | grep Ready,SchedulingDisabled | wc -l) -ge 1 ]]; do
+until [[ $(oc get nodes --no-headers | grep master | grep Ready,SchedulingDisabled | wc -l) -ge 1 ]]; do
     sleep 10
 done
 
@@ -171,6 +170,45 @@ done
 
 until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready | wc -l) -ge 2 ]]; do
     sleep 10
+done
+
+# Update machine-api-operator feature gate to enable TechPreview features
+until oc -n openshift-machine-api patch featuregates.config.openshift.io/cluster --type merge --patch '{"spec": {"featureSet": "TechPreviewNoUpgrade"}}'; do
+    sleep 5
+done
+
+until [[ $(oc get nodes --no-headers | grep master | grep Ready,SchedulingDisabled | wc -l) -ge 1 ]]; do
+    sleep 10
+done
+
+# Make master nodes schedulable
+for master in ${masters}; do
+    oc adm uncordon ${master}
+done
+
+until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready | wc -l) -ge 2 ]]; do
+    sleep 10
+done
+
+# Disable updates of machines configurations, because on the update the machine-config
+# controller will try to drain the master node, but it not possible with only one master
+# so the node will stay in cordon state forewer.
+# It will prevent any updates of the kubelet or registries configuration on the machine
+# so if you need some, please add it before these lines
+
+# Scale down cluster version operator to prevent updates of other operators
+until oc -n openshift-cluster-version scale --replicas=0 deploy cluster-version-operator; do
+    sleep 5
+done
+
+# Scale down machine-config-operator to prevent re-creation of master machineconfigpools
+until oc -n openshift-machine-config-operator scale --replicas=0 deploy machine-config-operator; do
+    sleep 5
+done
+
+# Delete machine-config-daemon to prevent configuration updates
+until oc -n openshift-machine-config-operator delete ds machine-config-daemon; do
+    sleep 5
 done
 
 # Make sure that all VMs can reach the internet
