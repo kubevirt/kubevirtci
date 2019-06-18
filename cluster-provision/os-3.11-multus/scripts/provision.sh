@@ -83,9 +83,6 @@ sed -i 's/python-docker/python-docker-py/' $openshift_ansible/playbooks/init/bas
 # Create ansible inventory file
 cat >$inventory_file <<EOF
 all:
-  vars:
-    olm_operator_image: quay.io/coreos/olm:master-08ea39b7
-    olm_catalog_operator_image: quay.io/coreos/catalog:master-57dd618d
   children:
     OSEv3:
       hosts:
@@ -107,9 +104,7 @@ all:
           hosts:
             node01:
       vars:
-        ansible_service_broker_registry_whitelist:
-        - .*-apb$
-        ansible_service_broker_image: docker.io/ansibleplaybookbundle/origin-ansible-service-broker:ansible-service-broker-1.2.17-1
+        openshift_enable_service_catalog: false
         ansible_ssh_pass: vagrant
         ansible_ssh_user: root
         deployment_type: origin
@@ -149,6 +144,11 @@ all:
         osm_controller_args:
           feature-gates:
           - BlockVolume=true
+        openshift_master_audit_config:
+          enabled: true
+          logFormat: json
+          auditFilePath: "/var/lib/origin/audit-ocp.log"
+          policyFile: "/etc/origin/master/adv-audit.yaml"
         openshift_node_groups:
         - name: node-config-master-infra-kubevirt
           labels:
@@ -189,6 +189,27 @@ all:
             - '60'
 EOF
 
+mkdir -p /etc/origin/master
+cat >/etc/origin/master/adv-audit.yaml <<EOF
+apiVersion: audit.k8s.io/v1beta1
+kind: Policy
+rules:
+- level: Request
+  users: ["system:admin"]
+  resources:
+  - group: kubevirt.io
+    resources:
+    - virtualmachines
+    - virtualmachineinstances
+    - virtualmachineinstancereplicasets
+    - virtualmachineinstancepresets
+    - virtualmachineinstancemigrations
+  omitStages:
+  - RequestReceived
+  - ResponseStarted
+  - Panic
+EOF
+
 # Add cri-o variable to inventory file
 if [[ $1 == "true" ]]; then
     sed -i "s/    vars\:/    vars\:\n        openshift_use_crio: 'true'/" $inventory_file
@@ -197,8 +218,6 @@ fi
 # Install prerequisites
 ansible-playbook -e "ansible_user=root ansible_ssh_pass=vagrant" -i $inventory_file $openshift_ansible/playbooks/prerequisites.yml
 ansible-playbook -i $inventory_file $openshift_ansible/playbooks/deploy_cluster.yml
-# Install OLM
-ansible-playbook -i $inventory_file $openshift_ansible/playbooks/olm/config.yml
 
 # install the container networking cni plugins
 wget https://github.com/containernetworking/plugins/releases/download/v0.8.0/cni-plugins-linux-amd64-v0.8.0.tgz -P /opt/cni/bin/
