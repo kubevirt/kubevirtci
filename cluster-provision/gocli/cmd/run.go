@@ -56,6 +56,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().UintP("nodes", "n", 1, "number of cluster nodes to start")
 	run.Flags().StringP("memory", "m", "3096M", "amount of ram per node")
 	run.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
+	run.Flags().UintP("secondary-nics", "", 0, "number of secondary nics to add")
 	run.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	run.Flags().BoolP("background", "b", false, "go to background after nodes are up")
 	run.Flags().BoolP("reverse", "r", false, "revert node startup order")
@@ -118,6 +119,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	cpu, err := cmd.Flags().GetUint("cpu")
+	if err != nil {
+		return err
+	}
+
+	secondaryNics, err := cmd.Flags().GetUint("secondary-nics")
 	if err != nil {
 		return err
 	}
@@ -384,9 +390,14 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 		volumes <- vol.Name
 
-		if len(qemuArgs) > 0 {
-			qemuArgs = "--qemu-args " + qemuArgs
+		for i := 0; i < int(secondaryNics); i++ {
+			qemuArgs = fmt.Sprintf("%s -device virtio-net-pci,netdev=secondarynet%d -netdev tap,id=secondarynet%d,ifname=stap%d,script=no,downscript=no", qemuArgs, i, i, i)
 		}
+
+		if len(qemuArgs) > 0 {
+			qemuArgs = "--qemu-args \"" + qemuArgs + "\""
+		}
+
 		node, err := cli.ContainerCreate(ctx, &container.Config{
 			Image: cluster,
 			Env: []string{
