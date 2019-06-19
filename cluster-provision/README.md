@@ -15,7 +15,7 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
-* `kubevirtci/gocli`: `sha256:b52e44d4e44e4c03811a42af9136492fd22f725523c4a3b9258ca9556447736d`
+* `kubevirtci/gocli`: `sha256:8571161d7956b830646216335453b995ba754e07319dde062241ccc025f5ee00`
 * `kubevirtci/base`: `sha256:034de1a154409d87498050ccc281d398ce1a0fed32efdbd66d2041a99a46b322`
 * `kubevirtci/centos:1804_02`: `sha256:70653d952edfb8002ab8efe9581d01960ccf21bb965a9b4de4775c8fbceaab39`
 * `kubevirtci/os-3.11.0-multus`: `sha256:f2d03ccbe60157e60a5be3b41536e1ba046fc1820c1ceec1f0018b0362c7808c`
@@ -65,7 +65,7 @@ gocli provision okd \
 --installer-pull-token-file <installer_pull_token_file> \
 --installer-repo-tag release-4.1 \
 --installer-release-image quay.io/openshift-release-dev/ocp-release:4.1.0-rc.7 \
-kubevirtci/okd-base@sha256:b52e44d4e44e4c03811a42af9136492fd22f725523c4a3b9258ca9556447736d
+kubevirtci/okd-base@sha256:8571161d7956b830646216335453b995ba754e07319dde062241ccc025f5ee00
 ```
 
 ***
