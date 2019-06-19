@@ -2,7 +2,7 @@
 
 set -e
 
-_cli_container="kubevirtci/gocli@sha256:8571161d7956b830646216335453b995ba754e07319dde062241ccc025f5ee00"
+_cli_container="kubevirtci/gocli@sha256:99f7cd3009911a9dfc4e67a5adf9f75a8244a9ca2583540e81736e93c4bb0556"
 _cli_with_tty="docker run --privileged --net=host --rm -t -v /var/run/docker.sock:/var/run/docker.sock ${_cli_container}"
 _cli="docker run --privileged --net=host --rm ${USE_TTY} -v /var/run/docker.sock:/var/run/docker.sock ${_cli_container}"
 
