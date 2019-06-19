@@ -19,8 +19,17 @@ enabled=1
 gpgcheck=0
 EOF
 
+cat >/etc/yum.repos.d/ansible.repo <<EOF
+[Ansible]
+name=Ansible
+baseurl=https://releases.ansible.com/ansible/rpm/release/epel-7-x86_64/
+enabled=1
+gpgcheck=0
+EOF
+
 # Install OpenShift packages
-yum install -y wget \
+yum install -y ansible-2.7.11-1.el7.ans \
+  wget \
   git \
   net-tools \
   bind-utils \
@@ -38,9 +47,6 @@ yum install -y wget \
   cockpit-docker-176-2.el7.centos.x86_64 \
   docker-1.13.1-75.git8633870.el7.centos.x86_64 \
   python-docker-pycreds-1.10.6-4.el7.noarch
-
-wget https://releases.ansible.com/ansible/rpm/release/epel-7-x86_64/ansible-2.7.9-1.el7.ans.noarch.rpm
-yum -y localinstall ansible-2.7.9-1.el7.ans.noarch.rpm
 
 # Disable spectre and meltdown patches
 sed -i 's/quiet"/quiet spectre_v2=off nopti hugepagesz=2M hugepages=64"/' /etc/default/grub
