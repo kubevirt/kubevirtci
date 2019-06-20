@@ -109,6 +109,10 @@ func Exec(cli *client.Client, container string, args []string, out io.Writer) (b
 
 func Terminal(cli *client.Client, container string, args []string, file *os.File) (int, error) {
 
+	if !terminal.IsTerminal(int(file.Fd())) {
+		return 1, fmt.Errorf("failure calling terminal out of TTY")
+	}
+
 	ctx := context.Background()
 	id, err := cli.ContainerExecCreate(ctx, container, types.ExecConfig{
 		Privileged:   true,
@@ -135,40 +139,38 @@ func Terminal(cli *client.Client, container string, args []string, file *os.File
 	}
 	defer attached.Close()
 
-	if terminal.IsTerminal(int(file.Fd())) {
-		state, err := terminal.MakeRaw(int(file.Fd()))
-		if err != nil {
-			return -1, err
-		}
+	state, err := terminal.MakeRaw(int(file.Fd()))
+	if err != nil {
+		return -1, err
+	}
 
-		errChan := make(chan error)
+	errChan := make(chan error)
 
-		go func() {
-			interrupt := make(chan os.Signal, 1)
-			signal.Notify(interrupt, os.Interrupt)
-			<-interrupt
-			close(errChan)
-		}()
+	go func() {
+		interrupt := make(chan os.Signal, 1)
+		signal.Notify(interrupt, os.Interrupt)
+		<-interrupt
+		close(errChan)
+	}()
 
-		go func() {
-			_, err := io.Copy(file, attached.Conn)
-			errChan <- err
-		}()
+	go func() {
+		_, err := io.Copy(file, attached.Conn)
+		errChan <- err
+	}()
 
-		go func() {
-			_, err := io.Copy(attached.Conn, file)
-			errChan <- err
-		}()
+	go func() {
+		_, err := io.Copy(attached.Conn, file)
+		errChan <- err
+	}()
 
-		defer func() {
-			terminal.Restore(int(file.Fd()), state)
-		}()
+	defer func() {
+		terminal.Restore(int(file.Fd()), state)
+	}()
 
-		err = <-errChan
+	err = <-errChan
 
-		if err != nil {
-			return -1, err
-		}
+	if err != nil {
+		return -1, err
 	}
 
 	resp, err := cli.ContainerExecInspect(ctx, id.ID)

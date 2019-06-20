@@ -5,6 +5,7 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh/terminal"
 	"kubevirt.io/kubevirtci/gocli/docker"
 )
 
@@ -35,10 +36,25 @@ func ssh(cmd *cobra.Command, args []string) error {
 	}
 
 	// TODO we can do the ssh session with the native golang client
-	exitCode, err := docker.Terminal(cli, prefix+"-"+node, append([]string{"ssh.sh"}, args[1:]...), os.Stdout)
-	if err != nil {
-		return err
+	container := prefix + "-" + node
+	ssh_command := append([]string{"ssh.sh"}, args[1:]...)
+	file := os.Stdout
+	if terminal.IsTerminal(int(file.Fd())) {
+		exitCode, err := docker.Terminal(cli, container, ssh_command, file)
+		if err != nil {
+			return err
+		}
+		os.Exit(exitCode)
+	} else {
+		execExitCodeIsZero, err := docker.Exec(cli, container, ssh_command, file)
+		if err != nil {
+			return err
+		}
+		exitCode := 0
+		if !execExitCodeIsZero {
+			exitCode = 1
+		}
+		os.Exit(exitCode)
 	}
-	os.Exit(exitCode)
 	return nil
 }
