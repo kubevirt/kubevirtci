@@ -375,6 +375,17 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	// start one vm after each other
 	for x := 0; x < int(nodes); x++ {
 
+		nodeQemuArgs := qemuArgs
+
+		for i := 0; i < int(secondaryNics); i++ {
+			netSuffix := fmt.Sprintf("%d-%d", x, i)
+			nodeQemuArgs = fmt.Sprintf("%s -device virtio-net-pci,netdev=secondarynet%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, netSuffix, netSuffix, netSuffix)
+		}
+
+		if len(nodeQemuArgs) > 0 {
+			nodeQemuArgs = "--qemu-args \"" + nodeQemuArgs + "\""
+		}
+
 		nodeName := nodeNameFromIndex(x + 1)
 		nodeNum := fmt.Sprintf("%02d", x+1)
 		if reverse {
@@ -390,14 +401,6 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 		volumes <- vol.Name
 
-		for i := 0; i < int(secondaryNics); i++ {
-			qemuArgs = fmt.Sprintf("%s -device virtio-net-pci,netdev=secondarynet%d -netdev tap,id=secondarynet%d,ifname=stap%d,script=no,downscript=no", qemuArgs, i, i, i)
-		}
-
-		if len(qemuArgs) > 0 {
-			qemuArgs = "--qemu-args \"" + qemuArgs + "\""
-		}
-
 		node, err := cli.ContainerCreate(ctx, &container.Config{
 			Image: cluster,
 			Env: []string{
@@ -406,7 +409,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			Volumes: map[string]struct{}{
 				"/var/run/disk/": {},
 			},
-			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), qemuArgs)},
+			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), nodeQemuArgs)},
 		}, &container.HostConfig{
 			Mounts: []mount.Mount{
 				{

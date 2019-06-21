@@ -6,9 +6,9 @@ git clone https://github.com/kubevirt/kubevirtci.git
 cd kubevirtci
 ```
 
-Start multi node k8s cluster
+Start multi node k8s cluster with 2 nics
 ```
-export KUBEVIRT_PROVIDER=k8s-1.13.3 KUBEVIRT_NUM_NODES=2
+export KUBEVIRT_PROVIDER=k8s-1.13.3 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS 1
 make cluster-up
 ```
 
@@ -23,7 +23,7 @@ cluster-up/kubectl.sh get nodes
 cluster-up/kubectl.sh get pods --all-namespaces
 ```
 
-Use your own kubectl client by defining the KUBECONFIG environment variable 
+Use your own kubectl client by defining the KUBECONFIG environment variable
 ```
 export KUBECONFIG=$(cluster-up/kubeconfig.sh)
 
@@ -61,7 +61,7 @@ cluster-up/oc.sh get nodes
 cluster-up/oc.sh get pods --all-namespaces
 ```
 
-Use your own OC client by defining the KUBECONFIG environment variable 
+Use your own OC client by defining the KUBECONFIG environment variable
 ```
 export KUBECONFIG=$(cluster-up/kubeconfig.sh)
 
@@ -81,5 +81,5 @@ cluster-up/ssh.sh worker-0
 
 Accessing OKD UI
 ```
-TODO - in the process of working out the details here. 
+TODO - in the process of working out the details here.
 ```
