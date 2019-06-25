@@ -161,7 +161,30 @@ networking:
 EOF
 
 # New configuration for kubernetes >= 1.12
-if [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
+if [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
+
+# audit log configuration
+mkdir /etc/kubernetes/audit
+cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+- level: Request
+  users: ["kubernetes-admin"]
+  resources:
+  - group: kubevirt.io
+    resources:
+    - virtualmachines
+    - virtualmachineinstances
+    - virtualmachineinstancereplicasets
+    - virtualmachineinstancepresets
+    - virtualmachineinstancemigrations
+  omitStages:
+  - RequestReceived
+  - ResponseStarted
+  - Panic
+EOF
+
 cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha3
 bootstrapTokens:
@@ -176,8 +199,19 @@ kind: InitConfiguration
 ---
 apiServerExtraArgs:
   enable-admission-plugins: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
-  feature-gates: BlockVolume=true
+  feature-gates: "BlockVolume=true,AdvancedAuditing=true"
   runtime-config: admissionregistration.k8s.io/v1alpha1
+  audit-policy-file: "/etc/kubernetes/audit/adv-audit.yaml"
+  audit-log-path: "/var/log/k8s-audit/k8s-audit.log"
+  audit-log-format: "json"
+apiServerExtraVolumes:
+- name: audit-conf
+  hostPath: "/etc/kubernetes/audit"
+  mountPath: "/etc/kubernetes/audit"
+- name: audit-log
+  hostPath: "/var/log/k8s-audit"
+  mountPath: "/var/log/k8s-audit"
+  writable: true
 apiVersion: kubeadm.k8s.io/v1alpha3
 controllerManagerExtraArgs:
   feature-gates: BlockVolume=true
