@@ -124,6 +124,28 @@ fi
 
 $reset_command
 
+# audit log configuration
+mkdir /etc/kubernetes/audit/
+cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
+apiVersion: audit.k8s.io/v1beta1
+kind: Policy
+rules:
+- level: Request
+  users: ["kubernetes-admin"]
+  resources:
+  - group: kubevirt.io
+    resources:
+    - virtualmachines
+    - virtualmachineinstances
+    - virtualmachineinstancereplicasets
+    - virtualmachineinstancepresets
+    - virtualmachineinstancemigrations
+  omitStages:
+  - RequestReceived
+  - ResponseStarted
+  - Panic
+EOF
+
 # TODO new format since 1.11, this old format will be removed with 1.12, see https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file
 cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha1
@@ -131,7 +153,18 @@ kind: MasterConfiguration
 apiServerExtraArgs:
   runtime-config: admissionregistration.k8s.io/v1alpha1
   ${admission_flag}: Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
-  feature-gates: "BlockVolume=true"
+  feature-gates: "BlockVolume=true,AdvancedAuditing=true"
+  audit-policy-file: "/etc/kubernetes/audit/adv-audit.yaml"
+  audit-log-path: "/var/log/k8s-audit/k8s-audit.log"
+  audit-log-format: "json"
+apiServerExtraVolumes:
+- name: audit-conf
+  hostPath: "/etc/kubernetes/audit"
+  mountPath: "/etc/kubernetes/audit"
+- name: audit-log
+  hostPath: "/var/log/k8s-audit"
+  mountPath: "/var/log/k8s-audit"
+  writable: true
 controllerManagerExtraArgs:
   feature-gates: "BlockVolume=true"
 token: abcdef.1234567890123456
