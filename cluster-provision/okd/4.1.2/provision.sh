@@ -15,13 +15,17 @@ gocli="docker run \
 -v ${PARENT_DIR}:${PARENT_DIR} \
 docker.io/kubevirtci/gocli@${gocli_image_hash}"
 
+# Custom release image contains libvirt provider PR's
+# https://github.com/openshift/cluster-api-provider-libvirt/pull/155
+# https://github.com/openshift/cluster-api-provider-libvirt/pull/156
+# https://github.com/openshift/cluster-api-provider-libvirt/pull/157
 ${gocli} provision okd \
---prefix okd-4.1.0 \
+--prefix okd-4.1.2 \
 --dir-scripts ${PARENT_DIR}/okd/scripts \
 --dir-manifests ${PARENT_DIR}/manifests \
 --dir-hacks ${PARENT_DIR}/okd/hacks \
 --master-memory 10240 \
 --installer-pull-token-file ${INSTALLER_PULL_SECRET} \
 --installer-repo-tag release-4.1 \
---installer-release-image quay.io/openshift-release-dev/ocp-release:4.1.0-rc.7 \
+--installer-release-image docker.io/alukiano/ocp-release:4.1.2 \
 "kubevirtci/okd-base@${okd_base_hash}"

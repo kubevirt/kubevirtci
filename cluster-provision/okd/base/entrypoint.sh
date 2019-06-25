@@ -1,5 +1,9 @@
 #!/usr/bin/bash
 
+# set KVM device permissions
+chown root:kvm /dev/kvm
+chmod 660 /dev/kvm
+
 # configure iptables
 iptables \
     -I INPUT \
