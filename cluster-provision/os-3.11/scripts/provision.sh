@@ -156,10 +156,10 @@ all:
             - RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true,BlockVolume=true
           - key: kubeletArguments.max-pods
             value:
-            - '40'
+            - '110'
           - key: kubeletArguments.pods-per-core
             value:
-            - '40'
+            - '110'
         - name: node-config-compute-kubevirt
           labels:
           - node-role.kubernetes.io/compute=true
@@ -178,10 +178,10 @@ all:
             - cpu=500m
           - key: kubeletArguments.max-pods
             value:
-            - '40'
+            - '110'
           - key: kubeletArguments.pods-per-core
             value:
-            - '40'
+            - '110'
 EOF
 
 mkdir -p /etc/origin/master
