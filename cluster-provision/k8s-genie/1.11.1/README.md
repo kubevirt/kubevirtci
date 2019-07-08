@@ -5,13 +5,13 @@
 Running `cli` directly:
 
 ```bash
-cli provision --scripts /scripts --base kubevirtci/centos:1804_02 --tag kubevirtci/k8s-genie-1.11.1
+cli provision --scripts /scripts --base kubevirtci/centos:1905_01 --tag kubevirtci/k8s-genie-1.11.1
 ```
 
 Running `cli` from within docker:
 
 ```bash
-docker run --privileged --rm -v ${PWD}/scripts/:/scripts/ -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/cli provision --scripts /scripts --base kubevirtci/centos:1804_02 --tag kubevirtci/k8s-genie-1.11.1 --k8s-version 1.11.1
+docker run --privileged --rm -v ${PWD}/scripts/:/scripts/ -v /var/run/docker.sock:/var/run/docker.sock kubevirtci/cli provision --scripts /scripts --base kubevirtci/centos:1905_01 --tag kubevirtci/k8s-genie-1.11.1 --k8s-version 1.11.1
 ```
 
 ## Run the cluster
