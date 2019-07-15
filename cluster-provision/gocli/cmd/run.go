@@ -373,13 +373,16 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(int(nodes))
 	// start one vm after each other
+	macCounter := 0
 	for x := 0; x < int(nodes); x++ {
 
 		nodeQemuArgs := qemuArgs
 
 		for i := 0; i < int(secondaryNics); i++ {
 			netSuffix := fmt.Sprintf("%d-%d", x, i)
-			nodeQemuArgs = fmt.Sprintf("%s -device virtio-net-pci,netdev=secondarynet%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, netSuffix, netSuffix, netSuffix)
+			macSuffix := fmt.Sprintf("%02x", macCounter)
+			macCounter++
+			nodeQemuArgs = fmt.Sprintf("%s -device virtio-net-pci,netdev=secondarynet%s,mac=52:55:00:d1:56:%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, netSuffix, macSuffix, netSuffix, netSuffix)
 		}
 
 		if len(nodeQemuArgs) > 0 {
