@@ -4,6 +4,8 @@ Provides a pre-deployed k8s cluster with version 1.14.2 that runs using [kind](h
 The KubeVirt containers are built on the local machine and are the pushed to a registry which is exposed at
 `localhost:5000`.
 
+This version also expects to have sriov-enabed nics on the current host, and will move all the physical interfaces and virtual interfaces into the `kind`'s cluster node so that they can be used through multus.
+
 ## Bringing the cluster up
 
 ```bash
