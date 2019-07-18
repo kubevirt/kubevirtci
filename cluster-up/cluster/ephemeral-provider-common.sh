@@ -21,8 +21,8 @@ master_ip=$(_main_ip)
 kubeconfig=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
 kubectl=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubectl
 gocli=${BASE_PATH}/../cluster-up/cli.sh
-docker_prefix=localhost:$(_port registry)/kubevirt
-manifest_docker_prefix=registry:5000/kubevirt
+docker_prefix=\${DOCKER_PREFIX:-localhost:$(_port registry)/kubevirt}
+manifest_docker_prefix=\${DOCKER_PREFIX:-registry:5000/kubevirt}
 EOF
 }
 
