@@ -25,7 +25,7 @@ kind-1.14.2-worker          Ready    <none>   71s    v1.14.2
 ## Bringing the cluster down
 
 ```bash
-export KUBEVIRT_PROVIDER=kind-k8s-sriov-1.14.2
+export KUBEVIRT_PROVIDER=kind-k8s-1.14.2
 make cluster-down
 ```
 
