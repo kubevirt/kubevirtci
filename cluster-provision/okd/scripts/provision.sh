@@ -172,24 +172,6 @@ until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready |
     sleep 10
 done
 
-# Update machine-api-operator feature gate to enable TechPreview features
-until oc -n openshift-machine-api patch featuregates.config.openshift.io/cluster --type merge --patch '{"spec": {"featureSet": "TechPreviewNoUpgrade"}}'; do
-    sleep 5
-done
-
-until [[ $(oc get nodes --no-headers | grep master | grep Ready,SchedulingDisabled | wc -l) -ge 1 ]]; do
-    sleep 10
-done
-
-# Make master nodes schedulable
-for master in ${masters}; do
-    oc adm uncordon ${master}
-done
-
-until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready | wc -l) -ge 2 ]]; do
-    sleep 10
-done
-
 # Disable updates of machines configurations, because on the update the machine-config
 # controller will try to drain the master node, but it not possible with only one master
 # so the node will stay in cordon state forewer.
