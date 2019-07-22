@@ -57,7 +57,7 @@ function configure-sriovdp() {
 }
 
 function sriovdp-config-cmd() {
-    ./automation/kind-cluster/sriovdp_setup.sh
+    ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/sriovdp_setup.sh
     echo "cat <<EOF > /etc/pcidp/config.json
 $(cat /etc/pcidp/config.json)
 EOF
