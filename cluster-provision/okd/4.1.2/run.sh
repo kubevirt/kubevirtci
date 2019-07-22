@@ -2,7 +2,7 @@
 
 set -x
 
-okd_image_hash="sha256:7cdb7357a7d9e8055ae2b26a9d8c926fb81440c3c5cf917407ec51297c31479f"
+okd_image_hash="sha256:88fba5c00ba973c8da712d14689f1d93c40fa6a8e8efdb4da501b572adbd3d6b"
 gocli_image_hash="sha256:1e21a7b0fc959ae2a47d1d6462ceb74f9e9181d52f9bc618e61bcab80bedaa9e"
 
 gocli="docker run --privileged --net=host --rm -t -v /var/run/docker.sock:/var/run/docker.sock docker.io/kubevirtci/gocli@${gocli_image_hash}"
