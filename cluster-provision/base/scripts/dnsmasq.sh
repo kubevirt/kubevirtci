@@ -3,6 +3,7 @@
 set -e
 
 NUM_NODES=${NUM_NODES-1}
+NUM_SECONDARY_NICS=${NUM_SECONDARY_NICS-0}
 
 ip link add br0 type bridge
 ip link set dev br0 up
@@ -14,6 +15,11 @@ for i in $(seq 1 ${NUM_NODES}); do
   ip link set tap${n} master br0
   ip link set dev tap${n} up
   DHCP_HOSTS="${DHCP_HOSTS} --dhcp-host=52:55:00:d1:55:${n},192.168.66.1${n},node${n},infinite"
+  for s in $(seq 1 ${NUM_SECONDARY_NICS}); do
+    tap_name=stap$(($i - 1))-$(($s - 1))
+    ip link set $tap_name master br0
+    ip link set dev $tap_name up
+  done
 done
 
 # Make sure that all VMs can reach the internet

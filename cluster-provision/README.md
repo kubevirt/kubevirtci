@@ -15,17 +15,17 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
-* `kubevirtci/gocli`: `sha256:1e21a7b0fc959ae2a47d1d6462ceb74f9e9181d52f9bc618e61bcab80bedaa9e`
-* `kubevirtci/base`: `sha256:034de1a154409d87498050ccc281d398ce1a0fed32efdbd66d2041a99a46b322`
-* `kubevirtci/centos:1905_01`: `sha256:f2b204a3fabf71494c3cf7a145dae88e63f068a84ca10149b0aec523045dc2c1`
-* `kubevirtci/os-3.11.0-multus`: `sha256:f8de6bda57209553e1a9e428dca1432270b7db0e5206376898b93aea64afd053`
-* `kubevirtci/os-3.11.0:`: `sha256:527daa78a9e460053925a862324f67390d45ffacaf26fe3fd5a6dc20a7892534`
-* `kubevirtci/os-3.11.0-crio:`: `sha256:5eb4a00c89a9dcadccd3360a43973ac38897511260ce192598d6d8731c0c3e7a`
+* `kubevirtci/gocli`: `sha256:868fd9f2b6e5ff6473ab92cdd7d3a762ec8a8c66dac29f5db841879d40038f2a`
+* `kubevirtci/base`: `sha256:1f9f2e12571cf96a89a3e24b15de0b2857db159b4c7d3657c81541845040c1bd`
+* `kubevirtci/centos:1905_01`: `sha256:728232c8b5b79bb69e1386a6b47acd72876faa386202b535e227bc605adffe33`
+* `kubevirtci/os-3.11.0-multus`: `sha256:adabdd119fe04d1808c57418369ea7ec84b94770f1686ca168f079c6618b23a4`
+* `kubevirtci/os-3.11.0:`: `sha256:ff54198c7eaa51ccf2aeff6d5dd1e9ca51ccfec6ee0237b0305fb3b6761f95f6`
+* `kubevirtci/os-3.11.0-crio:`: `sha256:66b348692b70c8017ef4e914f08252de5c26145640c516f749d38fc78c666589`
 * `kubevirtci/k8s-1.10.11:`: `sha256:f563a8ab4719e53c2372c4f41dfe55256677ec7afc442dfaebd494926005e3e5`
-* `kubevirtci/k8s-1.11.0:`: `sha256:2104f70ac71cee8985c0cb69eacab41bd706e6e5f6afbcc91b31a34c716871ac`
-* `kubevirtci/k8s-1.13.3:`: `sha256:1b6211919c9b1b2bb79d7c92a233721ae504f1ff17a111a897e3c3ceb64f3cd0`
-* `kubevirtci/k8s-multus-1.13.3:`: `sha256:4ceee57c99649df85664dd0434b1f98c69c2d75012110c4e7c8f6b5c41ce4b25`
-* `kubevirtci/k8s-genie-1.11.1:`: `sha256:f61813c7c41cdd51f235b28fb574a39dc71e421c388dc85c4019912d4a4421bb`
+* `kubevirtci/k8s-1.11.0:`: `sha256:afa15dbea2b520e7c5abe5880127bbfd5a9c15207792082d2cc6409943890001`
+* `kubevirtci/k8s-1.13.3:`: `sha256:40cc8c51bfcf87eb0e206ad38c3319a5a26ea479f71ee63195705f7dae59e00d`
+* `kubevirtci/k8s-multus-1.13.3:`: `sha256:6e7245922c44d06374534bbce7981934a964efd075e6de44bd532d869f267811`
+* `kubevirtci/k8s-genie-1.11.1:`: `sha256:b63ec1515bd88ee39dc46159c32fa4ee23c890005cbda7745a90dd9b72c25254`
 
 # OKD clusters in the container with libvirt
 
