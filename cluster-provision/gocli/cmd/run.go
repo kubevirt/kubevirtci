@@ -193,6 +193,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		Image: cluster,
 		Env: []string{
 			fmt.Sprintf("NUM_NODES=%d", nodes),
+			fmt.Sprintf("NUM_SECONDARY_NICS=%d", secondaryNics),
 		},
 		Cmd: []string{"/bin/bash", "-c", "/dnsmasq.sh"},
 		ExposedPorts: nat.PortSet{
