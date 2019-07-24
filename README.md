@@ -46,7 +46,7 @@ cd kubevirtci
 
 Start okd cluster (pre-configured with a master and worker node)
 ```
-export KUBEVIRT_PROVIDER=okd-4.1.0
+export KUBEVIRT_PROVIDER=okd-4.1
 make cluster-up
 ```
 

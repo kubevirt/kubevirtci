@@ -51,13 +51,13 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	// TODO: set number of workers via machine set under the run.sh script
-	// workers, err := cmd.Flags().GetString("workers")
-	// if err != nil {
-	// 	return err
-	// }
-
 	envs := []string{}
+	workers, err := cmd.Flags().GetString("workers")
+	if err != nil {
+		return err
+	}
+	envs = append(envs, fmt.Sprintf("WORKERS=%s", workers))
+
 	masterMemory, err := cmd.Flags().GetString("master-memory")
 	if err != nil {
 		return err

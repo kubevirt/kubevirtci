@@ -15,7 +15,7 @@ container-run: fmt
 	bazel run //:gocli
 
 push: fmt
-	bazel run //:push-all
+	bazel run --host_force_python=PY2 //:push-all
 
 generate:
 	dep ensure
