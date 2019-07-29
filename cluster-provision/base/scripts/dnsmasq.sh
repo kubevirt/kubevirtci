@@ -17,6 +17,7 @@ for i in $(seq 1 ${NUM_NODES}); do
   DHCP_HOSTS="${DHCP_HOSTS} --dhcp-host=52:55:00:d1:55:${n},192.168.66.1${n},node${n},infinite"
   for s in $(seq 1 ${NUM_SECONDARY_NICS}); do
     tap_name=stap$(($i - 1))-$(($s - 1))
+    ip tuntap add dev $tap_name mode tap user $(whoami)
     ip link set $tap_name master br0
     ip link set dev $tap_name up
   done

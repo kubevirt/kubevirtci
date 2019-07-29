@@ -4,4 +4,4 @@ set -e
 
 source ${KUBEVIRTCI_PATH}/cluster/os-3.11.0/provider.sh
 
-image="os-3.11.0-crio@sha256:66b348692b70c8017ef4e914f08252de5c26145640c516f749d38fc78c666589"
+image="os-3.11.0-crio@sha256:71ea794ff45e06ac521e2fe867f192b98ae989755629e4830ab919ecd3905337"
