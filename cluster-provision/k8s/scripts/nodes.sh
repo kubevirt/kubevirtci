@@ -13,14 +13,14 @@ done
 if [ -f /etc/sysconfig/kubelet ]; then
     # TODO use config file! this is deprecated
     cat <<EOT >>/etc/sysconfig/kubelet
-KUBELET_CPUMANAGER_ARGS=--feature-gates=CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m
+KUBELET_EXTRA_ARGS=${KUBELET_EXTRA_ARGS} --feature-gates=CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m
 EOT
 else
     cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
 Environment="KUBELET_CPUMANAGER_ARGS=--feature-gates=CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m"
 EOT
-fi
 sed -i 's/$KUBELET_EXTRA_ARGS/$KUBELET_EXTRA_ARGS $KUBELET_CPUMANAGER_ARGS/' /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+fi
 
 systemctl daemon-reload
 service kubelet restart
