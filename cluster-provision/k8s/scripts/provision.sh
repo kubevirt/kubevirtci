@@ -59,8 +59,6 @@ yum install --nogpgcheck -y \
     kubectl-${version} \
     kubernetes-cni-0.6.0
 
-# Latest docker on CentOS uses systemd for cgroup management
-# kubeadm 1.11 uses a new config method for the kubelet
 if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "15" ]]; then
     # TODO use config file! this is deprecated
     cat <<EOT >/etc/sysconfig/kubelet
@@ -149,7 +147,6 @@ $reset_command
 # audit log configuration
 mkdir /etc/kubernetes/audit
 
-# New configuration for kubernetes >= 1.12
 if [[ ${BASH_REMATCH[1]} -ge "15" ]]; then
 cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
 apiVersion: audit.k8s.io/v1

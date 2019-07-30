@@ -8,8 +8,6 @@ do
     sleep 2
 done
 
-# enable CPU manager
-# kubeadm 1.11 uses a new config method for the kubelet
 if [ -f /etc/sysconfig/kubelet ]; then
     # TODO use config file! this is deprecated
     cat <<EOT >>/etc/sysconfig/kubelet
