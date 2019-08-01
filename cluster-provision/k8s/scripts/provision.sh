@@ -59,9 +59,12 @@ yum install --nogpgcheck -y \
     kubectl-${version} \
     kubernetes-cni-0.6.0
 
-# Latest docker on CentOS uses systemd for cgroup management
-# kubeadm 1.11 uses a new config method for the kubelet
-if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
+if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "15" ]]; then
+    # TODO use config file! this is deprecated
+    cat <<EOT >/etc/sysconfig/kubelet
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
+EOT
+elif [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
     # TODO use config file! this is deprecated
     cat <<EOT >/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
@@ -144,8 +147,78 @@ $reset_command
 # audit log configuration
 mkdir /etc/kubernetes/audit
 
-# New configuration for kubernetes >= 1.12
-if [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
+if [[ ${BASH_REMATCH[1]} -ge "15" ]]; then
+cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+- level: Request
+  users: ["kubernetes-admin"]
+  resources:
+  - group: kubevirt.io
+    resources:
+    - virtualmachines
+    - virtualmachineinstances
+    - virtualmachineinstancereplicasets
+    - virtualmachineinstancepresets
+    - virtualmachineinstancemigrations
+  omitStages:
+  - RequestReceived
+  - ResponseStarted
+  - Panic
+EOF
+
+cat > /etc/kubernetes/kubeadm.conf <<EOF
+apiVersion: kubeadm.k8s.io/v1beta1
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: abcdef.1234567890123456
+  ttl: 24h0m0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+---
+apiServer:
+  extraArgs:
+    allow-privileged: "true"
+    audit-log-format: json
+    audit-log-path: /var/log/k8s-audit/k8s-audit.log
+    audit-policy-file: /etc/kubernetes/audit/adv-audit.yaml
+    enable-admission-plugins: NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
+    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,AdvancedAuditing=true
+  extraVolumes:
+  - hostPath: /etc/kubernetes/audit
+    mountPath: /etc/kubernetes/audit
+    name: audit-conf
+    readOnly: true
+  - hostPath: /var/log/k8s-audit
+    mountPath: /var/log/k8s-audit
+    name: audit-log
+  timeoutForControlPlane: 4m0s
+apiVersion: kubeadm.k8s.io/v1beta1
+certificatesDir: /etc/kubernetes/pki
+clusterName: kubernetes
+controlPlaneEndpoint: ""
+controllerManager:
+  extraArgs:
+    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true
+dns:
+  type: CoreDNS
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+imageRepository: k8s.gcr.io
+kind: ClusterConfiguration
+kubernetesVersion: ${version}
+networking:
+  dnsDomain: cluster.local
+  podSubnet: 10.244.0.0/16
+  serviceSubnet: 10.96.0.0/12
+EOF
+
+elif [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
 cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
 apiVersion: audit.k8s.io/v1
 kind: Policy
