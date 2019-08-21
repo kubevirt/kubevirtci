@@ -172,6 +172,33 @@ until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready |
     sleep 10
 done
 
+# Enable CPU manager on workers
+until oc label machineconfigpool worker custom-kubelet=cpumanager-enabled; do
+    sleep 5
+done
+
+oc create -f - <<EOF
+apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+  name: cpumanager-enabled
+spec:
+  machineConfigPoolSelector:
+    matchLabels:
+      custom-kubelet: cpumanager-enabled
+  kubeletConfig:
+     cpuManagerPolicy: static
+     cpuManagerReconcilePeriod: 5s
+EOF
+
+until [[ $(oc get nodes --no-headers | grep worker | grep SchedulingDisabled | wc -l) -ge 1 ]]; do
+    sleep 10
+done
+
+until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready | wc -l) -ge 2 ]]; do
+    sleep 10
+done
+
 # Disable updates of machines configurations, because on the update the machine-config
 # controller will try to drain the master node, but it not possible with only one master
 # so the node will stay in cordon state forewer.

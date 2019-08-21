@@ -61,3 +61,19 @@ until [[ $(oc get pods --all-namespaces --no-headers | grep -v Running | grep -v
     echo "waiting for pods to come online"
     sleep 10
 done
+
+# update worker machine set with desired number of CPU and memory
+worker_machine_set=$(oc -n openshift-machine-api get machineset --no-headers | grep worker | awk '{print $1}')
+until oc -n openshift-machine-api patch machineset ${worker_machine_set} --type merge --patch "{\"spec\": {\"template\": {\"spec\": {\"providerSpec\": {\"value\": {\"domainMemory\": ${WORKERS_MEMORY}, \"domainVcpu\": ${WORKERS_CPU}}}}}}}"; do
+    sleep 5
+done
+
+# update number of workers
+until oc -n openshift-machine-api scale --replicas=${WORKERS} machineset ${worker_machine_set}; do
+    sleep 5
+done
+
+# wait until all worker nodes will be ready
+until [[ $(oc get nodes | grep worker | grep Ready | wc -l) == ${WORKERS} ]]; do
+    sleep 5
+done

@@ -1,3 +1,29 @@
+load("@bazel_tools//tools/python:toolchain.bzl", "py_runtime_pair")
+
+py_runtime(
+    name = "python2_runtime",
+    interpreter_path = "/usr/bin/python2",
+    python_version = "PY2",
+)
+
+py_runtime(
+    name = "python3_runtime",
+    interpreter_path = "/usr/bin/python3",
+    python_version = "PY3",
+)
+
+py_runtime_pair(
+    name = "python_runtimes",
+    py2_runtime = ":python2_runtime",
+    py3_runtime = ":python3_runtime",
+)
+
+toolchain(
+    name = "python_toolchain",
+    toolchain = ":python_runtimes",
+    toolchain_type = "@bazel_tools//tools/python:toolchain_type",
+)
+
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 package(default_visibility = ["//visibility:public"])
