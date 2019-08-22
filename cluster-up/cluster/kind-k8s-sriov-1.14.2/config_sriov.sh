@@ -1,4 +1,5 @@
 #!/bin/bash -e
+set -x
 
 CONTROL_PLANE_CMD="docker exec -it -d ${CLUSTER_NAME}-control-plane"
 MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests"
@@ -15,7 +16,9 @@ function deploy_sriov_operator {
   fi
 
   pushd $OPERATOR_PATH
-    make deploy-setup-k8s
+    export OPERATOR_EXEC=kubectl
+    # on prow nodes the default shell is dash and some commands are not working
+    make deploy-setup-k8s SHELL=/bin/bash
   popd
 }
 
