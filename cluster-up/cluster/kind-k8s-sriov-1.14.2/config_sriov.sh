@@ -8,26 +8,16 @@ function wait_containers_ready {
     kubectl wait --for=condition=Ready pod --all -n kube-system --timeout 12m
 }
 
-function enable_vfio {
-    mount -o remount,rw /sys    #need this to move devices to vfio drivers
-    for file in $(find /sys/devices/ -name *sriov_totalvfs*); do
-        pfroot=$(dirname $file)
+function deploy_sriov_operator {
+  OPERATOR_PATH=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/sriov-network-operator
+  if [[ ! -d $OPERATOR_PATH ]]; then
+    git clone https://github.com/openshift/sriov-network-operator.git $OPERATOR_PATH
+  fi
 
-        # enable all enabled VFs. If it fails means that sysfs is not supported on that device and we pass
-        cat $file > $pfroot/sriov_numvfs || continue 
-
-        # bind all VFs with vfio
-        for virtfn in $(ls -d $pfroot/virtfn*); do
-            pciid=$(basename $(readlink $virtfn))
-            if [ -e $virtfn/driver/unbind ]; then
-                echo $pciid > $virtfn/driver/unbind
-            fi
-            echo $(lspci -n -s $pciid | sed 's/:/ /g' | awk '{print $4 " " $5}') > /sys/bus/pci/drivers/vfio-pci/new_id
-        done
-    done
+  pushd $OPERATOR_PATH
+    make deploy-setup-k8s
+  popd
 }
-
-enable_vfio
 
 #move the pf to the node
 mkdir -p /var/run/netns/
@@ -36,36 +26,24 @@ ln -sf /proc/$pid/ns/net "/var/run/netns/${CLUSTER_NAME}-control-plane"
 
 sriov_pfs=( /sys/class/net/*/device/sriov_numvfs )
 
+counter=0
 for ifs in "${sriov_pfs[@]}"; do
   ifs_name="${ifs%%/device/*}"
   ifs_name="${ifs_name##*/}"
+
+  if  [[ "$counter" -eq 0 ]]; then
+    # These values are used to populate the network definition policy yaml. 
+    # We need the num of vfs because if we don't set this value equals to the total, in case of mellanox 
+    # the sriov operator will trigger a node reboot to update the firmware
+    export FIRST_PF="$ifs_name"
+    export FIRST_PF_NUM_VFS=$(cat /sys/class/net/"$FIRST_PF"/device/sriov_totalvfs)
+  fi
   ip link set "$ifs_name" netns "${CLUSTER_NAME}-control-plane"
+  counter=$((counter+1))
 done
 
 # deploy multus
 kubectl create -f $MANIFESTS_DIR/multus.yaml
-
-# deploy sriov cni
-kubectl create -f $MANIFESTS_DIR/sriov-crd.yaml
-kubectl create -f $MANIFESTS_DIR/sriov-cni-daemonset.yaml
-
-# deploy sriov device plugin
-function configure-sriovdp() {
-    local cmd_context="${1}" # context to run command e.g. sudo, docker exec
-    ${cmd_context} "mkdir -p /etc/pcidp"
-    ${cmd_context} "$(sriovdp-config-cmd)"
-}
-
-function sriovdp-config-cmd() {
-    ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/sriovdp_setup.sh
-    echo "cat <<EOF > /etc/pcidp/config.json
-$(cat /etc/pcidp/config.json)
-EOF
-"
-}
-
-configure-sriovdp "${CONTROL_PLANE_CMD} bash -c"
-kubectl apply -f $MANIFESTS_DIR/sriovdp-daemonset.yaml
 
 # give them some time to create pods before checking pod status
 sleep 10
@@ -73,5 +51,23 @@ sleep 10
 # make sure all containers are ready
 wait_containers_ready
 
-${CONTROL_PLANE_CMD} chmod 666 /dev/vfio/vfio
 ${CONTROL_PLANE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
+
+deploy_sriov_operator
+
+kubectl label node sriov-control-plane node-role.kubernetes.io/worker=
+kubectl label node sriov-control-plane sriov=true 
+kubectl wait --for=condition=Ready pod --all -n sriov-network-operator --timeout 6m
+
+# fill the pf selector and the number of vfs (to prevent reboots in case of mellanox cards)
+envsubst < $MANIFESTS_DIR/network_config_policy.yaml | kubectl create -f -
+
+sleep 5 #let the daemons appear
+SRIOVCNI_DAEMON_POD=$(kubectl get pods -n sriov-network-operator | grep sriov-cni | awk '{print $1}')
+kubectl wait --for=condition=Ready -n sriov-network-operator pod $SRIOVCNI_DAEMON_POD --timeout 3m
+
+SRIOVDEVICEPL_DAEMON_POD=$(kubectl get pods -n sriov-network-operator | grep sriov-device | awk '{print $1}')
+kubectl wait --for=condition=Ready -n sriov-network-operator pod $SRIOVDEVICEPL_DAEMON_POD --timeout 3m
+
+${CONTROL_PLANE_CMD} chmod 666 /dev/vfio/vfio
+
