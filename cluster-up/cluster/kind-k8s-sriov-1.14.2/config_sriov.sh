@@ -72,4 +72,3 @@ envsubst < $MANIFESTS_DIR/network_config_policy.yaml | kubectl create -f -
 wait_pods_ready
 
 ${CONTROL_PLANE_CMD} chmod 666 /dev/vfio/vfio
-
