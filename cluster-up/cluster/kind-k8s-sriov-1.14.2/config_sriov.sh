@@ -22,9 +22,8 @@ function deploy_sriov_operator {
   fi
 
   pushd $OPERATOR_PATH
-    export OPERATOR_EXEC=kubectl
     # on prow nodes the default shell is dash and some commands are not working
-    make deploy-setup-k8s SHELL=/bin/bash
+    make deploy-setup-k8s SHELL=/bin/bash OPERATOR_EXEC=kubectl
   popd
 }
 
