@@ -11,7 +11,12 @@ function _port() {
 }
 
 function up() {
-    params="--random-ports --background --prefix $provider_prefix --master-cpu 6 --workers-cpu 6 --registry-volume $(_registry_volume) --workers 2 kubevirtci/${image}"
+    workers=$(($KUBEVIRT_NUM_NODES-1))
+    if [[ ( $workers < 1 ) ]]; then
+        workers=1
+    fi
+    echo "Number of workers: $workers"
+    params="--random-ports --background --prefix $provider_prefix --master-cpu 6 --workers-cpu 6 --registry-volume $(_registry_volume) --workers $workers kubevirtci/${image}"
     if [[ ! -z "${RHEL_NFS_DIR}" ]]; then
         params=" --nfs-data $RHEL_NFS_DIR ${params}"
     fi
