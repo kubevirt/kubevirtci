@@ -3,6 +3,7 @@ set -x
 
 CONTROL_PLANE_CMD="docker exec -it -d ${CLUSTER_NAME}-control-plane"
 MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests"
+OPERATOR_GIT_HASH=b3ab84a316e16df392fbe9e07dbe0667ad075855
 
 # not using kubectl wait since with the sriov operator the pods get restarted a couple of times and this is
 # more reliable
@@ -15,9 +16,9 @@ function wait_pods_ready {
 }
 
 function deploy_sriov_operator {
-  OPERATOR_PATH=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/sriov-network-operator
+  OPERATOR_PATH=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/sriov-network-operator-${OPERATOR_GIT_HASH}
   if [[ ! -d $OPERATOR_PATH ]]; then
-    git clone https://github.com/openshift/sriov-network-operator.git $OPERATOR_PATH
+    curl -L https://github.com/openshift/sriov-network-operator/archive/${OPERATOR_GIT_HASH}/sriov-network-operator.tar.gz | tar xz -C ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/
   fi
 
   pushd $OPERATOR_PATH
