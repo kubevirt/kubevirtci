@@ -4,9 +4,14 @@ set -x
 CONTROL_PLANE_CMD="docker exec -it -d ${CLUSTER_NAME}-control-plane"
 MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests"
 
-function wait_containers_ready {
-    echo "Waiting for all containers to become ready ..."
-    kubectl wait --for=condition=Ready pod --all -n kube-system --timeout 12m
+# not using kubectl wait since with the sriov operator the pods get restarted a couple of times and this is
+# more reliable
+function wait_pods_ready {
+    while [ -n "$(kubectl get pods --all-namespaces -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
+        echo "Waiting for all pods to become ready ..."
+        kubectl get pods --all-namespaces -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
+        sleep 10
+    done
 }
 
 function deploy_sriov_operator {
@@ -52,7 +57,7 @@ kubectl create -f $MANIFESTS_DIR/multus.yaml
 sleep 10
 
 # make sure all containers are ready
-wait_containers_ready
+wait_pods_ready
 
 ${CONTROL_PLANE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
 
@@ -60,17 +65,10 @@ deploy_sriov_operator
 
 kubectl label node sriov-control-plane node-role.kubernetes.io/worker=
 kubectl label node sriov-control-plane sriov=true 
-kubectl wait --for=condition=Ready pod --all -n sriov-network-operator --timeout 6m
-
-# fill the pf selector and the number of vfs (to prevent reboots in case of mellanox cards)
 envsubst < $MANIFESTS_DIR/network_config_policy.yaml | kubectl create -f -
 
-sleep 5 #let the daemons appear
-SRIOVCNI_DAEMON_POD=$(kubectl get pods -n sriov-network-operator | grep sriov-cni | awk '{print $1}')
-kubectl wait --for=condition=Ready -n sriov-network-operator pod $SRIOVCNI_DAEMON_POD --timeout 3m
 
-SRIOVDEVICEPL_DAEMON_POD=$(kubectl get pods -n sriov-network-operator | grep sriov-device | awk '{print $1}')
-kubectl wait --for=condition=Ready -n sriov-network-operator pod $SRIOVDEVICEPL_DAEMON_POD --timeout 3m
+wait_pods_ready
 
 ${CONTROL_PLANE_CMD} chmod 666 /dev/vfio/vfio
 
