@@ -53,6 +53,10 @@ for ifs in "${sriov_pfs[@]}"; do
   ifs_name="${ifs%%/device/*}"
   ifs_name="${ifs_name##*/}"
 
+  if [ $(echo "${PF_BLACKLIST[@]}" | grep -q "${ifs_name}") ]; then
+    continue
+  fi
+
   if  [[ "$counter" -eq 0 ]]; then
     # These values are used to populate the network definition policy yaml. 
     # We need the num of vfs because if we don't set this value equals to the total, in case of mellanox 
