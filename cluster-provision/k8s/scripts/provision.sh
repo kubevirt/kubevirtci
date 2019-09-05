@@ -2,6 +2,11 @@
 
 set -ex
 
+function get_minor_version() {
+    [[ $1 =~ \.([0-9]+) ]]
+    echo ${BASH_REMATCH[1]}
+}
+
 setenforce 0
 sed -i "s/^SELINUX=.*/SELINUX=permissive/" /etc/selinux/config
 
@@ -59,17 +64,17 @@ yum install --nogpgcheck -y \
     kubectl-${version} \
     kubernetes-cni-0.6.0
 
-if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "15" ]]; then
+if [[ $(get_minor_version $version) -ge "15" ]]; then
     # TODO use config file! this is deprecated
     cat <<EOT >/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
 EOT
-elif [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
+elif [[ $(get_minor_version $version) -ge "12" ]]; then
     # TODO use config file! this is deprecated
     cat <<EOT >/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
 EOT
-elif [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
+elif [[ $(get_minor_version $version) -ge "11" ]]; then
     # TODO use config file! this is deprecated
     cat <<EOT >/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates="BlockVolume=true,CSIBlockVolume=true"
@@ -133,7 +138,7 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
 reset_command="kubeadm reset"
 admission_flag="admission-control"
 # k8s 1.11 needs some changes
-if [[ $version =~ \.([0-9]+) ]] && [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
+if [[ $(get_minor_version $version) -ge "11" ]]; then
     # k8s 1.11 asks for confirmation on kubeadm reset, which can be suppressed by a new force flag
     reset_command="kubeadm reset --force"
 
@@ -147,9 +152,14 @@ $reset_command
 # audit log configuration
 mkdir /etc/kubernetes/audit
 
-if [[ ${BASH_REMATCH[1]} -ge "15" ]]; then
-cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
-apiVersion: audit.k8s.io/v1
+if [[ $(get_minor_version $version) -ge "12" ]]; then
+    audit_api_version="audit.k8s.io/v1"
+else
+    audit_api_version="audit.k8s.io/v1beta1"
+fi
+if [[ $(get_minor_version $version) -ge "11" ]]; then
+    cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
+apiVersion: ${audit_api_version}
 kind: Policy
 rules:
 - level: Request
@@ -167,8 +177,10 @@ rules:
   - ResponseStarted
   - Panic
 EOF
+fi
 
-cat > /etc/kubernetes/kubeadm.conf <<EOF
+if [[ $(get_minor_version $version) -ge "14" ]]; then
+    cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1beta1
 bootstrapTokens:
 - groups:
@@ -218,28 +230,8 @@ networking:
   serviceSubnet: 10.96.0.0/12
 EOF
 
-elif [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
-cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
-apiVersion: audit.k8s.io/v1
-kind: Policy
-rules:
-- level: Request
-  users: ["kubernetes-admin"]
-  resources:
-  - group: kubevirt.io
-    resources:
-    - virtualmachines
-    - virtualmachineinstances
-    - virtualmachineinstancereplicasets
-    - virtualmachineinstancepresets
-    - virtualmachineinstancemigrations
-  omitStages:
-  - RequestReceived
-  - ResponseStarted
-  - Panic
-EOF
-
-cat > /etc/kubernetes/kubeadm.conf <<EOF
+elif [[ $(get_minor_version $version) -ge "12" ]]; then
+    cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha3
 bootstrapTokens:
 - groups:
@@ -276,28 +268,9 @@ networking:
   podSubnet: 10.244.0.0/16
 
 EOF
-elif [[ ${BASH_REMATCH[1]} -ge "11" ]]; then
-cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
-apiVersion: audit.k8s.io/v1beta1
-kind: Policy
-rules:
-- level: Request
-  users: ["kubernetes-admin"]
-  resources:
-  - group: kubevirt.io
-    resources:
-    - virtualmachines
-    - virtualmachineinstances
-    - virtualmachineinstancereplicasets
-    - virtualmachineinstancepresets
-    - virtualmachineinstancemigrations
-  omitStages:
-  - RequestReceived
-  - ResponseStarted
-  - Panic
-EOF
 
-cat > /etc/kubernetes/kubeadm.conf <<EOF
+elif [[ $(get_minor_version $version) -ge "11" ]]; then
+    cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
 apiServerExtraArgs:
@@ -323,8 +296,9 @@ kubernetesVersion: ${version}
 networking:
   podSubnet: 10.244.0.0/16
 EOF
+
 else
-cat > /etc/kubernetes/kubeadm.conf <<EOF
+    cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
 apiServerExtraArgs:
