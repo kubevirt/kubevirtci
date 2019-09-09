@@ -1,5 +1,5 @@
 diff --git a/cmd/openshift-install/create.go b/cmd/openshift-install/create.go
-index d267e1b24..285ac00de 100644
+index 2e3d442c6..898204f00 100644
 --- a/cmd/openshift-install/create.go
 +++ b/cmd/openshift-install/create.go
 @@ -317,7 +317,7 @@ func waitForBootstrapConfigMap(ctx context.Context, client *kubernetes.Clientset
@@ -12,10 +12,18 @@ index d267e1b24..285ac00de 100644
  	cc, err := configclient.NewForConfig(config)
  	if err != nil {
 diff --git a/data/data/libvirt/main.tf b/data/data/libvirt/main.tf
-index 4013ed0ec..4eba50f67 100644
+index 4013ed0ec..cb9be72fa 100644
 --- a/data/data/libvirt/main.tf
 +++ b/data/data/libvirt/main.tf
-@@ -55,6 +55,8 @@ resource "libvirt_network" "net" {
+@@ -23,6 +23,7 @@ resource "libvirt_volume" "master" {
+   count          = "${var.master_count}"
+   name           = "${var.cluster_id}-master-${count.index}"
+   base_volume_id = "${module.volume.coreos_base_volume_id}"
++  size           = 32212254720
+ }
+ 
+ resource "libvirt_ignition" "master" {
+@@ -55,6 +56,8 @@ resource "libvirt_network" "net" {
        data.libvirt_network_dns_host_template.masters.*.rendered,
        data.libvirt_network_dns_host_template.masters_int.*.rendered,
        data.libvirt_network_dns_host_template.etcds.*.rendered,
@@ -24,7 +32,7 @@ index 4013ed0ec..4eba50f67 100644
      ))}"]
    }]
  
-@@ -121,6 +123,18 @@ data "libvirt_network_dns_host_template" "etcds" {
+@@ -121,6 +124,18 @@ data "libvirt_network_dns_host_template" "etcds" {
    hostname = "etcd-${count.index}.${var.cluster_domain}"
  }
  
@@ -100,7 +108,7 @@ index 9ec6432da..6dac0b736 100644
  
  	return a.SignedCertKey.Generate(cfg, ca, "aggregator-client", DoNotAppendParent)
 diff --git a/pkg/asset/tls/apiserver.go b/pkg/asset/tls/apiserver.go
-index 908b738b1..e298ba371 100644
+index a50bee836..cd63ff13c 100644
 --- a/pkg/asset/tls/apiserver.go
 +++ b/pkg/asset/tls/apiserver.go
 @@ -185,7 +185,7 @@ func (a *KubeAPIServerLocalhostServerCertKey) Generate(dependencies asset.Parent
@@ -121,7 +129,7 @@ index 908b738b1..e298ba371 100644
  		DNSNames: []string{
  			"kubernetes", "kubernetes.default",
  			"kubernetes.default.svc",
-@@ -389,7 +389,7 @@ func (a *KubeAPIServerExternalLBServerCertKey) Generate(dependencies asset.Paren
+@@ -392,7 +392,7 @@ func (a *KubeAPIServerExternalLBServerCertKey) Generate(dependencies asset.Paren
  		Subject:      pkix.Name{CommonName: "system:kube-apiserver", Organization: []string{"kube-master"}},
  		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
  		ExtKeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
@@ -130,7 +138,7 @@ index 908b738b1..e298ba371 100644
  		DNSNames: []string{
  			apiAddress(installConfig.Config),
  		},
-@@ -428,7 +428,7 @@ func (a *KubeAPIServerInternalLBServerCertKey) Generate(dependencies asset.Paren
+@@ -431,7 +431,7 @@ func (a *KubeAPIServerInternalLBServerCertKey) Generate(dependencies asset.Paren
  		Subject:      pkix.Name{CommonName: "system:kube-apiserver", Organization: []string{"kube-master"}},
  		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
  		ExtKeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
