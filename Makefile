@@ -1,5 +1,5 @@
 cluster-up:
-	./cluster-up/up.sh
+	./cluster-up/check.sh && ./cluster-up/up.sh
 
 cluster-down:
 	./cluster-up/down.sh
