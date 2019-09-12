@@ -220,6 +220,22 @@ until oc -n openshift-machine-config-operator delete ds machine-config-daemon; d
     sleep 5
 done
 
+# Create local storage objects under the cluster
+oc create ns local-storage
+
+oc create -f /manifests/okd/local-storage.yaml
+until oc -n local-storage get LocalVolume; do
+    sleep 5
+done
+
+oc create -f /manifests/okd/local-storage-cr.yaml
+until oc -n local-storage get sc local; do
+    sleep 5
+done
+
+# Set the default storage class
+oc patch storageclass local -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
 # Make sure that all VMs can reach the internet
 iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
@@ -232,5 +248,5 @@ while [[ "$(virsh list --name)" != "" ]]; do
     sleep 1
 done
 
-# remove the cache
+# Remove the cache
 rm -rf /root/.cache/*

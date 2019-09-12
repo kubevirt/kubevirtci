@@ -78,3 +78,11 @@ done
 until [[ $(oc get nodes | grep worker | grep Ready | wc -l) == ${WORKERS} ]]; do
     sleep 5
 done
+
+# create local disks under all nodes, possible that we configured different number of nodes on the runtime
+network_name=$(virsh net-list | grep test | awk '{print $1}')
+vms=$(virsh list --name)
+for vm in ${vms}; do
+    vm_ip=$(virsh net-dhcp-leases ${network_name} | grep ${vm} | awk '{print $5}' | tr "/" "\t" | awk '{print $1}')
+    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q -lcore -i vagrant.key ${vm_ip} < /scripts/create-local-disks.sh
+done

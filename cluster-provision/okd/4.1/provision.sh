@@ -16,7 +16,7 @@ gocli="docker run \
 docker.io/kubevirtci/gocli@${gocli_image_hash}"
 
 ${gocli} provision okd \
---prefix okd-4.1 \
+--prefix okd-4.1-provision \
 --dir-scripts ${PARENT_DIR}/okd/scripts \
 --dir-manifests ${PARENT_DIR}/manifests \
 --dir-hacks ${PARENT_DIR}/okd/hacks \
