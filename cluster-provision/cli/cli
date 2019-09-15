@@ -15,6 +15,7 @@ REVERSE=""
 RANDOM_PORTS=""
 CRIO=""
 K8S_VERSION=""
+NETWORK_OPERATOR=""
 
 COMMAND=$1
 shift
@@ -52,6 +53,7 @@ while true; do
     --registry-volume ) REGISTRY_VOLUME="$2"; shift 2 ;;
     --k8s-version ) K8S_VERSION="$2"; shift 2 ;;
     --crio ) CRIO="true" ; shift ;;
+    --network-operator ) NETWORK_OPERATOR="true" ; shift ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -190,7 +192,7 @@ if [ "$COMMAND" == "provision" ] ; then
   docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/ceph/*.yaml vagrant@192.168.66.101:/tmp/ceph"
   docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/cna"
   docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/cna/*.yaml vagrant@192.168.66.101:/tmp/cna"
-  docker exec ${VM_CID} /bin/bash -c "ssh.sh sudo version=${K8S_VERSION} /bin/bash -s ${CRIO} < /scripts/provision.sh"
+  docker exec ${VM_CID} /bin/bash -c "ssh.sh sudo version=${K8S_VERSION} network_operator=${NETWORK_OPERATOR} /bin/bash -s ${CRIO} < /scripts/provision.sh"
   docker exec ${VM_CID} ssh.sh "sudo shutdown -h"
   docker exec ${VM_CID} /bin/bash -c "rm /usr/local/bin/ssh.sh"
   docker exec ${VM_CID} /bin/bash -c "rm /ssh_ready"

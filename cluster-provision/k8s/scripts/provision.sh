@@ -37,14 +37,7 @@ repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
-yum install -y \
-  docker-common-1.13.1-75.git8633870.el7.centos.x86_64 \
-  origin-docker-excluder-3.11.0-1.el7.git.0.62803d0.noarch \
-  python-docker-py-1.10.6-4.el7.noarch \
-  docker-client-1.13.1-75.git8633870.el7.centos.x86_64 \
-  cockpit-docker-176-2.el7.centos.x86_64 \
-  docker-1.13.1-75.git8633870.el7.centos.x86_64 \
-  python-docker-pycreds-1.10.6-4.el7.noarch
+yum install -y docker
 
 
 # Log to json files instead of journald
@@ -110,6 +103,21 @@ if [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
     kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel-ge-12.yaml
 else
     kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
+fi
+
+if [[ ${network_operator} == "true" ]]; then
+  # we need this command to allow the cluster-network-addons-operator to start and deploy all the requested components
+  kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
+
+  kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/cna/namespace.yaml
+  kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/cna/network-addons-config.crd.yaml
+  kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/cna/operator.yaml
+  kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/cna/network-addons-config-example.cr.yaml
+
+  # Wait until flannel cluster-network-addons-operator and core dns pods are running.
+  # Wait until all the network components are ready.
+  # Wait for a long time on the first time only, we use the ifNotPresent image pull policy
+  kubectl --kubeconfig=/etc/kubernetes/admin.conf wait networkaddonsconfig cluster --for condition=Available --timeout=1200s
 fi
 
 # Wait at least for 7 pods

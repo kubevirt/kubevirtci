@@ -16,12 +16,13 @@ gocli="docker run \
 docker.io/kubevirtci/gocli@${gocli_image_hash}"
 
 ${gocli} provision okd \
---prefix okd-4.1-provision \
+--prefix okd-network-4.1-provision \
 --dir-scripts ${PARENT_DIR}/okd/scripts \
 --dir-manifests ${PARENT_DIR}/manifests \
 --dir-hacks ${PARENT_DIR}/okd/hacks \
 --master-memory 10240 \
 --installer-pull-token-file ${INSTALLER_PULL_SECRET} \
 --installer-repo-tag release-4.1 \
---installer-release-image docker.io/kubevirtci/ocp-release:4.1.18 \
+--installer-release-image docker.io/kubevirtci/ocp-release:4.1.15 \
+--network-operator \
 "kubevirtci/okd-base@${okd_base_hash}"

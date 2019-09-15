@@ -42,6 +42,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().String("installer-pull-token-file", "", "path to the file that contains installer pull token")
 	provision.Flags().String("installer-repo-tag", "", "installer repository tag that you want to compile from")
 	provision.Flags().String("installer-release-image", "", "the OKD release image that you want to use")
+	provision.Flags().Bool("network-operator", false, "install network operator")
 
 	return provision
 }
@@ -123,6 +124,12 @@ func provision(cmd *cobra.Command, args []string) error {
 	if installerReleaseImage != "" {
 		envs = append(envs, fmt.Sprintf("INSTALLER_RELEASE_IMAGE=%s", installerReleaseImage))
 	}
+
+	networkOperator, err := cmd.Flags().GetBool("network-operator")
+	if err != nil {
+		return err
+	}
+	envs = append(envs, fmt.Sprintf("NETWORK_OPERATOR=%v", networkOperator))
 
 	base := args[0]
 

@@ -4,7 +4,8 @@ kind: NetworkAddonsConfig
 metadata:
   name: cluster
 spec:
-  imagePullPolicy: Always
+  imagePullPolicy: IfNotPresent
   kubeMacPool: {}
   linuxBridge: {}
   multus: {}
+  ovs: {}

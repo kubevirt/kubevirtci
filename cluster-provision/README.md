@@ -6,7 +6,7 @@
 * `k8s-1.10.11` k8s-1.10.11 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.11.0` k8s-1.11.0 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.13.3` k8s-1.13.3 cluster based on the centos7 image, provisioned with kubeadm
-* `k8s-multus-1.13.3` k8s-1.13.3 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
+* `k8s-multus-1.15.1` k8s-1.15.1 cluster based on the centos7 image and uses the cluster-network-addons-operator, provisioned with kubeadm
 * `k8s-genie-1.11.1` k8s-1.11.1 cluster based on the centos7 image and uses genie CNI, provisioned with kubeadm
 * `os-3.11.0` os-3.11.0 cluster based on the centos7 image, provisioned with openshift-ansible
 * `os-3.11-crio` os-3.11 cluster with CRI-O support based on the centos7 image, provisioned
@@ -15,7 +15,7 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
-* `kubevirtci/gocli`: `sha256:f6145018927094a6b62ac89fdb26f5901cb8030d9120f620b2490c9c9c25655a`
+* `kubevirtci/gocli`: `sha256:05e7a9b04291d33f80a031438d5516cebe7ad3101108ba6702f4f67959a2fa45`
 * `kubevirtci/base`: `sha256:850ac2e2828610b5f35f004f2a8a1ab23609a4c7891c8a1b68cbb7eef5f5dda0`
 * `kubevirtci/centos:1905_01`: `sha256:4b292b646f382d986c75a2be8ec49119a03467fe26dccc3a0886eb9e6e38c911`
 * `kubevirtci/os-3.11.0-multus`: `sha256:0c8be10799490a1f86740eaa490063f51eab78b920540f0a2946abc5e0bf30fe`
@@ -24,6 +24,7 @@
 * `kubevirtci/k8s-1.10.11:`: `sha256:f563a8ab4719e53c2372c4f41dfe55256677ec7afc442dfaebd494926005e3e5`
 * `kubevirtci/k8s-1.11.0:`: `sha256:696ba7860fc635628e36713a2181ef72568d825f816911cf857b2555ea80a98a`
 * `kubevirtci/k8s-1.13.3:`: `sha256:afbdd9b4208e5ce2ec327f302c336cea3ed3c22488603eab63b92c3bfd36d6cd`
+* `kubevirtci/k8s-1.15.1:`: `sha256:c063f3bd88eaf7228f0189781ddff2b33a1152cc3f0c5a58a362a14b4f4bfc7d`
 * `kubevirtci/k8s-1.14.6`: `sha256:ec29c07c94fce22f37a448cb85ca1fb9215d1854f52573316752d19a1c88bcb3`
 * `kubevirtci/k8s-multus-1.13.3:`: `sha256:c0bcf0d2e992e5b4d96a7bcbf988b98b64c4f5aef2f2c4d1c291e90b85529738`
 * `kubevirtci/k8s-genie-1.11.1:`: `sha256:19af1961fdf92c08612d113a3cf7db40f02fd213113a111a0b007a4bf0f3f7e7`

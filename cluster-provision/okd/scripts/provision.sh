@@ -139,14 +139,18 @@ EOF
 # Grant to admin user cluster-admin permissions
 oc adm policy add-cluster-role-to-user cluster-admin admin
 
-# Apply network addons
-oc create -f /manifests/cna/namespace.yaml
-oc create -f /manifests/cna/network-addons-config.crd.yaml
-oc create -f /manifests/cna/operator.yaml
-oc create -f /manifests/cna/network-addons-config-example.cr.yaml
+if [[ $NETWORK_OPERATOR == "true" ]]; then
+  # Apply network addons
+  oc create -f /manifests/cna/namespace.yaml
+  oc create -f /manifests/cna/network-addons-config.crd.yaml
+  oc create -f /manifests/cna/operator.yaml
+  oc create -f /manifests/cna/network-addons-config-example.cr.yaml
 
- # Wait until all the network components are ready
-oc wait networkaddonsconfig cluster --for condition=Ready --timeout=600s
+  # Wait until flannel cluster-network-addons-operator and core dns pods are running.
+  # Wait until all the network components are ready.
+  # Wait for a long time on the first time only, we use the ifNotPresent image pull policy
+  oc wait networkaddonsconfig cluster --for condition=Available --timeout=1200s
+fi
 
 # Remove master schedulable taint from masters
 masters=$(oc get nodes -l node-role.kubernetes.io/master -o'custom-columns=name:metadata.name' --no-headers)

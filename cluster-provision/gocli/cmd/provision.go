@@ -36,6 +36,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
+	provision.Flags().Bool("network-operator", false, "install network operator")
 
 	provision.AddCommand(
 		okd.NewProvisionCommand(),
@@ -147,10 +148,17 @@ func provision(cmd *cobra.Command, args []string) error {
 	if len(qemuArgs) > 0 {
 		qemuArgs = "--qemu-args " + qemuArgs
 	}
+
+	networkOperator, err := cmd.Flags().GetBool("network-operator")
+	if err != nil {
+		return err
+	}
+
 	node, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: base,
 		Env: []string{
 			fmt.Sprintf("NODE_NUM=%s", nodeNum),
+			fmt.Sprintf("NETWORK_OPERATOR=%v", networkOperator),
 		},
 		Volumes: map[string]struct{}{
 			"/var/run/disk/": {},
