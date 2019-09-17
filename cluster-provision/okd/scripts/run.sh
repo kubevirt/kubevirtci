@@ -70,7 +70,7 @@ done
 # wait half minute, just to be sure that we do not get old cluster state
 sleep 30
 
-until [[ $(oc get pods --all-namespaces --no-headers | grep -v Running | grep -v Completed | wc -l) -le 3 ]]; do
+until [[ $(oc get pods --all-namespaces --no-headers | grep -v revision-pruner | grep -v Running | grep -v Completed | wc -l) -le 3 ]]; do
     echo "waiting for pods to come online"
     sleep 10
 done
