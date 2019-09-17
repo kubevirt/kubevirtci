@@ -129,7 +129,7 @@ mkdir -p $CLUSTER_DIR
 
 cp /install-config.yaml $CLUSTER_DIR/
 
-if [[ $INSTALLER_TAG =~ ^.*4\.3$ ]]; then
+if [[ $INSTALLER_TAG =~ ^.*4\.[23]$ ]]; then
 
     # modify number of workers
     yq_inline '.compute[].replicas = 2' "$INSTALL_CONFIG_FILE"
@@ -152,7 +152,7 @@ yq_inline '.spec.providerSpec.value.domainMemory = 8192' "$CLUSTER_DIR/openshift
 yq_inline '.spec.template.spec.providerSpec.value.domainMemory = '"$WORKERS_MEMORY"' | .spec.template.spec.providerSpec.value.domainVcpu = '"$WORKERS_CPU" \
         $CLUSTER_DIR/openshift/99_openshift-cluster-api_worker-machineset-0.yaml
 
-if [[ $INSTALLER_TAG =~ ^.*4\.3$ ]]; then
+if [[ $INSTALLER_TAG =~ ^.*4\.[23]$ ]]; then
 
     # generate machineconfig for insecure-registries beforehand
 
@@ -243,8 +243,6 @@ export TF_VAR_libvirt_master_vcpu=$MASTER_CPU
 
 
 export KUBECONFIG=$CLUSTER_DIR/auth/kubeconfig
-
-oc wait --for=condition=Ready $(oc get node -o name) --timeout=600s
 
 # Create htpasswd with user admin
 htpasswd -c -B -b /root/htpasswd admin admin
