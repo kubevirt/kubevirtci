@@ -2,6 +2,15 @@
 
 set -xe
 
+function uncordon_nodes {
+    until [[ $( oc get nodes --no-headers | grep Ready,SchedulingDisabled | wc -l ) -eq 0 ]]; do 
+        for node in $(oc get nodes --no-headers | grep Ready,SchedulingDisabled | awk '{ print $1 }'); do
+            oc adm uncordon $node
+        done
+        sleep 5
+    done
+}
+
 NUM_SECONDARY_NICS="${NUM_SECONDARY_NICS:-0}"
 
 # set KVM device permissions
@@ -70,6 +79,8 @@ done
 # wait half minute, just to be sure that we do not get old cluster state
 sleep 30
 
+uncordon_nodes
+
 until [[ $(oc get pods --all-namespaces --no-headers | grep -v Running | grep -v Completed | wc -l) -le 3 ]]; do
     echo "waiting for pods to come online"
     sleep 10
@@ -86,6 +97,8 @@ done
 until oc -n openshift-machine-api scale --replicas=${WORKERS} machineset ${worker_machine_set}; do
     sleep 5
 done
+
+uncordon_nodes
 
 # wait until all worker nodes will be ready
 until [[ $(oc get nodes | grep worker | grep Ready | wc -l) == ${WORKERS} ]]; do
