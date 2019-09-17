@@ -1,7 +1,6 @@
 #!/bin/bash -e
 set -x
 
-CONTROL_PLANE_CMD="docker exec -it -d ${CLUSTER_NAME}-control-plane"
 MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests"
 
 MASTER_NODE="${CLUSTER_NAME}-control-plane"
@@ -42,6 +41,8 @@ else
   SRIOV_NODE=$FIRST_WORKER_NODE
 fi
 
+SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
+
 #move the pf to the node
 mkdir -p /var/run/netns/
 export pid="$(docker inspect -f '{{.State.Pid}}' $SRIOV_NODE)"
@@ -74,7 +75,7 @@ sleep 10
 # make sure all containers are ready
 wait_pods_ready
 
-${CONTROL_PLANE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
+${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
 
 deploy_sriov_operator
 
@@ -85,4 +86,4 @@ envsubst < $MANIFESTS_DIR/network_config_policy.yaml | kubectl create -f -
 
 wait_pods_ready
 
-${CONTROL_PLANE_CMD} chmod 666 /dev/vfio/vfio
+${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
