@@ -41,8 +41,6 @@ else
   SRIOV_NODE=$FIRST_WORKER_NODE
 fi
 
-SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
-
 #move the pf to the node
 mkdir -p /var/run/netns/
 export pid="$(docker inspect -f '{{.State.Pid}}' $SRIOV_NODE)"
@@ -74,6 +72,8 @@ sleep 10
 
 # make sure all containers are ready
 wait_pods_ready
+
+SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
 
 ${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
 
