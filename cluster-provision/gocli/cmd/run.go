@@ -371,6 +371,10 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
+	// Add serial pty so we can do stuff like 'socat - /dev/pts0' to access
+	// the VM console from the container without ssh
+	qemuArgs += " -serial pty"
+
 	wg := sync.WaitGroup{}
 	wg.Add(int(nodes))
 	// start one vm after each other

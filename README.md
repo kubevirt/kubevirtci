@@ -36,6 +36,18 @@ SSH into a node
 cluster-up/ssh.sh node01
 ```
 
+Attach to node console with socat and pty (non okd4 providers)
+```
+# Get node01 container id
+node01_id=$(docker ps |grep node01 |awk '{print $1}')
+
+# Install socat
+docker exec $node01_id yum install -y socat
+
+# Attach to node01 console
+docker exec -it $node01_id socat - /dev/pts/0
+```
+
 # Getting Started with multi-node OKD Provider
 
 Download this repo
