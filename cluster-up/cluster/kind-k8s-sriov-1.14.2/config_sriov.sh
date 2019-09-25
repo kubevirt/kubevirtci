@@ -48,7 +48,7 @@ ln -sf /proc/$pid/ns/net "/var/run/netns/$SRIOV_NODE"
 
 sriov_pfs=( /sys/class/net/*/device/sriov_numvfs )
 
-counter=0
+
 for ifs in "${sriov_pfs[@]}"; do
   ifs_name="${ifs%%/device/*}"
   ifs_name="${ifs_name##*/}"
@@ -57,16 +57,16 @@ for ifs in "${sriov_pfs[@]}"; do
     continue
   fi
 
-  if  [[ "$counter" -eq 0 ]]; then
-    # These values are used to populate the network definition policy yaml. 
-    # We need the num of vfs because if we don't set this value equals to the total, in case of mellanox 
-    # the sriov operator will trigger a node reboot to update the firmware
-    export FIRST_PF="$ifs_name"
-    export FIRST_PF_NUM_VFS=$(cat /sys/class/net/"$FIRST_PF"/device/sriov_totalvfs)
-  fi
-  ip link set "$ifs_name" netns "$SRIOV_NODE"
-  counter=$((counter+1))
+  # These values are used to populate the network definition policy yaml. 
+  # We just use the first suitable pf
+  # We need the num of vfs because if we don't set this value equals to the total, in case of mellanox 
+  # the sriov operator will trigger a node reboot to update the firmware
+  export NODE_PF="$ifs_name"
+  export NODE_PF_NUM_VFS=$(cat /sys/class/net/"$NODE_PF"/device/sriov_totalvfs)
+  break
 done
+
+ip link set "$NODE_PF" netns "$SRIOV_NODE"
 
 # deploy multus
 kubectl create -f $MANIFESTS_DIR/multus.yaml
