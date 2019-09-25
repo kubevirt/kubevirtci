@@ -32,6 +32,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("workers", "1", "number of cluster worker nodes to start")
 	run.Flags().String("workers-memory", "6144", "amount of RAM in MB per worker")
 	run.Flags().String("workers-cpu", "2", "number of CPU per worker")
+	run.Flags().UintP("secondary-nics", "", 0, "number of secondary nics to add")
 	run.Flags().String("registry-volume", "", "cache docker registry content in the specified volume")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().Uint("registry-port", 0, "port on localhost for the docker registry")
@@ -81,6 +82,12 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 	envs = append(envs, fmt.Sprintf("WORKERS_CPU=%s", workersCPU))
+
+	secondaryNics, err := cmd.Flags().GetUint("secondary-nics")
+	if err != nil {
+		return err
+	}
+	envs = append(envs, fmt.Sprintf("NUM_SECONDARY_NICS=%d", secondaryNics))
 
 	randomPorts, err := cmd.Flags().GetBool("random-ports")
 	if err != nil {

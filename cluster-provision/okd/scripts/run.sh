@@ -2,6 +2,8 @@
 
 set -xe
 
+NUM_SECONDARY_NICS="${NUM_SECONDARY_NICS:-0}"
+
 # set KVM device permissions
 chown root:kvm /dev/kvm
 chmod 660 /dev/kvm
@@ -22,23 +24,34 @@ virsh net-update $cluster_network add dns-host \
   <hostname>registry</hostname>
 </host>" --live --config
 
-# Update VM's CPU mode to passthrough
-virsh list --name --all | xargs --max-args=1 virt-xml --edit --cpu host-passthrough
+domain_number=1
+for domain in $(virsh list --name --all); do
 
-# Update master nodes memory
-virsh list --name --all | grep master | xargs --max-args=1 virt-xml --edit --memory ${MASTER_MEMORY}
+	# Add secondary nics
+    if [ "$NUM_SECONDARY_NICS" -gt 0 ]; then
+        domain_idx=$(printf "%02d" $domain_number)
+        for nic_idx in $(seq -f "%02g" 1 ${NUM_SECONDARY_NICS}); do
+            secondary_nic_mac=52:54:00:4b:$domain_idx:$nic_idx
+            virsh attach-interface --config --model virtio --domain $domain --type network --mac $secondary_nic_mac --source $cluster_network
+        done
+    fi
 
-# Update master nodes CPU
-virsh list --name --all | grep master | xargs --max-args=1 virt-xml --edit --vcpu ${MASTER_CPU}
+	domain_number=$(expr $domain_number + 1)
+	# Update master nodes memory
+	virt-xml --edit --memory ${MASTER_MEMORY} $domain
 
-# Update worker nodes memory
-virsh list --name --all | grep worker | xargs --max-args=1 virt-xml --edit --memory ${WORKERS_MEMORY}
+	# Update VM's CPU mode to passthroug
+	virt-xml --edit --cpu host-passthrough $domain
 
-# Update worker nodes CPU
-virsh list --name --all | grep worker | xargs --max-args=1 virt-xml --edit --vcpu ${WORKERS_CPU}
+	# Update master nodes CPU
+	[[ $domain =~ master ]] && virt-xml --edit --vcpu ${MASTER_CPU} $domain
 
-# Start all VM's
-virsh list --name --all | xargs --max-args=1 virsh start
+	# Update worker nodes memory and CPU
+	[[ $domain =~ worker ]] && virt-xml --edit --memory ${WORKERS_MEMORY} $domain && virt-xml --edit --vcpu ${WORKERS_CPU} $domain
+
+	virsh start $domain
+
+done
 
 while [[ "$(virsh list --name --all)" != "$(virsh list --name)" ]]; do
     sleep 1
