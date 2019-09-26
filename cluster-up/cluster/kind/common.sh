@@ -8,6 +8,8 @@ export KIND_NODE_CLI="docker exec -it "
 export KUBEVIRTCI_PATH
 export KUBEVIRTCI_CONFIG_PATH
 
+REGISTRY_NAME=${CLUSTER_NAME}-registry
+
 function _wait_kind_up {
     echo "Waiting for kind to be ready ..."  
     while [ -z "$(docker exec --privileged ${CLUSTER_NAME}-control-plane kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --selector=node-role.kubernetes.io/master -o=jsonpath='{.items..status.conditions[-1:].status}' | grep True)" ]; do
@@ -56,12 +58,12 @@ function _ssh_into_node() {
 }
 
 function _run_registry() {
-    until [ -z "$(docker ps -a | grep registry)" ]; do
-        docker stop registry || true
-        docker rm registry || true
+    until [ -z "$(docker ps -a | grep $REGISTRY_NAME)" ]; do
+        docker stop $REGISTRY_NAME || true
+        docker rm $REGISTRY_NAME || true
         sleep 5
     done
-    docker run -d -p 5000:5000 --restart=always --name registry registry:2
+    docker run -d -p 5000:5000 --restart=always --name $REGISTRY_NAME registry:2
 }
 
 function _configure_registry_on_node() {
