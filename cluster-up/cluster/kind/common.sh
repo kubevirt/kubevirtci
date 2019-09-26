@@ -8,6 +8,8 @@ export KIND_NODE_CLI="docker exec -it "
 export KUBEVIRTCI_PATH
 export KUBEVIRTCI_CONFIG_PATH
 
+KUBECTL="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl --kubeconfig=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
+
 REGISTRY_NAME=${CLUSTER_NAME}-registry
 
 function _wait_kind_up {
@@ -119,8 +121,7 @@ function kind_up() {
 }
 
 function _kubectl() {
-    export KUBECONFIG=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
-    ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl "$@"
+    ${KUBECTL} "$@"
 }
 
 function down() {
