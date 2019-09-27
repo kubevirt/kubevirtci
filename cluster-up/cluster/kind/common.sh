@@ -36,20 +36,15 @@ function _fetch_kind() {
 function _configure-insecure-registry-and-reload() {
     local cmd_context="${1}" # context to run command e.g. sudo, docker exec
     ${cmd_context} "$(_insecure-registry-config-cmd)"
-    ${cmd_context} "$(_reload-docker-daemon-cmd)"
+    ${cmd_context} "$(_reload-containerd-daemon-cmd)"
 }
 
-function _reload-docker-daemon-cmd() {
-    echo "kill -s SIGHUP \$(pgrep dockerd)"
+function _reload-containerd-daemon-cmd() {
+    echo "systemctl restart containerd"
 }
 
 function _insecure-registry-config-cmd() {
-    echo "cat <<EOF > /etc/docker/daemon.json
-{
-    \"insecure-registries\": [\"${CONTAINER_REGISTRY_HOST}\"]
-}
-EOF
-"
+    echo "sed -i '/\[plugins.cri.registry.mirrors\]/a\        [plugins.cri.registry.mirrors.\"registry:5000\"]\n\          endpoint = [\"http://registry:5000\"]' /etc/containerd/config.toml"    
 }
 
 # this works since the nodes use the same names as containers
