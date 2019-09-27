@@ -68,7 +68,7 @@ function _run_registry() {
 
 function _configure_registry_on_node() {
     _configure-insecure-registry-and-reload "${NODE_CMD} $1 bash -c"
-    ${NODE_CMD} $1 socat TCP-LISTEN:5000,fork TCP:$(docker inspect --format '{{.NetworkSettings.IPAddress }}' $REGISTRY_NAME):5000
+    ${NODE_CMD} $1  sh -c "echo $(docker inspect --format '{{.NetworkSettings.IPAddress }}' $REGISTRY_NAME)'\t'registry >> /etc/hosts"
 }
 
 function prepare_config() {
@@ -78,7 +78,7 @@ master_ip="127.0.0.1"
 kubeconfig=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
 kubectl=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubectl
 docker_prefix=localhost:5000/kubevirt
-manifest_docker_prefix=localhost:5000/kubevirt
+manifest_docker_prefix=registry:5000/kubevirt
 EOF
 }
 
