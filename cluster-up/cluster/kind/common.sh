@@ -68,7 +68,7 @@ function _run_registry() {
 
 function _configure_registry_on_node() {
     _configure-insecure-registry-and-reload "${NODE_CMD} $1 bash -c"
-    ${NODE_CMD} $1 socat TCP-LISTEN:5000,fork TCP:$(docker inspect --format '{{.NetworkSettings.IPAddress }}' registry):5000
+    ${NODE_CMD} $1 socat TCP-LISTEN:5000,fork TCP:$(docker inspect --format '{{.NetworkSettings.IPAddress }}' $REGISTRY_NAME):5000
 }
 
 function prepare_config() {
