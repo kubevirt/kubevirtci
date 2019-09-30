@@ -20,9 +20,9 @@
 set -e
 if [ ! -c /dev/kvm ]; then
 	echo "[ERR ] missing /dev/kvm"
-	exit 1
+else
+	echo "[ OK ] found /dev/kvm"
 fi
-echo "[ OK ] found /dev/kvm"
 
 KVM_ARCH=""
 KVM_NESTED="unknown"
@@ -35,6 +35,6 @@ elif [ -f "/sys/module/kvm_amd/parameters/nested" ]; then
 fi
 if [ "$KVM_NESTED" != "Y" ]; then
 	echo "[ERR ] $KVM_ARCH nested virtualization not enabled"
-	exit 1
+else
+	echo "[ OK ] $KVM_ARCH nested virtualization enabled"
 fi
-echo "[ OK ] $KVM_ARCH nested virtualization enabled"
