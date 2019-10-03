@@ -36,7 +36,7 @@
 ## Versions to use
 
 * `kubevirtci/okd-base`: `sha256:259e776998da3a503a30fdf935b29102443b24ca4ea095c9478c37e994e242bb`
-* `kubevirtci/okd-4.1`: `sha256:76b487d894ab89a91ba4985591a7ff05e91be9665face1492c23405aad2d0201`
+* `kubevirtci/okd-4.1`: `sha256:2b7b5e09b9bdf2ca40b8e153a111702584e2a3e802643e3e7df1f2d97eca0ce8`
 
 ## Using gocli
 
@@ -81,7 +81,7 @@ NOTE: OpenShift cluster consumes a lot of resources, you should have at least 18
 
 You should run `gocli` command:
 ```bash
-gocli run okd --prefix okd-4.1 --ocp-console-port 443 --background kubevirtci/okd-4.1@sha256:76b487d894ab89a91ba4985591a7ff05e91be9665face1492c23405aad2d0201
+gocli run okd --prefix okd-4.1 --ocp-console-port 443 --background kubevirtci/okd-4.1@sha256:2b7b5e09b9bdf2ca40b8e153a111702584e2a3e802643e3e7df1f2d97eca0ce8
 ```
 
 ### How to connect to the OKD console
