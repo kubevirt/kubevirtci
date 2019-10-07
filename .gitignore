@@ -1,6 +1,11 @@
 *.img
 cli
-.idea
-/cluster-provision/gocli/bazel**
 log.txt
 _ci-configs/*
+
+# IDE directories
+.idea
+.vscode
+
+# Bazel directories
+cluster-provision/gocli/bazel-*
