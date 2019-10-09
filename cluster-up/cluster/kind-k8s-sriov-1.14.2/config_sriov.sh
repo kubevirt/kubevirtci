@@ -9,6 +9,7 @@ MASTER_NODE="${CLUSTER_NAME}-control-plane"
 FIRST_WORKER_NODE="${CLUSTER_NAME}-worker"
 
 OPERATOR_GIT_HASH=b3ab84a316e16df392fbe9e07dbe0667ad075855
+INJECTOR_GIT_HASH=9ffd768cb7886072e81df3ac78ba2997810ceb55
 
 # not using kubectl wait since with the sriov operator the pods get restarted a couple of times and this is
 # more reliable
@@ -36,6 +37,23 @@ function deploy_sriov_operator {
     make deploy-setup-k8s SHELL=/bin/bash OPERATOR_EXEC="${KUBECTL}"
   popd
 }
+
+function deploy_network_resource_injector {
+  WEBHOOK_PATH=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/network-resources-injector-${INJECTOR_GIT_HASH}
+  if [[ ! -d $WEBHOOK_PATH ]]; then
+    curl -L https://github.com/intel/network-resources-injector/archive/${INJECTOR_GIT_HASH}/network-resources-injector.tar.gz | tar xz -C ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/
+  fi
+
+  pushd $WEBHOOK_PATH
+    make image
+    docker tag network-resources-injector localhost:5000/network-resources-injector
+    sed -i 's/network-resources-injector:latest/registry:5000\/network-resources-injector:latest/g' ./deployments/server.yaml
+    docker push localhost:5000/network-resources-injector
+    _kubectl apply -f ./deployments/auth.yaml
+    _kubectl apply -f ./deployments/server.yaml
+  popd
+}
+
 
 if [[ -z "$(_kubectl get nodes | grep $FIRST_WORKER_NODE)" ]]; then
   SRIOV_NODE=$MASTER_NODE
@@ -90,6 +108,10 @@ _kubectl label node $SRIOV_NODE sriov=true
 envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -
 
 
+wait_pods_ready
+
+deploy_network_resource_injector
+sleep 5
 wait_pods_ready
 
 ${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
