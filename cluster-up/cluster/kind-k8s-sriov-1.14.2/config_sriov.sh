@@ -22,12 +22,12 @@ function wait_pods_ready {
 }
 
 function deploy_sriov_operator {
-  OPERATOR_PATH=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/sriov-network-operator-${OPERATOR_GIT_HASH}
-  if [[ ! -d $OPERATOR_PATH ]]; then
+  operator_path=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/sriov-network-operator-${OPERATOR_GIT_HASH}
+  if [ ! -d $operator_path ]; then
     curl -L https://github.com/openshift/sriov-network-operator/archive/${OPERATOR_GIT_HASH}/sriov-network-operator.tar.gz | tar xz -C ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/
   fi
 
-  pushd $OPERATOR_PATH
+  pushd $operator_path
     # TODO: right now in CI we need to use upstream sriov cni in order to have this
     # https://github.com/intel/sriov-cni/pull/88 available. This can be removed once the feature will
     # be merged in openshift sriov operator. We need latest since that feature was not tagged yet
