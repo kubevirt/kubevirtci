@@ -39,12 +39,12 @@ function deploy_sriov_operator {
 }
 
 function deploy_network_resource_injector {
-  WEBHOOK_PATH=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/network-resources-injector-${INJECTOR_GIT_HASH}
-  if [[ ! -d $WEBHOOK_PATH ]]; then
+  webhook_path=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/network-resources-injector-${INJECTOR_GIT_HASH}
+  if [[ ! -d $webhook_path ]]; then
     curl -L https://github.com/intel/network-resources-injector/archive/${INJECTOR_GIT_HASH}/network-resources-injector.tar.gz | tar xz -C ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/
   fi
 
-  pushd $WEBHOOK_PATH
+  pushd $webhook_path
     make image
     docker tag network-resources-injector localhost:5000/network-resources-injector
     sed -i 's/network-resources-injector:latest/registry:5000\/network-resources-injector:latest/g' ./deployments/server.yaml
