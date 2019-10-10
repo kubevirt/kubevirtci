@@ -47,7 +47,7 @@ function deploy_network_resource_injector {
   pushd $webhook_path
     make image
     docker tag network-resources-injector localhost:5000/network-resources-injector
-    sed -i 's/network-resources-injector:latest/registry:5000\/network-resources-injector:latest/g' ./deployments/server.yaml
+    sed -i 's#image: network-resources-injector:latest#image: registry:5000/network-resources-injector:latest#' ./deployments/server.yaml
     docker push localhost:5000/network-resources-injector
     _kubectl apply -f ./deployments/auth.yaml
     _kubectl apply -f ./deployments/server.yaml
