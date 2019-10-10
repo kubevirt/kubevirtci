@@ -111,6 +111,8 @@ envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -
 wait_pods_ready
 
 deploy_network_resource_injector
+
+# give the injector installer some time to create pods before checking pod status
 sleep 5
 wait_pods_ready
 
