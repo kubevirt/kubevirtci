@@ -40,7 +40,7 @@ function deploy_sriov_operator {
 
 function deploy_network_resource_injector {
   webhook_path=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/network-resources-injector-${INJECTOR_GIT_HASH}
-  if [[ ! -d $webhook_path ]]; then
+  if [ ! -d $webhook_path ]; then
     curl -L https://github.com/intel/network-resources-injector/archive/${INJECTOR_GIT_HASH}/network-resources-injector.tar.gz | tar xz -C ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/
   fi
 
