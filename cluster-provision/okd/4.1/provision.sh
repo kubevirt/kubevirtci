@@ -5,7 +5,7 @@ set -x
 PARENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/../.. && pwd )"
 
 okd_base_hash="sha256:259e776998da3a503a30fdf935b29102443b24ca4ea095c9478c37e994e242bb"
-gocli_image_hash="sha256:483733ad03e7ac5e81df5ff90042ca92bb7c5f0b998cca89bd4c1a2bf17ea337"
+gocli_image_hash="sha256:5ab9913a535227766f814b3a497d0eb1eede1a86a289d3e8bfb6bbd91836f11c"
 
 gocli="docker run \
 --privileged \
