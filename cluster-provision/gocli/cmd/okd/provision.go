@@ -163,6 +163,7 @@ func provision(cmd *cobra.Command, args []string) error {
 		Image: base,
 		Env:   envs,
 	}, &container.HostConfig{
+		NetworkMode: "host",
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
