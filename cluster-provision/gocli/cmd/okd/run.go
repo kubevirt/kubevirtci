@@ -42,7 +42,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("ssh-worker-port", 0, "port on localhost to ssh to worker node")
 	run.Flags().Bool("background", false, "go to background after nodes are up")
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
-	run.Flags().String("container-suffix", "docker.io/", "the suffix for pull url")
+	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
 	return run
 }
 
@@ -97,7 +97,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 
 	portMap := nat.PortMap{}
 
-	containerSuffix, err := cmd.Flags().GetString("container-suffix")
+	containerRegistry, err := cmd.Flags().GetString("container-registry")
 	if err != nil {
 		return err
 	}
@@ -147,11 +147,14 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		done <- fmt.Errorf("Interrupt received, clean up")
 	}()
 
-	// Pull the cluster image
-	fmt.Printf("Download the image %s\n", containerSuffix+cluster)
-	err = docker.ImagePull(cli, ctx, containerSuffix+cluster, types.ImagePullOptions{})
-	if err != nil {
-		panic(err)
+	if len(containerRegistry) > 0 {
+		cluster = containerRegistry + "/" + cluster
+		// Pull the cluster image
+		fmt.Printf("Download the image %s\n", cluster)
+		err = docker.ImagePull(cli, ctx, cluster, types.ImagePullOptions{})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	clusterContainerName := prefix + "-cluster"
