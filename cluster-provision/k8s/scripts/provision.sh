@@ -7,6 +7,8 @@ function get_minor_version() {
     echo ${BASH_REMATCH[1]}
 }
 
+minor_version=$(get_minor_version $version)
+
 setenforce 0
 sed -i "s/^SELINUX=.*/SELINUX=permissive/" /etc/selinux/config
 
@@ -38,14 +40,11 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
 yum install -y \
-  docker-common-1.13.1-75.git8633870.el7.centos.x86_64 \
-  origin-docker-excluder-3.11.0-1.el7.git.0.62803d0.noarch \
-  python-docker-py-1.10.6-4.el7.noarch \
-  docker-client-1.13.1-75.git8633870.el7.centos.x86_64 \
-  cockpit-docker-176-2.el7.centos.x86_64 \
-  docker-1.13.1-75.git8633870.el7.centos.x86_64 \
-  python-docker-pycreds-1.10.6-4.el7.noarch
+  docker-1.13.1 \
+  python-docker-py-1.10.6 \
+  python3-pip
 
+pip3 install docker-pycreds
 
 # Log to json files instead of journald
 sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
@@ -64,17 +63,17 @@ yum install --nogpgcheck -y \
     kubectl-${version} \
     kubernetes-cni-0.6.0
 
-if [[ $(get_minor_version $version) -ge "15" ]]; then
+if [[ $minor_version -ge "15" ]]; then
     # TODO use config file! this is deprecated
     cat <<EOT >/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
 EOT
-elif [[ $(get_minor_version $version) -ge "12" ]]; then
+elif [[ $minor_version -ge "12" ]]; then
     # TODO use config file! this is deprecated
     cat <<EOT >/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
 EOT
-elif [[ $(get_minor_version $version) -ge "11" ]]; then
+elif [[ $minor_version -ge "11" ]]; then
     # TODO use config file! this is deprecated
     cat <<EOT >/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --allow-privileged=true --feature-gates="BlockVolume=true,CSIBlockVolume=true"
@@ -106,11 +105,13 @@ echo bridge >> /etc/modules
 echo br_netfilter >> /etc/modules
 
 kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
-if [[ ${BASH_REMATCH[1]} -ge "12" ]]; then
-    kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel-ge-12.yaml
-else
-    kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
+flannel_manifest="/tmp/flannel.yaml"
+if [[ $minor_version -ge "16" ]]; then
+    flannel_manifest="/tmp/flannel-ge-16.yaml"
+elif [[ $minor_version -ge "12" ]]; then
+    flannel_manifest="/tmp/flannel-ge-12.yaml"
 fi
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$flannel_manifest" 
 
 # Wait at least for 7 pods
 while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
@@ -138,7 +139,7 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
 reset_command="kubeadm reset"
 admission_flag="admission-control"
 # k8s 1.11 needs some changes
-if [[ $(get_minor_version $version) -ge "11" ]]; then
+if [[ $minor_version -ge "11" ]]; then
     # k8s 1.11 asks for confirmation on kubeadm reset, which can be suppressed by a new force flag
     reset_command="kubeadm reset --force"
 
@@ -152,12 +153,12 @@ $reset_command
 # audit log configuration
 mkdir /etc/kubernetes/audit
 
-if [[ $(get_minor_version $version) -ge "12" ]]; then
+if [[ $minor_version -ge "12" ]]; then
     audit_api_version="audit.k8s.io/v1"
 else
     audit_api_version="audit.k8s.io/v1beta1"
 fi
-if [[ $(get_minor_version $version) -ge "11" ]]; then
+if [[ $minor_version -ge "11" ]]; then
     cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
 apiVersion: ${audit_api_version}
 kind: Policy
@@ -179,7 +180,7 @@ rules:
 EOF
 fi
 
-if [[ $(get_minor_version $version) -ge "14" ]]; then
+if [[ $minor_version -ge "14" ]]; then
     cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1beta1
 bootstrapTokens:
@@ -230,7 +231,7 @@ networking:
   serviceSubnet: 10.96.0.0/12
 EOF
 
-elif [[ $(get_minor_version $version) -ge "12" ]]; then
+elif [[ $minor_version -ge "12" ]]; then
     cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha3
 bootstrapTokens:
@@ -269,7 +270,7 @@ networking:
 
 EOF
 
-elif [[ $(get_minor_version $version) -ge "11" ]]; then
+elif [[ $minor_version -ge "11" ]]; then
     cat > /etc/kubernetes/kubeadm.conf <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
