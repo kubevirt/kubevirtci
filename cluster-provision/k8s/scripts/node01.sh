@@ -11,10 +11,12 @@ done
 kubeadm init --config /etc/kubernetes/kubeadm.conf
 
 version=`kubectl version --short --client | cut -d":" -f2 |sed  's/ //g' | cut -c2- | cut -d"." -f2`
-if [[ ${version} -ge "12" ]]; then
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel-ge-12.yaml
+if [[ ${version} -ge "16" ]]; then
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel-ge-16.yaml
+elif [[ ${version} -ge "12" ]]; then
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel-ge-12.yaml
 else
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
 fi
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
