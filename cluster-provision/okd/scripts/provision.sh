@@ -394,6 +394,10 @@ if [[ $INSTALLER_TAG =~ ^.*4\.3$ ]]; then
         sleep 5
     done
 
+    while [[ "$(oc get node -o name |wc -l)" -ne 2 ]]; do
+        sleep 15
+    done
+
 fi
 
 # Shutdown VM's
