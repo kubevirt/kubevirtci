@@ -28,6 +28,6 @@ ${gocli} provision okd \
 --workers-cpu 4 \
 --installer-pull-token-file ${INSTALLER_PULL_SECRET} \
 --installer-repo-tag release-4.3 \
---installer-release-image registry.svc.ci.openshift.org/origin/release:4.3 \
+--installer-release-image registry.svc.ci.openshift.org/origin/release:4.3.0-0.okd-2019-10-29-180250 \
 "kubevirtci/okd-base@${okd_base_hash}"
 exit $?
