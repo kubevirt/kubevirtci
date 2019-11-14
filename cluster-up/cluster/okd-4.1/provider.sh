@@ -18,7 +18,11 @@ function _install_from_cluster() {
 
     touch $dst_file
     chmod $dst_perms $dst_file
-    docker exec $src_cid cat $src_file > $dst_file
+    if [ "$KUBEVIRTCI_RUNTIME" = "podman" ]; then
+       pack8s copy-from $src_cid --source $src_file --destination $dst_file
+    else
+        docker exec $src_cid cat $src_file > $dst_file
+    fi
 }
 
 function up() {
@@ -39,7 +43,11 @@ function up() {
     ${_cli} run okd ${params}
 
     # Copy k8s config and kubectl
-    cluster_container_id=$(docker ps -f "name=$provider_prefix-cluster" --format "{{.ID}}")
+    if [ "$KUBEVIRTCI_RUNTIME" = "podman" ]; then
+        cluster_container_id=$(pack8s -p "$provider_prefix-cluster" show -i)
+    else
+        cluster_container_id=$(docker ps -f "name=$provider_prefix-cluster" --format "{{.ID}}")
+    fi
 
     _install_from_cluster $cluster_container_id /bin/oc 0755 .kubectl
     _install_from_cluster $cluster_container_id /root/install/auth/kubeconfig 0644 .kubeconfig
