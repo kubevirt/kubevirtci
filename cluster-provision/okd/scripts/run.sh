@@ -75,6 +75,12 @@ until [[ $(oc get pods --all-namespaces --no-headers | grep -v revision-pruner |
     sleep 10
 done
 
+# update the pull-secret from the ENV variable
+pull_secret=$(echo ${PULL_SECRET} | base64)
+until oc -n openshift-config patch secret pull-secret --type merge --patch "{\"data\": {\".dockerconfigjson\": \"${pull_secret}\"}}"; do
+    sleep 5
+done
+
 # update worker machine set with desired number of CPU and memory
 worker_machine_set=$(oc -n openshift-machine-api get machineset --no-headers | grep worker | awk '{print $1}')
 until oc -n openshift-machine-api patch machineset ${worker_machine_set} --type merge --patch "{\"spec\": {\"template\": {\"spec\": {\"providerSpec\": {\"value\": {\"domainMemory\": ${WORKERS_MEMORY}, \"domainVcpu\": ${WORKERS_CPU}}}}}}}"; do

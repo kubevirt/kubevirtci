@@ -1,0 +1,32 @@
+spec:
+  config:
+    ignition:
+      config: {}
+      security:
+        tls: {}
+      timeouts: {}
+      version: 2.2.0
+    networkd: {}
+    passwd: {}
+    storage: {
+            "files": [
+                {
+                    "path": "/etc/containers/registries.conf",
+                    "filesystem": "root",
+                    "mode": 420,
+                    "contents": {
+                    "source": "data:;base64,${REGISTRIES_CONF}"
+                    }
+                }
+            ]
+        }
+    systemd: {
+        "units": [
+            {
+                "contents": "[Unit]\nDescription=Update system CA\nAfter=syslog.target network.target\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/update-ca-trust\nRemainAfterExit=true\n\n[Install]\nWantedBy=multi-user.target\n",
+                "enabled": true,
+                "name": "update-ca.service"
+            }
+        ]
+    }
+  osImageURL: ""

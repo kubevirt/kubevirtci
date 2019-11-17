@@ -15,6 +15,11 @@ iptables \
     -m comment \
     --comment "Allow insecure libvirt clients"
 
+# add go ENV variables
+echo 'export GOROOT=/usr/local/go' >> /root/.bashrc
+echo 'export GOPATH=/root/go/' >> /root/.bashrc
+echo 'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /root/.bashrc
+
 # start libvirt
 /usr/sbin/virtlogd --daemon
 /usr/sbin/libvirtd --listen
