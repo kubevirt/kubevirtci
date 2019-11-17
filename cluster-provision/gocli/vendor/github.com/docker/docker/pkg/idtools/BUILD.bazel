@@ -10,7 +10,7 @@ go_library(
         "usergroupadd_unsupported.go",
         "utils_unix.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/docker/docker/pkg/idtools",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/docker/docker/pkg/idtools",
     importpath = "github.com/docker/docker/pkg/idtools",
     visibility = ["//visibility:public"],
     deps = select({

@@ -108,7 +108,7 @@ go_library(
         "volume_prune.go",
         "volume_remove.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/docker/docker/client",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/docker/docker/client",
     importpath = "github.com/docker/docker/client",
     visibility = ["//visibility:public"],
     deps = [

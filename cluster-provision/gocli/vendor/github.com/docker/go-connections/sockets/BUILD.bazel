@@ -11,7 +11,7 @@ go_library(
         "tcp_socket.go",
         "unix_socket.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/docker/go-connections/sockets",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/docker/go-connections/sockets",
     importpath = "github.com/docker/go-connections/sockets",
     visibility = ["//visibility:public"],
     deps = [

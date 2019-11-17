@@ -11,7 +11,7 @@ go_library(
         "scp.go",
         "ssh.go",
     ],
-    importpath = "kubevirt.io/kubevirtci/gocli/cmd",
+    importpath = "kubevirt.io/kubevirtci/cluster-provision/gocli/cmd",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/okd:go_default_library",

@@ -23,7 +23,7 @@ go_library(
         "types_windows_amd64.go",
         "zsyscall_windows.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/golang.org/x/sys/windows",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/golang.org/x/sys/windows",
     importpath = "golang.org/x/sys/windows",
     visibility = ["//visibility:public"],
 )

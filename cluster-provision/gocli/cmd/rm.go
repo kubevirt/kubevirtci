@@ -5,7 +5,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
-	"kubevirt.io/kubevirtci/gocli/docker"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 )
 
 // NewRemoveCommand returns command to remove the cluster

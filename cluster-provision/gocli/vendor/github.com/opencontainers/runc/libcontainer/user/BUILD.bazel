@@ -8,7 +8,7 @@ go_library(
         "lookup_unsupported.go",
         "user.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/opencontainers/runc/libcontainer/user",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/opencontainers/runc/libcontainer/user",
     importpath = "github.com/opencontainers/runc/libcontainer/user",
     visibility = ["//visibility:public"],
 )

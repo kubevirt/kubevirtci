@@ -9,7 +9,7 @@ go_library(
         "set.go",
         "verifiers.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/docker/distribution/digest",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/docker/distribution/digest",
     importpath = "github.com/docker/distribution/digest",
     visibility = ["//visibility:public"],
 )

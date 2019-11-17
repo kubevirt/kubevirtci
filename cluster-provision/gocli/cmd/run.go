@@ -20,9 +20,9 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 
-	"kubevirt.io/kubevirtci/gocli/cmd/okd"
-	"kubevirt.io/kubevirtci/gocli/cmd/utils"
-	"kubevirt.io/kubevirtci/gocli/docker"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/okd"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 )
 
 const proxySettings = `

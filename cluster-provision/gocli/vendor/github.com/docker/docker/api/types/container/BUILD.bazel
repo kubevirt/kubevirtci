@@ -11,7 +11,7 @@ go_library(
         "hostconfig_unix.go",
         "hostconfig_windows.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/docker/docker/api/types/container",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/docker/docker/api/types/container",
     importpath = "github.com/docker/docker/api/types/container",
     visibility = ["//visibility:public"],
     deps = [
