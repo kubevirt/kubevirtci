@@ -4,8 +4,8 @@ set -x
 
 PARENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/../.. && pwd )"
 
-okd_base_hash="sha256:259e776998da3a503a30fdf935b29102443b24ca4ea095c9478c37e994e242bb"
-gocli_image_hash="sha256:5ab9913a535227766f814b3a497d0eb1eede1a86a289d3e8bfb6bbd91836f11c"
+okd_base_hash="sha256:73ede51ce464546a82b81956b7f58cf98662a4c5fded9c659b57746bc131e047"
+gocli_image_hash="sha256:f032efbd59718d48381ae2544799b44adfefa17bcd029ee6bbefdf82f53c35bc"
 
 gocli="docker run \
 --privileged \
@@ -21,7 +21,9 @@ ${gocli} provision okd \
 --dir-manifests ${PARENT_DIR}/manifests \
 --dir-hacks ${PARENT_DIR}/okd/hacks \
 --master-memory 10240 \
---installer-pull-token-file ${INSTALLER_PULL_SECRET} \
+--workers-cpu 4 \
+--workers-memory 6144 \
+--installer-pull-secret-file ${INSTALLER_PULL_SECRET} \
 --installer-repo-tag release-4.1 \
---installer-release-image docker.io/kubevirtci/ocp-release:4.1.18 \
+--installer-release-image docker.io/kubevirtci/ocp-release:4.1.24 \
 "kubevirtci/okd-base@${okd_base_hash}"

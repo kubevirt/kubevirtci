@@ -113,9 +113,18 @@ mkdir -p $CLUSTER_DIR
 export REGISTRIES_CONF=$(base64 -w0 /manifests/okd/registries.conf)
 envsubst < /manifests/okd/registries.yaml > /registries.yaml
 
-# inject pull secret and ssh key into install-config, you should pass PULL_SECRET via docker evironment variable
+# inject PULL_SECRET and SSH_PUBLIC_KEY into install-config
+if [ ! -f "/etc/installer/token" ]; then	
+    echo "You need to provide installer pull secret file to the container"	
+    exit 1	
+fi
+
+set +x
+export PULL_SECRET=$(cat /etc/installer/token)
 export SSH_PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
 envsubst < /manifests/okd/install-config.yaml > ${INSTALL_CONFIG_FILE}
+unset PULL_SECRET
+set -x
 
 if [ ! -z $INSTALLER_RELEASE_IMAGE ]; then
     export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE=$INSTALLER_RELEASE_IMAGE
@@ -200,15 +209,7 @@ oc create -f /manifests/cna/operator.yaml
 oc create -f /manifests/cna/network-addons-config-example.cr.yaml
 
  # Wait until all the network components are ready
-oc wait networkaddonsconfig cluster --for condition=Ready --timeout=600s
-
-# Remove master schedulable taint from masters
-masters=$(oc get nodes -l node-role.kubernetes.io/master -o'custom-columns=name:metadata.name' --no-headers)
-for master in ${masters}; do
-    oc adm taint nodes ${master} node-role.kubernetes.io/master-
-done
-
-until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready | wc -l) -ge 2 ]]; do
+until oc wait networkaddonsconfig cluster --for condition=Available --timeout=100s; do
     sleep 10
 done
 
@@ -231,13 +232,8 @@ spec:
      cpuManagerReconcilePeriod: 5s
 EOF
 
-until [[ $(oc get nodes --no-headers | grep worker | grep SchedulingDisabled | wc -l) -ge 1 ]]; do
-    sleep 10
-done
-
-until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready | wc -l) -ge 2 ]]; do
-    sleep 10
-done
+oc -n openshift-machine-config-operator wait machineconfigpools worker --for condition=Updating --timeout=1800s
+oc -n openshift-machine-config-operator wait machineconfigpools worker --for condition=Updated --timeout=1800s
 
 # Disable updates of machines configurations, because on the update the machine-config
 # controller will try to drain the master node, but it not possible with only one master
@@ -258,6 +254,16 @@ done
 # Delete machine-config-daemon to prevent configuration updates
 until oc -n openshift-machine-config-operator delete ds machine-config-daemon; do
     sleep 5
+done
+
+# Remove master schedulable taint from masters
+masters=$(oc get nodes -l node-role.kubernetes.io/master -o'custom-columns=name:metadata.name' --no-headers)
+for master in ${masters}; do
+    oc adm taint nodes ${master} node-role.kubernetes.io/master-
+done
+
+until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready | wc -l) -ge 3 ]]; do
+    sleep 10
 done
 
 # Create local storage objects under the cluster
@@ -283,7 +289,9 @@ until oc -n local-storage get sc local; do
 done
 
 # Set the default storage class
-oc patch storageclass local -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+until oc patch storageclass local -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'; do
+    sleep 5
+done
 
 # update number of workers
 worker_machine_set=$(oc -n openshift-machine-api get machineset --no-headers | grep worker | awk '{print $1}')

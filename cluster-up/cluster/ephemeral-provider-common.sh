@@ -5,7 +5,7 @@ set -e
 if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
 	_cli="pack8s"
 else
-	_cli_container="kubevirtci/gocli@sha256:dd2ece308936bb13ffa040c663e30488f0130c92c0d84a7fc4f209052239747c"
+	_cli_container="kubevirtci/gocli@sha256:f032efbd59718d48381ae2544799b44adfefa17bcd029ee6bbefdf82f53c35bc"
 	_cli="docker run --privileged --net=host --rm ${USE_TTY} -v /var/run/docker.sock:/var/run/docker.sock ${_cli_container}"
 fi
 

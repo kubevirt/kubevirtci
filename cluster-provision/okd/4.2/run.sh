@@ -2,8 +2,8 @@
 
 set -x
 
-okd_image_hash="sha256:2b7b5e09b9bdf2ca40b8e153a111702584e2a3e802643e3e7df1f2d97eca0ce8"
-gocli_image_hash="sha256:dd2ece308936bb13ffa040c663e30488f0130c92c0d84a7fc4f209052239747c"
+okd_image_hash="sha256:998f79c90c635dbd8d752752c1ee1a731e40b36bbc089b00f9cdf332e6cdb72e"
+gocli_image_hash="sha256:f032efbd59718d48381ae2544799b44adfefa17bcd029ee6bbefdf82f53c35bc"
 
 gocli="docker run --privileged --net=host --rm -t -v /var/run/docker.sock:/var/run/docker.sock docker.io/kubevirtci/gocli@${gocli_image_hash}"
 
@@ -12,5 +12,5 @@ ${gocli} run okd \
 --background \
 --prefix okd-4.2 \
 --registry-volume okd-4.2-registry \
---installer-secret-token ${INSTALLER_PULL_SECRET} \
+--installer-pull-secret-file ${INSTALLER_PULL_SECRET} \
 "kubevirtci/okd-4.2@${okd_image_hash}"
