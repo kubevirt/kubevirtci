@@ -11,11 +11,13 @@ done
 kubeadm init --config /etc/kubernetes/kubeadm.conf
 
 version=`kubectl version --short --client | cut -d":" -f2 |sed  's/ //g' | cut -c2- | cut -d"." -f2`
-if [[ ${version} -ge "12" ]]; then
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel-ge-12.yaml
-else
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/flannel.yaml
+flannel_manifest="/tmp/flannel.yaml"
+if [[ $version -ge "16" ]]; then
+    flannel_manifest="/tmp/flannel-ge-16.yaml"
+elif [[ $version -ge "12" ]]; then
+    flannel_manifest="/tmp/flannel-ge-12.yaml"
 fi
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$flannel_manifest"
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
 
@@ -30,4 +32,9 @@ while [[ $retry_counter -lt 20 && $kubectl_rc -ne 0 ]]; do
     kubectl_rc=$?
     retry_counter=$((retry_counter + 1))
 done
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /tmp/local-volume.yaml
+
+local_volume_manifest="/tmp/local-volume.yaml"
+if [[ $version -ge "16" ]]; then
+    local_volume_manifest="/tmp/local-volume-ge-16.yaml"
+fi
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$local_volume_manifest"
