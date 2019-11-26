@@ -5,6 +5,9 @@ cluster-up:
 cluster-down:
 	./cluster-up/down.sh
 
+connect:
+	@./cluster-up/container.sh
+
 .PHONY: \
 	cluster-up \
 	cluster-down 
