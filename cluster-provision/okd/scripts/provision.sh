@@ -2,8 +2,13 @@
 
 set -xe
 
+if [ ! -f "/etc/installer/token" ]; then
+    echo "You need to provide installer pull secret file to the container"
+    exit 1
+fi
+
 if [ ! -z $INSTALLER_RELEASE_IMAGE ]; then
-    until  export INSTALLER_COMMIT=$(oc adm release info $INSTALLER_RELEASE_IMAGE --commits | grep installer | awk '{print $3}' | head -n 1); do
+    until  export INSTALLER_COMMIT=$(oc adm release info -a /etc/installer/token $INSTALLER_RELEASE_IMAGE --commits | grep installer | awk '{print $3}' | head -n 1); do
         sleep 1
     done
 fi
@@ -114,11 +119,6 @@ export REGISTRIES_CONF=$(base64 -w0 /manifests/okd/registries.conf)
 envsubst < /manifests/okd/registries.yaml > /registries.yaml
 
 # inject PULL_SECRET and SSH_PUBLIC_KEY into install-config
-if [ ! -f "/etc/installer/token" ]; then	
-    echo "You need to provide installer pull secret file to the container"	
-    exit 1	
-fi
-
 set +x
 export PULL_SECRET=$(cat /etc/installer/token)
 export SSH_PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"

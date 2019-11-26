@@ -16,7 +16,7 @@ index f9ae4c6bb..dea45f0d7 100644
  // completed.
  func waitForBootstrapConfigMap(ctx context.Context, client *kubernetes.Clientset) error {
 -	timeout := 30 * time.Minute
-+	timeout := 10 * time.Minute
++	timeout := 120 * time.Minute
  	logrus.Infof("Waiting up to %v for bootstrapping to complete...", timeout)
  
  	waitCtx, cancel := context.WithTimeout(ctx, timeout)
