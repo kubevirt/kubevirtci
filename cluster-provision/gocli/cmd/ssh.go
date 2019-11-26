@@ -6,7 +6,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
-	"kubevirt.io/kubevirtci/gocli/docker"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 )
 
 // NewSSHCommand returns command to SSH to the cluster node

@@ -15,7 +15,7 @@
 ## Versions to use
 
 * `kubevirtci/cli`: `sha256:1dd015dea4f12e6dcb8e31be3eeb677fed96f290ef4a4892a33c43d666053536`
-* `kubevirtci/gocli`: `sha256:5ab9913a535227766f814b3a497d0eb1eede1a86a289d3e8bfb6bbd91836f11c`
+* `kubevirtci/gocli`: `sha256:f032efbd59718d48381ae2544799b44adfefa17bcd029ee6bbefdf82f53c35bc`
 * `kubevirtci/base`: `sha256:850ac2e2828610b5f35f004f2a8a1ab23609a4c7891c8a1b68cbb7eef5f5dda0`
 * `kubevirtci/centos:1905_01`: `sha256:4b292b646f382d986c75a2be8ec49119a03467fe26dccc3a0886eb9e6e38c911`
 * `kubevirtci/os-3.11.0-multus`: `sha256:0c8be10799490a1f86740eaa490063f51eab78b920540f0a2946abc5e0bf30fe`
@@ -38,8 +38,9 @@
 
 ## Versions to use
 
-* `kubevirtci/okd-base`: `sha256:259e776998da3a503a30fdf935b29102443b24ca4ea095c9478c37e994e242bb`
-* `kubevirtci/okd-4.1`: `sha256:b26decaf0454cc1f99b39b9bc991f715a8d6d8e97499db5a2d40f778430972f7`
+* `kubevirtci/okd-base`: `sha256:73ede51ce464546a82b81956b7f58cf98662a4c5fded9c659b57746bc131e047`
+* `kubevirtci/okd-4.1`: `sha256:67fe42feea8256f07069d776d4c4cecff6294ff8a5af67d719eca6c08548b45d`
+* `kubevirtci/okd-4.2`: `sha256:998f79c90c635dbd8d752752c1ee1a731e40b36bbc089b00f9cdf332e6cdb72e`
 * `kubevirtci/okd-4.3`: `sha256:63abc3884002a615712dfac5f42785be864ea62006892bf8a086ccdbca8b3d38`
 
 ## Using gocli
@@ -57,7 +58,7 @@ gocli help
 
 First you will need to create installer pull token file with the content:
 ```
-pullSecret: <pull secret>
+{"auths":{...}}
 ```
 
 and after you should run `gocli` command:
@@ -67,14 +68,14 @@ gocli provision okd \
 --dir-scripts <scripts_folder>/scripts \
 --dir-hacks <hacks_folder>/hacks \
 --master-memory 10240 \
---installer-pull-token-file <installer_pull_token_file> \
+--installer-pull-secret-file <installer_pull_secret_file> \
 --installer-repo-tag release-4.1 \
 --installer-release-image quay.io/openshift-release-dev/ocp-release:4.1 \
-kubevirtci/okd-base@sha256:259e776998da3a503a30fdf935b29102443b24ca4ea095c9478c37e994e242bb
+kubevirtci/okd-base@sha256:73ede51ce464546a82b81956b7f58cf98662a4c5fded9c659b57746bc131e047
 ```
 
 ***
-NOTE: you can get the pull secret [here](https://developers.redhat.com/auth/realms/rhd/protocol/openid-connect/auth?client_id=uhc&redirect_uri=https%3A%2F%2Fcloud.openshift.com%2Fclusters%2Finstall%23pull-secret&state=109aa48e-1779-45d6-9bdc-c156b1e699b4&response_mode=fragment&response_type=code&scope=openid&nonce=b9fe0085-f2c9-4fd7-bd17-e8629f01bbaf).
+NOTE: you can get the pull secret [here](https://cloud.redhat.com/openshift).
 ***
 
 ***
@@ -85,7 +86,7 @@ NOTE: OpenShift cluster consumes a lot of resources, you should have at least 18
 
 You should run `gocli` command:
 ```bash
-gocli run okd --prefix okd-4.1 --ocp-console-port 443 --background kubevirtci/okd-4.1@sha256:2b7b5e09b9bdf2ca40b8e153a111702584e2a3e802643e3e7df1f2d97eca0ce8
+gocli run okd --prefix okd-4.1 --ocp-console-port 443 --installer-pull-secret-file <installer_pull_secret_file> --background kubevirtci/okd-4.1@sha256:2b7b5e09b9bdf2ca40b8e153a111702584e2a3e802643e3e7df1f2d97eca0ce8
 ```
 
 ### How to connect to the OKD console

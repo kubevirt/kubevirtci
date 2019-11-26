@@ -14,7 +14,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"kubevirt.io/kubevirtci/gocli/docker"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 )
 
 type copyConfig struct {
@@ -39,7 +39,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().String("master-cpu", "4", "number of CPU cores on the master")
 	provision.Flags().String("workers-memory", "4096", "amount of RAM in MB per worker")
 	provision.Flags().String("workers-cpu", "2", "number of CPU per worker")
-	provision.Flags().String("installer-pull-token-file", "", "path to the file that contains installer pull token")
+	provision.Flags().String("installer-pull-secret-file", "", "file that contains the installer pull secret")
 	provision.Flags().String("installer-repo-tag", "", "installer repository tag that you want to compile from")
 	provision.Flags().String("installer-release-image", "", "the OKD release image that you want to use")
 
@@ -96,15 +96,6 @@ func provision(cmd *cobra.Command, args []string) error {
 	}
 	envs = append(envs, fmt.Sprintf("WORKERS_CPU=%s", workersCPU))
 
-	pullTokenFile, err := cmd.Flags().GetString("installer-pull-token-file")
-	if err != nil {
-		return err
-	}
-
-	if pullTokenFile == "" {
-		return fmt.Errorf("you should provide the installer pull token file")
-	}
-
 	installerTag, err := cmd.Flags().GetString("installer-repo-tag")
 	if err != nil {
 		return err
@@ -122,6 +113,15 @@ func provision(cmd *cobra.Command, args []string) error {
 
 	if installerReleaseImage != "" {
 		envs = append(envs, fmt.Sprintf("INSTALLER_RELEASE_IMAGE=%s", installerReleaseImage))
+	}
+
+	pullSecretFile, err := cmd.Flags().GetString("installer-pull-secret-file")
+	if err != nil {
+		return err
+	}
+
+	if pullSecretFile == "" {
+		return fmt.Errorf("you should provide the installer secret token")
 	}
 
 	base := args[0]
@@ -166,7 +166,7 @@ func provision(cmd *cobra.Command, args []string) error {
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: pullTokenFile,
+				Source: pullSecretFile,
 				Target: "/etc/installer/token",
 			},
 		},

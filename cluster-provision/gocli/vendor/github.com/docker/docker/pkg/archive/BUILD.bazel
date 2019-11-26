@@ -22,7 +22,7 @@ go_library(
         "whiteouts.go",
         "wrap.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/docker/docker/pkg/archive",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/docker/docker/pkg/archive",
     importpath = "github.com/docker/docker/pkg/archive",
     visibility = ["//visibility:public"],
     deps = [

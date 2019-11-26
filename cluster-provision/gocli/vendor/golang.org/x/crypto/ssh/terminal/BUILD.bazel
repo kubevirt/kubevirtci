@@ -11,7 +11,7 @@ go_library(
         "util_solaris.go",
         "util_windows.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/golang.org/x/crypto/ssh/terminal",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/golang.org/x/crypto/ssh/terminal",
     importpath = "golang.org/x/crypto/ssh/terminal",
     visibility = ["//visibility:public"],
     deps = select({

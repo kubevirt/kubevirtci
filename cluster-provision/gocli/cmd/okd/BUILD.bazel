@@ -6,7 +6,7 @@ go_library(
         "provision.go",
         "run.go",
     ],
-    importpath = "kubevirt.io/kubevirtci/gocli/cmd/okd",
+    importpath = "kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/okd",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/utils:go_default_library",

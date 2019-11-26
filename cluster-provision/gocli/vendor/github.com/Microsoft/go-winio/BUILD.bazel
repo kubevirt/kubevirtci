@@ -14,7 +14,7 @@ go_library(
         "syscall.go",
         "zsyscall_windows.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/Microsoft/go-winio",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/Microsoft/go-winio",
     importpath = "github.com/Microsoft/go-winio",
     visibility = ["//visibility:public"],
     deps = select({

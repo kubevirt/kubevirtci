@@ -14,7 +14,7 @@ go_library(
         "writeflusher.go",
         "writers.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/docker/docker/pkg/ioutils",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/docker/docker/pkg/ioutils",
     importpath = "github.com/docker/docker/pkg/ioutils",
     visibility = ["//visibility:public"],
     deps = [

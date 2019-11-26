@@ -39,13 +39,13 @@ load(
 
 gazelle(
     name = "gazelle",
-    prefix = "kubevirt.io/kubevirtci/gocli",
+    prefix = "kubevirt.io/kubevirtci/cluster-provision/gocli",
 )
 
 go_library(
     name = "go_default_library",
     srcs = ["main.go"],
-    importpath = "kubevirt.io/kubevirtci/gocli",
+    importpath = "kubevirt.io/kubevirtci/cluster-provision/gocli",
     deps = ["//cmd:go_default_library"],
 )
 

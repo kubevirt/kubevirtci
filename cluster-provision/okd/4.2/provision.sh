@@ -15,19 +15,15 @@ gocli="docker run \
 -v ${PARENT_DIR}:${PARENT_DIR} \
 docker.io/kubevirtci/gocli@${gocli_image_hash}"
 
-provisioner_container_id=$(docker ps --filter name=okd-4.3-provision-cluster --format {{.ID}})
-docker kill $provisioner_container_id
-docker container rm $provisioner_container_id
-
 ${gocli} provision okd \
---prefix okd-4.3-provision \
+--prefix okd-4.2-provision \
 --dir-scripts ${PARENT_DIR}/okd/scripts \
 --dir-manifests ${PARENT_DIR}/manifests \
 --dir-hacks ${PARENT_DIR}/okd/hacks \
---workers-memory 8192 \
+--master-memory 10240 \
 --workers-cpu 4 \
 --workers-memory 6144 \
 --installer-pull-secret-file ${INSTALLER_PULL_SECRET} \
---installer-repo-tag release-4.3 \
+--installer-repo-tag release-4.2 \
+--installer-release-image docker.io/kubevirtci/ocp-release:4.2.5 \
 "kubevirtci/okd-base@${okd_base_hash}"
-exit $?

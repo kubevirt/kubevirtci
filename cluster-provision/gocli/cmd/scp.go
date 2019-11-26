@@ -5,8 +5,8 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
-	"kubevirt.io/kubevirtci/gocli/cmd/utils"
-	"kubevirt.io/kubevirtci/gocli/docker"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 
 	"bytes"
 	"fmt"

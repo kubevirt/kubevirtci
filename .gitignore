@@ -1,6 +1,6 @@
 *.img
 cli
 .idea
-/gocli/bazel**
+/cluster-provision/gocli/bazel**
 log.txt
 _ci-configs/*

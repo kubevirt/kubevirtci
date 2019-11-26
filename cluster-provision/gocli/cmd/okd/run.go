@@ -15,8 +15,8 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 
-	"kubevirt.io/kubevirtci/gocli/cmd/utils"
-	"kubevirt.io/kubevirtci/gocli/docker"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 )
 
 // NewRunCommand returns command that runs OKD cluster
@@ -43,6 +43,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("background", false, "go to background after nodes are up")
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
 	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
+	run.Flags().String("installer-pull-secret-file", "", "file that contains the installer pull secret")
 	return run
 }
 
@@ -89,6 +90,22 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 	envs = append(envs, fmt.Sprintf("NUM_SECONDARY_NICS=%d", secondaryNics))
+
+	pullSecretFile, err := cmd.Flags().GetString("installer-pull-secret-file")
+	if err != nil {
+		return err
+	}
+
+	mounts := []mount.Mount{}
+	if pullSecretFile == "" {
+		fmt.Println("you should provide the installer pull secret file, if you want to install additional machines")
+	} else {
+		mounts = append(mounts, mount.Mount{
+			Type:   mount.TypeBind,
+			Source: pullSecretFile,
+			Target: "/etc/installer/token",
+		})
+	}
 
 	randomPorts, err := cmd.Flags().GetBool("random-ports")
 	if err != nil {
@@ -170,6 +187,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			utils.TCPPortOrDie(utils.PortAPI):        {},
 		},
 	}, &container.HostConfig{
+		Mounts:          mounts,
 		Privileged:      true,
 		PublishAllPorts: randomPorts,
 		PortBindings:    portMap,

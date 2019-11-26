@@ -14,7 +14,7 @@ go_library(
         "mul_amd64.s",
         "square_amd64.s",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/golang.org/x/crypto/curve25519",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/golang.org/x/crypto/curve25519",
     importpath = "golang.org/x/crypto/curve25519",
     visibility = ["//visibility:public"],
 )

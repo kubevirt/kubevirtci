@@ -6,7 +6,7 @@ go_library(
         "sequences.go",
         "sequences_dummy.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/konsorten/go-windows-terminal-sequences",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/konsorten/go-windows-terminal-sequences",
     importpath = "github.com/konsorten/go-windows-terminal-sequences",
     visibility = ["//visibility:public"],
 )

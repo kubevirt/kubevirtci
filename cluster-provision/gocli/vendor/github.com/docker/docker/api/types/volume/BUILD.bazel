@@ -6,7 +6,7 @@ go_library(
         "volumes_create.go",
         "volumes_list.go",
     ],
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/docker/docker/api/types/volume",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/docker/docker/api/types/volume",
     importpath = "github.com/docker/docker/api/types/volume",
     visibility = ["//visibility:public"],
     deps = ["//vendor/github.com/docker/docker/api/types:go_default_library"],

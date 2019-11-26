@@ -15,7 +15,7 @@ go_library(
         "xattrs_linux.go",
     ],
     cgo = True,
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/opencontainers/runc/libcontainer/system",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/opencontainers/runc/libcontainer/system",
     importpath = "github.com/opencontainers/runc/libcontainer/system",
     visibility = ["//visibility:public"],
 )

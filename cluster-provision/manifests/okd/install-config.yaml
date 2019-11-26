@@ -3,7 +3,7 @@ baseDomain: tt.testing
 compute:
 - name: worker
   platform: {}
-  replicas: 1
+  replicas: 2
 controlPlane:
   name: master
   platform: {}
@@ -22,3 +22,5 @@ platform:
     URI: qemu+tcp://192.168.122.1/system
     network:
       if: tt0
+pullSecret: '${PULL_SECRET}'
+sshKey: '${SSH_PUBLIC_KEY}'

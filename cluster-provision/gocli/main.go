@@ -1,7 +1,7 @@
 package main
 
 import (
-	"kubevirt.io/kubevirtci/gocli/cmd"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd"
 )
 
 func main() {

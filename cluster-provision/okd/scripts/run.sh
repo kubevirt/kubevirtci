@@ -70,10 +70,41 @@ done
 # wait half minute, just to be sure that we do not get old cluster state
 sleep 30
 
+# wait for the router pod to start on the worker
+until [[ $(oc -n openshift-ingress get pods -o custom-columns=NAME:.metadata.name,HOST_IP:.status.hostIP,PHASE:.status.phase | grep route | grep Running | head -n 1 | awk '{print $2}') != "" ]]; do
+    sleep 5
+done
+
+# update hostnames for services to point to the node with the route pod
+worker_node_ip=$(oc -n openshift-ingress get pods -o custom-columns=NAME:.metadata.name,HOST_IP:.status.hostIP,PHASE:.status.phase | grep route | grep Running | head -n 1 | awk '{print $2}')
+if [[ ${worker_node_ip} != "192.168.126.51" ]]; then
+    virsh net-update $cluster_network delete dns-host \
+"<host ip='192.168.126.51'>
+  <hostname>console-openshift-console.apps.test-1.tt.testing</hostname>
+  <hostname>oauth-openshift.apps.test-1.tt.testing</hostname>
+</host>" --live --config
+
+    virsh net-update $cluster_network add dns-host \
+"<host ip='${worker_node_ip}'>
+  <hostname>console-openshift-console.apps.test-1.tt.testing</hostname>
+  <hostname>oauth-openshift.apps.test-1.tt.testing</hostname>
+</host>" --live --config
+fi
+
 until [[ $(oc get pods --all-namespaces --no-headers | grep -v revision-pruner | grep -v Running | grep -v Completed | wc -l) -le 3 ]]; do
     echo "waiting for pods to come online"
     sleep 10
 done
+
+# update the pull-secret from the file
+if [ -s "/etc/installer/token" ]; then
+    set +x
+    pull_secret=$(cat /etc/installer/token | base64 -w0)
+    until oc -n openshift-config patch secret pull-secret --type merge --patch "{\"data\": {\".dockerconfigjson\": \"${pull_secret}\"}}"; do
+        sleep 5
+    done
+    set -x
+fi
 
 # update worker machine set with desired number of CPU and memory
 worker_machine_set=$(oc -n openshift-machine-api get machineset --no-headers | grep worker | awk '{print $1}')

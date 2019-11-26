@@ -47,7 +47,7 @@ go_library(
         ],
         "//conditions:default": [],
     }),
-    importmap = "kubevirt.io/kubevirtci/gocli/vendor/github.com/docker/docker/pkg/system",
+    importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/github.com/docker/docker/pkg/system",
     importpath = "github.com/docker/docker/pkg/system",
     visibility = ["//visibility:public"],
     deps = select({
