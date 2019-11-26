@@ -202,16 +202,18 @@ EOF
 # Grant to admin user cluster-admin permissions
 oc adm policy add-cluster-role-to-user cluster-admin admin
 
-# Apply network addons
-oc create -f /manifests/cna/namespace.yaml
-oc create -f /manifests/cna/network-addons-config.crd.yaml
-oc create -f /manifests/cna/operator.yaml
-oc create -f /manifests/cna/network-addons-config-example.cr.yaml
+if [ "${CNAO}" == "true" ]; then
+    # Apply network addons
+    oc create -f /manifests/cna/namespace.yaml
+    oc create -f /manifests/cna/network-addons-config.crd.yaml
+    oc create -f /manifests/cna/operator.yaml
+    oc create -f /manifests/cna/network-addons-config-example.cr.yaml
 
- # Wait until all the network components are ready
-until oc wait networkaddonsconfig cluster --for condition=Available --timeout=100s; do
-    sleep 10
-done
+     # Wait until all the network components are ready
+    until oc wait networkaddonsconfig cluster --for condition=Available --timeout=100s; do
+        sleep 10
+    done
+fi
 
 # Enable CPU manager on workers
 until oc label machineconfigpool worker custom-kubelet=cpumanager-enabled; do

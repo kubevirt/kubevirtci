@@ -32,6 +32,7 @@ func NewProvisionCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 	}
 
+	provision.Flags().Bool("skip-cnao", false, "skip installing cluster network addons operator")
 	provision.Flags().String("dir-hacks", "", "directory with installer hack that should be copied to the container")
 	provision.Flags().String("dir-manifests", "", "directory with additional manifests that should be installed")
 	provision.Flags().String("dir-scripts", "", "directory with scripts that should be copied to the container")
@@ -72,6 +73,13 @@ func provision(cmd *cobra.Command, args []string) error {
 	}
 
 	envs := []string{}
+
+	skipCnao, err := cmd.Flags().GetBool("skip-cnao")
+	if err != nil {
+		return err
+	}
+	envs = append(envs, fmt.Sprintf("CNAO=%t", !skipCnao))
+
 	masterMemory, err := cmd.Flags().GetString("master-memory")
 	if err != nil {
 		return err
