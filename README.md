@@ -91,6 +91,11 @@ SSH into worker
 cluster-up/ssh.sh worker-0
 ```
 
+Connect to the container (with KUBECONFIG exported)
+```
+make connect
+```
+
 Accessing OKD UI
 ```
 TODO - in the process of working out the details here.
