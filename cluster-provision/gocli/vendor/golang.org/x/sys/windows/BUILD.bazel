@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
+        "aliases.go",
         "asm_windows_386.s",
         "asm_windows_amd64.s",
         "dll_windows.go",
@@ -10,6 +11,7 @@ go_library(
         "eventlog.go",
         "exec_windows.go",
         "memory_windows.go",
+        "mkerrors.go",
         "mksyscall.go",
         "race.go",
         "race0.go",
@@ -21,6 +23,7 @@ go_library(
         "types_windows.go",
         "types_windows_386.go",
         "types_windows_amd64.go",
+        "zerrors_windows.go",
         "zsyscall_windows.go",
     ],
     importmap = "kubevirt.io/kubevirtci/cluster-provision/gocli/vendor/golang.org/x/sys/windows",
