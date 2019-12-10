@@ -39,8 +39,8 @@
 ## Versions to use
 
 * `kubevirtci/okd-base`: `sha256:73ede51ce464546a82b81956b7f58cf98662a4c5fded9c659b57746bc131e047`
-* `kubevirtci/okd-4.1`: `sha256:67fe42feea8256f07069d776d4c4cecff6294ff8a5af67d719eca6c08548b45d`
-* `kubevirtci/okd-4.2`: `sha256:998f79c90c635dbd8d752752c1ee1a731e40b36bbc089b00f9cdf332e6cdb72e`
+* `kubevirtci/okd-4.1`: `sha256:1fca4aae59eaaa3bec9453c4ca083cbfbddf85c63d2476caddfda04b0d5907cf`
+* `kubevirtci/okd-4.2`: `sha256:4783323d0a686e61a10f25e610826cdccccab57b3634a39996e4028ac1a520f3`
 * `kubevirtci/okd-4.3`: `sha256:63abc3884002a615712dfac5f42785be864ea62006892bf8a086ccdbca8b3d38`
 
 ## Using gocli
