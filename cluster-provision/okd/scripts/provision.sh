@@ -305,6 +305,12 @@ while [[ "$(oc get node -o name |wc -l)" -ne 2 ]]; do
     sleep 15
 done
 
+# Clean Completed and OOMKilled pods
+for pod in $(oc get pod --all-namespaces -o 'jsonpath={range .items[*]}{.metadata.namespace}{'\'','\''}{.metadata.name}{'\'','\''}{.status.phase}{'\''\n'\''}{end}' --field-selector status.phase!=Running |grep -v Pending); do
+    oc delete pod $(echo $pod |sed -r "s/^(.*),(.*),.*$/-n \1 \2/g")
+done
+
+
 # Shutdown VM's
 virsh list --name | xargs --max-args=1 virsh shutdown
 
