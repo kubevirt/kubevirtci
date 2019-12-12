@@ -1,0 +1,4 @@
+# Environment file with constants used by the provider.
+# To use it, source it from your script.
+
+OCP_RELEASE_IMAGE=docker.io/kubevirtci/ocp-release:4.1.24

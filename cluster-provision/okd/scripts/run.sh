@@ -70,6 +70,82 @@ done
 # wait half minute, just to be sure that we do not get old cluster state
 sleep 30
 
+echo "@@@@@@@@@@@@@@@@@@@@@@"
+echo "@ RENEW SYSTEM CERTS @"
+echo "@@@@@@@@@@@@@@@@@@@@@@"
+
+function distribute() {
+    local vms="${1:?}"
+    local network_name="${2:?}"
+    local target_local="${3:?}"
+    local target_remote="${4:?}"
+
+    for vm in "${vms[@]}"; do
+        vm_ip=$(virsh net-dhcp-leases "${network_name}" | grep "${vm}" | awk '{print $5}' | tr "/" "\t" | awk '{print $1}')
+        scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q -i vagrant.key "${target_local}" "${vm_ip}:/tmp/${target_remote##*/}.tmp"
+        ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q -i vagrant.key "core@${master_ip}" "sudo mv /tmp/${target_remote##*/}.tmp $target_remote"
+    done
+}
+
+function exec_on_all_vms() {
+    local vms="${1:?}"
+    local network_name="${2:?}"
+    shift 2
+    local cmd=("${@}")
+
+    for vm in "${vms[@]}"; do
+        vm_ip=$(virsh net-dhcp-leases "${network_name}" | grep "${vm}" | awk '{print $5}' | tr "/" "\t" | awk '{print $1}')
+        ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q -i vagrant.key "core@${master_ip}" "${cmd[@]}"
+    done
+}
+
+all_vms=("$(virsh list --name)")
+network_name=$(virsh net-list | grep test | awk '{print $1}')
+
+some_master="$(virsh list --name | grep master | head -1)"
+master_ip="$(virsh net-dhcp-leases ${network_name} | grep ${some_master} | awk '{print $5}' | tr "/" "\t" | awk '{print $1}')"
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q -i vagrant.key core@${master_ip} 'sudo /tmp/generate-recovery-config'
+scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q -i vagrant.key core@${vm_ip}:/tmp/recovery-kubeconfig recovery-config
+scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q -i vagrant.key core@${vm_ip}:/tmp/kubernetes-ca.crt kubernetes-ca.crt
+
+# distribute the recovery config to the entire cluster
+distribute "${all_vms[@]}" "$network_name" recovery-config /etc/kubernetes/kubeconfig
+distribute "${all_vms[@]}" "$network_name" kubernetes-ca.crt /etc/kubernetes/ca.crt
+
+# Force the machine config daemon to accept the new cert update
+exec_on_all_vms "${all_vms[@]}" "$network_name" sudo touch /run/machine-config-daemon-force
+
+# Recover the kubelet on all masters
+all_masters=("$(virsh list --name | grep master)")
+exec_on_all_vms "${all_masters[@]}" "$network_name" \
+    sudo systemctl stop kubelet \
+    '&&' sudo rm -rf /var/lib/kubelet/pki /var/lib/kubelet/kubeconfig \
+    '&&' sudo systemctl start kubelet
+
+# Recover the kubelet on all nodes
+all_nodes=("$(virsh list --name | grep node)")
+exec_on_all_vms "${all_nodes[@]}" "$network_name" \
+    sudo systemctl stop kubelet \
+    '&&' sudo rm -rf /var/lib/kubelet/pki /var/lib/kubelet/kubeconfig \
+    '&&' sudo systemctl start kubelet
+
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q -i vagrant.key "core@${master_ip}" <<"EOF"
+    oc get csr -o name | xargs -r oc adm certificate approve
+    sudo podman run -it --network=host -v /etc/kubernetes/:/etc/kubernetes/:Z --entrypoint=/usr/bin/cluster-kube-apiserver-operator "${KAO_IMAGE}" recovery-apiserver destroy
+EOF
+
+# rotate CA certa
+echo "Rotating openshift-service-ca"
+until [[ $(oc delete secret/signing-key -n openshift-service-ca) ]]; do
+    sleep 5
+done
+
+# delete all pods in the cluster to apply the new cert
+echo "Removing all pods to make sure we run with the new CA"
+until [[ $(oc delete pods --all --all-namespaces) ]]; do
+    sleep 5
+done
+
 # wait for the router pod to start on the worker
 until [[ $(oc -n openshift-ingress get pods -o custom-columns=NAME:.metadata.name,HOST_IP:.status.hostIP,PHASE:.status.phase | grep route | grep Running | head -n 1 | awk '{print $2}') != "" ]]; do
     sleep 5
