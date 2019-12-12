@@ -5,7 +5,7 @@ set -e
 if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
 	_cli="pack8s"
 else
-	_cli_container="kubevirtci/gocli@sha256:8dc7a694e67fadfbb337d59dfc269253079e31dca62e5298361dd464a82adc4b"
+	_cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-kubevirtci/gocli@sha256:8dc7a694e67fadfbb337d59dfc269253079e31dca62e5298361dd464a82adc4b}"
 	_cli="docker run --privileged --net=host --rm ${USE_TTY} -v /var/run/docker.sock:/var/run/docker.sock ${_cli_container}"
 fi
 
@@ -39,6 +39,9 @@ function _add_common_params() {
         params=" --nfs-data $WINDOWS_NFS_DIR $params"
     elif [[ $TARGET =~ os-.* ]] && [ -n "$RHEL_NFS_DIR" ]; then
         params=" --nfs-data $RHEL_NFS_DIR $params"
+    fi
+    if [ -n "${KUBEVIRTCI_PROVISION_CHECK}" ]; then
+      params=" --container-registry= $params"
     fi
     echo $params
 }
