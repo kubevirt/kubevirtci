@@ -8,6 +8,7 @@ filters:
       - vladikr
       - dhiller
       - qinqon
+      - oscollabus
     approvers:
       - davidvossel
       - rmohr
