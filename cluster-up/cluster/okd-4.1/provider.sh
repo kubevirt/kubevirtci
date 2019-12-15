@@ -36,6 +36,10 @@ function up() {
         params=" --ocp-console-port $OKD_CONSOLE_PORT ${params}"
     fi
 
+    if [[ ! -z "${INSTALLER_PULL_SECRET}" ]]; then
+        params=" --installer-pull-secret-file ${INSTALLER_PULL_SECRET} ${params}"
+    fi
+
     ${_cli} run okd ${params}
 
     # Copy k8s config and kubectl
