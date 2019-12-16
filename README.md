@@ -100,3 +100,45 @@ Accessing OKD UI
 ```
 TODO - in the process of working out the details here.
 ```
+
+# Getting started with OCP provider scale-up
+
+Scale up cluster with a new worker, the CUSTOM_IMAGE is in order to have a pre-provisioned qcow,
+with ocp baseline images, and openshift packages.
+The file will be taken from \$BASE_URL/\$CUSTOM_IMAGE.
+ocp_43.repo should contain the repositories needed in order to install
+openshift-ansible, openshift-clients, and openshift packages that are installed during the ansible playbook.
+see please 
+https://docs.openshift.com/container-platform/4.2/machine_management/adding-rhel-compute.html
+for more details. and for alternative way with subscription manager.
+```
+export REPO_FILE=ocp_43.repo
+export BASE_URL=<URL where CUSTOM_IMAGE is located>
+export CUSTOM_IMAGE=custom-worker-ocp.img
+make scale-up
+```
+
+How to provide a secret: \
+Get your secret from https://cloud.redhat.com/openshift/install/metal/user-provisioned \
+Add to it "registry.svc.ci.openshift.org" auth, save to a file and use export like this one. \
+In case scale-up uses a non pre provisioned qcow image (or on provision mode), \
+exporting secret must be done before cluster-up.
+``` 
+export INSTALLER_PULL_SECRET=$(realpath pull-secret)
+```
+
+Provision of updated qcow image: \
+Every time a new provider is created, we need to update the qcow as well. \
+When scale-up provision mode finishes, (it will inject known failure in ansible in order to stop it), \
+copy /tmp/custom.img from the container and upload it to your server. \
+update EXPECTED_MD5 with the md5sum of that image.
+```
+export PROVISION_MODE=1
+export REPO_FILE=ocp_43.repo
+export BASE_URL=<URL where CUSTOM_IMAGE is located>
+export INSTALLER_PULL_SECRET=$(realpath pull-secret)
+export KUBEVIRT_PROVIDER=ocp-4.3
+make cluster-up
+make scale-up
+```
+
