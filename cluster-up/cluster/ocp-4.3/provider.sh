@@ -2,7 +2,7 @@
 
 set -e
 
-image="openshift-cnv/kubevirtci-ocp-4.3@sha256:446265401bff3e90548f34461f0814493f52489c82e4527844250f7a02dcbb7c"
+image="ocp-4.3@sha256:63bc365f97acab249b34a048825edd650973764355b3f232db7d74f7d08e6ea4"
 
 source ${KUBEVIRTCI_PATH}/cluster/ephemeral-provider-common.sh
 
@@ -27,13 +27,17 @@ function up() {
         workers=1
     fi
     echo "Number of workers: $workers"
-    params="--random-ports --background --prefix $provider_prefix --master-cpu 6 --workers-cpu 6 --secondary-nics ${KUBEVIRT_NUM_SECONDARY_NICS} --registry-volume $(_registry_volume) --workers $workers --container-registry quay.io ${image}"
+    params="--random-ports --background --prefix $provider_prefix --master-cpu 6 --workers-cpu 6 --secondary-nics ${KUBEVIRT_NUM_SECONDARY_NICS} --registry-volume $(_registry_volume) --workers $workers --container-registry docker-registry.upshift.redhat.com kubevirtci/${image}"
     if [[ ! -z "${RHEL_NFS_DIR}" ]]; then
         params=" --nfs-data $RHEL_NFS_DIR ${params}"
     fi
 
     if [[ ! -z "${OKD_CONSOLE_PORT}" ]]; then
         params=" --ocp-console-port $OKD_CONSOLE_PORT ${params}"
+    fi
+
+    if [[ ! -z "${INSTALLER_PULL_SECRET}" ]]; then
+        params=" --installer-pull-secret-file ${INSTALLER_PULL_SECRET} ${params}"
     fi
 
     ${_cli} run okd ${params}
