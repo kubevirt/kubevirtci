@@ -2,10 +2,12 @@
 
 set -e
 
+source ${KUBEVIRTCI_PATH}/cluster/images.sh
+
 if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
 	_cli="pack8s"
 else
-	_cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-kubevirtci/gocli@sha256:f5543a427a0e4c83b7251fbf71aa9d562f80f182e8662f5a4df13beb9c8aaba8}"
+  _cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-kubevirtci/${IMAGES[gocli]}}"
 	_cli="docker run --privileged --net=host --rm ${USE_TTY} -v /var/run/docker.sock:/var/run/docker.sock ${_cli_container}"
 fi
 
