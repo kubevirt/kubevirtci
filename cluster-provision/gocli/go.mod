@@ -3,6 +3,7 @@ module kubevirt.io/kubevirtci/cluster-provision/gocli
 require (
 	github.com/Microsoft/go-winio v0.4.7 // indirect
 	github.com/Sirupsen/logrus v1.4.1 // indirect
+	github.com/bazelbuild/bazelisk v1.1.0 // indirect
 	github.com/docker/distribution v2.6.2+incompatible // indirect
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.3.0

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -71,6 +72,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
+	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
 
 	run.AddCommand(
 		okd.NewRunCommand(),
@@ -160,6 +162,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	containerRegistry, err := cmd.Flags().GetString("container-registry")
+	if err != nil {
+		return err
+	}
+
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return err
@@ -182,10 +189,13 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		done <- fmt.Errorf("Interrupt received, clean up")
 	}()
 
-	// Pull the cluster image
-	err = docker.ImagePull(cli, ctx, "docker.io/"+cluster, types.ImagePullOptions{})
-	if err != nil {
-		panic(err)
+	if len(containerRegistry) > 0 {
+		imageRef := path.Join(containerRegistry, cluster)
+		fmt.Printf("Download the image %s\n", imageRef)
+		err = docker.ImagePull(cli, ctx, imageRef, types.ImagePullOptions{})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// Start dnsmasq
