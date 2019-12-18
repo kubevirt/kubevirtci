@@ -2,8 +2,6 @@
 
 set -e
 
-image="okd-4.1@sha256:e7e3a03bb144eb8c0be4dcd700592934856fb623d51a2b53871d69267ca51c86"
-
 source ${KUBEVIRTCI_PATH}/cluster/ephemeral-provider-common.sh
 
 function _port() {
