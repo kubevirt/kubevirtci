@@ -2,8 +2,6 @@
 
 set -e
 
-image="openshift-cnv/kubevirtci-ocp-4.3@sha256:446265401bff3e90548f34461f0814493f52489c82e4527844250f7a02dcbb7c"
-
 source ${KUBEVIRTCI_PATH}/cluster/ephemeral-provider-common.sh
 
 function _port() {
@@ -27,7 +25,7 @@ function up() {
         workers=1
     fi
     echo "Number of workers: $workers"
-    params="--random-ports --background --prefix $provider_prefix --master-cpu 6 --workers-cpu 6 --secondary-nics ${KUBEVIRT_NUM_SECONDARY_NICS} --registry-volume $(_registry_volume) --workers $workers --container-registry quay.io ${image}"
+    params="--random-ports --background --prefix $provider_prefix --master-cpu 6 --workers-cpu 6 --secondary-nics ${KUBEVIRT_NUM_SECONDARY_NICS} --registry-volume $(_registry_volume) --workers $workers --container-registry docker-registry.upshift.redhat.com ${image}"
     if [[ ! -z "${RHEL_NFS_DIR}" ]]; then
         params=" --nfs-data $RHEL_NFS_DIR ${params}"
     fi
