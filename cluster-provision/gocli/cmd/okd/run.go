@@ -1,6 +1,8 @@
 package okd
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -43,6 +45,8 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("background", false, "go to background after nodes are up")
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
 	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
+	run.Flags().String("container-registry-user", "", "the user to pull cluster container from")
+	run.Flags().String("container-registry-password", "", "the password to pull cluster container from")
 	run.Flags().String("installer-pull-secret-file", "", "file that contains the installer pull secret")
 	return run
 }
@@ -118,6 +122,20 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	if err != nil {
 		return err
 	}
+	containerRegistryUser, err := cmd.Flags().GetString("container-registry-user")
+	if err != nil {
+		return err
+	}
+	containerRegistryPassword, err := cmd.Flags().GetString("container-registry-password")
+	if err != nil {
+		return err
+	}
+	if containerRegistryUser != "" && containerRegistryPassword == "" {
+		return fmt.Errorf("Missing --container-registry-password")
+	}
+	if containerRegistryPassword != "" && containerRegistryUser == "" {
+		return fmt.Errorf("Missing --container-registry-user")
+	}
 
 	utils.AppendIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-master-port")
 	utils.AppendIfExplicit(portMap, utils.PortSSHWorker, cmd.Flags(), "ssh-worker-port")
@@ -167,8 +185,21 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	if len(containerRegistry) > 0 {
 		cluster = containerRegistry + "/" + cluster
 		// Pull the cluster image
+		imagePullOptions := types.ImagePullOptions{}
+		if containerRegistryUser != "" {
+			authConfig := types.AuthConfig{
+				Username: containerRegistryUser,
+				Password: containerRegistryPassword,
+			}
+			encodedAuthConfig, err := json.Marshal(authConfig)
+			if err != nil {
+				panic(err)
+			}
+			imagePullOptions.RegistryAuth = base64.URLEncoding.EncodeToString(encodedAuthConfig)
+		}
+
 		fmt.Printf("Download the image %s\n", cluster)
-		err = docker.ImagePull(cli, ctx, cluster, types.ImagePullOptions{})
+		err = docker.ImagePull(cli, ctx, cluster, imagePullOptions)
 		if err != nil {
 			panic(err)
 		}
