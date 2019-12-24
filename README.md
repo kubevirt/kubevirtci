@@ -100,3 +100,9 @@ Accessing OKD UI
 ```
 TODO - in the process of working out the details here.
 ```
+
+In order to check newly created provider run,
+this will point to the local created provider upon cluster-up
+```
+export KUBEVIRTCI_PROVISION_CHECK=1
+```

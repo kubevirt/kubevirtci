@@ -26,7 +26,7 @@ function up() {
         workers=1
     fi
     echo "Number of workers: $workers"
-    params="--random-ports --background --prefix $provider_prefix --master-cpu 6 --workers-cpu 6 --secondary-nics ${KUBEVIRT_NUM_SECONDARY_NICS} --registry-volume $(_registry_volume) --workers $workers --container-registry ${container_registry} kubevirtci/${image}"
+    params="--random-ports --background --prefix $provider_prefix --master-cpu 6 --workers-cpu 6 --secondary-nics ${KUBEVIRT_NUM_SECONDARY_NICS} --registry-volume $(_registry_volume) --workers $workers kubevirtci/${image}"
     if [[ ! -z "${RHEL_NFS_DIR}" ]]; then
         params=" --nfs-data $RHEL_NFS_DIR ${params}"
     fi
@@ -43,6 +43,13 @@ function up() {
     auth=$(cat ~/.docker/config.json  | jq -r '.auths["'$container_registry'"]["auth"]' |base64 -d)
     user=$(echo $auth |awk -F: '{print $1}')
     password=$(echo $auth |awk -F: '{print $2}')
+
+    # If provision test mode is on, use local image
+    if [ -z $KUBEVIRTCI_PROVISION_CHECK ]; then
+        params=" --container-registry ${container_registry} $params"
+    else
+        params=" --container-registry= $params"
+    fi
 
     ${_cli} run okd ${params} --container-registry-user $user --container-registry-password $password
 
