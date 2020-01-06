@@ -8,6 +8,9 @@ cluster-down:
 connect:
 	@./cluster-up/container.sh
 
+scale-up:
+	./cluster-up/scale-up.sh
+
 .PHONY: \
 	cluster-up \
 	cluster-down 
