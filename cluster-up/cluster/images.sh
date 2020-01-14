@@ -16,7 +16,7 @@ if [ -z $KUBEVIRTCI_PROVISION_CHECK ]; then
     IMAGES[okd-4.1]="okd-4.1@sha256:e7e3a03bb144eb8c0be4dcd700592934856fb623d51a2b53871d69267ca51c86"
     IMAGES[okd-4.2]="okd-4.2@sha256:a830064ca7bf5c5c2f15df180f816534e669a9a038fef4919116d61eb33e84c5"
     IMAGES[okd-4.3]="okd-4.3@sha256:63abc3884002a615712dfac5f42785be864ea62006892bf8a086ccdbca8b3d38"
-    IMAGES[ocp-4.3]="ocp-4.3@sha256:4f537cbf6cf068eec9eadf2e340a642f2fda97d1b59b0aeebd615c19ce8e4ca6"
+    IMAGES[ocp-4.3]="ocp-4.3@sha256:8f59d625852ef285d6ce3ddd6ebd3662707d2c0fab19772b61dd0aa0f6b41e5f"
 fi
 export IMAGES
 

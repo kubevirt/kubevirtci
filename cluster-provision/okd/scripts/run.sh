@@ -89,6 +89,10 @@ if [[ ${worker_node_ip} != "192.168.126.51" ]]; then
   <hostname>console-openshift-console.apps.test-1.tt.testing</hostname>
   <hostname>oauth-openshift.apps.test-1.tt.testing</hostname>
 </host>" --live --config
+
+    sed -i "s/192.168.126.51/${worker_node_ip}/" /etc/haproxy/haproxy.cfg
+    pkill haproxy
+    haproxy -f /etc/haproxy/haproxy.cfg
 fi
 
 until [[ $(oc get pods --all-namespaces --no-headers | grep -v revision-pruner | grep -v Running | grep -v Completed | wc -l) -le 3 ]]; do
