@@ -46,7 +46,7 @@
 ## Using gocli
 
 `gocli` is a tiny go binary which helps managing the containerized clusters. It
-ca be used from a docker images, so no need to install it. You can for instance
+can be used from a docker images, so no need to install it. You can for instance
 use a bash alias:
 
 ```bash
