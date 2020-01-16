@@ -1,0 +1,7 @@
+#varlink call -m unix:/run/podman/io.podman/io.podman.GetInfo
+#varlink call -m unix:/run/podman/io.podman/io.podman.PullImage '{ "name": "docker.io/library/registry:2.7.1" }'
+#varlink call -m unix:/run/podman/io.podman/io.podman.ListContainers '{}' | less
+#varlink call -m unix:/run/podman/io.podman/io.podman.CreateContainer '{"create":{"args":["docker.io/library/redis"]}}'
+#varlink call -m unix:/run/podman/io.podman/io.podman.VolumesPrune
+#varlink call -m unix:/run/podman/io.podman/io.podman.StopContainer '{ "name": "265cfaf6e95832e5d4640de6920d2140b29e3ab52398bb43bfb78c0e64d74a96" }'
+#varlink call -m unix:/run/podman/io.podman/io.podman.RemoveContainer '{ "name": "265cfaf6e95832e5d4640de6920d2140b29e3ab52398bb43bfb78c0e64d74a96" }'
