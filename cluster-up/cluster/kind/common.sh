@@ -79,8 +79,16 @@ manifest_docker_prefix=registry:5000/kubevirt
 EOF
 }
 
+function _configure_network() {
+    for knob in arp ip ip6; do
+        echo 1 > /proc/sys/net/bridge/bridge-nf-call-${knob}tables
+    done
+}
+
 function kind_up() {
     _fetch_kind
+
+    _configure_network
   
     # appending eventual workers to the yaml
     for ((n=0;n<$(($KUBEVIRT_NUM_NODES-1));n++)); do 
