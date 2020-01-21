@@ -84,7 +84,7 @@ function _configure_network() {
     # environment running this script, so load the module from inside kind
     ${NODE_CMD} $1 modprobe br_netfilter
     for knob in arp ip ip6; do
-        echo 1 > /proc/sys/net/bridge/bridge-nf-call-${knob}tables
+        ${NODE_CMD} $1 sysctl -w sys.net.bridge.bridge-nf-call-${knob}tables=1
     done
 }
 
