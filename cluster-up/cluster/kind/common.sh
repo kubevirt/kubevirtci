@@ -80,6 +80,9 @@ EOF
 }
 
 function _configure_network() {
+    # modprobe is present inside kind container but may be missing in the
+    # environment running this script, so load the module from inside kind
+    ${NODE_CMD} $1 modprobe br_netfilter
     for knob in arp ip ip6; do
         echo 1 > /proc/sys/net/bridge/bridge-nf-call-${knob}tables
     done
@@ -88,8 +91,6 @@ function _configure_network() {
 function kind_up() {
     _fetch_kind
 
-    _configure_network
-  
     # appending eventual workers to the yaml
     for ((n=0;n<$(($KUBEVIRT_NUM_NODES-1));n++)); do 
         echo "- role: worker" >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
@@ -124,6 +125,7 @@ function kind_up() {
 
     for node in $(_kubectl get nodes --no-headers | awk '{print $1}'); do
         _configure_registry_on_node "$node"
+        _configure_network "$node"
     done
     prepare_config
 }
