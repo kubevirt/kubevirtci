@@ -1,4 +1,10 @@
-#!/bin/bash
+#!/bin/bash -e
 
-docker tag kubevirtci/centos:1905_01 docker.io/kubevirtci/centos:1905_01
-docker push docker.io/kubevirtci/centos:1905_01
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source ../images.sh
+
+centos_version=IMAGES[centos7-vagrant]
+
+docker tag kubevirtci/centos:$centos_version docker.io/kubevirtci/centos:$centos_version
+docker push docker.io/kubevirtci/centos:$centos_version

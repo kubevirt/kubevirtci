@@ -44,7 +44,7 @@ yum install -y \
   python-docker-py-1.10.6 \
   python3-pip
 
-pip3 install docker-pycreds
+pip3 install --default-timeout=100 docker-pycreds
 
 # Log to json files instead of journald
 sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
@@ -111,7 +111,7 @@ if [[ $minor_version -ge "16" ]]; then
 elif [[ $minor_version -ge "12" ]]; then
     flannel_manifest="/tmp/flannel-ge-12.yaml"
 fi
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$flannel_manifest" 
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$flannel_manifest"
 
 # Wait at least for 7 pods
 while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
