@@ -4,4 +4,8 @@ set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-../cli/cli provision --prefix os-3.11-provision --scripts ./scripts --base kubevirtci/centos@sha256:4b292b646f382d986c75a2be8ec49119a03467fe26dccc3a0886eb9e6e38c911 --tag kubevirtci/os-3.11.0
+cd $DIR
+
+source ../images.sh
+
+../cli/cli provision --prefix os-3.11-provision --scripts ./scripts --base kubevirtci/${IMAGES[centos7]} --tag kubevirtci/os-3.11.0
