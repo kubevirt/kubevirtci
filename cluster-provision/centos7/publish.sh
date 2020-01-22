@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/bin/bash -e
 
-docker tag kubevirtci/centos:1905_01 docker.io/kubevirtci/centos:1905_01
-docker push docker.io/kubevirtci/centos:1905_01
+centos_version=$(cat version)
+
+docker tag kubevirtci/centos:$centos_version docker.io/kubevirtci/centos:$centos_version
+docker push docker.io/kubevirtci/centos:$centos_version

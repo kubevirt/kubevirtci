@@ -1,3 +1,5 @@
-#!/bin/bash
+#!/bin/bash -e
 
-docker build . -t kubevirtci/centos:1905_01
+centos_version=$(cat version)
+
+docker build --build-arg centos_version=$centos_version . -t kubevirtci/centos:$centos_version
