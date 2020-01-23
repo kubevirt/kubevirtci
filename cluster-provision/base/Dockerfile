@@ -1,7 +1,7 @@
-#FROM fedora:27
-FROM fedora@sha256:25f7dac76b2c88d8b7e0b1d6213d3406e77c7f230bfa1e66bd1cbb81a944eaaf
+#FROM fedora:31
+FROM fedora@sha256:8fa60b88e2a7eac8460b9c0104b877f1aa0cea7fbc03c701b7e545dacccfb433
 
-RUN dnf -y update nettle && dnf -y install iptables iproute dnsmasq qemu openssh-clients && dnf clean all
+RUN dnf -y update nettle && dnf -y install iptables iproute dnsmasq qemu openssh-clients socat && dnf clean all
 
 WORKDIR /
 
