@@ -16,21 +16,24 @@ gocli="docker run \
 -v ${PARENT_DIR}:${PARENT_DIR} \
 docker.io/kubevirtci/gocli@${gocli_image_hash}"
 
-provisioner_container_id=$(docker ps --filter name=ocp-4.3-provision-cluster --format {{.ID}})
+provisioner_container_id=$(docker ps --filter name=ocp-4.4-provision-cluster --format {{.ID}})
 docker kill $provisioner_container_id
 docker container rm $provisioner_container_id
 
+# For ocp-4.4 we want OVNKubernetes
 ${gocli} provision okd \
---prefix ocp-4.3-provision \
+--prefix ocp-4.4-provision \
 --dir-scripts ${PARENT_DIR}/okd/scripts \
 --dir-manifests ${PARENT_DIR}/manifests \
 --dir-hacks ${PARENT_DIR}/okd/hacks \
 --skip-cnao \
+--master-memory 10240 \
 --workers-memory 8192 \
 --workers-cpu 4 \
+--networking-type OVNKubernetes \
 --installer-pull-secret-file ${INSTALLER_PULL_SECRET} \
---installer-repo-tag release-4.3 \
---installer-release-image registry.svc.ci.openshift.org/ocp/release:4.3 \
+--installer-repo-tag release-4.4 \
+--installer-release-image registry.svc.ci.openshift.org/ocp/release:4.4 \
 "kubevirtci/okd-base@${okd_base_hash}"
 rc=$?
 

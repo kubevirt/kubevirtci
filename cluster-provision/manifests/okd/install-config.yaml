@@ -16,7 +16,7 @@ networking:
     hostSubnetLength: 9
   machineCIDR: 192.168.126.0/24
   serviceCIDR: 172.30.0.0/16
-  type: OpenShiftSDN
+  type: ${NETWORKING_TYPE}
 platform:
   libvirt:
     URI: qemu+tcp://192.168.122.1/system
