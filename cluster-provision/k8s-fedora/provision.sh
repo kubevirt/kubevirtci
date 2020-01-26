@@ -9,4 +9,4 @@ cd $DIR
 
 source ../common-scripts/images.sh
 
-../cli/cli provision --prefix k8s-${version}-provision --scripts ./scripts --k8s-version ${version} --base kubevirtci/${IMAGES[centos7]} --tag kubevirtci/k8s-${version}
+../cli/cli provision --prefix k8s-${version}-provision --scripts ./scripts --k8s-version ${version} --base kubevirtci/${IMAGES[fedora31]} --tag kubevirtci/k8s-fedora-${version}
