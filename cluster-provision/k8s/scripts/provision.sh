@@ -20,11 +20,11 @@ sed -i '/ swap / s/^/#/' /etc/fstab
 sed -i 's/quiet"/quiet spectre_v2=off nopti hugepagesz=2M hugepages=64"/' /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
 
-systemctl stop firewalld NetworkManager || :
-systemctl disable firewalld NetworkManager || :
+systemctl stop firewalld || :
+systemctl disable firewalld || :
 # Make sure the firewall is never enabled again
 # Enabling the firewall destroys the iptable rules
-yum -y remove NetworkManager firewalld
+yum -y remove firewalld
 
 # Required for iscsi demo to work.
 yum -y install iscsi-initiator-utils
