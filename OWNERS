@@ -9,6 +9,7 @@ filters:
       - dhiller
       - qinqon
       - oscollabus
+      - phoracek
     approvers:
       - davidvossel
       - rmohr
@@ -17,3 +18,4 @@ filters:
       - vladikr
       - dhiller
       - qinqon
+      - phoracek
