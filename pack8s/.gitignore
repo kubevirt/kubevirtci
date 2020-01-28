@@ -1,0 +1,7 @@
+pack8s
+runk8s
+varlink-go-interface-generator
+internal/pkg/version/version.go
+_out
+kubevirtci
+.kube
