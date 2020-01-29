@@ -122,6 +122,7 @@ envsubst < /manifests/okd/registries.yaml > /registries.yaml
 set +x
 export PULL_SECRET=$(cat /etc/installer/token)
 export SSH_PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
+
 envsubst < /manifests/okd/install-config.yaml > ${INSTALL_CONFIG_FILE}
 unset PULL_SECRET
 set -x
@@ -169,6 +170,9 @@ cp "${CLUSTER_DIR}/openshift/99-worker-registries.yaml" ./
 
 # Generate ignition configs
 /openshift-install --dir "${CLUSTER_DIR}" create ignition-configs
+
+# Clean up memory cache so we have all resources available
+sync; echo 3 > /proc/sys/vm/drop_caches
 
 # Excecute installer
 export TF_VAR_libvirt_master_memory=$MASTER_MEMORY
