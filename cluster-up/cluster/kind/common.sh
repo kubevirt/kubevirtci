@@ -13,12 +13,12 @@ KUBECTL="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl --kubeconfig=${KU
 REGISTRY_NAME=${CLUSTER_NAME}-registry
 
 function _wait_kind_up {
-    echo "Waiting for kind to be ready ..."  
+    echo "Waiting for kind to be ready ..."
     while [ -z "$(docker exec --privileged ${CLUSTER_NAME}-control-plane kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --selector=node-role.kubernetes.io/master -o=jsonpath='{.items..status.conditions[-1:].status}' | grep True)" ]; do
-        echo "Waiting for kind to be ready ..."        
+        echo "Waiting for kind to be ready ..."
         sleep 10
     done
-    echo "Waiting for dns to be ready ..."        
+    echo "Waiting for dns to be ready ..."
     _kubectl wait -n kube-system --timeout=12m --for=condition=Ready -l k8s-app=kube-dns pods
 }
 
@@ -46,7 +46,7 @@ function _reload-containerd-daemon-cmd() {
 }
 
 function _insecure-registry-config-cmd() {
-    echo "sed -i '/\[plugins.cri.registry.mirrors\]/a\        [plugins.cri.registry.mirrors.\"registry:5000\"]\n\          endpoint = [\"http://registry:5000\"]' /etc/containerd/config.toml"    
+    echo "sed -i '/\[plugins.cri.registry.mirrors\]/a\        [plugins.cri.registry.mirrors.\"registry:5000\"]\n\          endpoint = [\"http://registry:5000\"]' /etc/containerd/config.toml"
 }
 
 # this works since the nodes use the same names as containers
@@ -74,7 +74,7 @@ function prepare_config() {
 if [ -z ${IPV6_CNI+x} ]; then
     master_ip="127.0.0.1"
 else
-    master_up="::1"
+    master_ip="::1"
 fi
 kubeconfig=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
 kubectl=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubectl
@@ -85,9 +85,9 @@ EOF
 
 function kind_up() {
     _fetch_kind
-  
+
     # appending eventual workers to the yaml
-    for ((n=0;n<$(($KUBEVIRT_NUM_NODES-1));n++)); do 
+    for ((n=0;n<$(($KUBEVIRT_NUM_NODES-1));n++)); do
         echo "- role: worker" >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
     done
 
@@ -96,7 +96,7 @@ function kind_up() {
 
     docker cp ${CLUSTER_NAME}-control-plane:/kind/bin/kubectl ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
     chmod u+x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
-   
+
     echo "ipv6 cni: $IPV6_CNI"
     if [ -z ${IPV6_CNI+x} ]; then
         echo "no ipv6, safe to install flannel"
