@@ -8,16 +8,19 @@ do
     sleep 2
 done
 
-kubeadm init --config /etc/kubernetes/kubeadm.conf
+kubeadm init --config /etc/kubernetes/kubeadm.conf -a-pod-network-cidr=192.168.0.0/16
 
 version=`kubectl version --short --client | cut -d":" -f2 |sed  's/ //g' | cut -c2- | cut -d"." -f2`
-flannel_manifest="/tmp/flannel.yaml"
-if [[ $version -ge "16" ]]; then
-    flannel_manifest="/tmp/flannel-ge-16.yaml"
+if [[ $version -ge "17" ]]; then
+    cni_manifest="/tmp/calico.yaml"
+elif [[ $version -ge "16" ]]; then
+    cni_manifest="/tmp/cni-ge-16.yaml"
 elif [[ $version -ge "12" ]]; then
-    flannel_manifest="/tmp/flannel-ge-12.yaml"
+    cni_manifest="/tmp/cni-ge-12.yaml"
+else
+    cni_manifest="/tmp/flannel.yaml"
 fi
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$flannel_manifest"
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
 
