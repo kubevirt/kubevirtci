@@ -10,14 +10,20 @@ done
 
 kubeadm init --config /etc/kubernetes/kubeadm.conf
 
+default_cidr="192.168.0.0/16"
+pod_cidr="10.244.0.0/16"
 version=`kubectl version --short --client | cut -d":" -f2 |sed  's/ //g' | cut -c2- | cut -d"." -f2`
-flannel_manifest="/tmp/flannel.yaml"
-if [[ $version -ge "16" ]]; then
-    flannel_manifest="/tmp/flannel-ge-16.yaml"
+
+network_plugin_manifest="/tmp/flannel.yaml"
+if [[ $version -ge "17" ]]; then
+    network_plugin_manifest="/tmp/calico.yaml"
+    sed -i -e "s?$default_cidr?$pod_cidr?g" "$network_plugin_manifest"
+elif [[ $version -ge "16" ]]; then
+    network_plugin_manifest="/tmp/flannel-ge-16.yaml"
 elif [[ $version -ge "12" ]]; then
-    flannel_manifest="/tmp/flannel-ge-12.yaml"
+    network_plugin_manifest="/tmp/flannel-ge-12.yaml"
 fi
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$flannel_manifest"
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$network_plugin_manifest"
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
 

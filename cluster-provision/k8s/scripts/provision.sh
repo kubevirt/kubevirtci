@@ -104,14 +104,21 @@ sysctl --system
 echo bridge >> /etc/modules
 echo br_netfilter >> /etc/modules
 
-kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
-flannel_manifest="/tmp/flannel.yaml"
-if [[ $minor_version -ge "16" ]]; then
-    flannel_manifest="/tmp/flannel-ge-16.yaml"
+default_cidr="192.168.0.0/16"
+pod_cidr="10.244.0.0/16"
+kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456
+
+network_plugin_manifest="/tmp/flannel.yaml"
+if [[ $minor_version -ge "17" ]]; then 
+    network_plugin_manifest="/tmp/calico.yaml"
+    sed -i -e "s?$default_cidr?$pod_cidr?g" "$network_plugin_manifest"
+elif [[ $minor_version -ge "16" ]]; then
+    network_plugin_manifest="/tmp/flannel-ge-16.yaml"
 elif [[ $minor_version -ge "12" ]]; then
-    flannel_manifest="/tmp/flannel-ge-12.yaml"
+    network_plugin_manifest="/tmp/flannel-ge-12.yaml"
 fi
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$flannel_manifest"
+
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$network_plugin_manifest"
 
 # Wait at least for 7 pods
 while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
