@@ -3,7 +3,7 @@
 set -e
 
 declare -A IMAGES
-IMAGES[fedora31]=""
+IMAGES[fedora31]="fedora@sha256:6e32c9c0073bd79a435537a067f14e7f9b72e1ddd9229f711306a93b9252125a"
 IMAGES[fedora31-vagrant]="31-1.9"
 IMAGES[centos7]="centos@sha256:6f2548dcc23489d0c945aef516781ae2ea678424c3760d1dafa0a83d29411713"
 IMAGES[centos7-vagrant]="2001_01"

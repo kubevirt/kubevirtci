@@ -32,7 +32,9 @@ echo "OS: $os $os_version unified_cgroup_hierarchy: $cgroup_hierarchy"
 if [[ $os =~ $TARGET_ID ]]; then    
     if [ $os_version == $TARGET_ID_VERSION ]; then
         # Revert cgroup to v1 in order to work with docker.
-        if [ $cgroup_hierarchy != 0 ]; then
+        if [[ $cgroup_hierarchy == 0 ]]; then
+            echo "cgroup configured properly to work with docker"
+        else
             grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=0"
             reboot
         fi
