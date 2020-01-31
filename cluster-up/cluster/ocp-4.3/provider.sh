@@ -3,6 +3,7 @@
 set -e
 
 source ${KUBEVIRTCI_PATH}/cluster/ephemeral-provider-common.sh
+source ${KUBEVIRTCI_PATH}/cluster/openshift-provider-common.sh
 
 function _port() {
     ${_cli} ports --prefix $provider_prefix --container-name cluster "$@"
@@ -67,6 +68,9 @@ function up() {
     ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl config set-cluster test-1 --server=https://$(_main_ip):$(_port k8s)
     ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl config set-cluster test-1 --insecure-skip-tls-verify=true
 
+
     # Make sure that local config is correct
     prepare_config
+
+    ln_kubeconfig
 }
