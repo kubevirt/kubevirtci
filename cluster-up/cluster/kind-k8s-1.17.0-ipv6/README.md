@@ -9,7 +9,7 @@ cluster is brought up with ipv6 support but without flannel or multi nic support
 ## Bringing the cluster up
 
 ```bash
-export KUBEVIRT_PROVIDER=kind-k8s-1.17.0
+export KUBEVIRT_PROVIDER=kind-k8s-1.17.0-ipv6
 export KUBEVIRT_NUM_NODES=2 # master + one node
 make cluster-up
 ```
