@@ -2,10 +2,14 @@
 
 set -ex
 
+source /tmp/scripts/cnis-map.sh
+
 function get_minor_version() {
     [[ $1 =~ \.([0-9]+) ]]
     echo ${BASH_REMATCH[1]}
 }
+
+cni_manifest="/tmp/${CNI_MANIFESTS[$version]}"
 
 minor_version=$(get_minor_version $version)
 
@@ -104,14 +108,12 @@ sysctl --system
 echo bridge >> /etc/modules
 echo br_netfilter >> /etc/modules
 
-kubeadm init --pod-network-cidr=10.244.0.0/16 --kubernetes-version v${version} --token abcdef.1234567890123456
-flannel_manifest="/tmp/flannel.yaml"
-if [[ $minor_version -ge "16" ]]; then
-    flannel_manifest="/tmp/flannel-ge-16.yaml"
-elif [[ $minor_version -ge "12" ]]; then
-    flannel_manifest="/tmp/flannel-ge-12.yaml"
-fi
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$flannel_manifest"
+default_cidr="192.168.0.0/16"
+pod_cidr="10.244.0.0/16"
+kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456
+
+sed -i -e "s?$default_cidr?$pod_cidr?g" $cni_manifest 
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
 
 # Wait at least for 7 pods
 while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
