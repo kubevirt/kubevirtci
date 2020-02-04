@@ -2,7 +2,7 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-source ../images.sh
+source ../common-scripts/images.sh
 
 centos_version=IMAGES[centos7-vagrant]
 
