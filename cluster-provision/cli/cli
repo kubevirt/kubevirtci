@@ -180,6 +180,7 @@ if [ "$COMMAND" == "provision" ] ; then
   VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}node01 ${BASE} /bin/bash -c "/vm.sh ${MEMORY} ${CPU} ${QEMU_ARGS}")
   CONTAINERS="${CONTAINERS} ${VM_CID}"
   docker cp ${SCRIPTS}/. ${VM_CID}:/scripts/
+  docker cp ${SCRIPTS}/../../common-scripts/. ${VM_CID}:/scripts/
   docker exec ${VM_CID} /bin/bash -c "mkdir /manifests"
   docker cp ${SCRIPTS}/../../manifests/. ${VM_CID}:/manifests/
   docker exec ${VM_CID} /bin/bash -c "while [ ! -f /ssh_ready ] ; do sleep 1; done"
