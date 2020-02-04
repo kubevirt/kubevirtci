@@ -1,4 +1,8 @@
-# Getting Started with a multi-node Kubernetes Provider
+# kubevirt/kubevirtci
+
+Welcome! This repository hosts code to provision and start containerized Kubernetes clusters in order to test [KubeVirt](https://github.com/kubevirt/kubevirt) on several Kubernetes configurations using Prow.
+
+## Getting Started with a multi-node Kubernetes Provider
 
 Download this repo
 ```
@@ -48,7 +52,7 @@ docker exec $node01_id yum install -y socat
 docker exec -it $node01_id socat - /dev/pts/0
 ```
 
-# Getting Started with multi-node OKD Provider
+## Getting Started with multi-node OKD Provider
 
 Download this repo
 ```
@@ -103,7 +107,7 @@ this will point to the local created provider upon cluster-up
 export KUBEVIRTCI_PROVISION_CHECK=1
 ```
 
-# OKD Console
+## OKD Console
 To access the OKD UI from the host running `docker`, remember to export `OKD_CONSOLE_PORT=443` before `make cluster-up`.
 You should find out the IP address of the OKD docker container
 ```
@@ -135,27 +139,6 @@ $kubevirtci_ip oauth-openshift.apps.test-1.tt.testing
 EOF
 ```
 
-# Getting started with gocli
-Prerequisites:
-python
-Bazel
+## Contributing
 
-Install Bazel according https://docs.bazel.build/versions/master/install.html
-Change dir to gocli folder:
-```
-cd cluster-provision/gocli
-```
-
-Using local gocli images durning development, and in order to test before publishing:
-```
-make container-run
-export KUBEVIRTCI_GOCLI_CONTAINER=bazel:gocli
-```
-
-Publishing (after make container-run / make all)
-```
-make push 
-```
-
-After published, update cluster-up/cluster/images.sh with the gocli hash, that was created by the push command.
-
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute. 
