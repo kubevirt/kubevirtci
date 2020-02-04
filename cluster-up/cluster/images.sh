@@ -18,6 +18,8 @@ if [ -z $KUBEVIRTCI_PROVISION_CHECK ]; then
     IMAGES[okd-4.2]="okd-4.2@sha256:a830064ca7bf5c5c2f15df180f816534e669a9a038fef4919116d61eb33e84c5"
     IMAGES[okd-4.3]="okd-4.3@sha256:63abc3884002a615712dfac5f42785be864ea62006892bf8a086ccdbca8b3d38"
     IMAGES[ocp-4.3]="ocp-4.3@sha256:8f59d625852ef285d6ce3ddd6ebd3662707d2c0fab19772b61dd0aa0f6b41e5f"
+    IMAGES[ocp-4.4]="ocp-4.4@sha256:b235e87323ed88c46fedf27e9115573b92f228a82559ab7523dd1be183f66af8"
+    IMAGES[ocp-cnao-4.4]="ocp-cnao-4.4@sha256:b326ddb9b0d503e3ea469c442d563502ea8cce57b1fe8f8a83bd1a29bbf71c32"
 fi
 export IMAGES
 

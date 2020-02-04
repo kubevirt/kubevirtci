@@ -208,15 +208,24 @@ oc adm policy add-cluster-role-to-user cluster-admin admin
 
 if [ "${CNAO}" == "true" ]; then
     # Apply network addons
-    oc create -f /manifests/cna/namespace.yaml
-    oc create -f /manifests/cna/network-addons-config.crd.yaml
-    oc create -f /manifests/cna/operator.yaml
-    oc create -f /manifests/cna/network-addons-config-example.cr.yaml
 
-     # Wait until all the network components are ready
-    until oc wait networkaddonsconfig cluster --for condition=Available --timeout=100s; do
-        sleep 10
+    # TODO: pass CNAO version at gocli
+    cnao_version=0.25.0
+    cnao_path=/manifests/cnao/$cnao_version/
+    oc create -f $cnao_path/namespace.yaml
+    oc create -f $cnao_path/network-addons-config.crd.yaml
+    oc create -f $cnao_path/operator.yaml
+
+    # Wait until cnao is ready
+    oc wait deployment -n cluster-network-addons cluster-network-addons-operator --for condition=Available --timeout=5m
+
+    # Import CNAO network components images to store them at provider
+    cnao_subimages=$(oc get deployment -n cluster-network-addons cluster-network-addons-operator -o json \
+        |jq -r '.spec.template.spec.containers[0].env | [ .[] | select( .name | contains("IMAGE")) ][].value')
+    for subimage in $cnao_subimages; do
+        oc import-image $subimage --confirm
     done
+
 fi
 
 # Enable CPU manager on workers
