@@ -4,7 +4,7 @@ If logging and output artifacts are not enough, there is a way to connect to a r
 
 ## Pre-requisites
 
-- A working (enabled) account on the [CI cluster](shift.ovirt.org)
+- A working (enabled) account on the [CI cluster](shift.ovirt.org), specifically enabled to the `kubevirt-prow-jobs` project.
 - The [mkpj tool](https://github.com/kubernetes/test-infra/tree/master/prow/cmd/mkpj) installed
 
 ## Launching a custom job
@@ -28,6 +28,14 @@ The $KUBEVIRTPRNUMBER can be an actual PR on the [kubevirt repo](https://github.
 In case we just want to debug the cluster provided by the CI, it's recommended to override the entry point, either in the test PR we are instrumenting (a good sample can be found [here](https://github.com/kubevirt/kubevirt/pull/3022)), or by overriding the entry point directly in the prow job's manifest.
 
 Remember that we want the cluster long living, so a long sleep must be provided as part of the entry point.
+
+Make sure you switch to the `kubevirt-prow-jobs` project, and apply the manifest:
+
+```bash
+    kubectl apply -f debugkind.yaml
+```
+
+You will end up with a ProwJob object, and a pod with the same name you gave to the ProwJob.
 
 Once the pod is up & running, connect to it via bash:
 
