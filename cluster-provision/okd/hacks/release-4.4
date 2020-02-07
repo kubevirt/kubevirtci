@@ -1,34 +1,3 @@
-diff --git a/cmd/openshift-install/create.go b/cmd/openshift-install/create.go
-index f9ae4c6bb..dea45f0d7 100644
---- a/cmd/openshift-install/create.go
-+++ b/cmd/openshift-install/create.go
-@@ -244,7 +244,7 @@ func waitForBootstrapComplete(ctx context.Context, config *rest.Config, director
- 
- 	discovery := client.Discovery()
- 
--	apiTimeout := 30 * time.Minute
-+	apiTimeout := 120 * time.Minute
- 	logrus.Infof("Waiting up to %v for the Kubernetes API at %s...", apiTimeout, config.Host)
- 	apiContext, cancel := context.WithTimeout(ctx, apiTimeout)
- 	defer cancel()
-@@ -285,7 +285,7 @@ func waitForBootstrapComplete(ctx context.Context, config *rest.Config, director
- // and waits for the bootstrap configmap to report that bootstrapping has
- // completed.
- func waitForBootstrapConfigMap(ctx context.Context, client *kubernetes.Clientset) error {
--	timeout := 30 * time.Minute
-+	timeout := 120 * time.Minute
- 	logrus.Infof("Waiting up to %v for bootstrapping to complete...", timeout)
- 
- 	waitCtx, cancel := context.WithTimeout(ctx, timeout)
-@@ -323,7 +323,7 @@ func waitForBootstrapConfigMap(ctx context.Context, client *kubernetes.Clientset
- // waitForInitializedCluster watches the ClusterVersion waiting for confirmation
- // that the cluster has been initialized.
- func waitForInitializedCluster(ctx context.Context, config *rest.Config) error {
--	timeout := 30 * time.Minute
-+	timeout := 120 * time.Minute
- 	logrus.Infof("Waiting up to %v for the cluster at %s to initialize...", timeout, config.Host)
- 	cc, err := configclient.NewForConfig(config)
- 	if err != nil {
 diff --git a/data/data/libvirt/main.tf b/data/data/libvirt/main.tf
 index 9ba88c9cf..09f6500bf 100644
 --- a/data/data/libvirt/main.tf
@@ -39,7 +8,7 @@ index 9ba88c9cf..09f6500bf 100644
    pool           = libvirt_pool.storage_pool.name
 +  size           = 32212254720
  }
- 
+
  resource "libvirt_ignition" "master" {
 @@ -73,6 +74,8 @@ resource "libvirt_network" "net" {
          data.libvirt_network_dns_host_template.masters.*.rendered,
@@ -53,7 +22,7 @@ index 9ba88c9cf..09f6500bf 100644
 @@ -114,6 +117,19 @@ resource "libvirt_domain" "master" {
    }
  }
- 
+
 +data "libvirt_network_dns_host_template" "auth" {
 +  count    = "${var.master_count}"
 +  ip       = "${var.libvirt_auth_ip}"
@@ -77,7 +46,7 @@ index 53cf68bae..3c5f7f905 100644
 @@ -28,6 +28,11 @@ variable "libvirt_master_ips" {
    description = "the list of desired master ips. Must match master_count"
  }
- 
+
 +variable "libvirt_auth_ip" {
 +  type        = "string"
 +  description = "node with authentication server ip"
@@ -98,7 +67,7 @@ index 9ec6432da..6dac0b736 100644
 +		Validity:  ValidityOneYear,
  		IsCA:      true,
  	}
- 
+
 @@ -65,7 +65,7 @@ func (a *APIServerProxyCertKey) Generate(dependencies asset.Parents) error {
  		Subject:      pkix.Name{CommonName: "system:kube-apiserver-proxy", Organization: []string{"kube-master"}},
  		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
@@ -106,7 +75,7 @@ index 9ec6432da..6dac0b736 100644
 -		Validity:     ValidityOneDay,
 +		Validity:     ValidityOneYear,
  	}
- 
+
  	return a.SignedCertKey.Generate(cfg, aggregatorCA, "apiserver-proxy", DoNotAppendParent)
 @@ -93,7 +93,7 @@ func (c *AggregatorSignerCertKey) Generate(parents asset.Parents) error {
  	cfg := &CertCfg{
@@ -116,7 +85,7 @@ index 9ec6432da..6dac0b736 100644
 +		Validity:  ValidityOneYear,
  		IsCA:      true,
  	}
- 
+
 @@ -158,7 +158,7 @@ func (a *AggregatorClientCertKey) Generate(dependencies asset.Parents) error {
  		Subject:      pkix.Name{CommonName: "system:kube-apiserver-proxy", Organization: []string{"kube-master"}},
  		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
@@ -124,7 +93,7 @@ index 9ec6432da..6dac0b736 100644
 -		Validity:     ValidityOneDay,
 +		Validity:     ValidityOneYear,
  	}
- 
+
  	return a.SignedCertKey.Generate(cfg, ca, "aggregator-client", DoNotAppendParent)
 diff --git a/pkg/asset/tls/apiserver.go b/pkg/asset/tls/apiserver.go
 index a50bee836..cd63ff13c 100644
@@ -166,28 +135,6 @@ index a50bee836..cd63ff13c 100644
  		DNSNames: []string{
  			internalAPIAddress(installConfig.Config),
  		},
-diff --git a/pkg/asset/tls/kubelet.go b/pkg/asset/tls/kubelet.go
-index 01264e898..32cc8059d 100644
---- a/pkg/asset/tls/kubelet.go
-+++ b/pkg/asset/tls/kubelet.go
-@@ -24,7 +24,7 @@ func (c *KubeletCSRSignerCertKey) Generate(parents asset.Parents) error {
- 	cfg := &CertCfg{
- 		Subject:   pkix.Name{CommonName: "kubelet-signer", OrganizationalUnit: []string{"openshift"}},
- 		KeyUsages: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
--		Validity:  ValidityOneDay,
-+		Validity:  ValidityOneYear,
- 		IsCA:      true,
- 	}
- 
-@@ -181,7 +181,7 @@ func (a *KubeletClientCertKey) Generate(dependencies asset.Parents) error {
- 		Subject:      pkix.Name{CommonName: "system:serviceaccount:openshift-machine-config-operator:node-bootstrapper", Organization: []string{"system:serviceaccounts:openshift-machine-config-operator"}},
- 		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
- 		ExtKeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
--		Validity:     ValidityOneDay,
-+		Validity:     ValidityOneYear,
- 	}
- 
- 	return a.SignedCertKey.Generate(cfg, ca, "kubelet-client", DoNotAppendParent)
 diff --git a/pkg/tfvars/libvirt/libvirt.go b/pkg/tfvars/libvirt/libvirt.go
 index a51fbfba1..7542dc278 100644
 --- a/pkg/tfvars/libvirt/libvirt.go
@@ -198,7 +145,7 @@ index a51fbfba1..7542dc278 100644
  	MasterVcpu   string   `json:"libvirt_master_vcpu,omitempty"`
 +	AuthNodeIP   string   `json:"libvirt_auth_ip,omitempty"`
  }
- 
+
  // TFVars generates libvirt-specific Terraform variables.
 @@ -45,6 +46,7 @@ func TFVars(masterConfig *v1beta1.LibvirtMachineProviderConfig, osImage string,
  		IfName:       bridge,
@@ -208,3 +155,47 @@ index a51fbfba1..7542dc278 100644
  		MasterMemory: strconv.Itoa(masterConfig.DomainMemory),
  		MasterVcpu:   strconv.Itoa(masterConfig.DomainVcpu),
  	}
+diff --git a/cmd/openshift-install/create.go b/cmd/openshift-install/create.go
+index 70a8201a8..e44a4d03e 100644
+--- a/cmd/openshift-install/create.go
++++ b/cmd/openshift-install/create.go
+@@ -252,7 +252,7 @@ func waitForBootstrapComplete(ctx context.Context, config *rest.Config, director
+
+ 	discovery := client.Discovery()
+
+-	apiTimeout := 20 * time.Minute
++	apiTimeout := 120 * time.Minute
+ 	logrus.Infof("Waiting up to %v for the Kubernetes API at %s...", apiTimeout, config.Host)
+ 	apiContext, cancel := context.WithTimeout(ctx, apiTimeout)
+ 	defer cancel()
+@@ -293,7 +293,7 @@ func waitForBootstrapComplete(ctx context.Context, config *rest.Config, director
+ // and waits for the bootstrap configmap to report that bootstrapping has
+ // completed.
+ func waitForBootstrapConfigMap(ctx context.Context, client *kubernetes.Clientset) error {
+-	timeout := 40 * time.Minute
++	timeout := 120 * time.Minute
+ 	logrus.Infof("Waiting up to %v for bootstrapping to complete...", timeout)
+
+ 	waitCtx, cancel := context.WithTimeout(ctx, timeout)
+@@ -331,7 +331,7 @@ func waitForBootstrapConfigMap(ctx context.Context, client *kubernetes.Clientset
+ // waitForInitializedCluster watches the ClusterVersion waiting for confirmation
+ // that the cluster has been initialized.
+ func waitForInitializedCluster(ctx context.Context, config *rest.Config) error {
+-	timeout := 30 * time.Minute
++	timeout := 120 * time.Minute
+
+ 	// Wait longer for baremetal, due to length of time it takes to boot
+ 	if assetStore, err := assetstore.NewStore(rootOpts.dir); err == nil {
+diff --git a/pkg/asset/tls/kubelet.go b/pkg/asset/tls/kubelet.go
+index 34049cba3..53178675c 100644
+--- a/pkg/asset/tls/kubelet.go
++++ b/pkg/asset/tls/kubelet.go
+@@ -24,7 +24,7 @@ func (c *KubeletCSRSignerCertKey) Generate(parents asset.Parents) error {
+ 	cfg := &CertCfg{
+ 		Subject:   pkix.Name{CommonName: "kubelet-signer", OrganizationalUnit: []string{"openshift"}},
+ 		KeyUsages: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+-		Validity:  ValidityOneDay,
++		Validity:  ValidityOneYear,
+ 		IsCA:      true,
+ 	}
+
