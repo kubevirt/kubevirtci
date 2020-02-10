@@ -8,7 +8,7 @@ MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests"
 MASTER_NODE="${CLUSTER_NAME}-control-plane"
 FIRST_WORKER_NODE="${CLUSTER_NAME}-worker"
 
-OPERATOR_GIT_HASH=b3ab84a316e16df392fbe9e07dbe0667ad075855
+OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
 INJECTOR_GIT_HASH=9ffd768cb7886072e81df3ac78ba2997810ceb55
 
 # not using kubectl wait since with the sriov operator the pods get restarted a couple of times and this is
@@ -28,14 +28,12 @@ function deploy_sriov_operator {
   fi
 
   pushd $operator_path
-    # TODO: right now in CI we need to use upstream sriov cni in order to have this
-    # https://github.com/intel/sriov-cni/pull/88 available. This can be removed once the feature will
-    # be merged in openshift sriov operator. We need latest since that feature was not tagged yet
-    sed -i '/SRIOV_CNI_IMAGE/!b;n;c\              value: nfvpe\/sriov-cni' ./deploy/operator.yaml
-    sed -i 's#image: quay.io/openshift/origin-sriov-network-operator$#image: quay.io/openshift/origin-sriov-network-operator:4.2#' ./deploy/operator.yaml
-    sed -i 's#value: quay.io/openshift/origin-sriov-network-config-daemon$#value: quay.io/openshift/origin-sriov-network-config-daemon:4.2#' ./deploy/operator.yaml
-    # on prow nodes the default shell is dash and some commands are not working
-    make deploy-setup-k8s SHELL=/bin/bash OPERATOR_EXEC="${KUBECTL}"
+    export RELEASE_VERSION=4.4
+    export SRIOV_NETWORK_OPERATOR_IMAGE=quay.io/openshift/origin-sriov-network-operator:${RELEASE_VERSION}
+    export SRIOV_NETWORK_CONFIG_DAEMON_IMAGE=quay.io/openshift/origin-sriov-network-config-daemon:${RELEASE_VERSION}
+    export OPERATOR_EXEC=${KUBECTL}
+    export SHELL=/bin/bash  # on prow nodes the default shell is dash and some commands are not working
+    make deploy-setup-k8s
   popd
 }
 
