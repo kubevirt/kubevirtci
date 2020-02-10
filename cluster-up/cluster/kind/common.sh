@@ -83,6 +83,15 @@ manifest_docker_prefix=registry:5000/kubevirt
 EOF
 }
 
+function _configure_network() {
+    # modprobe is present inside kind container but may be missing in the
+    # environment running this script, so load the module from inside kind
+    ${NODE_CMD} $1 modprobe br_netfilter
+    for knob in arp ip ip6; do
+        ${NODE_CMD} $1 sysctl -w sys.net.bridge.bridge-nf-call-${knob}tables=1
+    done
+}
+
 function kind_up() {
     _fetch_kind
 
@@ -127,6 +136,7 @@ function kind_up() {
 
     for node in $(_kubectl get nodes --no-headers | awk '{print $1}'); do
         _configure_registry_on_node "$node"
+        _configure_network "$node"
     done
     prepare_config
 }
