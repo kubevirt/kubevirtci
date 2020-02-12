@@ -10,7 +10,6 @@ ${gocli} provision okd \
 --dir-scripts ${KUBEVIRTCI_PATH}/cluster-provision/okd/scripts \
 --dir-manifests ${KUBEVIRTCI_PATH}/cluster-provision/manifests \
 --dir-hacks ${KUBEVIRTCI_PATH}/cluster-provision/okd/hacks \
---skip-cnao \
 --master-memory 10240 \
 --workers-memory 8192 \
 --workers-cpu 4 \
