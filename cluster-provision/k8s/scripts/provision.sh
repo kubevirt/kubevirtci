@@ -3,6 +3,7 @@
 set -ex
 
 source /tmp/scripts/cnis-map.sh
+source /tmp/scripts/config-cni.sh
 
 function get_minor_version() {
     [[ $1 =~ \.([0-9]+) ]]
@@ -107,6 +108,9 @@ sysctl --system
 
 echo bridge >> /etc/modules
 echo br_netfilter >> /etc/modules
+
+# configure additional settings for cni plugin
+configure_cni $cni_manifest
 
 default_cidr="192.168.0.0/16"
 pod_cidr="10.244.0.0/16"
