@@ -3,6 +3,7 @@
 set -ex
 
 source /tmp/scripts/cnis-map.sh
+source /tmp/scripts/config-cni.sh
 
 function get_minor_version() {
     [[ $1 =~ \.([0-9]+) ]]
@@ -118,6 +119,9 @@ systemctl daemon-reload
 
 systemctl enable docker && systemctl start docker
 systemctl enable kubelet && systemctl start kubelet
+
+# configure additional settings for cni plugin
+configure_cni $cni_manifest
 
 # Install kubernetes cluster
 default_cidr="192.168.0.0/16"
