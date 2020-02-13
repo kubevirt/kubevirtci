@@ -171,9 +171,6 @@ cp "${CLUSTER_DIR}/openshift/99-worker-registries.yaml" ./
 # Generate ignition configs
 /openshift-install --dir "${CLUSTER_DIR}" create ignition-configs
 
-# Clean up memory cache so we have all resources available
-sync; echo 3 > /proc/sys/vm/drop_caches
-
 # Excecute installer
 export TF_VAR_libvirt_master_memory=$MASTER_MEMORY
 export TF_VAR_libvirt_master_vcpu=$MASTER_CPU
