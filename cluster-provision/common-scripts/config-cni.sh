@@ -1,21 +1,20 @@
-#! /bin/bash
+#!/bin/env bash
 
 set -e
 
-function configure_calico(){
-    cat <<EOF >/etc/NetworkManager/conf.d/calico.conf
-[keyfile]
-unmanaged-devices=interface-name:cali*;interface-name:tunl*
-EOF
-
-    sysctl -w net.netfilter.nf_conntrack_max=1000000
-    echo "net.netfilter.nf_conntrack_max=1000000" >> /etc/sysctl.conf
-
-    systemctl restart NetworkManager
-}
+pod_cidr="10.244.0.0/16"
 
 function configure_cni(){
-    if [[ $1 =~ calico ]]; then
-        configure_calico
+    yum install -y patch
+    cni_name=$1
+    if ! ls $cni_name > /dev/null 2>&1; then
+        return 1
+    fi
+    cni_scripts_dir=$cni_name/script.d
+    if [[ -d $cni_scripts_dir ]]; then
+        for cni_script in $(ls $cni_scripts_dir); do
+            $cni_scripts_dir/$cni_script $cni_name
+        done
     fi
 }
+export -f configure_cni

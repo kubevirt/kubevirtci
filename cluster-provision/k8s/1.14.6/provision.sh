@@ -6,3 +6,4 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 export version=1.14.6
 ../provision.sh
+../check-cluster-up.sh

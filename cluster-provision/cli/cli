@@ -190,6 +190,8 @@ if [ "$COMMAND" == "provision" ] ; then
   docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/ceph/*.yaml vagrant@192.168.66.101:/tmp/ceph"
   docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/cna"
   docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/cna/*.yaml vagrant@192.168.66.101:/tmp/cna"
+  docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/cni"
+  docker exec ${VM_CID} /bin/bash -c "scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/cni/ vagrant@192.168.66.101:/tmp/"
   docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/scripts"
   docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/cnis-map.sh vagrant@192.168.66.101:/tmp/scripts/cnis-map.sh"
   docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/config-cni.sh vagrant@192.168.66.101:/tmp/scripts/config-cni.sh"
