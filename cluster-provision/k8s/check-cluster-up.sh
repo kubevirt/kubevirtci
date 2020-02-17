@@ -14,8 +14,9 @@ function cleanup {
 (
   ksh="./cluster-up/kubectl.sh"
   cd "$DIR" && cd ../..
+  version="$(cat version | tr -d '\n')"
   export KUBEVIRTCI_PROVISION_CHECK=1
-  export KUBEVIRT_PROVIDER="k8s-${version}"
+  export KUBEVIRT_PROVIDER="k8s-$(basename $DIR)"
   export KUBEVIRT_NUM_NODES=2
   trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
   bash -x ./cluster-up/up.sh
