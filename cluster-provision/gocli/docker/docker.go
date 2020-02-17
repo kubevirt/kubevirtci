@@ -201,16 +201,16 @@ func NewCleanupHandler(cli *client.Client, errWriter io.Writer) (containers chan
 			case err := <-done:
 				if err != nil {
 					for _, c := range createdContainers {
+						fmt.Printf("Removing container: %v\n", c)
 						err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
-						fmt.Printf("container: %v\n", c)
 						if err != nil {
 							fmt.Fprintf(errWriter, "%v\n", err)
 						}
 					}
 
 					for _, v := range createdVolumes {
+						fmt.Printf("Removing volume: %v\n", v)
 						err := cli.VolumeRemove(ctx, v, true)
-						fmt.Printf("volume: %v\n", v)
 						if err != nil {
 							fmt.Fprintf(errWriter, "%v\n", err)
 						}
@@ -272,4 +272,23 @@ func checkForError(line string) error {
 type PullStatus struct {
 	Status string `json:"status,omitempty"`
 	Error  string `json:"error,omitempty"`
+}
+
+type Container struct {
+	Cli *client.Client
+	Id  string
+}
+
+func (c *Container) ExecScript(script string, description string) error {
+	fmt.Println(description)
+	success, err := Exec(c.Cli, c.Id, []string{"/bin/bash", "-c", script}, os.Stdout)
+	if err != nil {
+		return fmt.Errorf("%s failed: %v", description, err)
+	}
+
+	if !success {
+		return fmt.Errorf("%s did not success", description)
+	}
+
+	return nil
 }

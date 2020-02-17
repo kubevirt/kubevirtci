@@ -10,3 +10,4 @@ sonobuoy*
 
 # Bazel directories
 cluster-provision/gocli/bazel-*
+bazelisk*
