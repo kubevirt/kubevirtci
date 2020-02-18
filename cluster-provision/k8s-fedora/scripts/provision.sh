@@ -10,7 +10,7 @@ function get_minor_version() {
     echo ${BASH_REMATCH[1]}
 }
 
-cni_manifest="/tmp/${CNI_MANIFESTS[$version]}"
+cni_manifest="/tmp/cni/${CNI_MANIFESTS[$version]}"
 
 minor_version=$(get_minor_version $version)
 
@@ -50,7 +50,7 @@ yum -y install \
 mkdir /etc/docker
 
 # Setup docker daemon
-cat << EOF > /etc/docker/daemon.json 
+cat << EOF > /etc/docker/daemon.json
 {
   "insecure-registries" : ["registry:5000"],
   "log-driver": "json-file",
@@ -123,13 +123,9 @@ systemctl enable kubelet && systemctl start kubelet
 # configure additional settings for cni plugin
 configure_cni $cni_manifest
 
-# Install kubernetes cluster
-default_cidr="192.168.0.0/16"
-pod_cidr="10.244.0.0/16"
 kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456
 
 # Install CNI plugin
-sed -i -e "s?$default_cidr?$pod_cidr?g" $cni_manifest
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
 
 # Wait at least for 7 pods

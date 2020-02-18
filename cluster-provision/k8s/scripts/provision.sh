@@ -10,7 +10,7 @@ function get_minor_version() {
     echo ${BASH_REMATCH[1]}
 }
 
-cni_manifest="/tmp/${CNI_MANIFESTS[$version]}"
+cni_manifest="/tmp/cni/${CNI_MANIFESTS[$version]}"
 
 minor_version=$(get_minor_version $version)
 
@@ -112,11 +112,8 @@ echo br_netfilter >> /etc/modules
 # configure additional settings for cni plugin
 configure_cni $cni_manifest
 
-default_cidr="192.168.0.0/16"
-pod_cidr="10.244.0.0/16"
 kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456
 
-sed -i -e "s?$default_cidr?$pod_cidr?g" $cni_manifest 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
 
 # Wait at least for 7 pods
