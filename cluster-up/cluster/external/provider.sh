@@ -12,13 +12,20 @@ function prepare_config() {
         exit 1
     fi
 
-    cat > "${BASE_PATH}/$KUBEVIRT_PROVIDER/config-provider-$KUBEVIRT_PROVIDER.sh" <<EOF
+    PROVIDER_CONFIG_FILE_PATH="${BASE_PATH}/$KUBEVIRT_PROVIDER/config-provider-$KUBEVIRT_PROVIDER.sh"
+
+    cat > "$PROVIDER_CONFIG_FILE_PATH" <<EOF
 kubeconfig=\${KUBECONFIG}
 docker_tag=\${DOCKER_TAG}
 docker_prefix=\${DOCKER_PREFIX}
 manifest_docker_prefix=\${DOCKER_PREFIX}
 image_pull_policy=\${IMAGE_PULL_POLICY:-Always}
 EOF
+
+    if which oc; then
+        echo "oc=$(which oc)" >> "$PROVIDER_CONFIG_FILE_PATH"
+    fi
+
 }
 
 # The external cluster is assumed to be up.  Do a simple check
