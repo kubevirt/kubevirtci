@@ -5,11 +5,18 @@ function _kubectl() {
 }
 
 function prepare_config() {
-    export kubeconfig=${KUBECONFIG}
-    export docker_tag=${DOCKER_TAG}
-    export docker_prefix=${DOCKER_PREFIX}
-    export manifest_docker_prefix=${DOCKER_PREFIX}
-    export image_pull_policy=\${IMAGE_PULL_POLICY:-Always}
+    BASE_PATH=${KUBEVIRTCI_CONFIG_PATH:-$PWD}
+
+    # required for running tests within openshift ci, otherwise tests don't find the configuration
+    ln -f -s "${KUBECONFIG:-$HOME/.kube/config}" "${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
+
+    cat > "${BASE_PATH}/$KUBEVIRT_PROVIDER/config-provider-$KUBEVIRT_PROVIDER.sh" <<EOF
+kubeconfig=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+docker_tag=\${DOCKER_TAG}
+docker_prefix=\${DOCKER_PREFIX}
+manifest_docker_prefix=\${DOCKER_PREFIX}
+image_pull_policy=\${IMAGE_PULL_POLICY:-Always}
+EOF
 }
 
 # The external cluster is assumed to be up.  Do a simple check
