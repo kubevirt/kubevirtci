@@ -2,7 +2,7 @@
 
 set -e
 
-pod_cidr="10.244.0.0/16"
+export pod_cidr="10.244.0.0/16"
 
 function configure_cni(){
     yum install -y patch
