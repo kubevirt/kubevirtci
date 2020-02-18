@@ -10,6 +10,7 @@ filters:
       - qinqon
       - oscollabus
       - phoracek
+      - ormergi
     approvers:
       - davidvossel
       - rmohr
