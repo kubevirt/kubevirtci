@@ -7,11 +7,13 @@ function _kubectl() {
 function prepare_config() {
     BASE_PATH=${KUBEVIRTCI_CONFIG_PATH:-$PWD}
 
-    # required for running tests within openshift ci, otherwise tests don't find the configuration
-    ln -f -s "${KUBECONFIG:-$HOME/.kube/config}" "${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
+    if [ -z "${KUBECONFIG}" ]; then
+        echo "KUBECONFIG is not set!"
+        exit 1
+    fi
 
     cat > "${BASE_PATH}/$KUBEVIRT_PROVIDER/config-provider-$KUBEVIRT_PROVIDER.sh" <<EOF
-kubeconfig=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+kubeconfig=\${KUBECONFIG}
 docker_tag=\${DOCKER_TAG}
 docker_prefix=\${DOCKER_PREFIX}
 manifest_docker_prefix=\${DOCKER_PREFIX}
