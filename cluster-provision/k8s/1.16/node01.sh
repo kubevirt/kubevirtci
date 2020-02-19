@@ -2,10 +2,8 @@
 
 set -ex
 
-source /tmp/scripts/cnis-map.sh
-
 version=`kubectl version --short --client | cut -d":" -f2 |sed  's/ //g' | cut -c2- `
-cni_manifest="/tmp/${CNI_MANIFESTS[$version]}"
+cni_manifest="/tmp/cni.yaml"
 
 # Wait for docker, else network might not be ready yet
 while [[ `systemctl status docker | grep active | wc -l` -eq 0 ]]

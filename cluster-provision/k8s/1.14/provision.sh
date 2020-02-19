@@ -2,10 +2,7 @@
 
 set -ex
 
-source /tmp/scripts/cnis-map.sh
-source /tmp/scripts/config-cni.sh
-
-cni_manifest="/tmp/${CNI_MANIFESTS[$version]}"
+cni_manifest="/tmp/cni.yaml"
 
 setenforce 0
 sed -i "s/^SELINUX=.*/SELINUX=permissive/" /etc/selinux/config
@@ -84,9 +81,6 @@ sysctl --system
 
 echo bridge >> /etc/modules
 echo br_netfilter >> /etc/modules
-
-# configure additional settings for cni plugin
-configure_cni $cni_manifest
 
 default_cidr="192.168.0.0/16"
 pod_cidr="10.244.0.0/16"

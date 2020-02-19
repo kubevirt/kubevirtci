@@ -180,21 +180,25 @@ if [ "$COMMAND" == "provision" ] ; then
   VM_CID=$(docker run -d --privileged --net=container:${DNSMASQ_CID} --name ${PREFIX}node01 ${BASE} /bin/bash -c "/vm.sh ${MEMORY} ${CPU} ${QEMU_ARGS}")
   CONTAINERS="${CONTAINERS} ${VM_CID}"
   docker cp ${SCRIPTS}/. ${VM_CID}:/scripts/
-  docker cp ${SCRIPTS}/../../common-scripts/. ${VM_CID}:/scripts/
-  docker exec ${VM_CID} /bin/bash -c "mkdir /manifests"
-  docker cp ${SCRIPTS}/../../manifests/. ${VM_CID}:/manifests/
   docker exec ${VM_CID} /bin/bash -c "while [ ! -f /ssh_ready ] ; do sleep 1; done"
   docker exec ${VM_CID} /bin/bash -c "ssh.sh echo VM is up"
-  docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/*.yaml vagrant@192.168.66.101:/tmp"
-  docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/ceph"
-  docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/ceph/*.yaml vagrant@192.168.66.101:/tmp/ceph"
-  docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/cna"
-  docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/cna/*.yaml vagrant@192.168.66.101:/tmp/cna"
-  docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/cni"
-  docker exec ${VM_CID} /bin/bash -c "scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/cni/ vagrant@192.168.66.101:/tmp/"
-  docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/scripts"
-  docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/cnis-map.sh vagrant@192.168.66.101:/tmp/scripts/cnis-map.sh"
-  docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/config-cni.sh vagrant@192.168.66.101:/tmp/scripts/config-cni.sh"
+  if [ "${SIMPLE_PROVISION}" == "true" ]; then
+    docker exec ${VM_CID} /bin/bash -c "scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/manifests/* vagrant@192.168.66.101:/tmp"
+  else
+    docker cp ${SCRIPTS}/../../common-scripts/. ${VM_CID}:/scripts/
+    docker exec ${VM_CID} /bin/bash -c "mkdir /manifests"
+    docker cp ${SCRIPTS}/../../manifests/. ${VM_CID}:/manifests/
+    docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/*.yaml vagrant@192.168.66.101:/tmp"
+    docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/ceph"
+    docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/ceph/*.yaml vagrant@192.168.66.101:/tmp/ceph"
+    docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/cna"
+    docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/cna/*.yaml vagrant@192.168.66.101:/tmp/cna"
+    docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/cni"
+    docker exec ${VM_CID} /bin/bash -c "scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /manifests/cni/ vagrant@192.168.66.101:/tmp/"
+    docker exec ${VM_CID} /bin/bash -c "ssh.sh mkdir -p /tmp/scripts"
+    docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/cnis-map.sh vagrant@192.168.66.101:/tmp/scripts/cnis-map.sh"
+    docker exec ${VM_CID} /bin/bash -c "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/config-cni.sh vagrant@192.168.66.101:/tmp/scripts/config-cni.sh"
+  fi
 
   if [[ ${PREFIX} =~ fedora ]]; then
     # Workaround for for vms that runs fedora31+ and docker,
