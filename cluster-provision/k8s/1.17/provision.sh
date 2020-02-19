@@ -2,8 +2,6 @@
 
 set -ex
 
-source /tmp/scripts/config-cni.sh
-
 cni_manifest="/tmp/cni.yaml"
 
 setenforce 0
@@ -85,7 +83,15 @@ echo bridge >> /etc/modules
 echo br_netfilter >> /etc/modules
 
 # configure additional settings for cni plugin
-configure_calico $cni_manifest
+cat <<EOF >/etc/NetworkManager/conf.d/calico.conf
+[keyfile]
+unmanaged-devices=interface-name:cali*;interface-name:tunl*
+EOF
+
+sysctl -w net.netfilter.nf_conntrack_max=1000000
+echo "net.netfilter.nf_conntrack_max=1000000" >> /etc/sysctl.conf
+
+systemctl restart NetworkManager
 
 default_cidr="192.168.0.0/16"
 pod_cidr="10.244.0.0/16"
