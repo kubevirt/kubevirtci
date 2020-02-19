@@ -9,7 +9,7 @@ Steps:
 ```bash
 cd .../kubevirtci
 cd cluster-provision/k8s/1.17.0
-./provision.sh
+./provision.sh      # this also calls cluster-up to check whether the cluster will really start and have the pods ready
 ```
 
 ### kubevirt: prepare for tests
