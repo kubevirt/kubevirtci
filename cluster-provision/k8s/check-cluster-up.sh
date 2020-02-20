@@ -4,8 +4,7 @@
 set -exuo pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-version="$(cat version | tr -d '\n')"
-provision_dir="$(basename $(pwd))"
+provision_dir="$1"
 
 function cleanup {
   cd "$DIR" && cd ../..
@@ -20,8 +19,6 @@ function cleanup {
   export KUBEVIRT_PROVIDER="k8s-${provision_dir}"
   export KUBEVIRT_NUM_NODES=2
   trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
-  ls
-  exit 1
   bash -x ./cluster-up/up.sh
   ${ksh} wait --for=condition=Ready pod --all
   ${ksh} wait --for=condition=Ready pod -n kube-system --all
