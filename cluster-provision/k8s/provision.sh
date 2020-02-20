@@ -16,4 +16,4 @@ cd $DIR
 source ../common-scripts/images.sh
 
 export SIMPLE_PROVISION=true
-../cli/cli provision --prefix k8s-${version}-provision --scripts ${provision_dir} --k8s-version ${version} --base kubevirtci/${IMAGES[centos7]} --tag kubevirtci/k8s-${version}
+../cli/cli provision --prefix k8s-${version}-provision --scripts ${provision_dir} --k8s-version ${version} --base kubevirtci/${IMAGES[centos7]} --tag kubevirtci/k8s-${provision_dir}
