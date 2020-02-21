@@ -2,6 +2,9 @@
 
 set -ex
 
+# Set hostname right
+dhclient
+
 cni_manifest="/tmp/cni.yaml"
 
 setenforce 0
@@ -105,9 +108,15 @@ echo bridge >> /etc/modules
 echo br_netfilter >> /etc/modules
 
 # configure additional settings for cni plugin
-cat <<EOF >/etc/NetworkManager/conf.d/calico.conf
+cat <<EOF >/etc/NetworkManager/conf.d/001-calico.conf
 [keyfile]
 unmanaged-devices=interface-name:cali*;interface-name:tunl*
+EOF
+
+# Use dhclient to have expected hostname behaviour
+cat <<EOF >/etc/NetworkManager/conf.d/002-dhclient.conf
+[main]
+dhcp=dhclient
 EOF
 
 sysctl -w net.netfilter.nf_conntrack_max=1000000
