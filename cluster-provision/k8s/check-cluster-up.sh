@@ -4,6 +4,7 @@
 set -exuo pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+provision_dir="$1"
 
 function cleanup {
   cd "$DIR" && cd ../..
@@ -15,7 +16,7 @@ function cleanup {
   ksh="./cluster-up/kubectl.sh"
   cd "$DIR" && cd ../..
   export KUBEVIRTCI_PROVISION_CHECK=1
-  export KUBEVIRT_PROVIDER="k8s-${version}"
+  export KUBEVIRT_PROVIDER="k8s-${provision_dir}"
   export KUBEVIRT_NUM_NODES=2
   trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
   bash -x ./cluster-up/up.sh
