@@ -76,6 +76,11 @@ dnf install --nogpgcheck --disableexcludes=kubernetes -y \
     kubectl-${version} \
     kubernetes-cni
 
+# k8s repo is no longer needed and it introduce some
+# gpg key non interactive dnf install -y related to
+# gpg keys (using rpm --import does not fix it)
+rm /etc/yum.repos.d/kubernetes.repo
+
 # Ensure iptables tooling does not use the nftables backend
 # TODO: Not working at centos8
 # update-alternatives --set iptables /usr/sbin/iptables-legacy
