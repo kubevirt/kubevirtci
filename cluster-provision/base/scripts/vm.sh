@@ -69,7 +69,7 @@ fi
 calc_next_disk
 
 echo "Creating disk \"${next} backed by ${last}\"."
-qemu-img create -f qcow2 -o backing_file=${last} ${next}
+qemu-img create -f qcow2 -o backing_file=${last} ${next} 35G
 
 echo ""
 echo "SSH will be available on container port 22${n}."
