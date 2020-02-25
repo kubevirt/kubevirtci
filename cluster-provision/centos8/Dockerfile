@@ -1,4 +1,4 @@
-FROM kubevirtci/base@sha256:cb9a1cb7740f9b717d4988ffe3d5a7e41f38ed9b2fe9013458b225de19b7c3b4
+FROM kubevirtci/base@sha256:5e9185e680a1fb1bbdb4a2ff5a23d2c8229fa9c6359d461e460ffc06d35d5f02
 
 ARG centos_version
 
