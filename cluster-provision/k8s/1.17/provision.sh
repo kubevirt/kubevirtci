@@ -7,9 +7,6 @@ dnf install -y cloud-utils-growpart
 growpart /dev/vda 1
 xfs_growfs -d /
 
-# Set hostname right
-dhclient
-
 cni_manifest="/tmp/cni.yaml"
 
 setenforce 0
@@ -51,7 +48,9 @@ cat << EOF > /etc/docker/daemon.json
 {
   "insecure-registries" : ["registry:5000"],
   "log-driver": "json-file",
-  "exec-opts": ["native.cgroupdriver=systemd"]
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "ipv6": true,
+  "fixed-cidr-v6": "2001:db8:1::/64"
 }
 EOF
 
@@ -70,8 +69,7 @@ baseurl=http://yum.kubernetes.io/repos/kubernetes-el7-x86_64
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
 
 # Install Kubernetes packages.
@@ -80,18 +78,6 @@ dnf install --nogpgcheck --disableexcludes=kubernetes -y \
     kubelet-${version} \
     kubectl-${version} \
     kubernetes-cni
-
-# k8s repo is no longer needed and it introduce some
-# gpg key non interactive dnf install -y related to
-# gpg keys (using rpm --import does not fix it)
-rm /etc/yum.repos.d/kubernetes.repo
-
-# Ensure iptables tooling does not use the nftables backend
-# TODO: Not working at centos8
-# update-alternatives --set iptables /usr/sbin/iptables-legacy
-
-# Enable and state kubelet service
-systemctl enable --now kubelet
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
