@@ -2,6 +2,11 @@
 
 set -ex
 
+# Resize root partition
+dnf install -y cloud-utils-growpart
+growpart /dev/vda 1
+xfs_growfs -d /
+
 cni_manifest="/tmp/cni.yaml"
 
 setenforce 0
@@ -24,6 +29,39 @@ yum -y remove firewalld
 # Required for iscsi demo to work.
 yum -y install iscsi-initiator-utils
 
+# Install docker required packages.
+dnf -y install yum-utils \
+    device-mapper-persistent-data \
+    lvm2
+
+# Add Docker repository.
+dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+
+# Install Docker CE.
+dnf install -y docker-ce --nobest
+
+# Create /etc/docker directory.
+mkdir /etc/docker
+
+# Setup docker daemon
+cat << EOF > /etc/docker/daemon.json
+{
+  "insecure-registries" : ["registry:5000"],
+  "log-driver": "json-file",
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "ipv6": true,
+  "fixed-cidr-v6": "2001:db8:1::/64"
+}
+EOF
+
+mkdir -p /etc/systemd/system/docker.service.d
+
+# Restart Docker
+systemctl daemon-reload
+systemctl restart docker
+
+#TODO: el8 repo
+# Add Kubernetes repository.
 cat <<EOF >/etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes
@@ -31,32 +69,15 @@ baseurl=http://yum.kubernetes.io/repos/kubernetes-el7-x86_64
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
-yum install -y \
-  docker-1.13.1 \
-  python-docker-py-1.10.6 \
-  python3-pip
 
-pip3 install --default-timeout=100 docker-pycreds
-
-# Log to json files instead of journald
-sed -i 's/--log-driver=journald //g' /etc/sysconfig/docker
-echo '{ "insecure-registries" : ["registry:5000"] }' > /etc/docker/daemon.json
-
-# Enable the permanent logging
-# Required by the fluentd journald plugin
-# The default settings in recent distribution for systemd is set to auto,
-# when on auto journal is permament when /var/log/journal exists
-mkdir -p /var/log/journal
-
-# Omit pgp checks until https://github.com/kubernetes/kubeadm/issues/643 is resolved.
-yum install --nogpgcheck -y \
+# Install Kubernetes packages.
+dnf install --nogpgcheck --disableexcludes=kubernetes -y \
     kubeadm-${version} \
     kubelet-${version} \
     kubectl-${version} \
-    kubernetes-cni-0.6.0
+    kubernetes-cni
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
@@ -83,9 +104,15 @@ echo bridge >> /etc/modules
 echo br_netfilter >> /etc/modules
 
 # configure additional settings for cni plugin
-cat <<EOF >/etc/NetworkManager/conf.d/calico.conf
+cat <<EOF >/etc/NetworkManager/conf.d/001-calico.conf
 [keyfile]
 unmanaged-devices=interface-name:cali*;interface-name:tunl*
+EOF
+
+# Use dhclient to have expected hostname behaviour
+cat <<EOF >/etc/NetworkManager/conf.d/002-dhclient.conf
+[main]
+dhcp=dhclient
 EOF
 
 sysctl -w net.netfilter.nf_conntrack_max=1000000
@@ -97,7 +124,7 @@ default_cidr="192.168.0.0/16"
 pod_cidr="10.244.0.0/16"
 kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456
 
-sed -i -e "s?$default_cidr?$pod_cidr?g" $cni_manifest 
+sed -i -e "s?$default_cidr?$pod_cidr?g" $cni_manifest
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
 
 # Wait at least for 7 pods
