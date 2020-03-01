@@ -92,28 +92,24 @@ function _configure_network() {
     done
 }
 
-function prepare_workers() {
+function kind_up() {
+    _fetch_kind
+
     # appending eventual workers to the yaml
     for ((n=0;n<$(($KUBEVIRT_NUM_NODES-1));n++)); do
         echo "- role: worker" >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
     done
-}
 
-function setup_kind() {
     $KIND --loglevel debug create cluster --retain --name=${CLUSTER_NAME} --config=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml --image=$KIND_NODE_IMAGE
     $KIND get kubeconfig --name=${CLUSTER_NAME} > ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
 
     docker cp ${CLUSTER_NAME}-control-plane:/kind/bin/kubectl ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
     chmod u+x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
 
-    for node in $(_kubectl get nodes --no-headers | awk '{print $1}'); do
-        docker exec $node /bin/sh -c "curl -L https://github.com/containernetworking/plugins/releases/download/v0.8.5/cni-plugins-linux-amd64-v0.8.5.tgz | tar xz -C /opt/cni/bin"
-    done
-
     echo "ipv6 cni: $IPV6_CNI"
     if [ -z ${IPV6_CNI+x} ]; then
         echo "no ipv6, safe to install flannel"
-        _kubectl apply -f $KIND_MANIFESTS_DIR/kube-flannel.yaml
+        _kubectl create -f $KIND_MANIFESTS_DIR/kube-flannel.yaml
     else
         echo "ipv6 enabled, using kindnet"
         # currently kind does not fully support ipv6 or ipv6-DualStack,
@@ -146,12 +142,6 @@ function setup_kind() {
     done
     prepare_config
 }
-
-function kind_up() {
-    _fetch_kind
-    prepare_workers
-    setup_kind
-} 
 
 function _kubectl() {
     ${KUBECTL} "$@"
