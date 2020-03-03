@@ -4,6 +4,13 @@ set -xe
 
 NUM_SECONDARY_NICS="${NUM_SECONDARY_NICS:-0}"
 
+function oc_retry {
+    until oc $@
+    do
+        sleep 1
+    done
+}
+
 # set KVM device permissions
 chown root:kvm /dev/kvm
 chmod 660 /dev/kvm
@@ -50,7 +57,6 @@ for domain in $(virsh list --name --all); do
 	[[ $domain =~ worker ]] && virt-xml --edit --memory ${WORKERS_MEMORY} $domain && virt-xml --edit --vcpu ${WORKERS_CPU} $domain
 
 	virsh start $domain
-
 done
 
 while [[ "$(virsh list --name --all)" != "$(virsh list --name)" ]]; do
@@ -58,14 +64,20 @@ while [[ "$(virsh list --name --all)" != "$(virsh list --name)" ]]; do
 done
 
 export KUBECONFIG=/root/install/auth/kubeconfig
-oc config set-cluster test-1 --server=https://127.0.0.1:6443
-oc config set-cluster test-1 --insecure-skip-tls-verify=true
+
+# update bashrc to make life easier
+echo "" >> /root/.bashrc
+echo 'export KUBECONFIG=/root/install/auth/kubeconfig' >> /root/.bashrc
+echo "alias podc=\"oc get pods -A | grep -ivE 'run|comp'\"" >> /root/.bashrc
+echo "alias pods=\"oc get pods -A\"" >> /root/.bashrc
+echo "alias nodes=\"oc get nodes\"" >> /root/.bashrc
+echo "alias podcw=\"oc get pods -A -owide | grep -ivE 'run|comp'\"" >> /root/.bashrc
+
+oc_retry config set-cluster test-1 --server=https://127.0.0.1:6443
+oc_retry config set-cluster test-1 --insecure-skip-tls-verify=true
 
 # Wait for API server to be up
-until oc get nodes
-do
-    sleep 5
-done
+oc_retry get nodes
 
 # wait half minute, just to be sure that we do not get old cluster state
 sleep 30
@@ -75,8 +87,37 @@ until [[ $(oc -n openshift-ingress get pods -o custom-columns=NAME:.metadata.nam
     sleep 5
 done
 
-# update hostnames for services to point to the node with the route pod
-worker_node_ip=$(oc -n openshift-ingress get pods -o custom-columns=NAME:.metadata.name,HOST_IP:.status.hostIP,PHASE:.status.phase | grep route | grep Running | head -n 1 | awk '{print $2}')
+# get_value fetches command output, with retry and timeout
+# syntax nodes=$(get_value 10 oc get nodes)
+# first parameter is the number of iterations to try, each has 6 seconds delay
+function get_value()
+{
+    local val=""
+    timeout="$1"
+    shift
+
+    n=0
+    val=$("$@")
+    until [[ ${val} != "" ]]; do
+        sleep 6
+        n=$[$n+1]
+
+        if [ "$n" -ge "$timeout" ]; then
+            break
+        fi
+
+        val=$("$@")
+    done
+
+    echo "$val"
+}
+
+worker_node_ip=$(get_value 50 oc -n openshift-ingress get pods -o custom-columns=NAME:.metadata.name,HOST_IP:.status.hostIP,PHASE:.status.phase | grep route | grep Running | head -n 1 | awk '{print $2}')
+if [[ ${worker_node_ip} == "" ]]; then
+    echo "Failed to get worker_node_ip, exiting"
+    exit 1
+fi
+
 if [[ ${worker_node_ip} != "192.168.126.51" ]]; then
     virsh net-update $cluster_network delete dns-host \
 "<host ip='192.168.126.51'>
@@ -95,10 +136,46 @@ if [[ ${worker_node_ip} != "192.168.126.51" ]]; then
     haproxy -f /etc/haproxy/haproxy.cfg
 fi
 
-until [[ $(oc get pods --all-namespaces --no-headers | grep -v revision-pruner | grep -v Running | grep -v Completed | wc -l) -le 3 ]]; do
-    echo "waiting for pods to come online"
+set +xe
+n=0
+# Following while should iterate as long as more than 3 pods arent Ready.
+# we use /tmp/num_pods.txt because we need to check NUM_PODS just in case the
+# oc command itself succeeded (else value will be a fake zero).
+# /tmp/timeout.inject is just optional and can be used to shrink or extend the timeout.
+while true; do
+    # get number of pods, when all but 3 pods are ready, continue
+    oc get pods --all-namespaces --no-headers > /tmp/num_pods.txt
+    if [ $? -eq 0 ]; then
+        NUM_PODS=$(cat /tmp/num_pods.txt | grep -v revision-pruner | grep -v Running | grep -v Completed | wc -l)
+        if [ $NUM_PODS -le 3 ] && [ $n -ge 20 ]; then
+            echo $NUM_PODS "pods are not Ready, continuing cluster-up"
+            break
+        fi
+    fi
+
+    echo "Num of not ready pods" $NUM_PODS", waiting for pods to come up, cycle" $n
     sleep 10
+
+    # allow to override timeout by echo timeout to timeout.inject in the container
+    TIMEOUT_FILE=/tmp/timeout.inject
+    timeout=90
+    RE='^[0-9]+$'
+    if [ -f "$TIMEOUT_FILE" ]; then
+        input=$(cat $TIMEOUT_FILE)
+        if [[ $input =~ $RE ]]; then
+            timeout=$input
+            echo "$TIMEOUT_FILE exist, overriding timeout to $timeout"
+        fi
+    fi
+
+    # check if loop timeout occured
+    n=$[$n+1]
+    if [ "$n" -gt "$timeout" ]; then
+        echo "Warning: timeout waiting for pods to come up"
+        break
+    fi
 done
+set -xe
 
 # update the pull-secret from the file
 if [ -s "/etc/installer/token" ]; then
@@ -122,8 +199,13 @@ until oc -n openshift-machine-api scale --replicas=${WORKERS} machineset ${worke
     sleep 5
 done
 
-# wait until all worker nodes will be ready
-until [[ $(oc get nodes | grep worker | grep Ready | wc -l) == ${WORKERS} ]]; do
+echo "wait until all worker nodes will be ready"
+until [[ $(oc get nodes | grep worker | grep -w Ready | wc -l) == ${WORKERS} ]]; do
+    sleep 5
+done
+
+echo "wait until all master nodes will be ready"
+until [[ $(oc get nodes | grep master | grep -w Ready | wc -l) == $(oc get nodes | grep master | wc -l) ]]; do
     sleep 5
 done
 
@@ -134,3 +216,10 @@ for vm in ${vms}; do
     vm_ip=$(virsh net-dhcp-leases ${network_name} | grep ${vm} | awk '{print $5}' | tr "/" "\t" | awk '{print $1}')
     ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q -lcore -i vagrant.key ${vm_ip} < /scripts/create-local-disks.sh
 done
+
+set +xe
+echo "cluster non ready pods:"
+timeout 1m bash -c "until oc get pods -A | grep -ivE 'run|comp'; do sleep 1; done"
+echo "cluster nodes status:"
+timeout 1m bash -c "until oc get nodes; do sleep 1; done"
+echo "NOTE: check pods state, in case it doesnt converge in reasonable time, try to restart nodes / kubelets"
