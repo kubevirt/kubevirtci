@@ -257,3 +257,8 @@ docker pull quay.io/k8scsi/csi-provisioner:v1.0.1
 docker pull quay.io/k8scsi/csi-snapshotter:v1.0.1
 docker pull quay.io/cephcsi/rbdplugin:v1.0.0
 docker pull quay.io/k8scsi/csi-node-driver-registrar:v1.0.2
+
+# Pre pull cluster network addons operator images and store manifests
+# so we can use them at cluster-up
+cp -rf /tmp/cnao/ /opt/
+for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml |grep value | awk '{print $2}'); do docker pull $i; done
