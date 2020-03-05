@@ -2,9 +2,15 @@
 
 set -ex
 
+timeout=30
+interval=5
 while ! hostnamectl  |grep Transient ; do
-    echo "Waitting for dhclient to set the hostname from dnsmasq"
-    sleep 5
+    echo "Waiting for dhclient to set the hostname from dnsmasq"
+    sleep $interval
+    timeout=$(( $timeout - $interval ))
+    if [ $timeout -le 0 ]; then
+        exit 1
+    fi
 done
 
 # Wait for docker, else network might not be ready yet
