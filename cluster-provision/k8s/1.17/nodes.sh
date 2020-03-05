@@ -2,6 +2,11 @@
 
 set -ex
 
+while ! hostnamectl  |grep Transient ; do
+    echo "Waitting for dhclient to set the hostname from dnsmasq"
+    sleep 5
+done
+
 # Wait for docker, else network might not be ready yet
 while [[ `systemctl status docker | grep active | wc -l` -eq 0 ]]
 do

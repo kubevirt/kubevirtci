@@ -2,6 +2,11 @@
 
 set -ex
 
+while ! hostnamectl  |grep Transient ; do
+    echo "Waitting for dhclient to set the hostname from dnsmasq"
+    sleep 5
+done
+
 version=`kubectl version --short --client | cut -d":" -f2 |sed  's/ //g' | cut -c2- `
 cni_manifest="/tmp/cni.yaml"
 
