@@ -6,6 +6,10 @@ recreated on every cluster restart. The KubeVirt containers are built on the
 local machine and are then pushed to a registry which is exposed at
 `localhost:5000`.
 
+It also deploys cluster-network-addons-operator.
+To get more info about CNAO you can check the github project documentation
+here https://github.com/kubevirt/cluster-network-addons-operator
+
 ## Bringing the cluster up
 
 ```bash
@@ -21,6 +25,15 @@ $ cluster/kubectl.sh get nodes
 NAME      STATUS     ROLES     AGE       VERSION
 node01    NotReady   master    31s       v1.17.1
 node02    NotReady   <none>    5s        v1.17.1
+```
+
+## Bringing the cluster up with cluster-network-addons-operator provisioned
+
+```bash
+export KUBEVIRT_PROVIDER=k8s-1.17
+export KUBEVIRT_NUM_NODES=2 # master + one node
+export KUBEVIRT_WITH_CNAO=true
+make cluster-up
 ```
 
 To get more info about CNAO you can check the github project documentation

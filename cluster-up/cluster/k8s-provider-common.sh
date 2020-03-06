@@ -21,7 +21,7 @@ function up() {
     prepare_config
 
     # Activate cluster-network-addons-operator if flag is passed
-    if [ "$KUBEVIRT_WITH_CNAO" == "true" ]; then
+    if [ "$WITH_CNAO" == "true" ]; then
         kubectl="${_cli} --prefix $provider_prefix ssh node01 -- sudo kubectl --kubeconfig=/etc/kubernetes/admin.conf"
 
         $kubectl create -f /opt/cnao/namespace.yaml
