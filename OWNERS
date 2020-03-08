@@ -11,6 +11,7 @@ filters:
       - oscollabus
       - phoracek
       - ormergi
+      - danielBelenky
     approvers:
       - davidvossel
       - rmohr
@@ -20,3 +21,4 @@ filters:
       - dhiller
       - qinqon
       - phoracek
+      - danielBelenky
