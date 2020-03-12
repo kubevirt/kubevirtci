@@ -50,7 +50,8 @@ cat << EOF > /etc/docker/daemon.json
   "log-driver": "json-file",
   "exec-opts": ["native.cgroupdriver=systemd"],
   "ipv6": true,
-  "fixed-cidr-v6": "2001:db8:1::/64"
+  "fixed-cidr-v6": "2001:db8:1::/64",
+  "selinux-enabled": true
 }
 EOF
 
