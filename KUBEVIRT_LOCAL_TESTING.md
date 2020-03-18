@@ -9,7 +9,7 @@ Steps:
 ```bash
 cd .../kubevirtci
 cd cluster-provision/k8s/1.17.0
-./provision.sh      # this also calls cluster-up to check whether the cluster will really start and have the pods ready
+../provision.sh      # this also calls cluster-up to check whether the cluster will really start and have the pods ready
 ```
 
 ### kubevirt: prepare for tests
@@ -17,7 +17,7 @@ cd cluster-provision/k8s/1.17.0
 ```bash
 # set local provision test flag
 export KUBEVIRTCI_PROVISION_CHECK=1
-# sync changes to kubevirt cluster-up
+# sync changes to kubevirt cluster-up, notably cluster/images.sh
 rsync -av .../kubevirtci/cluster-up .../kubevirt/cluster-up                               
 ```                                                                                       
                                                                                           
