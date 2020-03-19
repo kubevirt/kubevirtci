@@ -2,6 +2,13 @@
 
 set -ex
 
+# Configure IPv6 DHCP
+nmcli connection modify "System eth0" ipv6.method dhcp
+nmcli connection modify "System eth0" ipv6.may-fail no
+nmcli connection modify "System eth0" connection.autoconnect yes
+nmcli connection modify "System eth0" ipv6.addr-gen-mode eui64
+nmcli connection down "System eth0" && sudo nmcli connection up "System eth0"
+
 # Resize root partition
 dnf install -y cloud-utils-growpart
 if growpart /dev/vda 1; then
