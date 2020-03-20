@@ -8,6 +8,11 @@ export KIND_NODE_IMAGE="kindest/node:v1.17.0"
 source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
 
 function up() {
+    if [[ "$KUBEVIRT_NUM_NODES" -ne 2 ]]; then
+        echo 'SR-IOV cluster can be only started with 2 nodes'
+        exit 1
+    fi
+
     cp $KIND_MANIFESTS_DIR/kind.yaml ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
     _fetch_kind
     prepare_workers
