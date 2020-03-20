@@ -98,18 +98,7 @@ function _configure_network() {
 function prepare_workers() {
     # appending eventual workers to the yaml
     for ((n=0;n<$(($KUBEVIRT_NUM_NODES-1));n++)); do
-        cat << EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
-- role: worker
-  kubeadmConfigPatches:
-  - |
-    kind: JoinConfiguration
-    nodeRegistration:
-      kubeletExtraArgs:
-        "feature-gates": "CPUManager=true"
-        "cpu-manager-policy": "static"
-        "kube-reserved": "cpu=500m"
-        "system-reserved": "cpu=500m"
-EOF
+        echo '- role: worker' >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
     done
 }
 

@@ -3,5 +3,14 @@ apiVersion: kind.sigs.k8s.io/v1alpha3
 networking:
   disableDefaultCNI: true
   podSubnet: "10.244.0.0/16"
+kubeadmConfigPatches:
+- |
+  kind: JoinConfiguration
+  nodeRegistration:
+    kubeletExtraArgs:
+      "feature-gates": "CPUManager=true"
+      "cpu-manager-policy": "static"
+      "kube-reserved": "cpu=500m"
+      "system-reserved": "cpu=500m"
 nodes:
 - role: control-plane
