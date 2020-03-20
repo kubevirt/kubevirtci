@@ -63,7 +63,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().BoolP("reverse", "r", false, "revert node startup order")
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
 	run.Flags().String("registry-volume", "", "cache docker registry content in the specified volume")
-	run.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
+	run.Flags().Uint("vnc-port-range-start", utils.VNCPortStartRange, "port on localhost for vnc")
 	run.Flags().Uint("registry-port", 0, "port on localhost for the docker registry")
 	run.Flags().Uint("ocp-port", 0, "port on localhost for the ocp cluster")
 	run.Flags().Uint("k8s-port", 0, "port on localhost for the k8s cluster")
@@ -107,10 +107,19 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	vncStartRange, err := cmd.Flags().GetUint("vnc-port-range-start")
+	if err != nil {
+		return err
+	}
+
 	portMap := nat.PortMap{}
 
 	utils.AppendIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
-	utils.AppendIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
+
+	for i := 1; i <= int(nodes); i++ {
+		utils.AppendPort(portMap, int(vncStartRange)+i, utils.VNCPortStartRange+i)
+	}
+
 	utils.AppendIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port")
 	utils.AppendIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port")
 	utils.AppendIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port")
@@ -198,6 +207,17 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
+	exposedPorts := nat.PortSet{
+		utils.TCPPortOrDie(utils.PortSSH):      {},
+		utils.TCPPortOrDie(utils.PortRegistry): {},
+		utils.TCPPortOrDie(utils.PortOCP):      {},
+		utils.TCPPortOrDie(utils.PortAPI):      {},
+	}
+
+	for i := 1; i <= int(nodes); i++ {
+		exposedPorts[utils.TCPPortOrDie(utils.VNCPortStartRange+i)] = struct{}{}
+	}
+
 	// Start dnsmasq
 	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: cluster,
@@ -205,14 +225,8 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			fmt.Sprintf("NUM_NODES=%d", nodes),
 			fmt.Sprintf("NUM_SECONDARY_NICS=%d", secondaryNics),
 		},
-		Cmd: []string{"/bin/bash", "-c", "/dnsmasq.sh"},
-		ExposedPorts: nat.PortSet{
-			utils.TCPPortOrDie(utils.PortSSH):      {},
-			utils.TCPPortOrDie(utils.PortRegistry): {},
-			utils.TCPPortOrDie(utils.PortOCP):      {},
-			utils.TCPPortOrDie(utils.PortAPI):      {},
-			utils.TCPPortOrDie(utils.PortVNC):      {},
-		},
+		Cmd:          []string{"/bin/bash", "-c", "/dnsmasq.sh"},
+		ExposedPorts: exposedPorts,
 	}, &container.HostConfig{
 		Privileged:      true,
 		PublishAllPorts: randomPorts,

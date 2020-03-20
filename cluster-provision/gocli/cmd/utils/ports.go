@@ -19,8 +19,8 @@ const (
 	PortOCP = 8443
 	// PortAPI contains API server port
 	PortAPI = 6443
-	// PortVNC contains first VM VNC port
-	PortVNC = 5901
+	// VNCPortStartRange contains first VM VNC port
+	VNCPortStartRange = 5900
 	//PortOCPConsole contains OCP console port
 	PortOCPConsole = 443
 

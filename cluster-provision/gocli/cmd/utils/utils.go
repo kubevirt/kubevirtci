@@ -25,3 +25,13 @@ func AppendIfExplicit(ports nat.PortMap, exposedPort int, flagSet *pflag.FlagSet
 	}
 	return nil
 }
+
+func AppendPort(ports nat.PortMap, publicPort int, exposedPort int) {
+	port := TCPPortOrDie(exposedPort)
+	ports[port] = []nat.PortBinding{
+		{
+			HostIP:   "127.0.0.1",
+			HostPort: strconv.Itoa(int(publicPort)),
+		},
+	}
+}

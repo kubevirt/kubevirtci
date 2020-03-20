@@ -69,7 +69,7 @@ func provision(cmd *cobra.Command, args []string) error {
 	portMap := nat.PortMap{}
 
 	utils.AppendIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
-	utils.AppendIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
+	utils.AppendIfExplicit(portMap, utils.VNCPortStartRange+1, cmd.Flags(), "vnc-port")
 
 	qemuArgs, err := cmd.Flags().GetString("qemu-args")
 	if err != nil {
@@ -118,8 +118,8 @@ func provision(cmd *cobra.Command, args []string) error {
 		},
 		Cmd: []string{"/bin/bash", "-c", "/dnsmasq.sh"},
 		ExposedPorts: nat.PortSet{
-			utils.TCPPortOrDie(utils.PortSSH): {},
-			utils.TCPPortOrDie(utils.PortVNC): {},
+			utils.TCPPortOrDie(utils.PortSSH):               {},
+			utils.TCPPortOrDie(utils.VNCPortStartRange + 1): {},
 		},
 	}, &container.HostConfig{
 		Privileged:      true,
