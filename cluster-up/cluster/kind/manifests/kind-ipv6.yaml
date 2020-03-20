@@ -4,6 +4,15 @@ containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."registry:5000"]
     endpoint = ["http://registry:5000"]
+kubeadmConfigPatches:
+- |
+  kind: JoinConfiguration
+  nodeRegistration:
+    kubeletExtraArgs:
+      "feature-gates": "CPUManager=true"
+      "cpu-manager-policy": "static"
+      "kube-reserved": "cpu=500m"
+      "system-reserved": "cpu=500m"
 networking:
   ipFamily: ipv6
   apiServerAddress: "::1"
