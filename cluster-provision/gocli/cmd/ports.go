@@ -93,7 +93,7 @@ func ports(cmd *cobra.Command, args []string) error {
 		case utils.PortNameOCPConsole:
 			err = utils.PrintPublicPort(utils.PortOCPConsole, containers[0].Ports)
 		case utils.PortNameVNC:
-			err = utils.PrintPublicPort(utils.PortVNC, containers[0].Ports)
+			err = utils.PrintPublicPort(utils.VNCPortStartRange, containers[0].Ports)
 		}
 
 		if err != nil {
