@@ -118,7 +118,7 @@ _kubectl patch mutatingwebhookconfiguration network-resources-injector-config --
 _kubectl patch mutatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/operator-webhook.cert)"'" }}]}'
 
 # we need to sleep to wait for the configuration above the be picked up
-sleep 30
+sleep 60
 
 envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -
 
