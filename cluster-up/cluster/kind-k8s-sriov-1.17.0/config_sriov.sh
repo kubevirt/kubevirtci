@@ -106,8 +106,6 @@ ${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly wh
 
 deploy_sriov_operator
 
-_kubectl label node $SRIOV_NODE node-role.kubernetes.io/worker=
-
 _kubectl label node $SRIOV_NODE sriov=true
 
 wait_pods_ready
