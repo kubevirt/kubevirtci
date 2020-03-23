@@ -13,6 +13,17 @@ if [ ! -z $INSTALLER_RELEASE_IMAGE ]; then
     done
 fi
 
+MASTERS=1
+if [[ $INSTALLER_TAG == "release-4.4" ]]; then
+    MASTERS=3
+fi
+
+function oc_retry {
+    until oc $@; do
+        sleep 1
+    done
+}
+
 compile_installer () {
     # install build dependencies
     local build_pkgs="git gcc-c++"
@@ -131,6 +142,9 @@ if [ ! -z $INSTALLER_RELEASE_IMAGE ]; then
     export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE=$INSTALLER_RELEASE_IMAGE
 fi
 
+# update number of masters for okd-4.4, because 1 master isnt supported atm to to a bug of etcd
+sed -i "s/replicas: 1/replicas: ${MASTERS}/" ${INSTALL_CONFIG_FILE}
+
 # Generate manifests
 /openshift-install create manifests --dir=$CLUSTER_DIR
 
@@ -178,14 +192,14 @@ export TF_VAR_libvirt_master_vcpu=$MASTER_CPU
 
 export KUBECONFIG=$CLUSTER_DIR/auth/kubeconfig
 
-oc wait --for=condition=Ready $(oc get node -o name) --timeout=600s
+oc wait --for=condition=Ready $(oc get node -o name) --timeout=900s
 
 # Create htpasswd with user admin
 htpasswd -c -B -b /root/htpasswd admin admin
 
 # Create OpenShift HTPasswd provider with user and password admin
-oc create secret generic htpass-secret --from-file=htpasswd=/root/htpasswd -n openshift-config
-oc apply -f - <<EOF
+oc_retry create secret generic htpass-secret --from-file=htpasswd=/root/htpasswd -n openshift-config
+oc_retry apply -f - <<EOF
 apiVersion: config.openshift.io/v1
 kind: OAuth
 metadata:
@@ -201,7 +215,7 @@ spec:
 EOF
 
 # Grant to admin user cluster-admin permissions
-oc adm policy add-cluster-role-to-user cluster-admin admin
+oc_retry adm policy add-cluster-role-to-user cluster-admin admin
 
 if [ "${CNAO}" == "true" ]; then
     # Apply network addons
@@ -231,12 +245,16 @@ spec:
     matchLabels:
       custom-kubelet: cpumanager-enabled
   kubeletConfig:
+     apiVersion: kubelet.config.k8s.io/v1beta1
+     kind: KubeletConfiguration
      cpuManagerPolicy: static
      cpuManagerReconcilePeriod: 5s
 EOF
 
-oc -n openshift-machine-config-operator wait machineconfigpools worker --for condition=Updating --timeout=1800s
-oc -n openshift-machine-config-operator wait machineconfigpools worker --for condition=Updated --timeout=1800s
+# When using 3 masters, command might fail before timeout in case leader is changing
+# so we need to wrap it with bash timeout in order to retry it but at most for 30 minutes totally
+timeout 30m bash -c "until oc -n openshift-machine-config-operator wait machineconfigpools worker --for condition=Updating --timeout=30m; do sleep 3; done"
+timeout 30m bash -c "until oc -n openshift-machine-config-operator wait machineconfigpools worker --for condition=Updated --timeout=30m; do sleep 3; done"
 
 # Disable updates of machines configurations, because on the update the machine-config
 # controller will try to drain the master node, but it not possible with only one master
@@ -259,10 +277,40 @@ until oc -n openshift-machine-config-operator delete ds machine-config-daemon; d
     sleep 5
 done
 
+# get_value fetches command output, with retry and timeout
+# syntax nodes=$(get_value 10 oc get nodes)
+# first parameter is the number of iterations to try, each has 6 seconds delay
+function get_value()
+{
+    local val=""
+    timeout="$1"
+    shift
+
+    n=0
+    val=$("$@")
+    until [[ ${val} != "" ]]; do
+        sleep 6
+        n=$[$n+1]
+
+        if [ "$n" -ge "$timeout" ]; then
+            break
+        fi
+
+        val=$("$@")
+    done
+
+    echo "$val"
+}
+
 # Remove master schedulable taint from masters
-masters=$(oc get nodes -l node-role.kubernetes.io/master -o'custom-columns=name:metadata.name' --no-headers)
+masters=$(get_value 50 oc get nodes -l node-role.kubernetes.io/master -o'custom-columns=name:metadata.name' --no-headers)
+if [[ ${masters} == "" ]]; then
+    echo "Failed to get masters list, exiting"
+    exit 1
+fi
+
 for master in ${masters}; do
-    oc adm taint nodes ${master} node-role.kubernetes.io/master-
+    oc_retry adm taint nodes ${master} node-role.kubernetes.io/master-
 done
 
 until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready | wc -l) -ge 3 ]]; do
@@ -270,7 +318,7 @@ until [[ $(oc get nodes --no-headers | grep -v SchedulingDisabled | grep Ready |
 done
 
 # Create local storage objects under the cluster
-oc create ns local-storage
+oc_retry create ns local-storage
 
 oc create -f /manifests/okd/local-storage.yaml
 until oc -n local-storage get LocalVolume; do
@@ -297,20 +345,25 @@ until oc patch storageclass local -p '{"metadata": {"annotations":{"storageclass
 done
 
 # update number of workers
-worker_machine_set=$(oc -n openshift-machine-api get machineset --no-headers | grep worker | awk '{print $1}')
+worker_machine_set=$(get_value 50 oc -n openshift-machine-api get machineset --no-headers | grep worker | awk '{print $1}')
+if [[ ${worker_machine_set} == "" ]]; then
+    echo "Failed to get worker machine set, exiting"
+    exit 1
+fi
+
 until oc -n openshift-machine-api scale --replicas=1 machineset ${worker_machine_set}; do
     sleep 5
 done
 
-while [[ "$(oc get node -o name |wc -l)" -ne 2 ]]; do
+NODES=$((MASTERS + 1))
+while [[ "$(oc get node -o name | wc -l)" -ne $NODES ]]; do
     sleep 15
 done
 
 # Clean Completed and OOMKilled pods
 for pod in $(oc get pod --all-namespaces -o 'jsonpath={range .items[*]}{.metadata.namespace}{'\'','\''}{.metadata.name}{'\'','\''}{.status.phase}{'\''\n'\''}{end}' --field-selector status.phase!=Running |grep -v Pending); do
-    oc delete pod $(echo $pod |sed -r "s/^(.*),(.*),.*$/-n \1 \2/g")
+    oc_retry delete pod $(echo $pod |sed -r "s/^(.*),(.*),.*$/-n \1 \2/g")
 done
-
 
 # Shutdown VM's
 virsh list --name | xargs --max-args=1 virsh shutdown
