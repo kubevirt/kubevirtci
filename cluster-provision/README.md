@@ -7,7 +7,6 @@
 * `k8s-1.11.0` k8s-1.11.0 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.13.3` k8s-1.13.3 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-multus-1.13.3` k8s-1.13.3 cluster based on the centos7 image and uses multus CNI, provisioned with kubeadm
-* `k8s-genie-1.11.1` k8s-1.11.1 cluster based on the centos7 image and uses genie CNI, provisioned with kubeadm
 * `os-3.11.0` os-3.11.0 cluster based on the centos7 image, provisioned with openshift-ansible
 * `os-3.11-crio` os-3.11 cluster with CRI-O support based on the centos7 image, provisioned
 * `os-3.11-multus` os-3.11 cluster with multus cni support based on the centos7 image, provisioned with openshift-ansible
@@ -26,7 +25,6 @@
 * `kubevirtci/k8s-1.15.1`: `sha256:14d7b1806f24e527167d2913deafd910ea46e69b830bf0b094dde35ba961b159`
 * `kubevirtci/k8s-1.16.2`: `sha256:5bae6a5f3b996952c5ceb4ba12ac635146425909801df89d34a592f3d3502b0c`
 * `kubevirtci/k8s-multus-1.13.3:`: `sha256:c0bcf0d2e992e5b4d96a7bcbf988b98b64c4f5aef2f2c4d1c291e90b85529738`
-* `kubevirtci/k8s-genie-1.11.1:`: `sha256:19af1961fdf92c08612d113a3cf7db40f02fd213113a111a0b007a4bf0f3f7e7`
 
 # OKD clusters in the container with libvirt
 
