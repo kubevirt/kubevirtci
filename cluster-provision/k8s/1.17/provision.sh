@@ -9,8 +9,6 @@ xfs_growfs -d /
 
 cni_manifest="/tmp/cni.yaml"
 
-setenforce 0
-
 # Disable swap
 swapoff -a
 sed -i '/ swap / s/^/#/' /etc/fstab
@@ -158,11 +156,21 @@ cat >/tmp/kubeadm-patches/add-security-context.yaml <<EOF
       type: spc_t
 EOF
 
+cat >/tmp/kubeadm-patches/add-security-context-deployment-patch.yaml <<EOF
+spec:
+  template:
+    spec:
+      securityContext:
+        seLinuxOptions:
+          type: spc_t
+EOF
+
 
 default_cidr="192.168.0.0/16"
 pod_cidr="10.244.0.0/16"
 kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456 --experimental-kustomize /tmp/kubeadm-patches/
 
+kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /tmp/kubeadm-patches/add-security-context-deployment-patch.yaml)"
 sed -i -e "s?$default_cidr?$pod_cidr?g" $cni_manifest
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
 
