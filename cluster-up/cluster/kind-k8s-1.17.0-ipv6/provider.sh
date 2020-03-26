@@ -23,7 +23,7 @@ function up() {
         for i in {1..10}; do
             mount_disk $node $i
         done
-        $DOCKER exec -it $node bash -c "chmod -R 777 /var/local/kubevirt-storage/local-volume"
+        $DOCKER exec $node bash -c "chmod -R 777 /var/local/kubevirt-storage/local-volume"
     done
 
     # create the `local` storage class - which functional tests assume to exist
@@ -33,7 +33,7 @@ function up() {
 function mount_disk() {
     local node=$1
     local idx=$2
-    $DOCKER exec -it $node bash -c "mkdir -p /var/local/kubevirt-storage/local-volume/disk${idx}"
-    $DOCKER exec -it $node bash -c "mkdir -p /mnt/local-storage/local/disk${idx}"
-    $DOCKER exec -it $node bash -c "mount -o bind /var/local/kubevirt-storage/local-volume/disk${idx} /mnt/local-storage/local/disk${idx}"
+    $DOCKER exec $node bash -c "mkdir -p /var/local/kubevirt-storage/local-volume/disk${idx}"
+    $DOCKER exec $node bash -c "mkdir -p /mnt/local-storage/local/disk${idx}"
+    $DOCKER exec $node bash -c "mount -o bind /var/local/kubevirt-storage/local-volume/disk${idx} /mnt/local-storage/local/disk${idx}"
 }
