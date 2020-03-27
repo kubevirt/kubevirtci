@@ -22,8 +22,9 @@ do
     sleep 2
 done
 
-kubeadm init --config /etc/kubernetes/kubeadm.conf
+kubeadm init --config /etc/kubernetes/kubeadm.conf --experimental-kustomize /tmp/kubeadm-patches/
 
+kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /tmp/kubeadm-patches/add-security-context-deployment-patch.yaml)"
 # cni manifest is already configured at provision stage.
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
 

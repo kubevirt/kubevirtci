@@ -9,9 +9,6 @@ xfs_growfs -d /
 
 cni_manifest="/tmp/cni.yaml"
 
-setenforce 0
-sed -i "s/^SELINUX=.*/SELINUX=permissive/" /etc/selinux/config
-
 # Disable swap
 swapoff -a
 sed -i '/ swap / s/^/#/' /etc/fstab
@@ -121,10 +118,59 @@ echo "net.netfilter.nf_conntrack_max=1000000" >> /etc/sysctl.conf
 
 systemctl restart NetworkManager
 
+mkdir -p /tmp/kubeadm-patches/
+
+cat >/tmp/kubeadm-patches/kustomization.yaml <<EOF
+patchesJson6902:
+- target:
+    version: v1
+    kind: Pod
+    name: kube-apiserver
+    namespace: kube-system
+  path: add-security-context.yaml
+- target:
+    version: v1
+    kind: Pod
+    name: kube-controller-manager
+    namespace: kube-system
+  path: add-security-context.yaml
+- target:
+    version: v1
+    kind: Pod
+    name: kube-scheduler
+    namespace: kube-system
+  path: add-security-context.yaml
+- target:
+    version: v1
+    kind: Pod
+    name: etcd
+    namespace: kube-system
+  path: add-security-context.yaml
+EOF
+
+cat >/tmp/kubeadm-patches/add-security-context.yaml <<EOF
+- op: add
+  path: /spec/securityContext
+  value:
+    seLinuxOptions:
+      type: spc_t
+EOF
+
+cat >/tmp/kubeadm-patches/add-security-context-deployment-patch.yaml <<EOF
+spec:
+  template:
+    spec:
+      securityContext:
+        seLinuxOptions:
+          type: spc_t
+EOF
+
+
 default_cidr="192.168.0.0/16"
 pod_cidr="10.244.0.0/16"
-kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456
+kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456 --experimental-kustomize /tmp/kubeadm-patches/
 
+kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /tmp/kubeadm-patches/add-security-context-deployment-patch.yaml)"
 sed -i -e "s?$default_cidr?$pod_cidr?g" $cni_manifest
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
 
