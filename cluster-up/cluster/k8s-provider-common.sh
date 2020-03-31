@@ -4,6 +4,19 @@ set -e
 
 source ${KUBEVIRTCI_PATH}/cluster/ephemeral-provider-common.sh
 
+function _label_workers() {
+    # Label all the non master nodes as workers, we have to do here since, after k8s 1.16 is not possible to do
+    # at kubelet [1]
+    # [1] https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/src/user/troubleshooting.md
+    number_of_nodes=$($kubectl get node  --no-headers |wc -l)
+    if [ $number_of_nodes -eq 1 ]; then
+        label="node-role.kubernetes.io/master"
+    else
+        label="!node-role.kubernetes.io/master"
+    fi
+    $kubectl label node -l $label node-role.kubernetes.io/worker=''
+}
+
 function up() {
     ${_cli} run $(_add_common_params)
 
@@ -22,10 +35,8 @@ function up() {
 
     kubectl=${KUBEVIRTCI_PATH}/kubectl.sh
 
-    # Label all the non master nodes as workers, we have to do here since, after k8s 1.16 is not possible to do
-    # at kubelet [1]
-    # [1] https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/src/user/troubleshooting.md
-    $kubectl label node -l '!node-role.kubernetes.io/master' node-role.kubernetes.io/worker=''
+    _label_workers
+
     # Activate cluster-network-addons-operator if flag is passed
     if [ "$KUBEVIRT_WITH_CNAO" == "true" ]; then
 
