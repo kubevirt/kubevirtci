@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -eo pipefail
 
 source ${KUBEVIRTCI_PATH}/cluster/ephemeral-provider-common.sh
 
