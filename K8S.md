@@ -8,13 +8,14 @@ cd kubevirtci
                                                                                       
 Start multi node k8s cluster with 2 nics                                              
 ```                                                                                   
-export KUBEVIRT_PROVIDER=k8s-1.16.2 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=1
+export KUBEVIRT_PROVIDER=k8s-1.16 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=1
 make cluster-up                                                                       
 ```                                                                                   
                                                                                       
 Stop k8s cluster                                                                      
 ```                                                                                   
 make cluster-down                                                                     
+```
 
 Use provider's kubectl client with kubectl.sh wrapper script               
 ```                                                                        
