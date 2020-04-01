@@ -20,14 +20,9 @@ function up() {
     # Make sure that local config is correct
     prepare_config
 
-    kubectl=${KUBEVIRTCI_PATH}/kubectl.sh
-
-    # Label all the non master nodes as workers, we have to do here since, after k8s 1.16 is not possible to do
-    # at kubelet [1]
-    # [1] https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/src/user/troubleshooting.md
-    $kubectl label node -l '!node-role.kubernetes.io/master' node-role.kubernetes.io/worker=''
     # Activate cluster-network-addons-operator if flag is passed
     if [ "$KUBEVIRT_WITH_CNAO" == "true" ]; then
+        kubectl="${_cli} --prefix $provider_prefix ssh node01 -- sudo kubectl --kubeconfig=/etc/kubernetes/admin.conf"
 
         $kubectl create -f /opt/cnao/namespace.yaml
         $kubectl create -f /opt/cnao/network-addons-config.crd.yaml
