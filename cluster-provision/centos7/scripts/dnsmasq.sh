@@ -9,6 +9,12 @@ ip link add br0 type bridge
 ip link set dev br0 up
 ip addr add dev br0 192.168.66.02/24
 
+# Create secondary networks
+for snet in $(seq 1 ${NUM_SECONDARY_NICS}); do
+  ip link add br${snet} type bridge
+  ip link set dev br${snet} up
+done
+
 for i in $(seq 1 ${NUM_NODES}); do
   n="$(printf "%02d" ${i})"
   ip tuntap add dev tap${n} mode tap user $(whoami)
@@ -18,7 +24,7 @@ for i in $(seq 1 ${NUM_NODES}); do
   for s in $(seq 1 ${NUM_SECONDARY_NICS}); do
     tap_name=stap$(($i - 1))-$(($s - 1))
     ip tuntap add dev $tap_name mode tap user $(whoami)
-    ip link set $tap_name master br0
+    ip link set $tap_name master br${s}
     ip link set dev $tap_name up
   done
 done

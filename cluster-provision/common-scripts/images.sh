@@ -3,6 +3,6 @@
 set -e
 
 declare -A IMAGES
-IMAGES[fedora31]="fedora@sha256:df2fc0d1a0db48b821c61df3e5ec2ab5575599192454656943b85dbc0d8d582a"
-IMAGES[centos7]="centos@sha256:5b7a969911f2c6baf6ca8390f4da30c16dec3cacc7b5530649965c50da7240f1"
+IMAGES[fedora31]="fedora@sha256:242b0170c79034f4d2a1eadd978a6659b9761724b12aa84dadcf89a023f015cb"
+IMAGES[centos7]="centos@sha256:4f105ae5eb0aa3bb034fa24591ea80bf67701b1bc6449d40aa1bec33bc6a4e9a"
 export IMAGES
