@@ -68,8 +68,10 @@ fi
 
 calc_next_disk
 
-echo "Creating disk \"${next} backed by ${last}\"."
-qemu-img create -f qcow2 -o backing_file=${last} ${next} 35G
+disk_size=$(qemu-img info --output json ${last} | jq '.["virtual-size"]')
+
+echo "Creating disk \"${next} backed by ${last} with size ${disk_size}\"."
+qemu-img create -f qcow2 -o backing_file=${last} ${next} ${disk_size}
 
 echo ""
 echo "SSH will be available on container port 22${n}."
