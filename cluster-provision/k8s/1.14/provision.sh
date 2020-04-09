@@ -220,3 +220,8 @@ docker pull quay.io/k8scsi/csi-provisioner:v1.0.1
 docker pull quay.io/k8scsi/csi-snapshotter:v1.0.1
 docker pull quay.io/cephcsi/rbdplugin:v1.0.0
 docker pull quay.io/k8scsi/csi-node-driver-registrar:v1.0.2
+
+# Create a properly labelled tmp directory for testing
+mkdir -p /tmp/kubevirt.io/tests
+chcon -t container_file_t /tmp/kubevirt.io/tests
+echo "tmpfs /tmp/kubevirt.io/tests tmpfs rw,context=system_u:object_r:container_file_t:s0 0 1" >> /etc/fstab
