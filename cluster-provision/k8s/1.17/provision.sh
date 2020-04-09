@@ -304,3 +304,8 @@ docker pull quay.io/k8scsi/csi-node-driver-registrar:v1.0.2
 # so we can use them at cluster-up
 cp -rf /tmp/cnao/ /opt/
 for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml |grep value | awk '{print $2}'); do docker pull $i; done
+
+# Create a properly labelled tmp directory for testing
+mkdir -p /tmp/kubevirt.io/tests
+chcon -t container_file_t /tmp/kubevirt.io/tests
+echo "tmpfs /tmp/kubevirt.io/tests tmpfs rw,context=system_u:object_r:container_file_t:s0 0 1" >> /etc/fstab
