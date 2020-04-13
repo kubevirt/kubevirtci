@@ -21,8 +21,8 @@ function cleanup {
   export KUBEVIRT_NUM_SECONDARY_NICS=2
   trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
   bash -x ./cluster-up/up.sh
-  ${ksh} wait --for=condition=Ready pod --all
-  ${ksh} wait --for=condition=Ready pod -n kube-system --all
+  ${ksh} wait --for=condition=Ready pod --timeout=200s --all
+  ${ksh} wait --for=condition=Ready pod --timeout=200s -n kube-system --all
   ${ksh} get nodes
   ${ksh} get pods -A
 )
