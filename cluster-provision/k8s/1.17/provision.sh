@@ -2,6 +2,12 @@
 
 set -ex
 
+# Resize root partition
+dnf install -y cloud-utils-growpart
+if growpart /dev/vda 1; then
+    xfs_growfs -d /
+fi
+
 cni_manifest="/tmp/cni.yaml"
 
 # Disable swap
