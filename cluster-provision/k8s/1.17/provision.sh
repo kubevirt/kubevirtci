@@ -21,6 +21,9 @@ yum -y remove firewalld
 # Required for iscsi demo to work.
 yum -y install iscsi-initiator-utils
 
+# To prevent preflight issue realted to tc not found
+dnf install -y tc
+
 # Install docker required packages.
 dnf -y install yum-utils \
     device-mapper-persistent-data \
