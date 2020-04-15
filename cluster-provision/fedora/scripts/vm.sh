@@ -68,7 +68,11 @@ fi
 
 calc_next_disk
 
+default_disk_size=37580963840 # 35G
 disk_size=$(qemu-img info --output json ${last} | jq '.["virtual-size"]')
+if [ $disk_size -lt $default_disk_size ]; then
+    disk_size=$default_disk_size
+fi
 
 echo "Creating disk \"${next} backed by ${last} with size ${disk_size}\"."
 qemu-img create -f qcow2 -o backing_file=${last} ${next} ${disk_size}
