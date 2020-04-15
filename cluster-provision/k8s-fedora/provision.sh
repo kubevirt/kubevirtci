@@ -5,8 +5,16 @@ set -ex
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+base="$(cat base | tr -d '\n')"
+version="$(cat version | tr -d '\n')"
+provision_dir="$(basename $(pwd))"
+
+echo $version
+echo $base
+echo $provision_dir
+
 cd $DIR
 
-source ../common-scripts/images.sh
-
-../cli/cli provision --prefix k8s-fedora-${version}-provision --scripts ./scripts --k8s-version ${version} --base kubevirtci/${IMAGES[fedora31]} --tag kubevirtci/k8s-fedora-${version}
+export SIMPLE_PROVISION=true
+../cli/cli provision --prefix k8s-fedora-${version}-provision --scripts ${provision_dir} --k8s-version ${version} --base kubevirtci/${base} --tag kubevirtci/k8s-fedora-${provision_dir}
+./check-cluster-up.sh $provision_dir
