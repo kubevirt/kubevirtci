@@ -2,6 +2,9 @@
 
 set -ex
 
+# Ensure that hugepages are there
+cat /proc/meminfo | sed -e "s/ //g" | grep "HugePages_Total:64"
+
 timeout=30
 interval=5
 while ! hostnamectl  |grep Transient ; do

@@ -2,6 +2,9 @@
 
 set -ex
 
+# Ensure that hugepages are there
+cat /proc/meminfo | sed -e "s/ //g" | grep "HugePages_Total:64"
+
 # Wait for docker, else network might not be ready yet
 while [[ `systemctl status docker | grep active | wc -l` -eq 0 ]]
 do
