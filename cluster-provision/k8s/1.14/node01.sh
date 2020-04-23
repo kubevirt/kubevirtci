@@ -2,6 +2,9 @@
 
 set -ex
 
+# Ensure that hugepages are there
+cat /proc/meminfo | sed -e "s/ //g" | grep "HugePages_Total:64"
+
 version=`kubectl version --short --client | cut -d":" -f2 |sed  's/ //g' | cut -c2- `
 cni_manifest="/tmp/cni.yaml"
 
