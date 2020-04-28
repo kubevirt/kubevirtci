@@ -4,7 +4,8 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 major_minor="$(basename $(pwd))"
+tag=$(git log -1 --pretty=%h)-$(date +%s)
+destination="docker.io/kubevirtci/k8s-${major_minor}:$tag"
 
-version="$(cat version | tr -d '\n')"
-docker tag kubevirtci/k8s-${major_minor}:latest docker.io/kubevirtci/k8s-${major_minor}:latest
-docker push docker.io/kubevirtci/k8s-${major_minor}:latest
+docker tag kubevirtci/k8s-${major_minor}:latest $destination
+docker push $destination
