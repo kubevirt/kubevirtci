@@ -43,3 +43,4 @@ if [[ $kubelet_rc -ne 0 ]]; then
 fi
 
 kubeadm join --token abcdef.1234567890123456 192.168.66.101:6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true
+sudo ip -6 route add default dev eth0 metric 1

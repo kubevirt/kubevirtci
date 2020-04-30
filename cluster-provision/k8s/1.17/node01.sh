@@ -47,3 +47,4 @@ done
 
 local_volume_manifest="/tmp/local-volume.yaml"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$local_volume_manifest"
+sudo ip -6 route add default dev eth0 metric 1
