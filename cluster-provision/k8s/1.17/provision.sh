@@ -219,6 +219,10 @@ admission_flag="enable-admission-plugins"
 
 $reset_command
 
+# IMPORTANT - what to put in the networking section ?
+# bind-address - try also fd00::101, but maybe listen all is good enough
+
+
 # audit log configuration
 mkdir /etc/kubernetes/audit
 
@@ -263,6 +267,9 @@ apiServer:
     audit-policy-file: /etc/kubernetes/audit/adv-audit.yaml
     enable-admission-plugins: NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
     feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,AdvancedAuditing=true
+    bind-address: ::
+    advertise-address: fd00::101
+    service-cluster-ip-range: fd10:0:2::4/120
   extraVolumes:
   - hostPath: /etc/kubernetes/audit
     mountPath: /etc/kubernetes/audit
@@ -279,6 +286,8 @@ controlPlaneEndpoint: ""
 controllerManager:
   extraArgs:
     feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true
+    master: fd00::101
+    cluster-cidr: fd20::0/112
 dns:
   type: CoreDNS
 etcd:
@@ -291,6 +300,18 @@ networking:
   dnsDomain: cluster.local
   podSubnet: 10.244.0.0/16
   serviceSubnet: 10.96.0.0/12
+scheduler:
+  extraArgs:
+    master: fd00::101
+kind: KubeletConfiguration
+  address: ::
+  clusterDNS:
+    - fd10:0:2::4
+  node-ip: fd00::101
+kind: KubeProxyConfiguration
+  bindAddress: "::"
+  master: fd00::101
+  cluster-cidr: fd20::0/112
 EOF
 
 # Create local-volume directories

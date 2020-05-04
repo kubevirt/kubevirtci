@@ -16,6 +16,7 @@ data:
   # Configure the MTU to use
   veth_mtu: "1440"
 
+  # do we want to add to ipam ? "ipv6_pools": ["fd20::0/112"]
   # The CNI network configuration to install on each node.  The special
   # values in this config will be automatically populated.
   cni_network_config: |-
@@ -31,6 +32,8 @@ data:
           "mtu": __CNI_MTU__,
           "ipam": {
               "type": "calico-ipam"
+               "assign_ipv4": "false",
+               "assign_ipv6": "true",
           },
           "container_settings": {
               "allow_ip_forwarding": true
@@ -631,6 +634,10 @@ spec:
             # no effect. This should fall within `--cluster-cidr`.
             - name: CALICO_IPV4POOL_CIDR
               value: "192.168.0.0/16"
+              - name: CALICO_IPV6POOL_CIDR
+              value: "fd20::0/112"
+              - name: IP6
+              value: "autodetect"
             # Disable file logging so `kubectl logs` works.
             - name: CALICO_DISABLE_FILE_LOGGING
               value: "true"
@@ -639,7 +646,7 @@ spec:
               value: "ACCEPT"
             # Disable IPv6 on Kubernetes.
             - name: FELIX_IPV6SUPPORT
-              value: "false"
+              value: "true"
             # Set Felix logging to "info"
             - name: FELIX_LOGSEVERITYSCREEN
               value: "info"
