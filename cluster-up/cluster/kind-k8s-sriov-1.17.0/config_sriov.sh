@@ -6,6 +6,7 @@ source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
 MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests"
 CSRCREATORPATH="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/csrcreator"
 KUBECONFIG_PATH="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
+OPERATOR_INFO_PATH="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/operator-info"
 
 MASTER_NODE="${CLUSTER_NAME}-control-plane"
 WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
@@ -124,4 +125,13 @@ envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -
 
 
 ${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
+
+pushd $OPERATOR_INFO_PATH
+  # get all that juicy deployment info
+  go run . \
+      -namespace sriov-network-operator \
+      -artifacts "${ARTIFACTS}" \
+      -kubeconfig $KUBECONFIG_PATH \
+      -logtostderr
+popd
 
