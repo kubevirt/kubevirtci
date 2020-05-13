@@ -53,10 +53,12 @@ func (s *SRIOVReporter) DumpInfo() {
 		return
 	}
 
+	events := s.client.CoreV1().Events(s.namespace)
 	for _, sriovPod := range sriovPods.Items {
 		glog.V(4).Infof("Iterating sriov pod %s", sriovPod.Name)
 		s.serializePodSpec(sriovPod)
 		s.fetchPodLogs(pods, sriovPod.Name)
+		s.fetchPodEvents(events, sriovPod)
 	}
 }
 
@@ -140,6 +142,34 @@ func (s *SRIOVReporter) persistRawLogs(pods v1.PodInterface, podName string, log
 	}
 	glog.V(4).Infof("Stored pod log for pod %s in file %s", podName, outputFilePath)
 	fmt.Fprintln(f, string(rawLogs))
+}
+
+func (s *SRIOVReporter) fetchPodEvents(events v1.EventInterface, pod corev1.Pod) {
+	outputFilePath := fmt.Sprintf("%s/%s_events.log", s.outputDir, pod.Name)
+	f, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		glog.Errorf("failed to open file: %v", err)
+		return
+	}
+	defer f.Close()
+
+	podUID := string(pod.UID)
+	eventFilterType := "Pod"
+	fieldSelector := events.GetFieldSelector(nil, nil, &eventFilterType, &podUID).String()
+	glog.V(4).Infof("Event field selector: %s", fieldSelector)
+
+	eventList, err := events.List(metav1.ListOptions{FieldSelector: fieldSelector})
+	if err != nil {
+		glog.Errorf("Could not list events. Error: %v", err)
+	}
+
+	jsonStruct, err := json.MarshalIndent(eventList, "", "    ")
+	if err != nil {
+		glog.Errorf("Failed to marshall event list for pod %s", pod.Name)
+		return
+	}
+	glog.V(4).Infof("Stored pod %s events in file %s", pod.Name, outputFilePath)
+	fmt.Fprintln(f, string(jsonStruct))
 }
 
 func main() {
