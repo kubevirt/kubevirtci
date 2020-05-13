@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -45,7 +46,8 @@ func (s *SRIOVReporter) DumpInfo() {
 	s.logNetworks(filepath.Join(s.outputDir, "networks.log"))
 	s.logOperatorConfigs(filepath.Join(s.outputDir, "operatorconfigs.log"))
 
-	sriovPods, err := s.client.CoreV1().Pods(s.namespace).List(metav1.ListOptions{})
+	pods := s.client.CoreV1().Pods(s.namespace)
+	sriovPods, err := pods.List(metav1.ListOptions{})
 	if err != nil {
 		glog.Errorf("Could not list pods in sriov namespace. Error: %v", err)
 		return
@@ -54,6 +56,7 @@ func (s *SRIOVReporter) DumpInfo() {
 	for _, sriovPod := range sriovPods.Items {
 		glog.V(4).Infof("Iterating sriov pod %s", sriovPod.Name)
 		s.serializePodSpec(sriovPod)
+		s.fetchPodLogs(pods, sriovPod.Name)
 	}
 }
 
@@ -115,6 +118,28 @@ func (s *SRIOVReporter) serializePodSpec(pod corev1.Pod) {
 	}
 	glog.V(4).Infof("Stored pod spec for pod %s", pod.Name)
 	fmt.Fprintln(f, string(jsonStruct))
+}
+
+func (s *SRIOVReporter) fetchPodLogs(pods v1.PodInterface, podName string) {
+	s.persistRawLogs(pods, podName, &corev1.PodLogOptions{}, fmt.Sprintf("%s/%s.log", s.outputDir, podName))
+	s.persistRawLogs(pods, podName, &corev1.PodLogOptions{Previous: true}, fmt.Sprintf("%s/%s_previous.log", s.outputDir, podName))
+}
+
+func (s *SRIOVReporter) persistRawLogs(pods v1.PodInterface, podName string, logOptions *corev1.PodLogOptions, outputFilePath string) {
+	f, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		glog.Errorf("failed to open file: %v", err)
+		return
+	}
+	defer f.Close()
+
+	rawLogs, err := pods.GetLogs(podName, logOptions).DoRaw()
+	if err != nil {
+		glog.Errorf("Could not get pod logs for pod %s. Error: %v", podName, err)
+		return
+	}
+	glog.V(4).Infof("Stored pod log for pod %s in file %s", podName, outputFilePath)
+	fmt.Fprintln(f, string(rawLogs))
 }
 
 func main() {
