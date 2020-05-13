@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -43,6 +44,17 @@ func (s *SRIOVReporter) DumpInfo() {
 	s.logSRIOVNodeNetworkPolicies(filepath.Join(s.outputDir, "nodenetworkpolicies.log"))
 	s.logNetworks(filepath.Join(s.outputDir, "networks.log"))
 	s.logOperatorConfigs(filepath.Join(s.outputDir, "operatorconfigs.log"))
+
+	sriovPods, err := s.client.CoreV1().Pods(s.namespace).List(metav1.ListOptions{})
+	if err != nil {
+		glog.Errorf("Could not list pods in sriov namespace. Error: %v", err)
+		return
+	}
+
+	for _, sriovPod := range sriovPods.Items {
+		glog.V(4).Infof("Iterating sriov pod %s", sriovPod.Name)
+		s.serializePodSpec(sriovPod)
+	}
 }
 
 func (s *SRIOVReporter) logSRIOVNodeState(nodeStateLogPath string) {
@@ -85,6 +97,24 @@ func (s *SRIOVReporter) dumpK8sEntityToFile(entityName string, outputFilePath st
 		return
 	}
 	fmt.Fprintln(f, string(prettyJson.Bytes()))
+}
+
+func (s *SRIOVReporter) serializePodSpec(pod corev1.Pod) {
+	outputFilePath := fmt.Sprintf("%s/%s-spec.log", s.outputDir, pod.Name)
+	f, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		glog.Errorf("failed to open file: %v", err)
+		return
+	}
+	defer f.Close()
+
+	jsonStruct, err := json.MarshalIndent(pod, "", "    ")
+	if err != nil {
+		glog.Errorf("Failed to marshall pod %s", pod.Name)
+		return
+	}
+	glog.V(4).Infof("Stored pod spec for pod %s", pod.Name)
+	fmt.Fprintln(f, string(jsonStruct))
 }
 
 func main() {
