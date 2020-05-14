@@ -1,4 +1,4 @@
-FROM fedora:28
+FROM fedora:32
 
 LABEL maintainer="The KubeVirt Project <kubevirt-dev@googlegroups.com>"
 ENV container docker
