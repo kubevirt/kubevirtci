@@ -22,15 +22,26 @@ function wait_pods_ready {
     done
 }
 
+function wait_for {
+  retries=100
+  while [[ $retries -ge 0 ]]; do
+    if _kubectl get $@; then
+      break
+    fi
+    sleep 6
+    ((retries--))
+  done
+}
+
 function wait_for_daemonset {
-  retries=24
+  retries=100
   while [[ $retries -ge 0 ]]; do
     ready=$(_kubectl -n $1 get daemonset $2 -o jsonpath='{.status.numberReady}')
     required=$(_kubectl -n $1 get daemonset $2 -o jsonpath='{.status.desiredNumberScheduled}')
-    if [[ $ready -eq $required ]];then
+    if [[ $ready -eq $required ]]; then
       break
     fi
-    sleep 5
+    sleep 6
     ((retries--))
   done
 }
@@ -44,11 +55,13 @@ function deploy_multus {
 }
 
 function deploy_sriov_operator {
+  echo 'Downloading the SR-IOV operator'
   operator_path=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/sriov-network-operator-${OPERATOR_GIT_HASH}
   if [ ! -d $operator_path ]; then
     curl -L https://github.com/openshift/sriov-network-operator/archive/${OPERATOR_GIT_HASH}/sriov-network-operator.tar.gz | tar xz -C ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/
   fi
 
+  echo 'Installing the SR-IOV operator'
   pushd $operator_path
     export RELEASE_VERSION=4.4
     export SRIOV_NETWORK_OPERATOR_IMAGE=quay.io/openshift/origin-sriov-network-operator:${RELEASE_VERSION}
@@ -61,12 +74,36 @@ function deploy_sriov_operator {
     make deploy-setup-k8s SHELL=/bin/bash  # on prow nodes the default shell is dash and some commands are not working
   popd
 
+  echo 'Generating webhook secrets for the SR-IOV operator'
   pushd "${CSRCREATORPATH}"
     go run . -namespace sriov-network-operator -secret operator-webhook-service -hook operator-webhook -kubeconfig $KUBECONFIG_PATH
     go run . -namespace sriov-network-operator -secret network-resources-injector-secret -hook network-resources-injector -kubeconfig $KUBECONFIG_PATH
   popd
+
+  echo 'Setting caBundle for SR-IOV webhooks'
+  wait_for validatingwebhookconfiguration operator-webhook-config # these webhooks are eventually created by the operator
+  _kubectl patch validatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/operator-webhook.cert)"'" }}]}'
+  wait_for mutatingwebhookconfiguration network-resources-injector-config
+  _kubectl patch mutatingwebhookconfiguration network-resources-injector-config --patch '{"webhooks":[{"name":"network-resources-injector-config.k8s.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/network-resources-injector.cert)"'" }}]}'
+  wait_for mutatingwebhookconfiguration operator-webhook-config
+  _kubectl patch mutatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/operator-webhook.cert)"'" }}]}'
 }
 
+function apply_sriov_policy {
+  NODE_PF=$1
+  NODE_PF_NUM_VFS=$2
+  
+  echo "Applying SriovNetworkNodeConfigPolicy for $NODE_PF"
+  # it can take some time before the webhook becomes able to serve, therefore, try repeating the following command
+  retries=100
+  while [[ $retries -ge 0 ]]; do
+    if envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -; then
+      break
+    fi
+    sleep 6
+    ((retries--))
+  done
+}
 
 # The first worker needs to be handled specially as it has no ending number, and sort will not work
 # We add the 0 to it and we remove it if it's the candidate worker
@@ -120,22 +157,6 @@ _kubectl label node $SRIOV_NODE sriov=true
 deploy_multus
 
 deploy_sriov_operator
-
-
-wait_pods_ready
-
-# we need to sleep as the configurations below need to appear
-sleep 30
-
-_kubectl patch validatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/operator-webhook.cert)"'" }}]}'
-_kubectl patch mutatingwebhookconfiguration network-resources-injector-config --patch '{"webhooks":[{"name":"network-resources-injector-config.k8s.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/network-resources-injector.cert)"'" }}]}'
-_kubectl patch mutatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/operator-webhook.cert)"'" }}]}'
-
-# we need to sleep to wait for the configuration above the be picked up
-sleep 60
-
-envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -
-
+apply_sriov_policy $NODE_PF $NODE_PF_NUM_VFS
 
 ${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
-
