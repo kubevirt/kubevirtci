@@ -12,16 +12,6 @@ WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
 
 OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
 
-# not using kubectl wait since with the sriov operator the pods get restarted a couple of times and this is
-# more reliable
-function wait_pods_ready {
-    while [ -n "$(_kubectl get pods --all-namespaces -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
-        echo "Waiting for all pods to become ready ..."
-        _kubectl get pods --all-namespaces -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
-        sleep 10
-    done
-}
-
 function wait_for {
   retries=100
   while [[ $retries -ge 0 ]]; do
@@ -94,7 +84,9 @@ function apply_sriov_policy {
   NODE_PF_NUM_VFS=$2
   
   echo "Applying SriovNetworkNodeConfigPolicy for $NODE_PF"
-  # it can take some time before the webhook becomes able to serve, therefore, try repeating the following command
+  # It can take some time before the webhook becomes able to serve, therefore, try repeating the following command.
+  # We are not doing any smart waiting on pods since the operator may restart them couple of times and sometimes there
+  # are tiny drops of service on kind. Applying the policy until we succeed seems to be the best approach.
   retries=100
   while [[ $retries -ge 0 ]]; do
     if envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -; then
