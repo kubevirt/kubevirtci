@@ -67,6 +67,9 @@ function deploy_sriov_operator {
   popd
 }
 
+SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
+${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
+
 # The first worker needs to be handled specially as it has no ending number, and sort will not work
 # We add the 0 to it and we remove it if it's the candidate worker
 WORKER=$(_kubectl get nodes | grep $WORKER_NODE_ROOT | sed "s/\b$WORKER_NODE_ROOT\b/${WORKER_NODE_ROOT}0/g" | sort -r | awk 'NR==1 {print $1}')
@@ -112,10 +115,6 @@ for ifs in "${sriov_pfs[@]}"; do
 done
 
 deploy_multus
-
-SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
-
-${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
 
 deploy_sriov_operator
 
