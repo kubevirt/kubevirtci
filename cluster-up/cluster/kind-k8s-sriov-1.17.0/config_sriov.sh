@@ -12,6 +12,12 @@ WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
 
 OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
 
+# dump all kubevirt info
+function dump_kubevirt() {
+    echo "Dump kubevirt state:"
+    hack/dump.sh
+}
+
 # not using kubectl wait since with the sriov operator the pods get restarted a couple of times and this is
 # more reliable
 function wait_pods_ready {
@@ -91,6 +97,8 @@ for ifs in "${sriov_pfs[@]}"; do
 done
 
 
+trap dump_kubevirt EXIT
+
 # deploy multus
 _kubectl create -f $MANIFESTS_DIR/multus.yaml
 
@@ -119,6 +127,8 @@ _kubectl patch mutatingwebhookconfiguration operator-webhook-config --patch '{"w
 
 # we need to sleep to wait for the configuration above the be picked up
 sleep 60
+dump_kubevirt
+trap - EXIT
 
 envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -
 
