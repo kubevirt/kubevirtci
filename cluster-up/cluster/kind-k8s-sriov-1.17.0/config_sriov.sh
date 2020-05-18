@@ -22,6 +22,27 @@ function wait_pods_ready {
     done
 }
 
+function wait_for_daemonset {
+  retries=24
+  while [[ $retries -ge 0 ]]; do
+    ready=$(_kubectl -n $1 get daemonset $2 -o jsonpath='{.status.numberReady}')
+    required=$(_kubectl -n $1 get daemonset $2 -o jsonpath='{.status.desiredNumberScheduled}')
+    if [[ $ready -eq $required ]];then
+      break
+    fi
+    sleep 5
+    ((retries--))
+  done
+}
+
+function deploy_multus {
+  echo 'Deploying Multus'
+  _kubectl create -f $MANIFESTS_DIR/multus.yaml
+
+  echo 'Waiting for Multus to be installed'
+  wait_for_daemonset kube-system kube-multus-ds-amd64
+}
+
 function deploy_sriov_operator {
   operator_path=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/sriov-network-operator-${OPERATOR_GIT_HASH}
   if [ ! -d $operator_path ]; then
@@ -90,15 +111,7 @@ for ifs in "${sriov_pfs[@]}"; do
   ip link set "$ifs_name" netns "$SRIOV_NODE"
 done
 
-
-# deploy multus
-_kubectl create -f $MANIFESTS_DIR/multus.yaml
-
-# give them some time to create pods before checking pod status
-sleep 10
-
-# make sure all containers are ready
-wait_pods_ready
+deploy_multus
 
 SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
 
