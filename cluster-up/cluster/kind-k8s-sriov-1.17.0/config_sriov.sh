@@ -151,6 +151,7 @@ done
 
 SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
 ${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
+${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
 
 _kubectl label node $SRIOV_NODE sriov=true
 
@@ -158,5 +159,3 @@ deploy_multus
 
 deploy_sriov_operator
 apply_sriov_policy $NODE_PF $NODE_PF_NUM_VFS
-
-${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
