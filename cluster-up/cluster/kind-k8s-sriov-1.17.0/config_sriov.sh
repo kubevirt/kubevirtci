@@ -114,11 +114,12 @@ for ifs in "${sriov_pfs[@]}"; do
   ip link set "$ifs_name" netns "$SRIOV_NODE"
 done
 
+_kubectl label node $SRIOV_NODE sriov=true
+
 deploy_multus
 
 deploy_sriov_operator
 
-_kubectl label node $SRIOV_NODE sriov=true
 
 wait_pods_ready
 
