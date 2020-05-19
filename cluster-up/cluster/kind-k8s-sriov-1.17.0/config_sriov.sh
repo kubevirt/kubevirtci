@@ -28,7 +28,7 @@ function wait_for_daemonset {
   while [[ $retries -ge 0 ]]; do
     ready=$(_kubectl -n $1 get daemonset $2 -o jsonpath='{.status.numberReady}')
     required=$(_kubectl -n $1 get daemonset $2 -o jsonpath='{.status.desiredNumberScheduled}')
-    if [[ $ready -eq $required ]]; then
+    if [[ ! -z $ready ]] && [[ $ready -eq $required ]]; then
       break
     fi
     sleep 6
