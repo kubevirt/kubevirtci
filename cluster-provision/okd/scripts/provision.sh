@@ -256,27 +256,28 @@ EOF
 timeout 30m bash -c "until oc -n openshift-machine-config-operator wait machineconfigpools worker --for condition=Updating --timeout=30m; do sleep 3; done"
 timeout 30m bash -c "until oc -n openshift-machine-config-operator wait machineconfigpools worker --for condition=Updated --timeout=30m; do sleep 3; done"
 
-# Disable updates of machines configurations, because on the update the machine-config
-# controller will try to drain the master node, but it not possible with only one master
-# so the node will stay in cordon state forewer.
-# It will prevent any updates of the kubelet or registries configuration on the machine
-# so if you need some, please add it before these lines
+if [ $MASTERS -eq 1 ]; then
+    # Disable updates of machines configurations, because on the update the machine-config
+    # controller will try to drain the master node, but it not possible with only one master
+    # so the node will stay in cordon state forewer.
+    # It will prevent any updates of the kubelet or registries configuration on the machine
+    # so if you need some, please add it before these lines
 
-# Scale down cluster version operator to prevent updates of other operators
-until oc -n openshift-cluster-version scale --replicas=0 deploy cluster-version-operator; do
-    sleep 5
-done
+    # Scale down cluster version operator to prevent updates of other operators
+    until oc -n openshift-cluster-version scale --replicas=0 deploy cluster-version-operator; do
+        sleep 5
+    done
 
-# Scale down machine-config-operator to prevent re-creation of master machineconfigpools
-until oc -n openshift-machine-config-operator scale --replicas=0 deploy machine-config-operator; do
-    sleep 5
-done
+    # Scale down machine-config-operator to prevent re-creation of master machineconfigpools
+    until oc -n openshift-machine-config-operator scale --replicas=0 deploy machine-config-operator; do
+        sleep 5
+    done
 
-# Delete machine-config-daemon to prevent configuration updates
-until oc -n openshift-machine-config-operator delete ds machine-config-daemon; do
-    sleep 5
-done
-
+    # Delete machine-config-daemon to prevent configuration updates
+    until oc -n openshift-machine-config-operator delete ds machine-config-daemon; do
+        sleep 5
+    done
+fi
 # get_value fetches command output, with retry and timeout
 # syntax nodes=$(get_value 10 oc get nodes)
 # first parameter is the number of iterations to try, each has 6 seconds delay
