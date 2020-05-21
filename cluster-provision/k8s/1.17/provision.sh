@@ -172,6 +172,8 @@ EOF
 
 default_cidr="192.168.0.0/16"
 pod_cidr="10.244.0.0/16"
+
+export DOCKER_API_VERSION=1.39
 kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456 --experimental-kustomize /tmp/kubeadm-patches/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /tmp/kubeadm-patches/add-security-context-deployment-patch.yaml)"

@@ -25,6 +25,7 @@ do
     sleep 2
 done
 
+export DOCKER_API_VERSION=1.39
 kubeadm init --config /etc/kubernetes/kubeadm.conf --experimental-kustomize /tmp/kubeadm-patches/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /tmp/kubeadm-patches/add-security-context-deployment-patch.yaml)"
