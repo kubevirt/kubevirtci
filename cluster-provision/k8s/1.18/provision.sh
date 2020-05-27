@@ -172,6 +172,8 @@ EOF
 
 default_cidr="192.168.0.0/16"
 pod_cidr="10.244.0.0/16"
+
+export DOCKER_API_VERSION=1.39
 kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456 --experimental-kustomize /tmp/kubeadm-patches/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /tmp/kubeadm-patches/add-security-context-deployment-patch.yaml)"
@@ -318,3 +320,5 @@ for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml |grep value | awk '{print $
 mkdir -p /tmp/kubevirt.io/tests
 chcon -t container_file_t /tmp/kubevirt.io/tests
 echo "tmpfs /tmp/kubevirt.io/tests tmpfs rw,context=system_u:object_r:container_file_t:s0 0 1" >> /etc/fstab
+
+dnf install -y NetworkManager-config-server
