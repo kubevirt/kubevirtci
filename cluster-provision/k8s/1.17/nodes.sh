@@ -42,6 +42,4 @@ if [[ $kubelet_rc -ne 0 ]]; then
     service kubelet restart
 fi
 
-
-export DOCKER_API_VERSION=1.39
 kubeadm join --token abcdef.1234567890123456 192.168.66.101:6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true
