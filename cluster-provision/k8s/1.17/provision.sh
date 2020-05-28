@@ -38,6 +38,13 @@ dnf -y install yum-utils \
 # Add Docker repository.
 dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
 
+# Install package(s) that trigger the enablement of the container-tools yum module
+dnf -y install container-selinux
+
+# Disable the container-tools module, as it forces containerd.io to an ancient version,
+#   which in turn forces docker-ce to an older version, making it incompatible with docker-ce-cli...
+dnf -y module disable container-tools
+
 # Install Docker CE.
 dnf install -y docker-ce --nobest
 
