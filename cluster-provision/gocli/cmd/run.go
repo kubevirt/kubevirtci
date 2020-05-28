@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"text/template"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -73,6 +74,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
 	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
+	run.Flags().Bool("enable-ovsdpdk", false, "enable host preparation for ovsdpdk")
 
 	run.AddCommand(
 		okd.NewRunCommand(),
@@ -163,6 +165,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	containerRegistry, err := cmd.Flags().GetString("container-registry")
+	if err != nil {
+		return err
+	}
+
+	ovsdpdkEnabled, err := cmd.Flags().GetBool("enable-ovsdpdk")
 	if err != nil {
 		return err
 	}
@@ -481,6 +488,18 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		if success {
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName)}, os.Stdout)
 		} else {
+			if ovsdpdkEnabled {
+				err = nodePackageUpdate(cli, nodeContainer(prefix, nodeName))
+				if err != nil {
+					return err
+				}
+
+				err = installOvs(cli, nodeContainer(prefix, nodeName))
+				if err != nil {
+					return err
+				}
+			}
+
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/nodes.sh"}, os.Stdout)
 		}
 
@@ -577,4 +596,59 @@ func getDockerProxyConfig(proxy string) (string, error) {
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+func runSSHCommand(cli *client.Client, nodeContainer, cmdString string) error {
+	cmdString = "ssh.sh " + cmdString
+	fmt.Println("Running cmd on node", nodeContainer, " - ", cmdString)
+	success, err := docker.Exec(cli, nodeContainer, []string{"/bin/bash", "-c", cmdString}, os.Stdout)
+	if err != nil {
+		return err
+	}
+
+	if !success {
+		return fmt.Errorf("running command %s on node %s failed", cmdString, nodeContainer)
+	}
+	return nil
+}
+
+func nodePackageUpdate(cli *client.Client, nodeContainer string) error {
+	var err error = nil
+	err = runSSHCommand(cli, nodeContainer, "sudo /bin/bash < /scripts/kargs.sh")
+	if err != nil {
+		return err
+	}
+
+	err = runSSHCommand(cli, nodeContainer, "sudo shutdown -r 1")
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Rebooting node after update..")
+	time.Sleep(2 * 60 * time.Second)
+
+	// Wait for vm re-start
+	success, err := docker.Exec(cli, nodeContainer, []string{"/bin/bash", "-c", "while [ ! -f /ssh_ready ] ; do sleep 1; done"}, os.Stdout)
+	if err != nil {
+		return err
+	}
+
+	if !success {
+		return fmt.Errorf("checking for ssh.sh script for node %s failed", nodeContainer)
+	}
+
+	return nil
+}
+
+func installOvs(cli *client.Client, nodeContainer string) error {
+	// Install OvS
+	success, err := docker.Exec(cli, nodeContainer, []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/ovsdpdk.sh"}, os.Stdout)
+	if err != nil {
+		return err
+	}
+
+	if !success {
+		return fmt.Errorf("installing ovs in node %s failed", nodeContainer)
+	}
+	return nil
 }

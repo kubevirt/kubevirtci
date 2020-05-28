@@ -1,5 +1,7 @@
 module kubevirt.io/kubevirtci/cluster-provision/gocli
 
+go 1.14
+
 require (
 	github.com/Microsoft/go-winio v0.4.7 // indirect
 	github.com/Sirupsen/logrus v1.4.1 // indirect
@@ -11,7 +13,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
-	github.com/pkg/errors v0.8.0
+	github.com/pkg/errors v0.8.0 // indirect
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/spf13/cobra v0.0.2
 	github.com/spf13/pflag v1.0.0

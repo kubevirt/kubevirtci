@@ -45,6 +45,9 @@ function _add_common_params() {
     if [ -n "${KUBEVIRTCI_PROVISION_CHECK}" ]; then
         params=" --container-registry= $params"
     fi
+    if [[ "${KUBEVIRT_OVS_DPDK}" == "true" ]]; then
+        params=" --enable-ovsdpdk $params"
+    fi
     echo $params
 }
 
