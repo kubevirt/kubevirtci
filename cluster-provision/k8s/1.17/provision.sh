@@ -329,3 +329,6 @@ chcon -t container_file_t /tmp/kubevirt.io/tests
 echo "tmpfs /tmp/kubevirt.io/tests tmpfs rw,context=system_u:object_r:container_file_t:s0 0 1" >> /etc/fstab
 
 dnf install -y NetworkManager-config-server
+
+# Temporarily disable dontaudit SELinux rules to see all the denials
+semodule -DB
