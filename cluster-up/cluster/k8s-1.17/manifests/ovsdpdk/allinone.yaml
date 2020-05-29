@@ -1,0 +1,310 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ovsdpdk-network-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ovsdpdk-network-operator
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["*"]
+- apiGroups: ["apps"]
+  resources: ["daemonsets"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: [namespaces, serviceaccounts]
+  verbs: ["*"]
+- apiGroups: ["k8s.cni.cncf.io"]
+  resources: ["network-attachment-definitions"]
+  verbs: ["*"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: [clusterroles, clusterrolebindings]
+  verbs: ["*"]
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources: ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
+  verbs: ["*"]
+- apiGroups: ["ovsdpdknetwork.openshift.io"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ovsdpdk-network-prepare
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["*"]
+- apiGroups: ["apps"]
+  resources: ["daemonsets"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["pods/eviction"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ovsdpdk-network-operator
+roleRef:
+  kind: ClusterRole
+  name: ovsdpdk-network-operator
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  namespace: default
+  name: ovsdpdk-network-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ovsdpdk-network-prepare
+roleRef:
+  kind: ClusterRole
+  name: ovsdpdk-network-prepare
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  namespace: default 
+  name: ovsdpdk-network-prepare
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: ovsdpdk-network-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - services/finalizers
+  - endpoints
+  - persistentvolumeclaims
+  - events
+  - configmaps
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - apps
+  resourceNames:
+  - ovsdpdk-network-operator
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  - deployments
+  verbs:
+  - get
+- apiGroups:
+  - ovsdpdknetwork.openshift.io
+  resources:
+  - '*'
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ovsdpdk-network-operator
+subjects:
+- kind: ServiceAccount
+  name: ovsdpdk-network-operator
+roleRef:
+  kind: Role
+  name: ovsdpdk-network-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ovsdpdk-network-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: ovsdpdk-network-operator
+  template:
+    metadata:
+      labels:
+        name: ovsdpdk-network-operator
+    spec:
+      serviceAccountName: ovsdpdk-network-operator
+      containers:
+        - name: ovsdpdk-network-operator
+          image: quay.io/krsacme/ovsdpdk-network-operator:latest
+          command:
+          - ovsdpdk-network-operator
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "ovsdpdk-network-operator"
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ovsdpdkconfigs.ovsdpdknetwork.openshift.io
+spec:
+  group: ovsdpdknetwork.openshift.io
+  names:
+    kind: OvsDpdkConfig
+    listKind: OvsDpdkConfigList
+    plural: ovsdpdkconfigs
+    singular: ovsdpdkconfig
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: OvsDpdkConfig is the Schema for the ovsdpdkconfigs API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: OvsDpdkConfigSpec defines the desired state of OvsDpdkConfig
+            properties:
+              interfaceConfig:
+                description: Interfaces to be used for OvS-DPDK configuration
+                items:
+                  properties:
+                    bond:
+                      type: boolean
+                    bondMonde:
+                      type: string
+                    bridge:
+                      type: string
+                    driver:
+                      type: string
+                    mtu:
+                      format: int32
+                      type: integer
+                    nicSelector:
+                      properties:
+                        devices:
+                          items:
+                            type: string
+                          type: array
+                        ifNames:
+                          items:
+                            type: string
+                          type: array
+                      type: object
+                    queues:
+                      format: int32
+                      type: integer
+                  required:
+                  - bridge
+                  - nicSelector
+                  type: object
+                type: array
+              nodeConfig:
+                description: Node specific configuration
+                properties:
+                  hugepage1g:
+                    type: string
+                  memoryChannel:
+                    format: int32
+                    type: integer
+                  pmdCount:
+                    format: int32
+                    type: integer
+                type: object
+              nodeSelectorLabels:
+                additionalProperties:
+                  type: string
+                description: Nodes on which OvS-DPDK should run
+                type: object
+            required:
+            - interfaceConfig
+            - nodeSelectorLabels
+            type: object
+          status:
+            description: OvsDpdkConfigStatus defines the observed state of OvsDpdkConfig
+            properties:
+              nodes:
+                description: List of nodes on which OvS-DPDK is enabled (is it useful?)
+                items:
+                  type: string
+                type: array
+            required:
+            - nodes
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

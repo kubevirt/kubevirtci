@@ -43,4 +43,14 @@ function up() {
         $kubectl create -f /opt/cnao/network-addons-config-example.cr.yaml
         $kubectl wait networkaddonsconfig cluster --for condition=Available --timeout=200s
     fi
+
+    if [ "$KUBEVIRT_OVS_DPDK" == "true" ]; then
+        OVSDPDK_MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests/ovsdpdk"
+        if [ -f $OVSDPDK_MANIFESTS_DIR/allinone.yaml ]; then
+            echo "Create OvS-DPDK operator.."
+            _kubectl label node node02 network.operator.openshift.io/external-openvswitch=
+            _kubectl create -f $OVSDPDK_MANIFESTS_DIR/allinone.yaml
+            _kubectl create -f $OVSDPDK_MANIFESTS_DIR/ovsdpdkconfig.yaml
+        fi
+    fi
 }
