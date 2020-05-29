@@ -38,6 +38,13 @@ dnf -y install yum-utils \
 # Add Docker repository.
 dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
 
+# Install package(s) that trigger the enablement of the container-tools yum module
+dnf -y install container-selinux
+
+# Disable the container-tools module, as it forces containerd.io to an ancient version,
+#   which in turn forces docker-ce to an older version, making it incompatible with docker-ce-cli...
+dnf -y module disable container-tools
+
 # Install Docker CE.
 dnf install -y docker-ce --nobest
 
@@ -173,7 +180,6 @@ EOF
 default_cidr="192.168.0.0/16"
 pod_cidr="10.244.0.0/16"
 
-export DOCKER_API_VERSION=1.39
 kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456 --experimental-kustomize /tmp/kubeadm-patches/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /tmp/kubeadm-patches/add-security-context-deployment-patch.yaml)"
@@ -322,3 +328,6 @@ chcon -t container_file_t /tmp/kubevirt.io/tests
 echo "tmpfs /tmp/kubevirt.io/tests tmpfs rw,context=system_u:object_r:container_file_t:s0 0 1" >> /etc/fstab
 
 dnf install -y NetworkManager-config-server
+
+# Temporarily disable dontaudit SELinux rules to see all the denials
+semodule -DB
