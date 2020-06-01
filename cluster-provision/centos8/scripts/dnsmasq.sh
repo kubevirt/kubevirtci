@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 NUM_NODES=${NUM_NODES-1}
 NUM_SECONDARY_NICS=${NUM_SECONDARY_NICS:-0}
