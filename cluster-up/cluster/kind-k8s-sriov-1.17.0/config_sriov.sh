@@ -12,6 +12,49 @@ WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
 
 OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
 
+# This function gets a command string and invoke it
+# until the command returns an empty string or until timeout
+function retry {
+  local -r tries=$1
+  local -r wait_time=$2
+  local -r action=$3
+  local -r wait_message=$4
+
+  local result=$(eval $action)
+  for i in $(seq $tries); do
+    if [[ -z $result ]] ; then
+      echo "[$i/$tries] $wait_message"
+      sleep $wait_time
+      result=$(eval $action)
+    else
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+function wait_k8s_object {
+  local -r object_type=$1
+  local -r name=$2
+  local namespace=$3
+
+  local -r tries=60
+  local -r wait_time=3
+
+  local -r wait_message="Waiting for $object_type $name"
+  local -r error_message="$object_type $name at $namespace namespace found"
+
+  if [[ $namespace != "" ]];then
+    namespace="-n $namespace"
+  fi
+
+  local -r action="_kubectl get $object_type $name $namespace -o custom-columns=NAME:.metadata.name --no-headers"
+
+  retry "$tries" "$wait_time" "$action" "$wait_message" && return 0
+  echo $error_message && return  1
+}
+
 # not using kubectl wait since with the sriov operator the pods get restarted a couple of times and this is
 # more reliable
 function wait_pods_ready {
@@ -110,8 +153,10 @@ _kubectl label node $SRIOV_NODE sriov=true
 
 wait_pods_ready
 
-# we need to sleep as the configurations below need to appear
-sleep 30
+# Ensure webook-configuration object created
+wait_k8s_object "validatingwebhookconfiguration" "operator-webhook-config"  || exit 1
+wait_k8s_object "mutatingwebhookconfiguration"   "operator-webhook-config"  || exit 1
+wait_k8s_object "mutatingwebhookconfiguration"   "network-resources-injector-config"  || exit 1
 
 _kubectl patch validatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/operator-webhook.cert)"'" }}]}'
 _kubectl patch mutatingwebhookconfiguration network-resources-injector-config --patch '{"webhooks":[{"name":"network-resources-injector-config.k8s.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/network-resources-injector.cert)"'" }}]}'
@@ -120,8 +165,14 @@ _kubectl patch mutatingwebhookconfiguration operator-webhook-config --patch '{"w
 # we need to sleep to wait for the configuration above the be picked up
 sleep 60
 
+# Substitute NODE_PF and NODE_PF_NUM_VFS then create SriovNetworkNodePolicy CR
 envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -
+
+SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
+
+# Ensure SriovNetworkNodePolicy CR is created
+policy_name=$(cat $MANIFESTS_DIR/network_config_policy.yaml | grep 'name:' | awk '{print $2}')
+wait_k8s_object "SriovNetworkNodePolicy" $policy_name $SRIOV_OPERATOR_NAMESPACE  || exit 1
 
 
 ${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
-
