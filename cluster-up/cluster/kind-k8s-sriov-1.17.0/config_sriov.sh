@@ -79,6 +79,44 @@ function wait_k8s_object {
   echo $error_message && return  1
 }
 
+
+function is_taint_absence {
+  local -r taint=$1
+
+  result=$(_kubectl get nodes -o jsonpath="{.items[*].spec.taints[?(@.effect == \"$taint\")].effect}" || echo error)
+  if [[ -z $result ]]; then
+    echo "not-present"
+  fi
+}
+
+function wait_for_taint_absence {
+  local -r taint=$1
+
+  local -r tries=60
+  local -r wait_time=5
+
+  local -r wait_message="Waiting for $taint taint absence"
+  local -r error_message="Taint $taint $name did not removed"
+  local -r action="is_taint_absence $taint"
+
+  retry "$tries" "$wait_time" "$action" "$wait_message" && return 0
+  echo $error_message && return 1
+}
+
+function wait_for_taint {
+  local -r taint=$1
+
+  local -r tries=60
+  local -r wait_time=5
+
+  local -r wait_message="Waiting for $taint taint to present"
+  local -r error_message="Taint $taint $name did not present"
+  local -r action="_kubectl get nodes -o custom-columns=taints:.spec.taints[*].effect --no-headers | grep -i $taint"
+
+  retry "$tries" "$wait_time" "$action" "$wait_message" && return 0
+  echo $error_message && return 1
+}
+
 # not using kubectl wait since with the sriov operator the pods get restarted a couple of times and this is
 # more reliable
 function wait_pods_ready {
@@ -208,5 +246,11 @@ wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_DEVICE_PLUGIN_LABEL || exit 1
 # Wait for cni and device-plugin pods to be ready
 _kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_CNI_LABEL           --for condition=Ready --timeout 10m
 _kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_DEVICE_PLUGIN_LABEL --for condition=Ready --timeout 10m
+
+# Since SriovNodeNetworkPolicy doesnt have Status to indicate if its
+# configured successfully, it is necessary to wait for the "NoSchedule"
+# taint to present and then absent.
+wait_for_taint "NoSchedule" || true
+wait_for_taint_absence "NoSchedule" || exit  1
 
 ${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
