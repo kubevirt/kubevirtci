@@ -224,8 +224,12 @@ _kubectl patch validatingwebhookconfiguration operator-webhook-config --patch '{
 _kubectl patch mutatingwebhookconfiguration network-resources-injector-config --patch '{"webhooks":[{"name":"network-resources-injector-config.k8s.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/network-resources-injector.cert)"'" }}]}'
 _kubectl patch mutatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/operator-webhook.cert)"'" }}]}'
 
-# we need to sleep to wait for the configuration above the be picked up
-sleep 60
+# Since sriov-operator doesnt have a condition or Status to indicate if
+# 'operator-webhook' and 'network-resources-injector' webhooks  certificates are
+# configured, in order to check if caBundle reconcile is finished it is necessary
+# to wait for the "NoSchedule" taint to present and then absent.
+wait_for_taint "NoSchedule" || true
+wait_for_taint_absence "NoSchedule" || exit 1
 
 # Substitute NODE_PF and NODE_PF_NUM_VFS then create SriovNetworkNodePolicy CR
 envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -
