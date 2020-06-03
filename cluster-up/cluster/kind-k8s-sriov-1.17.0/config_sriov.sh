@@ -34,6 +34,30 @@ function retry {
   return 1
 }
 
+function wait_pod {
+  local namespace=$1
+  local label=$2
+
+  local -r tries=60
+  local -r wait_time=5
+
+  local -r wait_message="Waiting for pods with $label to create"
+  local -r error_message="Pods with  label $label at $namespace namespace found"
+
+  if [[ $namespace != "" ]];then
+    namespace="-n $namespace"
+  fi
+
+  if [[ $label != "" ]];then
+    label="-l $label"
+  fi
+
+  local -r action="_kubectl get pod $namespace $label -o custom-columns=NAME:.metadata.name --no-headers"
+
+  retry "$tries" "$wait_time" "$action" "$wait_message" && return  0
+  echo $error_message && return 1
+}
+
 function wait_k8s_object {
   local -r object_type=$1
   local -r name=$2
@@ -169,10 +193,20 @@ sleep 60
 envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -
 
 SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
+SRIOV_CNI_LABEL="app=sriov-cni"
+SRIOV_DEVICE_PLUGIN_LABEL="app=sriov-device-plugin"
 
 # Ensure SriovNetworkNodePolicy CR is created
 policy_name=$(cat $MANIFESTS_DIR/network_config_policy.yaml | grep 'name:' | awk '{print $2}')
 wait_k8s_object "SriovNetworkNodePolicy" $policy_name $SRIOV_OPERATOR_NAMESPACE  || exit 1
 
+# Wait for sriov-operator to reconcile SriovNodeNetworkPolicy
+# and create cni and device-plugin pods
+wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_CNI_LABEL  || exit 1
+wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_DEVICE_PLUGIN_LABEL || exit 1
+
+# Wait for cni and device-plugin pods to be ready
+_kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_CNI_LABEL           --for condition=Ready --timeout 10m
+_kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_DEVICE_PLUGIN_LABEL --for condition=Ready --timeout 10m
 
 ${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
