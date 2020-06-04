@@ -338,3 +338,6 @@ dnf install -y NetworkManager-config-server
 
 # Temporarily disable dontaudit SELinux rules to see all the denials
 semodule -DB
+
+# Remove machine-id, allowing unique ID/s for its instances.
+rm -f /etc/machine-id ; touch /etc/machine-id
