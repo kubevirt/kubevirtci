@@ -25,4 +25,5 @@ function cleanup {
   ${ksh} wait --for=condition=Ready pod --timeout=200s -n kube-system --all
   ${ksh} get nodes
   ${ksh} get pods -A
+  hack/conformance.sh
 )
