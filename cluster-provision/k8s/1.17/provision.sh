@@ -336,6 +336,11 @@ echo "tmpfs /provision/kubevirt.io/tests tmpfs rw,context=system_u:object_r:cont
 
 dnf install -y NetworkManager-config-server
 
+# Cleanup the existing NetworkManager profiles so the VM instances will come
+# up with the default profiles. (Base VM image includes non default settings)
+rm -f /etc/sysconfig/network-scripts/ifcfg-*
+nmcli connection add con-name eth0 ifname eth0 type ethernet
+
 # Temporarily disable dontaudit SELinux rules to see all the denials
 semodule -DB
 
