@@ -127,6 +127,26 @@ function wait_pods_ready {
     done
 }
 
+function wait_allocatable_resource {
+  local -r node=$1
+  local resource_name=$2
+  local -r expected_value=$3
+
+  local -r tries=30
+  local -r wait_time=10
+
+  local -r wait_message="wait for $node node to have allocatable resource: $resource_name: $expected_value"
+  local -r error_message="node $node doesnt have allocatable resource $resource_name:$expected_value"
+
+  # In order to project spesific resource name with -o custom-columns
+  # it is necessary to add '\' before '.' in the resource name.
+  resource_name=$(echo $resource_name | sed s/\\./\\\\\./g)
+  local -r action='_kubectl get node $node -ocustom-columns=:.status.allocatable.$resource_name --no-headers | grep -w $expected_value'
+
+  retry $tries $wait_time "$action" "$wait_message" && return 0
+  echo $error_message && return 1
+}
+
 function deploy_sriov_operator {
   operator_path=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/sriov-network-operator-${OPERATOR_GIT_HASH}
   if [ ! -d $operator_path ]; then
@@ -256,5 +276,9 @@ _kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_DEVICE_PLUGIN_LABEL --
 # taint to present and then absent.
 wait_for_taint "NoSchedule" || true
 wait_for_taint_absence "NoSchedule" || exit  1
+
+# Verify that sriov node has sriov VFs allocatable resource
+resource_name=$(cat $MANIFESTS_DIR/network_config_policy.yaml | grep 'resourceName:' | awk '{print $2}')
+wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM_VFS || exit 1
 
 ${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
