@@ -4,6 +4,9 @@ set -ex
 
 kubeadmn_patches_path="/provision/kubeadm-patches"
 
+# Need to have the latest kernel
+dnf update -y kernel
+
 # Resize root partition
 dnf install -y cloud-utils-growpart
 if growpart /dev/vda 1; then
