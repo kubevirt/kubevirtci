@@ -335,3 +335,6 @@ chcon -t container_file_t /provision/kubevirt.io/tests
 echo "tmpfs /provision/kubevirt.io/tests tmpfs rw,context=system_u:object_r:container_file_t:s0 0 1" >> /etc/fstab
 
 dnf install -y NetworkManager-config-server
+
+# Remove machine-id, allowing unique ID/s for its instances
+rm -f /etc/machine-id ; touch /etc/machine-id
