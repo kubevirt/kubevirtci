@@ -30,5 +30,5 @@ Key:
 * k8s-1.11.0
 * k8s-1.13.3
 * kind
-* kind-k8s-1.14.2
-* kind-k8s-sriov-1.14.2
+* kind-k8s-1.17
+* kind-k8s-sriov-1.17.0
