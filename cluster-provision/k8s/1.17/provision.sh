@@ -329,6 +329,9 @@ docker pull quay.io/k8scsi/csi-node-driver-registrar:v1.0.2
 cp -rf /tmp/cnao/ /opt/
 for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml |grep value | awk '{print $2}'); do docker pull $i; done
 
+# Pre pull local-volume-provisioner
+grep -A 2 "IMAGE" /tmp/local-volume.yaml | grep value | awk '{print $2}' | xargs docker pull
+
 # Create a properly labelled tmp directory for testing
 mkdir -p /provision/kubevirt.io/tests
 chcon -t container_file_t /provision/kubevirt.io/tests
