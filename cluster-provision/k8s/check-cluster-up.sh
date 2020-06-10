@@ -26,9 +26,9 @@ function cleanup {
   ${ksh} get nodes
   ${ksh} get pods -A
 
-  # Skip conformance tests at local runs to reduce iteration times at
-  # provider development, if CI fails at conformance is easy to force this.
-  if [ "${CI}" == "true" ]; then
-    hack/conformance.sh
+  # Run conformance test only at CI and if the provider has them activated
+  conformance_config=$DIR/${provision_dir}/conformance.json
+  if [ "${CI}" == "true" -a -f $conformance_config ]; then
+    hack/conformance.sh $conformance_config
   fi
 )
