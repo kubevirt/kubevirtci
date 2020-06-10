@@ -25,4 +25,10 @@ function cleanup {
   ${ksh} wait --for=condition=Ready pod --timeout=200s -n kube-system --all
   ${ksh} get nodes
   ${ksh} get pods -A
+
+  # Run conformance test only at CI and if the provider has them activated
+  conformance_config=$DIR/${provision_dir}/conformance.json
+  if [ "${CI}" == "true" -a -f $conformance_config ]; then
+    hack/conformance.sh $conformance_config
+  fi
 )
