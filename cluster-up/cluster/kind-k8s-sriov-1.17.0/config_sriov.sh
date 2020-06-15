@@ -34,6 +34,29 @@ function retry {
   return 1
 }
 
+function wait_for_daemonSet {
+  local name=$1
+  local namespace=$2
+  local required_replicas=$3
+
+  if [[ $namespace != "" ]];then
+    namespace="-n $namespace"
+  fi
+
+  if (( required_replicas < 0 )); then
+      echo "DaemonSet $name ready replicas number is not valid: $required_replicas" && return 1
+  fi
+
+  local -r tries=30
+  local -r wait_time=10
+  wait_message="Waiting for DaemonSet $name to have $required_replicas ready replicas"
+  error_message="DaemonSet $name did not have $required_replicas ready replicas"
+  action="_kubectl get daemonset $namespace $name -o jsonpath='{.status.numberReady}' | grep -w $required_replicas"
+
+  retry "$tries" "$wait_time" "$action" "$wait_message" && return  0
+  echo $error_message && return 1
+}
+
 function wait_pod {
   local namespace=$1
   local label=$2
@@ -147,6 +170,21 @@ function wait_allocatable_resource {
   echo $error_message && return 1
 }
 
+function deploy_multus {
+  echo 'Deploying Multus'
+  _kubectl create -f $MANIFESTS_DIR/multus.yaml
+
+  echo 'Waiting for Multus deployment to become ready'
+  daemonset_name=$(cat $MANIFESTS_DIR/multus.yaml | grep -i daemonset -A 3 | grep -Po '(?<=name:) \S*amd64$')
+  daemonset_namespace=$(cat $MANIFESTS_DIR/multus.yaml | grep -i daemonset -A 3 | grep -Po '(?<=namespace:) \S*$' | head -1)
+  wait_k8s_object "daemonset" $daemonset_name $daemonset_namespace || return 1
+
+  required_replicas=$(_kubectl get daemonset kube-multus-ds-amd64 -n  kube-system -o jsonpath='{.status.desiredNumberScheduled}')
+  wait_for_daemonSet $daemonset_name $daemonset_namespace $required_replicas || return 1
+
+  return 0
+}
+
 function deploy_sriov_operator {
   operator_path=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/sriov-network-operator-${OPERATOR_GIT_HASH}
   if [ ! -d $operator_path ]; then
@@ -215,19 +253,11 @@ for ifs in "${sriov_pfs[@]}"; do
   ip link set "$ifs_name" netns "$SRIOV_NODE"
 done
 
-
-# deploy multus
-_kubectl create -f $MANIFESTS_DIR/multus.yaml
-
-# give them some time to create pods before checking pod status
-sleep 10
-
-# make sure all containers are ready
-wait_pods_ready
-
 SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
-
 ${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
+
+deploy_multus || exit 1
+wait_pods_ready
 
 deploy_sriov_operator
 
