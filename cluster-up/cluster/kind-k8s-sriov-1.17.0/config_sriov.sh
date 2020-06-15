@@ -329,3 +329,7 @@ wait_pods_ready
 resource_name=$(cat $policy | grep 'resourceName:' | awk '{print $2}')
 wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM_VFS || exit 1
 
+_kubectl get nodes
+_kubectl get pods -n $SRIOV_OPERATOR_NAMESPACE
+echo
+echo "$KUBEVIRT_PROVIDER cluster is ready"
