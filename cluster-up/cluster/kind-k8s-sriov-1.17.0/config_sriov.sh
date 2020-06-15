@@ -231,6 +231,40 @@ function deploy_sriov_operator {
   return 0
 }
 
+function apply_sriov_node_policy {
+  policy_file=$1
+
+  SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
+  SRIOV_DEVICE_PLUGIN_LABEL="app=sriov-device-plugin"
+  SRIOV_CNI_LABEL="app=sriov-cni"
+
+  echo "Applying SriovNetworkNodeConfigPolicy:"
+  cat $policy_file
+  # Substitute $NODE_PF and $NODE_PF_NUM_VFS and create SriovNetworkNodePolicy CR
+  envsubst < $policy_file | _kubectl create -f -
+
+  # Ensure SriovNetworkNodePolicy CR is created
+  policy_name=$(cat $policy_file | grep -Po '(?<=name:) \S*')
+  wait_k8s_object "SriovNetworkNodePolicy" "$policy_name" "$SRIOV_OPERATOR_NAMESPACE"  || return 1
+
+  # Wait for sriov-operator to reconcile SriovNodeNetworkPolicy
+  # and create cni and device-plugin pods
+  wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_CNI_LABEL  || return 1
+  wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_DEVICE_PLUGIN_LABEL || return 1
+
+  # Wait for cni and device-plugin pods to be ready
+  _kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_CNI_LABEL           --for condition=Ready --timeout 10m
+  _kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_DEVICE_PLUGIN_LABEL --for condition=Ready --timeout 10m
+
+  # Since SriovNodeNetworkPolicy doesnt have Status to indicate if its
+  # configured successfully, it is necessary to wait for the "NoSchedule"
+  # taint to present and then absent.
+  wait_for_taint "NoSchedule" || true
+  wait_for_taint_absence "NoSchedule" || return  1
+
+  return 0
+}
+
 # The first worker needs to be handled specially as it has no ending number, and sort will not work
 # We add the 0 to it and we remove it if it's the candidate worker
 WORKER=$(_kubectl get nodes | grep $WORKER_NODE_ROOT | sed "s/\b$WORKER_NODE_ROOT\b/${WORKER_NODE_ROOT}0/g" | sort -r | awk 'NR==1 {print $1}')
@@ -287,32 +321,11 @@ deploy_sriov_operator || exit 1
 wait_pods_ready
 
 # Substitute NODE_PF and NODE_PF_NUM_VFS then create SriovNetworkNodePolicy CR
-envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -
-
-SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
-SRIOV_CNI_LABEL="app=sriov-cni"
-SRIOV_DEVICE_PLUGIN_LABEL="app=sriov-device-plugin"
-
-# Ensure SriovNetworkNodePolicy CR is created
-policy_name=$(cat $MANIFESTS_DIR/network_config_policy.yaml | grep 'name:' | awk '{print $2}')
-wait_k8s_object "SriovNetworkNodePolicy" $policy_name $SRIOV_OPERATOR_NAMESPACE  || exit 1
-
-# Wait for sriov-operator to reconcile SriovNodeNetworkPolicy
-# and create cni and device-plugin pods
-wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_CNI_LABEL  || exit 1
-wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_DEVICE_PLUGIN_LABEL || exit 1
-
-# Wait for cni and device-plugin pods to be ready
-_kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_CNI_LABEL           --for condition=Ready --timeout 10m
-_kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_DEVICE_PLUGIN_LABEL --for condition=Ready --timeout 10m
-
-# Since SriovNodeNetworkPolicy doesnt have Status to indicate if its
-# configured successfully, it is necessary to wait for the "NoSchedule"
-# taint to present and then absent.
-wait_for_taint "NoSchedule" || true
-wait_for_taint_absence "NoSchedule" || exit  1
+policy="$MANIFESTS_DIR/network_config_policy.yaml"
+apply_sriov_node_policy "$policy" || exit 1
+wait_pods_ready
 
 # Verify that sriov node has sriov VFs allocatable resource
-resource_name=$(cat $MANIFESTS_DIR/network_config_policy.yaml | grep 'resourceName:' | awk '{print $2}')
+resource_name=$(cat $policy | grep 'resourceName:' | awk '{print $2}')
 wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM_VFS || exit 1
 
