@@ -186,11 +186,13 @@ function deploy_multus {
 }
 
 function deploy_sriov_operator {
+  echo 'Downloading the SR-IOV operator'
   operator_path=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/sriov-network-operator-${OPERATOR_GIT_HASH}
   if [ ! -d $operator_path ]; then
     curl -L https://github.com/openshift/sriov-network-operator/archive/${OPERATOR_GIT_HASH}/sriov-network-operator.tar.gz | tar xz -C ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/
   fi
 
+  echo 'Installing the SR-IOV operator'
   pushd $operator_path
     export RELEASE_VERSION=4.4
     export SRIOV_NETWORK_OPERATOR_IMAGE=quay.io/openshift/origin-sriov-network-operator:${RELEASE_VERSION}
@@ -203,10 +205,30 @@ function deploy_sriov_operator {
     make deploy-setup-k8s SHELL=/bin/bash  # on prow nodes the default shell is dash and some commands are not working
   popd
 
+  echo 'Generating webhook certificates for the SR-IOV operator webhooks'
   pushd "${CSRCREATORPATH}"
     go run . -namespace sriov-network-operator -secret operator-webhook-service -hook operator-webhook -kubeconfig $KUBECONFIG_PATH
     go run . -namespace sriov-network-operator -secret network-resources-injector-secret -hook network-resources-injector -kubeconfig $KUBECONFIG_PATH
   popd
+
+  echo 'Setting caBundle for SR-IOV webhooks'
+  wait_k8s_object "validatingwebhookconfiguration" "operator-webhook-config" || return 1
+  _kubectl patch validatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/operator-webhook.cert)"'" }}]}'
+
+  wait_k8s_object "mutatingwebhookconfiguration"   "operator-webhook-config" || return 1
+  _kubectl patch mutatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/operator-webhook.cert)"'" }}]}'
+
+  wait_k8s_object "mutatingwebhookconfiguration"   "network-resources-injector-config" || return 1
+  _kubectl patch mutatingwebhookconfiguration network-resources-injector-config --patch '{"webhooks":[{"name":"network-resources-injector-config.k8s.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/network-resources-injector.cert)"'" }}]}'
+
+  # Since sriov-operator doesnt have a condition or Status to indicate if
+  # 'operator-webhook' and 'network-resources-injector' webhooks certificates are
+  # configured, in order to check if caBundle reconcile is finished it is necessary
+  # to wait for the "NoSchedule" taint to present and then absent.
+  wait_for_taint "NoSchedule" || true
+  wait_for_taint_absence "NoSchedule" || return 1
+
+  return 0
 }
 
 # The first worker needs to be handled specially as it has no ending number, and sort will not work
@@ -255,31 +277,14 @@ done
 
 SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
 ${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
+${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
+_kubectl label node $SRIOV_NODE sriov=true
 
 deploy_multus || exit 1
 wait_pods_ready
 
-deploy_sriov_operator
-
-_kubectl label node $SRIOV_NODE sriov=true
-
+deploy_sriov_operator || exit 1
 wait_pods_ready
-
-# Ensure webook-configuration object created
-wait_k8s_object "validatingwebhookconfiguration" "operator-webhook-config"  || exit 1
-wait_k8s_object "mutatingwebhookconfiguration"   "operator-webhook-config"  || exit 1
-wait_k8s_object "mutatingwebhookconfiguration"   "network-resources-injector-config"  || exit 1
-
-_kubectl patch validatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/operator-webhook.cert)"'" }}]}'
-_kubectl patch mutatingwebhookconfiguration network-resources-injector-config --patch '{"webhooks":[{"name":"network-resources-injector-config.k8s.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/network-resources-injector.cert)"'" }}]}'
-_kubectl patch mutatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CSRCREATORPATH/operator-webhook.cert)"'" }}]}'
-
-# Since sriov-operator doesnt have a condition or Status to indicate if
-# 'operator-webhook' and 'network-resources-injector' webhooks  certificates are
-# configured, in order to check if caBundle reconcile is finished it is necessary
-# to wait for the "NoSchedule" taint to present and then absent.
-wait_for_taint "NoSchedule" || true
-wait_for_taint_absence "NoSchedule" || exit 1
 
 # Substitute NODE_PF and NODE_PF_NUM_VFS then create SriovNetworkNodePolicy CR
 envsubst < $MANIFESTS_DIR/network_config_policy.yaml | _kubectl create -f -
@@ -311,4 +316,3 @@ wait_for_taint_absence "NoSchedule" || exit  1
 resource_name=$(cat $MANIFESTS_DIR/network_config_policy.yaml | grep 'resourceName:' | awk '{print $2}')
 wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM_VFS || exit 1
 
-${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
