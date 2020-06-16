@@ -72,7 +72,9 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
-	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
+    run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
+	run.Flags().Uint("hugepages2M-nr", 0, "number of hugepages of 2M page size")
+	run.Flags().Uint("hugepages1G-nr", 0, "number of hugepages of 1G page size")
 
 	run.AddCommand(
 		okd.NewRunCommand(),
@@ -163,6 +165,16 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	containerRegistry, err := cmd.Flags().GetString("container-registry")
+	if err != nil {
+		return err
+	}
+
+    hugepages2M, err := cmd.Flags().GetUint("hugepages2M-nr")
+	if err != nil {
+		return err
+	}
+
+	hugepages1G, err := cmd.Flags().GetString("hugepages1G-nr")
 	if err != nil {
 		return err
 	}
@@ -482,6 +494,13 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName)}, os.Stdout)
 		} else {
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/nodes.sh"}, os.Stdout)
+            if success && (hugepages2M != 0 || hugepages1G != 0) {
+                success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+                    "/bin/bash",
+                    "-c",
+                    fmt.Sprintf("ssh.sh sudo /bin/bash -- < /scripts/hugepages-setup.sh --hugepages2M %d --hugepages1G %d", hugepages2M, hugepages1G)
+                }, os.Stdout)
+            }
 		}
 
 		if err != nil {
