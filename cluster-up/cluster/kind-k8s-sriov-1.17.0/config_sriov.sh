@@ -225,8 +225,9 @@ function deploy_sriov_operator {
   # 'operator-webhook' and 'network-resources-injector' webhooks certificates are
   # configured, in order to check if caBundle reconcile is finished it is necessary
   # to wait for the "NoSchedule" taint to present and then absent.
-  wait_for_taint "NoSchedule" || true
-  wait_for_taint_absence "NoSchedule" || return 1
+  taint="NoSchedule"
+  wait_for_taint "$taint" || echo "Taint $taint did not present on nodes after setting caBundle for sriov webhooks"
+  wait_for_taint_absence "$taint" || return 1
 
   return 0
 }
@@ -259,8 +260,9 @@ function apply_sriov_node_policy {
   # Since SriovNodeNetworkPolicy doesnt have Status to indicate if its
   # configured successfully, it is necessary to wait for the "NoSchedule"
   # taint to present and then absent.
-  wait_for_taint "NoSchedule" || true
-  wait_for_taint_absence "NoSchedule" || return  1
+  taint="NoSchedule"
+  wait_for_taint "$taint" || echo "Taint $taint did not present on nodes after creating SriovNodeNetworkPolicy"
+  wait_for_taint_absence "$taint" || return  1
 
   return 0
 }
