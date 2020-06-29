@@ -92,7 +92,7 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cl
 EOF
 
 # Install Kubernetes packages.
-dnf install --nogpgcheck --disableexcludes=kubernetes -y \
+dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
     kubeadm-${version} \
     kubelet-${version} \
     kubectl-${version} \
