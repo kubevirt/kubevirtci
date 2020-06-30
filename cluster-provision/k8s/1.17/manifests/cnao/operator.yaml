@@ -121,7 +121,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    networkaddonsoperator.network.kubevirt.io/version: 0.35.0
+    networkaddonsoperator.network.kubevirt.io/version: 0.32.0
   name: cluster-network-addons-operator
   namespace: cluster-network-addons
 spec:
@@ -153,13 +153,13 @@ spec:
         - name: KUBEMACPOOL_IMAGE
           value: quay.io/kubevirt/kubemacpool:v0.8.3
         - name: MACVTAP_CNI_IMAGE
-          value: quay.io/kubevirt/macvtap-cni:v0.2.0
+          value: quay.io/kubevirt/macvtap-cni:v0.1.0
         - name: OPERATOR_IMAGE
-          value: quay.io/kubevirt/cluster-network-addons-operator:0.35.0
+          value: quay.io/kubevirt/cluster-network-addons-operator:0.32.0
         - name: OPERATOR_NAME
           value: cluster-network-addons-operator
         - name: OPERATOR_VERSION
-          value: 0.35.0
+          value: 0.32.0
         - name: OPERATOR_NAMESPACE
           valueFrom:
             fieldRef:
@@ -173,7 +173,7 @@ spec:
             fieldRef:
               fieldPath: metadata.name
         - name: WATCH_NAMESPACE
-        image: quay.io/kubevirt/cluster-network-addons-operator:0.35.0
+        image: quay.io/kubevirt/cluster-network-addons-operator:0.32.0
         imagePullPolicy: Always
         name: cluster-network-addons-operator
         resources: {}
