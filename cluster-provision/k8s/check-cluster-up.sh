@@ -18,7 +18,6 @@ function cleanup {
   export KUBEVIRTCI_PROVISION_CHECK=1
   export KUBEVIRT_PROVIDER="k8s-${provision_dir}"
   export KUBEVIRT_NUM_NODES=2
-  export KUBEVIRT_NUM_SECONDARY_NICS=2
   trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
   bash -x ./cluster-up/up.sh
   ${ksh} wait --for=condition=Ready pod --timeout=200s --all
