@@ -3,6 +3,7 @@
 
 set -exuo pipefail
 
+CI=${CI:-"false"}
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 provision_dir="$1"
 
