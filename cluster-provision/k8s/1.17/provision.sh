@@ -2,6 +2,23 @@
 
 set -ex
 
+function docker_pull_retry() {
+    retry=0
+    maxRetries=5
+    retryAfterSeconds=3
+    until [ ${retry} -ge ${maxRetries} ]; do
+        docker pull $@ && break
+        retry=$((${retry} + 1))
+        echo "Retrying ${FUNCNAME} [${retry}/${maxRetries}] in ${retryAfterSeconds}(s)"
+        sleep ${retryAfterSeconds}
+    done
+
+    if [ ${retry} -ge ${maxRetries} ]; then
+        echo "${FUNCNAME} Failed after ${maxRetries} attempts!"
+        exit 1
+    fi
+}
+
 kubeadmn_patches_path="/provision/kubeadm-patches"
 
 # Need to have the latest kernel
@@ -317,23 +334,23 @@ chmod -R 777 /var/local/kubevirt-storage/local-volume
 chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 
 # Pre pull fluentd image used in logging
-docker pull fluent/fluentd:v1.2-debian
-docker pull fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
+docker_pull_retry fluent/fluentd:v1.2-debian
+docker_pull_retry fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
 
 # Pre pull images used in Ceph CSI
-docker pull quay.io/k8scsi/csi-attacher:v1.0.1
-docker pull quay.io/k8scsi/csi-provisioner:v1.0.1
-docker pull quay.io/k8scsi/csi-snapshotter:v1.0.1
-docker pull quay.io/cephcsi/rbdplugin:v1.0.0
-docker pull quay.io/k8scsi/csi-node-driver-registrar:v1.0.2
+docker_pull_retry quay.io/k8scsi/csi-attacher:v1.0.1
+docker_pull_retry quay.io/k8scsi/csi-provisioner:v1.0.1
+docker_pull_retry quay.io/k8scsi/csi-snapshotter:v1.0.1
+docker_pull_retry quay.io/cephcsi/rbdplugin:v1.0.0
+docker_pull_retry quay.io/k8scsi/csi-node-driver-registrar:v1.0.2
 
 # Pre pull cluster network addons operator images and store manifests
 # so we can use them at cluster-up
 cp -rf /tmp/cnao/ /opt/
-for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml |grep value | awk '{print $2}'); do docker pull $i; done
+for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml | grep value | awk '{print $2}'); do docker_pull_retry $i; done
 
 # Pre pull local-volume-provisioner
-grep -A 2 "IMAGE" /tmp/local-volume.yaml | grep value | awk '{print $2}' | xargs docker pull
+for i in $(grep -A 2 "IMAGE" /provision/local-volume.yaml | grep value | awk -F\" '{print $2}'); do docker_pull_retry $i; done
 
 # Create a properly labelled tmp directory for testing
 mkdir -p /provision/kubevirt.io/tests
