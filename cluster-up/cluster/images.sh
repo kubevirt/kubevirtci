@@ -3,7 +3,7 @@
 set -e
 
 declare -A IMAGES
-IMAGES[gocli]="gocli@sha256:220f55f6b1bcb3975d535948d335bd0e6b6297149a3eba1a4c14cad9ac80f80d"
+IMAGES[gocli]="gocli@sha256:2ce75db868bbf2811395dfe4f73a68160d2ad700b1e08aeee6956b4943ceb237"
 if [ -z $KUBEVIRTCI_PROVISION_CHECK ]; then
     IMAGES[k8s-fedora-1.17.0]="k8s-fedora-1.17.0@sha256:aebf67b8b1b499c721f4d98a7ab9542c680553a14cbc144d1fa701fe611f3c0d"
     IMAGES[k8s-1.18]="k8s-1.18@sha256:91ea0c4e10a356fe315049e4e56801ce62b73b5b5d901e6e0eccbcc171070674"
