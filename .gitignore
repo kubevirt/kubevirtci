@@ -10,3 +10,6 @@ sonobuoy*
 
 # Bazel directories
 cluster-provision/gocli/bazel-*
+
+# Artifacts after releasing
+kubevirtci.tar.gz

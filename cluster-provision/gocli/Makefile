@@ -1,5 +1,13 @@
 SHELL := /bin/bash
 
+
+K8S118SUFFIX ?= :latest
+K8S117SUFFIX ?= :latest
+K8S116SUFFIX ?= :latest
+K8S115SUFFIX ?= :latest
+K8S114SUFFIX ?= :latest
+
+
 BIN_DIR = $(CURDIR)/build
 GO ?= go
 
@@ -13,7 +21,15 @@ all: container-run
 
 .PHONY: gocli
 cli: fmt
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -o $(BIN_DIR)/cli ./cmd/cli
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build \
+				-ldflags "\
+					-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.K8S118SUFFIX=$(K8S118SUFFIX)'\
+					-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.K8S117SUFFIX=$(K8S117SUFFIX)'\
+					-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.K8S116SUFFIX=$(K8S116SUFFIX)'\
+					-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.K8S115SUFFIX=$(K8S115SUFFIX)'\
+					-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.K8S114SUFFIX=$(K8S114SUFFIX)'\
+				" \
+				-o $(BIN_DIR)/cli ./cmd/cli
 
 .PHONY: fmt
 fmt:
