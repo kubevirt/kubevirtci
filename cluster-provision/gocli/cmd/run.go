@@ -23,6 +23,7 @@ import (
 
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/images"
 )
 
 const proxySettings = `
@@ -72,6 +73,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
 	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
+	run.Flags().String("container-org", "kubevirtci", "the organization at the registry to pull the container from")
 
 	return run
 }
@@ -163,6 +165,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	containerOrg, err := cmd.Flags().GetString("container-org")
+	if err != nil {
+		return err
+	}
+
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return err
@@ -185,8 +192,19 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		done <- fmt.Errorf("Interrupt received, clean up")
 	}()
 
+	clusterImage := cluster
+
+	// Check if default shas has to be used
+	clusterSHA, found := images.SHAByProvider[cluster]
+	if found {
+		if len(clusterSHA) == 0 {
+			return fmt.Errorf("Empty SHA for %s provider", cluster)
+		}
+		clusterImage = fmt.Sprintf("%s/%s@sha256:%s", containerOrg, cluster, clusterSHA)
+	}
+
 	if len(containerRegistry) > 0 {
-		imageRef := path.Join(containerRegistry, cluster)
+		imageRef := path.Join(containerRegistry, clusterImage)
 		fmt.Printf("Download the image %s\n", imageRef)
 		err = docker.ImagePull(cli, ctx, imageRef, types.ImagePullOptions{})
 		if err != nil {
@@ -196,7 +214,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 
 	// Start dnsmasq
 	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: cluster,
+		Image: clusterImage,
 		Env: []string{
 			fmt.Sprintf("NUM_NODES=%d", nodes),
 			fmt.Sprintf("NUM_SECONDARY_NICS=%d", secondaryNics),
@@ -416,7 +434,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		volumes <- vol.Name
 
 		node, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: cluster,
+			Image: clusterImage,
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
 			},
