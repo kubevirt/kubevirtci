@@ -2,13 +2,16 @@
 
 set -e
 
-gocli_image="gocli@sha256:2ce75db868bbf2811395dfe4f73a68160d2ad700b1e08aeee6956b4943ceb237"
-
 if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
     _cli="pack8s"
 else
-    _cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-kubevirtci/$gocli_image}"
-    _cli="docker run --privileged --net=host --rm ${USE_TTY} -v /var/run/docker.sock:/var/run/docker.sock ${_cli_container}"
+    _cli=./cli
+    # If this is not kubevirtci release tarball build gocli and use, it will
+    # Use :latest providers
+    if [ ! -f $_cli ]; then
+        make -C $KUBEVIRTCI_PATH/../cluster-provision/gocli cli
+        _cli="$KUBEVIRTCI_PATH/../cluster-provision/gocli/build/cli"
+    fi
 fi
 
 function _main_ip() {
