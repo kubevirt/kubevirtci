@@ -60,6 +60,12 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
   ${ssh} node02 -- ip l show eth1
   ${ssh} node02 -- ip l show eth2
 
+  pre_pull_image_file="$DIR/${provision_dir}/pre-pull-images"
+  if [ -f "${pre_pull_image_file}" ]; then
+    bash -x "$DIR/deploy-manifests.sh" "${provision_dir}"
+    bash -x "$DIR/check-pod-images.sh" "${provision_dir}"
+  fi
+
   # Run conformance test only at CI and if the provider has them activated
   conformance_config=$DIR/${provision_dir}/conformance.json
 

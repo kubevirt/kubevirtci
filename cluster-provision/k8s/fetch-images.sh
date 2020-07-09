@@ -1,5 +1,4 @@
 #!/bin/bash
-# DO NOT RUN THIS SCRIPT, USE SCRIPTS UNDER VERSIONS DIRECTORIES
 
 set -euo pipefail
 
@@ -7,9 +6,12 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 function usage {
     cat <<EOF
-Usage: $0 <k8s-cluster-dir>
+Usage: $0 <k8s-cluster-dir> [source-image-list]
 
-    fetches all images from the cluster provision source that need to get pre pulled
+    Fetches all images from the cluster provision source and manifests. Returns a list that is sorted and
+    without double entries.
+
+    If source-image-list is provided this is taken as an input and added to the result.
 
 EOF
 }
@@ -24,20 +26,39 @@ function check_args {
         echo "Directory $DIR/$1 does not exist"
         exit 1
     fi
+    if [ "$#" -gt 1 ]; then
+        if [ ! -f "$DIR/$2" ]; then
+            usage
+            echo "Image list file $DIR/$2 does not exist"
+            exit 1
+        fi
+    fi
 }
 
 function main {
     check_args "$@"
 
+    temp_file=$(mktemp)
+    trap 'rm -f "${temp_file}"' EXIT SIGINT SIGTERM
+
+    if [ "$#" -gt 1 ]; then
+        cat "$DIR/$2" > "${temp_file}"
+    fi
+
     provision_dir="$DIR/$1"
     image_regex='([a-z0-9\_\.]+[/:-]?)+'
     image_regex_w_double_quotes='"?'"${image_regex}"'"?'
     (
+        # Avoid bailing out because of nothing found in scripts part
+        set +e
         find "$provision_dir" -type f -name '*.sh' -print0 | \
             xargs -0 grep -iE '(docker|podman)[ _]pull[^ ]+ '"${image_regex_w_double_quotes}"
         find "$provision_dir" -type f -name '*.yaml' -print0 | \
             xargs -0 grep -iE 'image: '"${image_regex_w_double_quotes}"
-    ) | grep -ioE "${image_regex_w_double_quotes}"'$' | sed -E 's/"//g' | sort | uniq
+        set -e
+    ) | grep -ioE "${image_regex_w_double_quotes}"'$' >> "${temp_file}"
+
+    sed -E 's/"//g' "${temp_file}" | sort | uniq
 }
 
 main "$@"
