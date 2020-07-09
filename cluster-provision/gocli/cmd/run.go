@@ -195,12 +195,12 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	clusterImage := cluster
 
 	// Check if default shas has to be used
-	clusterSHA, found := images.SHAByProvider[cluster]
+	clusterSuffix, found := images.SuffixByProvider[cluster]
 	if found {
-		if len(clusterSHA) == 0 {
-			return fmt.Errorf("Empty SHA for %s provider", cluster)
+		if len(clusterSuffix) == 0 {
+			return fmt.Errorf("Empty Suffix for %s provider", cluster)
 		}
-		clusterImage = fmt.Sprintf("%s/%s@sha256:%s", containerOrg, cluster, clusterSHA)
+		clusterImage = fmt.Sprintf("%s/%s%s", containerOrg, cluster, clusterSuffix)
 	} else {
 		clusterImage = path.Join(containerOrg, cluster)
 	}
