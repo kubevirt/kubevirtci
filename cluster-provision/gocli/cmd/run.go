@@ -201,6 +201,8 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			return fmt.Errorf("Empty SHA for %s provider", cluster)
 		}
 		clusterImage = fmt.Sprintf("%s/%s@sha256:%s", containerOrg, cluster, clusterSHA)
+	} else {
+		clusterImage = path.Join(containerOrg, cluster)
 	}
 
 	if len(containerRegistry) > 0 {

@@ -2,12 +2,12 @@
 
 set -e
 
-source ${KUBEVIRTCI_PATH}/cluster/images.sh
+gocli_image="gocli@sha256:2ce75db868bbf2811395dfe4f73a68160d2ad700b1e08aeee6956b4943ceb237"
 
 if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
     _cli="pack8s"
 else
-    _cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-kubevirtci/${IMAGES[gocli]}}"
+    _cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-kubevirtci/$gocli_image}"
     _cli="docker run --privileged --net=host --rm ${USE_TTY} -v /var/run/docker.sock:/var/run/docker.sock ${_cli_container}"
 fi
 
@@ -36,7 +36,7 @@ function _registry_volume() {
 }
 
 function _add_common_params() {
-    local params="--nodes ${KUBEVIRT_NUM_NODES} --memory ${KUBEVIRT_MEMORY_SIZE} --cpu 6 --secondary-nics ${KUBEVIRT_NUM_SECONDARY_NICS} --random-ports --background --prefix $provider_prefix --registry-volume $(_registry_volume) kubevirtci/${image} ${KUBEVIRT_PROVIDER_EXTRA_ARGS}"
+    local params="--nodes ${KUBEVIRT_NUM_NODES} --memory ${KUBEVIRT_MEMORY_SIZE} --cpu 6 --secondary-nics ${KUBEVIRT_NUM_SECONDARY_NICS} --random-ports --background --prefix $provider_prefix --registry-volume $(_registry_volume) $KUBEVIRT_PROVIDER ${KUBEVIRT_PROVIDER_EXTRA_ARGS}"
     if [[ $TARGET =~ windows.* ]] && [ -n "$WINDOWS_NFS_DIR" ]; then
         params=" --nfs-data $WINDOWS_NFS_DIR $params"
     elif [[ $TARGET =~ os-.* ]] && [ -n "$RHEL_NFS_DIR" ]; then
