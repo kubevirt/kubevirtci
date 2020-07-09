@@ -2,10 +2,12 @@
 
 set -e
 
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
     _cli="pack8s"
 else
-    _cli=./cli
+    _cli="$KUBEVIRTCI_PATH/cli"
     # If this is not kubevirtci release tarball build gocli and use, it will
     # Use :latest providers
     if [ ! -f $_cli ]; then

@@ -21,7 +21,7 @@ all: container-run
 
 .PHONY: gocli
 cli: fmt
-	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build \
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build \
 				-ldflags "\
 					-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.K8S118SUFFIX=$(K8S118SUFFIX)'\
 					-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.K8S117SUFFIX=$(K8S117SUFFIX)'\
@@ -33,8 +33,8 @@ cli: fmt
 
 .PHONY: fmt
 fmt:
-	@$(GO) fmt ./cmd/...
-	@$(GO) fmt ./docker/...
+	$(GO) fmt ./cmd/...
+	$(GO) fmt ./docker/...
 
 .PHONY: container
 container: cli
