@@ -1,4 +1,5 @@
-FROM fedora:28
+ARG BASEIMAGE
+FROM ${BASEIMAGE}
 
 LABEL maintainer="The KubeVirt Project <kubevirt-dev@googlegroups.com>"
 ENV container docker
