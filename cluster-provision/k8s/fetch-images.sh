@@ -46,7 +46,7 @@ function main {
     fi
 
     provision_dir="$DIR/$1"
-    image_regex='([a-z0-9\_\.]+[/:-]?)+'
+    image_regex='([a-z0-9\_\.]+[/-]?)+:[a-z0-9\_\.\-]+'
     image_regex_w_double_quotes='"?'"${image_regex}"'"?'
     (
         # Avoid bailing out because of nothing found in scripts part
@@ -54,7 +54,7 @@ function main {
         find "$provision_dir" -type f -name '*.sh' -print0 | \
             xargs -0 grep -iE '(docker|podman)[ _]pull[^ ]+ '"${image_regex_w_double_quotes}"
         find "$provision_dir" -type f -name '*.yaml' -print0 | \
-            xargs -0 grep -iE 'image: '"${image_regex_w_double_quotes}"
+            xargs -0 grep -iE '(image|value): '"${image_regex_w_double_quotes}"
         set -e
     ) | grep -ioE "${image_regex_w_double_quotes}"'$' >> "${temp_file}"
 
