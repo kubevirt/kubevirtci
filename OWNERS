@@ -12,6 +12,8 @@ filters:
       - phoracek
       - ormergi
       - danielBelenky
+      - stu-gott
+      - jean-edouard
     approvers:
       - davidvossel
       - rmohr
@@ -22,3 +24,5 @@ filters:
       - qinqon
       - phoracek
       - danielBelenky
+      - stu-gott
+      - jean-edouard
