@@ -8,8 +8,7 @@ function usage {
     cat <<EOF
 Usage: $0 <k8s-cluster-dir>
 
-    Checks the input that is expected to be a list of container image indentifiers each being a fixed version
-    image.
+    Checks the input that is expected to be a deployment directory containing a directory called 'manifests'.
 
     Exits with non-zero exit code if the check fails
 
@@ -27,9 +26,9 @@ function main {
     echo "Checking $manifest_dir"
     (
         cd "$DIR/../tools"
-        docker build -f check_image_pull_policy/Dockerfile -t kubevirtci-tools/check_image_pull_policy .
+        docker build -f check-image-pull-policies/Dockerfile -t kubevirtci/check-image-pull-policies .
     )
-    docker run -it --rm -v "$manifest_dir:/tmp/manifests:Z" kubevirtci-tools/check_image_pull_policy /tmp/manifests
+    docker run -it --rm -v "$manifest_dir:/manifests:Z" kubevirtci/check-image-pull-policies
 
 }
 
