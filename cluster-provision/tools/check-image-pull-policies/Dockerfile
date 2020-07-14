@@ -6,4 +6,4 @@ RUN CGO_ENABLED=0 GOOS=linux GOPROXY=off GOFLAGS=-mod=vendor go build -a -o chec
 
 FROM alpine:latest
 COPY --from=builder /tmp/build/check-image-pull-policies /
-ENTRYPOINT ["/check-image-pull-policies", "/manifests"]
+ENTRYPOINT ["/check-image-pull-policies"]

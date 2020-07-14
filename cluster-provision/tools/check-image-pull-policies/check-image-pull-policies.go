@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"flag"
 	"fmt"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -11,54 +12,91 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
+
+type options struct {
+	manifestSource string
+	verbose bool
+	dryRun  bool
+}
+
+func flagOptions() options {
+	o := options{}
+	flag.StringVar(&o.manifestSource, "manifest-source", "", "The directory with manifest files or the manifest file to check. If a directory is given, all files are tried to parse as manifest")
+	flag.BoolVar(&o.dryRun, "dry-run", true, "Whether to exit with a non-zero exit code if the check fails")
+	flag.BoolVar(&o.verbose, "verbose", false, "Whether to output all parsed information or only the information on where the checks failed")
+	flag.Parse()
+	return o
+}
 
 var deserializer = serializer.NewCodecFactory(runtime.NewScheme()).UniversalDeserializer()
 
 func main() {
-	if len(os.Args) < 2 {
-		log.Fatalf("usage: %s <manifest-file|manifest-dir>", os.Args[0])
+	options := flagOptions()
+
+	if options.manifestSource == "" {
+		log.Fatal("No manifest-source given!")
 	}
 
-	manifestFileOrDirectory := os.Args[1]
-	fileInfo, err := os.Stat(manifestFileOrDirectory)
+	fileInfo, err := os.Stat(options.manifestSource)
 	if os.IsNotExist(err) {
-		log.Fatalf("Failed to open %s: %v", manifestFileOrDirectory, err)
+		log.Fatalf("Failed to open %s: %v", options.manifestSource, err)
 	}
 
-	filesWithOffendingPullPolicies := map[string]map[string]corev1.PullPolicy{}
+	filesWithPullPolicies := map[string]map[string]corev1.PullPolicy{}
 	if fileInfo.IsDir() {
-		err = filepath.Walk(manifestFileOrDirectory, func(path string, info os.FileInfo, err error) error {
+		err = filepath.Walk(options.manifestSource, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
 				return nil
 			}
-			checkFileForOffendingPullPolicies(path, filesWithOffendingPullPolicies)
+			checkFileForPullPolicies(path, filesWithPullPolicies)
 			return nil
 		})
 		if err != nil {
-			log.Fatalf("Error on walking path %s: %v", manifestFileOrDirectory, err)
+			log.Fatalf("Error on walking path %s: %v", options.manifestSource, err)
 		}
 	} else {
-		checkFileForOffendingPullPolicies(manifestFileOrDirectory, filesWithOffendingPullPolicies)
+		checkFileForPullPolicies(options.manifestSource, filesWithPullPolicies)
 	}
 
-	fmt.Printf("%d manifest files with offending pull policies detected\n", len(filesWithOffendingPullPolicies))
-	if len(filesWithOffendingPullPolicies) > 0 {
-		for filePath, offendingPullPolicies := range filesWithOffendingPullPolicies {
+	fmt.Printf("%d files with pull policies detected\n", len(filesWithPullPolicies))
+	hasOffendingPolicies := false
+	for filePath, pullPolicies := range filesWithPullPolicies {
+		for image, pullPolicy := range pullPolicies {
+			imageParts := strings.Split(image, ":")
+			var imageTag string
+			if len(imageParts) > 0 {
+				imageTag = imageParts[1]
+			}
+			offending := pullPolicy == corev1.PullAlways ||
+				(pullPolicy == "" && (imageTag == "" || imageTag == "latest"))
+			if offending {
+				hasOffendingPolicies = true
+			}
+			if !offending && !options.verbose {
+				continue
+			}
 			fmt.Printf("File: %s\n", filePath)
-			for image, pullPolicy := range offendingPullPolicies {
-				fmt.Printf("\tImage: %s\n", image)
-				if pullPolicy == "" {
-					pullPolicy = corev1.PullAlways+" (implicit)"
-				}
-				fmt.Printf("\t\tPullPolicy: %s\n", pullPolicy)
+			fmt.Printf("\tImage: %s\n", image)
+			// https://kubernetes.io/docs/concepts/containers/images/#updating-images
+			if offending  {
+				fmt.Printf("\t\t-> PullPolicy: %s\n", pullPolicy)
+			} else {
+				fmt.Printf("\t\t   PullPolicy: %s\n", pullPolicy)
 			}
 		}
-		os.Exit(1)
+	}
+	if hasOffendingPolicies {
+		if options.dryRun {
+			fmt.Println("WARNING: detected pull policies that will always pull images!")
+		} else {
+			log.Fatal("ERROR: detected pull policies that will always pull images!")
+		}
 	}
 }
 
-func checkFileForOffendingPullPolicies(manifestFile string, filesWithOffendingPullPolicies map[string]map[string]corev1.PullPolicy) {
+func checkFileForPullPolicies(manifestFile string, filesWithPullPolicies map[string]map[string]corev1.PullPolicy) {
 	file, err := os.Open(manifestFile)
 	if err != nil {
 		log.Fatalf("Error on opening file %s: %v", manifestFile, err)
@@ -66,14 +104,12 @@ func checkFileForOffendingPullPolicies(manifestFile string, filesWithOffendingPu
 	//noinspection GoUnhandledErrorResult
 	defer file.Close()
 
-	offendingPullPolicies := map[string]corev1.PullPolicy{}
+	pullPolicies := map[string]corev1.PullPolicy{}
 	scanner := bufio.NewScanner(file)
 	var bufferString *bytes.Buffer
 	for scanner.Scan() {
 		if scanner.Text() == "---" {
-			if appendOffendingPullPoliciesFromManifest(bufferString, offendingPullPolicies) {
-				filesWithOffendingPullPolicies[manifestFile] = offendingPullPolicies
-			}
+			appendPullPoliciesFromManifest(bufferString, pullPolicies)
 		} else {
 			if bufferString == nil {
 				bufferString = bytes.NewBufferString(scanner.Text())
@@ -82,15 +118,15 @@ func checkFileForOffendingPullPolicies(manifestFile string, filesWithOffendingPu
 			}
 		}
 	}
-	if appendOffendingPullPoliciesFromManifest(bufferString, offendingPullPolicies) {
-		filesWithOffendingPullPolicies[manifestFile] = offendingPullPolicies
+	appendPullPoliciesFromManifest(bufferString, pullPolicies)
+	if len(pullPolicies) > 0 {
+		filesWithPullPolicies[manifestFile] = pullPolicies
 	}
-	return
 }
 
-func appendOffendingPullPoliciesFromManifest(bufferString *bytes.Buffer, offendingPullPolicies map[string]corev1.PullPolicy) (hasOffendingPullPolicies bool) {
+func appendPullPoliciesFromManifest(bufferString *bytes.Buffer, pullPolicies map[string]corev1.PullPolicy) {
 	if bufferString == nil {
-		return false
+		return
 	}
 	object, err := deserializeManifestAsObject(bufferString)
 	if err != nil {
@@ -100,18 +136,21 @@ func appendOffendingPullPoliciesFromManifest(bufferString *bytes.Buffer, offendi
 	switch kind {
 	case "Deployment":
 		deployment := deserializeManifestAs(bufferString, &appsv1.Deployment{}).(*appsv1.Deployment)
-		return appendOffendingPullPoliciesFromContainers(deployment.Spec.Template.Spec.Containers, deployment.Spec.Template.Spec.InitContainers, offendingPullPolicies)
+		appendPullPoliciesFromContainers(deployment.Spec.Template.Spec.Containers, deployment.Spec.Template.Spec.InitContainers, pullPolicies)
 	case "StatefulSet":
 		statefulSet := deserializeManifestAs(bufferString, &appsv1.StatefulSet{}).(*appsv1.StatefulSet)
-		return appendOffendingPullPoliciesFromContainers(statefulSet.Spec.Template.Spec.Containers, statefulSet.Spec.Template.Spec.InitContainers, offendingPullPolicies)
+		appendPullPoliciesFromContainers(statefulSet.Spec.Template.Spec.Containers, statefulSet.Spec.Template.Spec.InitContainers, pullPolicies)
 	case "ReplicaSet":
 		replicaSet := deserializeManifestAs(bufferString, &appsv1.ReplicaSet{}).(*appsv1.ReplicaSet)
-		return appendOffendingPullPoliciesFromContainers(replicaSet.Spec.Template.Spec.Containers, replicaSet.Spec.Template.Spec.InitContainers, offendingPullPolicies)
+		appendPullPoliciesFromContainers(replicaSet.Spec.Template.Spec.Containers, replicaSet.Spec.Template.Spec.InitContainers, pullPolicies)
 	case "DaemonSet":
 		daemonSet := deserializeManifestAs(bufferString, &appsv1.DaemonSet{}).(*appsv1.DaemonSet)
-		return appendOffendingPullPoliciesFromContainers(daemonSet.Spec.Template.Spec.Containers, daemonSet.Spec.Template.Spec.InitContainers, offendingPullPolicies)
+		appendPullPoliciesFromContainers(daemonSet.Spec.Template.Spec.Containers, daemonSet.Spec.Template.Spec.InitContainers, pullPolicies)
+	case "Pod":
+		pod := deserializeManifestAs(bufferString, &corev1.Pod{}).(*corev1.Pod)
+		appendPullPoliciesFromContainers(pod.Spec.Containers, pod.Spec.InitContainers, pullPolicies)
 	default:
-		return false
+		break
 	}
 }
 
@@ -128,15 +167,11 @@ func deserializeManifestAs(bufferString *bytes.Buffer, what runtime.Object) (obj
 	return
 }
 
-func appendOffendingPullPoliciesFromContainers(containers []corev1.Container, initContainers []corev1.Container, offendingPullPolicies map[string]corev1.PullPolicy)  (hasOffendingPullPolicies bool) {
+func appendPullPoliciesFromContainers(containers []corev1.Container, initContainers []corev1.Container, pullPolicies map[string]corev1.PullPolicy) {
 	allContainers := []corev1.Container{}
 	allContainers = append(allContainers, containers...)
 	allContainers = append(allContainers, initContainers...)
 	for _, container := range allContainers {
-		if container.ImagePullPolicy == corev1.PullAlways || container.ImagePullPolicy == "" {
-			offendingPullPolicies[container.Image] = container.ImagePullPolicy
-			hasOffendingPullPolicies = true
-		}
+		pullPolicies[container.Image] = container.ImagePullPolicy
 	}
-	return
 }
