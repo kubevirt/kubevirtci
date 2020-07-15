@@ -38,7 +38,7 @@ function main {
         docker build -f check-image-pull-policies/Dockerfile -t kubevirtci/check-image-pull-policies .
     )
     # TODO: for now we disable (via --dry-run) the non zero exit code in case of failure here to give the teams some time to fix the policies
-    docker run -it --rm -v "$manifest_dir:/manifests:Z" kubevirtci/check-image-pull-policies --manifest-source=/manifests --dry-run=true --verbose=false
+    docker run --rm -v "$manifest_dir:/manifests:Z" kubevirtci/check-image-pull-policies --manifest-source=/manifests --dry-run=true --verbose=false
 }
 
 main "$@"

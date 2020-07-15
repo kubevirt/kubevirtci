@@ -28,7 +28,7 @@ function main {
         cd "$DIR/../tools"
         docker build -f check-image-pull-policies/Dockerfile -t kubevirtci/check-image-pull-policies .
     )
-    docker run -it --rm -v "$manifest_dir:/manifests:Z" kubevirtci/check-image-pull-policies --manifest-source=/manifests --dry-run=false --verbose=false
+    docker run --rm -v "$manifest_dir:/manifests:Z" kubevirtci/check-image-pull-policies --manifest-source=/manifests --dry-run=false --verbose=false
 
 }
 
