@@ -2,7 +2,12 @@
 
 set -ex
 
-[ -f "/tmp/pre-pull-images" ] || exit 1
+if [ ! -f "/tmp/extra-pre-pull-images" ]; then
+    echo "WARNING: extra-pre-pull-images list missing"
+fi
+if [ ! -f "/tmp/fetch-images.sh" ]; then
+    echo "WARNING: fetch-images.sh missing"
+fi
 
 function docker_pull_retry() {
     retry=0
@@ -291,8 +296,13 @@ chmod -R 777 /var/local/kubevirt-storage/local-volume
 # Setup selinux permissions to local volume directories.
 chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 
-# Pre pull all images from list
-for image in $(cat "/tmp/pre-pull-images"); do
+# Pre pull all images from the manifests
+for image in $(/tmp/fetch-images.sh /tmp); do
+    docker_pull_retry "${image}"
+done
+
+# Pre pull additional images from list
+for image in $(cat "/tmp/extra-pre-pull-images"); do
     docker_pull_retry "${image}"
 done
 

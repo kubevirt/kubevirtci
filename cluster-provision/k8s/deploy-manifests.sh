@@ -8,7 +8,7 @@ ksh="$(cd "$DIR/../.." && pwd)/cluster-up/kubectl.sh"
 provision_dir="$1"
 export KUBEVIRT_PROVIDER="k8s-${provision_dir}"
 
-pre_pull_image_file="$DIR/${provision_dir}/pre-pull-images"
+pre_pull_image_file="$DIR/${provision_dir}/extra-pre-pull-images"
 if [ ! -f "${pre_pull_image_file}" ]; then
     exit 1
 fi
@@ -24,7 +24,7 @@ find "$DIR/${provision_dir}/manifests/" -type f -name '*.yaml' \
 # wait for pods to get ready (we do this repeatedly to give the pods created by the operators time to come up)
 repetition=0
 until [ ${repetition} -ge 3 ]; do
-    ${ksh} wait --for=condition=Ready pod --timeout=60s --all --all-namespaces
     sleep 10
+    ${ksh} wait --for=condition=Ready pod --timeout=60s --all --all-namespaces
     repetition=$((${repetition} + 1))
 done

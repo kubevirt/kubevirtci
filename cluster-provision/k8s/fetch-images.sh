@@ -21,17 +21,10 @@ function check_args {
         usage
         exit 1
     fi
-    if [ ! -d "$DIR/$1" ]; then
+    if [ ! -d "$1" ]; then
         usage
-        echo "Directory $DIR/$1 does not exist"
+        echo "Directory $1 does not exist"
         exit 1
-    fi
-    if [ "$#" -gt 1 ]; then
-        if [ ! -f "$DIR/$2" ]; then
-            usage
-            echo "Image list file $DIR/$2 does not exist"
-            exit 1
-        fi
     fi
 }
 
@@ -41,11 +34,7 @@ function main {
     temp_file=$(mktemp)
     trap 'rm -f "${temp_file}"' EXIT SIGINT SIGTERM
 
-    if [ "$#" -gt 1 ]; then
-        cat "$DIR/$2" > "${temp_file}"
-    fi
-
-    provision_dir="$DIR/$1"
+    provision_dir="$1"
     image_regex='([a-z0-9\_\.]+[/-]?)+:[a-z0-9\_\.\-]+'
     image_regex_w_double_quotes='"?'"${image_regex}"'"?'
     (
