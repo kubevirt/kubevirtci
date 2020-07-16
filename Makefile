@@ -8,6 +8,10 @@ cluster-down:
 connect:
 	@./cluster-up/container.sh
 
+bump:
+	./hack/bump.sh "$(provider)" "$(hash)"
+
 .PHONY: \
 	cluster-up \
-	cluster-down 
+	cluster-down \
+	bump

@@ -28,4 +28,8 @@ make push
 ```
 
 After published, update cluster-up/cluster/images.sh with the gocli hash, that was created by the push command.
+Or simply use:
+```
+make bump provider=gocli hash=<NEW_HASH>
+```
 
