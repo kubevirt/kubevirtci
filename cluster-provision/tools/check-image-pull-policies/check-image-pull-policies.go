@@ -17,8 +17,8 @@ import (
 
 type options struct {
 	manifestSource string
-	verbose bool
-	dryRun  bool
+	verbose        bool
+	dryRun         bool
 }
 
 func flagOptions() options {
@@ -80,7 +80,7 @@ func main() {
 			fmt.Printf("File: %s\n", filePath)
 			fmt.Printf("\tImage: %s\n", image)
 			// https://kubernetes.io/docs/concepts/containers/images/#updating-images
-			if offending  {
+			if offending {
 				fmt.Printf("\t\t-> PullPolicy: %s\n", pullPolicy)
 			} else {
 				fmt.Printf("\t\t   PullPolicy: %s\n", pullPolicy)

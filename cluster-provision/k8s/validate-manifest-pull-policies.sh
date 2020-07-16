@@ -24,12 +24,11 @@ function main {
 
     manifest_dir="$DIR/$1/manifests"
     echo "Checking $manifest_dir"
-    (
-        cd "$DIR/../tools"
-        docker build -f check-image-pull-policies/Dockerfile -t kubevirtci/check-image-pull-policies .
-    )
-    docker run --rm -v "$manifest_dir:/manifests:Z" kubevirtci/check-image-pull-policies --manifest-source=/manifests --dry-run=false --verbose=false
-
+    docker run --rm -v "$manifest_dir:/manifests:Z" \
+        kubevirtci/check-image-pull-policies@sha256:118c4828afa52e58fc07663f400a357764cc1e7432ab56c439bb5c0b4b11b4dc \
+            --manifest-source=/manifests \
+            --dry-run=false \
+            --verbose=false
 }
 
 main "$@"
