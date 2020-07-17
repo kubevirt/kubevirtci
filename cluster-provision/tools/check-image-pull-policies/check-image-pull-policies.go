@@ -39,12 +39,26 @@ func main() {
 		log.Fatal("No manifest-source given!")
 	}
 
-	fileInfo, err := os.Stat(options.manifestSource)
-	if os.IsNotExist(err) {
+	filesWithPullPolicies := map[string]map[string]corev1.PullPolicy{}
+	err := walkFiles(options, filesWithPullPolicies)
+	if err != nil {
 		log.Fatalf("Failed to open %s: %v", options.manifestSource, err)
 	}
 
-	filesWithPullPolicies := map[string]map[string]corev1.PullPolicy{}
+	bufferString := bytes.NewBufferString("")
+	hasOffendingPolicies := writeCheckResultToBuffer(options, filesWithPullPolicies, bufferString)
+	fmt.Print(bufferString.String())
+	if hasOffendingPolicies && !options.dryRun {
+		os.Exit(1)
+	}
+}
+
+func walkFiles(options options, filesWithPullPolicies map[string]map[string]corev1.PullPolicy) (err error) {
+	fileInfo, err := os.Stat(options.manifestSource)
+	if os.IsNotExist(err) {
+		return err
+	}
+
 	if fileInfo.IsDir() {
 		err = filepath.Walk(options.manifestSource, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
@@ -53,15 +67,16 @@ func main() {
 			checkFileForPullPolicies(path, filesWithPullPolicies)
 			return nil
 		})
-		if err != nil {
-			log.Fatalf("Error on walking path %s: %v", options.manifestSource, err)
-		}
+		return err
 	} else {
 		checkFileForPullPolicies(options.manifestSource, filesWithPullPolicies)
+		return nil
 	}
+}
 
-	fmt.Printf("%d files with pull policies detected\n", len(filesWithPullPolicies))
-	hasOffendingPolicies := false
+func writeCheckResultToBuffer(options options, filesWithPullPolicies map[string]map[string]corev1.PullPolicy, bufferString *bytes.Buffer) (hasOffendingPolicies bool) {
+	bufferString.WriteString(fmt.Sprintf("%d files with pull policies detected\n", len(filesWithPullPolicies)))
+	hasOffendingPolicies = false
 	for filePath, pullPolicies := range filesWithPullPolicies {
 		for image, pullPolicy := range pullPolicies {
 			imageParts := strings.Split(image, ":")
@@ -69,31 +84,39 @@ func main() {
 			if len(imageParts) > 0 {
 				imageTag = imageParts[1]
 			}
-			offending := pullPolicy == corev1.PullAlways ||
-				(pullPolicy == "" && (imageTag == "" || imageTag == "latest"))
+			offending := isEffectivelyPullAlways(pullPolicy, imageTag)
 			if offending {
 				hasOffendingPolicies = true
 			}
 			if !offending && !options.verbose {
 				continue
 			}
-			fmt.Printf("File: %s\n", filePath)
-			fmt.Printf("\tImage: %s\n", image)
-			// https://kubernetes.io/docs/concepts/containers/images/#updating-images
+			bufferString.WriteString(fmt.Sprintf("File: %s\n", filePath))
+			bufferString.WriteString(fmt.Sprintf("\tImage: %s\n", image))
 			if offending {
-				fmt.Printf("\t\t-> PullPolicy: %s\n", pullPolicy)
+				bufferString.WriteString(fmt.Sprintf("\t\t-> PullPolicy: %s\n", pullPolicy))
 			} else {
-				fmt.Printf("\t\t   PullPolicy: %s\n", pullPolicy)
+				bufferString.WriteString(fmt.Sprintf("\t\t   PullPolicy: %s\n", pullPolicy))
 			}
 		}
 	}
 	if hasOffendingPolicies {
 		if options.dryRun {
-			fmt.Println("WARNING: detected pull policies that will always pull images!")
+			bufferString.WriteString(fmt.Sprintf("WARNING: detected pull policies that will always pull images!\n"))
 		} else {
-			log.Fatal("ERROR: detected pull policies that will always pull images!")
+			bufferString.WriteString(fmt.Sprintf("ERROR: detected pull policies that will always pull images!\n"))
 		}
 	}
+	return hasOffendingPolicies
+}
+
+// isEffectivelyPullAlways checks by looking at the combination of pullPolicy and imageTag
+// whether this will lead to effectively always pulling the image, as described in
+// https://kubernetes.io/docs/concepts/containers/images/#updating-images
+func isEffectivelyPullAlways(pullPolicy corev1.PullPolicy, imageTag string) bool {
+	offending := pullPolicy == corev1.PullAlways ||
+		(pullPolicy == "" && (imageTag == "" || imageTag == "latest"))
+	return offending
 }
 
 func checkFileForPullPolicies(manifestFile string, filesWithPullPolicies map[string]map[string]corev1.PullPolicy) {

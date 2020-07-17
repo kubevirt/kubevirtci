@@ -3,10 +3,12 @@
 set -ex
 
 if [ ! -f "/tmp/extra-pre-pull-images" ]; then
-    echo "WARNING: extra-pre-pull-images list missing"
+    echo "ERROR: extra-pre-pull-images list missing"
+    exit 1
 fi
 if [ ! -f "/tmp/fetch-images.sh" ]; then
-    echo "WARNING: fetch-images.sh missing"
+    echo "ERROR: fetch-images.sh missing"
+    exit 1
 fi
 
 function docker_pull_retry() {
