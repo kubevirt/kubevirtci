@@ -119,7 +119,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
 EOT
 
 systemctl daemon-reload
@@ -212,6 +212,8 @@ kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --tok
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
 
+
+
 # Wait at least for 7 pods
 while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
     echo "Waiting for at least 7 pods to appear ..."
@@ -245,6 +247,10 @@ reset_command="kubeadm reset --force"
 admission_flag="enable-admission-plugins"
 
 $reset_command
+
+cp -f /tmp/cni_dual.yaml $cni_manifest
+sed -i -e "s?$default_cidr?$pod_cidr?g" $cni_manifest
+
 
 # audit log configuration
 mkdir /etc/kubernetes/audit
@@ -289,7 +295,7 @@ apiServer:
     audit-log-path: /var/log/k8s-audit/k8s-audit.log
     audit-policy-file: /etc/kubernetes/audit/adv-audit.yaml
     enable-admission-plugins: NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
-    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,AdvancedAuditing=true
+    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,AdvancedAuditing=true,IPv6DualStack=true
   extraVolumes:
   - hostPath: /etc/kubernetes/audit
     mountPath: /etc/kubernetes/audit
@@ -299,13 +305,19 @@ apiServer:
     mountPath: /var/log/k8s-audit
     name: audit-log
   timeoutForControlPlane: 4m0s
+featureGates:
+  IPv6DualStack: true
 apiVersion: kubeadm.k8s.io/v1beta1
 certificatesDir: /etc/kubernetes/pki
 clusterName: kubernetes
 controlPlaneEndpoint: ""
 controllerManager:
   extraArgs:
-    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true
+    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true
+    cluster-cidr: "10.244.0.0/16,fd20:0:2::/64"
+    service-cluster-ip-range: "10.96.0.0/12,fd00:10:96::/112"
+    node-cidr-mask-size-ipv4: "16"
+    node-cidr-mask-size-ipv6: "64"
 dns:
   type: CoreDNS
 etcd:
@@ -316,8 +328,15 @@ kind: ClusterConfiguration
 kubernetesVersion: ${version}
 networking:
   dnsDomain: cluster.local
-  podSubnet: 10.244.0.0/16
-  serviceSubnet: 10.96.0.0/12
+  podSubnet: "10.244.0.0/16,fd20:0:2::/64"
+  serviceSubnet: 10.96.0.0/12,fd00:10:96::/112
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+clusterCIDR: "10.244.0.0/16,fd20:0:2::/64"
+mode: ipvs
+featureGates:
+  IPv6DualStack: true
 EOF
 
 # Create local-volume directories
