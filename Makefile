@@ -5,9 +5,6 @@ cluster-up:
 cluster-down:
 	./cluster-up/down.sh
 
-connect:
-	@./cluster-up/container.sh
-
 bump:
 	./hack/bump.sh "$(provider)" "$(hash)"
 
