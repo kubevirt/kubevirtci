@@ -15,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 
-	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/okd"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 )
@@ -36,10 +35,6 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
-
-	provision.AddCommand(
-		okd.NewProvisionCommand(),
-	)
 
 	return provision
 }

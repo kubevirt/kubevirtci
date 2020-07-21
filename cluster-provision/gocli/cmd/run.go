@@ -21,7 +21,6 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 
-	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/okd"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 )
@@ -74,9 +73,6 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
 	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
 
-	run.AddCommand(
-		okd.NewRunCommand(),
-	)
 	return run
 }
 
