@@ -3,6 +3,7 @@
 set -euxo pipefail
 
 workdir=$(mktemp -d)
+ARTIFACTS=${ARTIFACTS:-/tmp}
 
 end() {
     rm -rf $workdir
@@ -38,6 +39,6 @@ cp -rf cluster-up/* $workdir
 cp -f cluster-provision/gocli/build/cli  $workdir
 
 # Create the tarball
-tar -C $workdir -cvzf kubevirtci.tar.gz .
+tar -C $workdir -cvzf $ARTIFACTS/kubevirtci.tar.gz .
 
 # TODO release tarball
