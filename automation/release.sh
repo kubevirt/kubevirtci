@@ -18,10 +18,10 @@ function get_latest_digest_suffix() {
 }
 
 #TODO: discover what providers has changed and re-provision there
-#pushd cluster-provision/k8s/1.18
-#    ../provision.sh
-#    ..publish.sh
-#popd
+pushd cluster-provision/k8s/1.18
+    ../provision.sh
+    ..publish.sh
+popd
 
 pushd cluster-provision/gocli
     make cli \
@@ -32,11 +32,14 @@ pushd cluster-provision/gocli
         K8S114SUFFIX="$(get_latest_digest_suffix k8s-1.14)"
 popd
 
+# Create kubevirtci dir inside the tarball
+mkdir $workdir/kubevirtci
+
 # Install cluster-up
-cp -rf cluster-up/* $workdir
+cp -rf cluster-up/* $workdir/kubevirtci
 
 # Install gocli
-cp -f cluster-provision/gocli/build/cli  $workdir
+cp -f cluster-provision/gocli/build/cli  $workdir/kubevirtci
 
 # Create the tarball
 tar -C $workdir -cvzf $ARTIFACTS/kubevirtci.tar.gz .
