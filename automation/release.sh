@@ -44,4 +44,25 @@ cp -f cluster-provision/gocli/build/cli  $workdir/kubevirtci
 # Create the tarball
 tar -C $workdir -cvzf $ARTIFACTS/kubevirtci.tar.gz .
 
-# TODO release tarball
+# Install github-release tool
+# TODO: Vendor this
+go get github.com/github-release/github-release@v0.8.1
+
+# Create the release
+tag $(git rev-parse --short HEAD)
+github-release release \
+        -u kubevirt \
+        -r kubevirtci \
+        --tag $tag \
+        --name $tag \
+        --description "Follow instructions at kubevirtci.tar.gz README"
+
+# Upload tarball
+github-release upload \
+        -u kubevirt \
+        -r kubevirtci \
+        --name kubevirtci.tar.gz \
+	    --tag $tag\
+		--file $ARTIFACTS/kubevirtci.tar.gz
+
+
