@@ -4,6 +4,8 @@ set -euxo pipefail
 
 workdir=$(mktemp -d)
 ARTIFACTS=${ARTIFACTS:-/tmp}
+base_images=(centos7 centos8)
+k8s_providers=(1.14 1.15 1.16 1.17 1.18)
 
 end() {
     rm -rf $workdir
@@ -17,17 +19,20 @@ function get_latest_digest_suffix() {
     echo "@$latest_digest"
 }
 
+
 #TODO: Discover what base images need to be build
-for base in "centos7 centos8"; do
-    cluster-provision/$base/build.sh
-    cluster-provision/$base/publish.sh
+for base_image in $base_images; do
+    pushd cluster-provision/$base_image
+        ./build.sh
+        ./publish.sh
+    popd
 done
 
 #TODO: Discover what providers need to be build
-for provider in "1.14 1.15 1.16 1.17 1.18"; do
-    pushd cluster-provision/k8s/$provider
+for k8s_provider in $k8s_providers; do
+    pushd cluster-provision/k8s/$k8s_provider
         ../provision.sh
-        ..publish.sh
+        ../publish.sh
     popd
 done
 
