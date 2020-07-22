@@ -22,8 +22,6 @@ import (
 	"github.com/fromanirh/pack8s/internal/pkg/ports"
 
 	"github.com/fromanirh/pack8s/cmd/cmdutil"
-
-	"github.com/fromanirh/pack8s/cmd/okd"
 )
 
 type runOptions struct {
@@ -92,9 +90,6 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().BoolVar(&runOpts.enableCeph, "enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().BoolVar(&runOpts.downloadOnly, "download-only", false, "download cluster images and exith")
 
-	run.AddCommand(
-		okd.NewRunCommand(),
-	)
 	return run
 }
 
