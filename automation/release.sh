@@ -17,11 +17,19 @@ function get_latest_digest_suffix() {
     echo "@$latest_digest"
 }
 
-#TODO: discover what providers has changed and re-provision there
-pushd cluster-provision/k8s/1.18
-    ../provision.sh
-    ..publish.sh
-popd
+#TODO: Discover what base images need to be build
+for base in "centos7 centos8"; do
+    cluster-provision/$base/build.sh
+    cluster-provision/$base/publish.sh
+done
+
+#TODO: Discover what providers need to be build
+for provider in "1.14 1.15 1.16 1.17 1.18"; do
+    pushd cluster-provision/k8s/$provider
+        ../provision.sh
+        ..publish.sh
+    popd
+done
 
 pushd cluster-provision/gocli
     make cli \
