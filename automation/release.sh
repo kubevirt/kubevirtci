@@ -20,21 +20,29 @@ function get_latest_digest_suffix() {
 }
 
 
-#TODO: Discover what base images need to be build
-for base_image in $base_images; do
-    pushd cluster-provision/$base_image
-        ./build.sh
-        ./publish.sh
-    popd
-done
+function build_and_publish_base_images() {
+    #TODO: Discover what base images need to be build
+    for base_image in $base_images; do
+        pushd cluster-provision/$base_image
+            ./build.sh
+            ./publish.sh
+        popd
+    done
+}
 
-#TODO: Discover what providers need to be build
-for k8s_provider in $k8s_providers; do
-    pushd cluster-provision/k8s/$k8s_provider
-        ../provision.sh
-        ../publish.sh
-    popd
-done
+function provision_and_publish_providers() {
+    #TODO: Discover what providers need to be build
+    for k8s_provider in $k8s_providers; do
+        pushd cluster-provision/k8s/$k8s_provider
+            ../provision.sh
+            ../publish.sh
+        popd
+    done
+}
+
+#build_and_publish_base_images
+
+#provision_and_publish_providers
 
 pushd cluster-provision/gocli
     make cli \
@@ -59,12 +67,18 @@ tar -C $workdir -cvzf $ARTIFACTS/kubevirtci.tar.gz .
 
 # Install github-release tool
 # TODO: Vendor this
+export GO111MODULE=on
+export GOFLAGS=""
 go get github.com/github-release/github-release@v0.8.1
 
 # Create the release
-tag $(git rev-parse --short HEAD)
+tag="v0.0.1"
+org=kubevirt
+
+git tag $tag
+git push git@github.com:$org/kubevirtci.git $tag
 github-release release \
-        -u kubevirt \
+        -u $org \
         -r kubevirtci \
         --tag $tag \
         --name $tag \
@@ -72,7 +86,7 @@ github-release release \
 
 # Upload tarball
 github-release upload \
-        -u kubevirt \
+        -u $org \
         -r kubevirtci \
         --name kubevirtci.tar.gz \
 	    --tag $tag\
