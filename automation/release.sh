@@ -4,8 +4,8 @@ set -euxo pipefail
 
 workdir=$(mktemp -d)
 ARTIFACTS=${ARTIFACTS:-/tmp}
-base_images=(centos7 centos8)
-k8s_providers=(1.14 1.15 1.16 1.17 1.18)
+base_images=(centos8)
+k8s_providers=(1.17 1.18)
 
 end() {
     rm -rf $workdir
