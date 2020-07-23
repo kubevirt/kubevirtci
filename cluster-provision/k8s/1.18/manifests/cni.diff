@@ -1,0 +1,31 @@
+--- calico.3.12.0.yaml	2020-07-23 11:14:17.000000000 +0300
++++ cni.yaml	2020-07-23 11:14:13.000000000 +0300
+@@ -31,6 +31,9 @@
+           "ipam": {
+               "type": "calico-ipam"
+           },
++          "container_settings": {
++              "allow_ip_forwarding": true
++          },
+           "policy": {
+               "type": "k8s"
+           },
+@@ -627,7 +630,7 @@
+             # chosen from this range. Changing this value after installation will have
+             # no effect. This should fall within `--cluster-cidr`.
+             - name: CALICO_IPV4POOL_CIDR
+-              value: "192.168.0.0/16"
++              value: "10.244.0.0/16"
+             # Disable file logging so `kubectl logs` works.
+             - name: CALICO_DISABLE_FILE_LOGGING
+               value: "true"
+@@ -762,6 +765,9 @@
+           effect: NoSchedule
+       serviceAccountName: calico-kube-controllers
+       priorityClassName: system-cluster-critical
++      securityContext:
++        seLinuxOptions:
++          type: spc_t
+       containers:
+         - name: calico-kube-controllers
+           image: calico/kube-controllers:v3.12.0

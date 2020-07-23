@@ -32,8 +32,10 @@ fi
 
 mkdir -p /provision
 
+dnf install -y patch
 cni_manifest="/provision/cni.yaml"
-cp /tmp/cni.yaml $cni_manifest
+cp /tmp/cni.do-not-change.yaml $cni_manifest
+patch $cni_manifest /tmp/cni.diff
 
 cp /tmp/local-volume.yaml /provision/local-volume.yaml
 
@@ -204,13 +206,10 @@ spec:
 EOF
 
 
-default_cidr="192.168.0.0/16"
 pod_cidr="10.244.0.0/16"
-
 kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456 --experimental-kustomize $kubeadmn_patches_path/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
-sed -i -e "s?$default_cidr?$pod_cidr?g" $cni_manifest
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
 
 # Wait at least for 7 pods
