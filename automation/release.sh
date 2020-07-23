@@ -76,6 +76,9 @@ tag="v0.0.1"
 org=kubevirt
 
 git tag $tag
+
+git remote -v
+
 git push git@github.com:$org/kubevirtci.git $tag
 github-release release \
         -u $org \
