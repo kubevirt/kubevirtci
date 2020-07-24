@@ -72,14 +72,17 @@ export GOFLAGS=""
 go get github.com/github-release/github-release@v0.8.1
 
 # Create the release
-tag="v0.0.1"
+tag=$(date +%s)
 org=kubevirt
 
 git tag $tag
 
-git remote -v
+# To pass user/password from automations, idea is taken from [1]
+# [1] https://stackoverflow.com/questions/8536732/can-i-hold-git-credentials-in-environment-variables
+git config credential.helper '!f() { sleep 1; echo "username=${GITHUB_USER}"; echo "password=${GITHUB_TOKEN}"; }; f'
 
-git push git@github.com:$org/kubevirtci.git $tag
+
+git push https://github.com/$org/kubevirtci.git $tag
 github-release release \
         -u $org \
         -r kubevirtci \
