@@ -1,0 +1,50 @@
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: kube-cni-plugins-ds-amd64
+  namespace: kube-system
+  labels:
+    tier: node
+    app: cni-plugins
+spec:
+  template:
+    metadata:
+      labels:
+        tier: node
+        app: cni-plugins
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        beta.kubernetes.io/arch: amd64
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: cni-plugins
+        image: quay.io/kubevirt/cni-default-plugins@sha256:15727044c5b00fc41b06796373b00768b7b30b7d2e6c0b68ab33a83cd70adea1
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/bash
+          - -c
+          - |
+            cp -rf /usr/src/containernetworking/plugins/bin/* /opt/cni/bin/
+            echo "Entering sleep... (success)"
+            sleep infinity
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+          limits:
+            cpu: "100m"
+            memory: "50Mi"
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: cnibin
+          mountPath: /opt/cni/bin
+      volumes:
+      - name: cnibin
+        hostPath:
+          path: /opt/cni/bin

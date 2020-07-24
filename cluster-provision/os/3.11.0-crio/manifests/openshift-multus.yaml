@@ -1,0 +1,22 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: multus-cni-config
+  namespace: kube-system
+  labels:
+    tier: node
+    app: multus
+data:
+  00-multus.conf: |
+    {
+      "name": "multus-cni-network",
+      "type": "multus",
+      "delegates": [{
+        "cniVersion": "0.2.0",
+        "type": "openshift-sdn",
+        "name": "openshift-sdn",
+        "masterplugin": true
+      }],
+      "kubeconfig": "/etc/cni/net.d/multus.d/multus.kubeconfig"
+    }

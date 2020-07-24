@@ -1,0 +1,25 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: multus-cni-config
+  namespace: kube-system
+  labels:
+    tier: node
+    app: multus
+data:
+  00-multus.conf: |
+    {
+        "name": "multus-cni-network",
+        "type": "multus",
+        "delegates": [
+         {
+           "type": "flannel",
+           "name": "cbr0",
+           "delegate": {
+             "isDefaultGateway": true
+           }
+         }
+        ],
+        "kubeconfig": "/etc/cni/net.d/multus.d/multus.kubeconfig"
+    }
