@@ -40,9 +40,9 @@ function provision_and_publish_providers() {
     done
 }
 
-#build_and_publish_base_images
+build_and_publish_base_images
 
-#provision_and_publish_providers
+provision_and_publish_providers
 
 pushd cluster-provision/gocli
     make cli \
@@ -82,7 +82,7 @@ git tag $tag
 git config credential.helper '!f() { sleep 1; echo "username=${GITHUB_USER}"; echo "password=${GITHUB_TOKEN}"; }; f'
 
 
-git push https://github.com/$org/kubevirtci.git $tag
+git push https://github.com/$org/kubevirtci $tag
 github-release release \
         -u $org \
         -r kubevirtci \
