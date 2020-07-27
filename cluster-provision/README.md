@@ -5,9 +5,6 @@
 * `k8s-1.10.11` k8s-1.10.11 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.11.0` k8s-1.11.0 cluster based on the centos7 image, provisioned with kubeadm
 * `k8s-1.13.3` k8s-1.13.3 cluster based on the centos7 image, provisioned with kubeadm
-* `os-3.11.0` os-3.11.0 cluster based on the centos7 image, provisioned with openshift-ansible
-* `os-3.11-crio` os-3.11 cluster with CRI-O support based on the centos7 image, provisioned
-* `os-3.11-multus` os-3.11 cluster with multus cni support based on the centos7 image, provisioned with openshift-ansible
 
 ## Versions to use
 
@@ -15,9 +12,6 @@
 * `kubevirtci/gocli`: `sha256:220f55f6b1bcb3975d535948d335bd0e6b6297149a3eba1a4c14cad9ac80f80d`
 * `kubevirtci/centos:1905_01`: `sha256:4b292b646f382d986c75a2be8ec49119a03467fe26dccc3a0886eb9e6e38c911`
 * `kubevirtci/centos:2001_01`: `sha256:6f2548dcc23489d0c945aef516781ae2ea678424c3760d1dafa0a83d29411713`
-* `kubevirtci/os-3.11.0-multus`: `sha256:0c8be10799490a1f86740eaa490063f51eab78b920540f0a2946abc5e0bf30fe`
-* `kubevirtci/os-3.11.0:`: `sha256:ebc9048f25eb5cc720b8b4eeab7b58b5fa3648d27c9612d87bf338d5dbee46a7`
-* `kubevirtci/os-3.11.0-crio:`: `sha256:71ea794ff45e06ac521e2fe867f192b98ae989755629e4830ab919ecd3905337`
 * `kubevirtci/k8s-1.14.6`: `sha256:ec29c07c94fce22f37a448cb85ca1fb9215d1854f52573316752d19a1c88bcb3`
 * `kubevirtci/k8s-1.15.1`: `sha256:14d7b1806f24e527167d2913deafd910ea46e69b830bf0b094dde35ba961b159`
 * `kubevirtci/k8s-1.16.2`: `sha256:5bae6a5f3b996952c5ceb4ba12ac635146425909801df89d34a592f3d3502b0c`
@@ -91,36 +85,6 @@ kube-scheduler-node01            1/1       Running   0          13m
 
 ```bash
 $ gocli rm
-```
-
-## Quickstart OpenShift
-
-### Start the cluster
-
-Start a k8s cluster which contains of one master and two nodes:
-
-```bash
-gocli run --random-ports --nodes 2 --memory 5120M --reverse --ocp-port 8443 --background kubevirtci/os-3.11.0
-```
-
-Note the extra `--reverse` flag. Normally we start the master first and nodes
-register. In the case of openshift it is different. We first need to start the
-nodes, so that openshift-ansible can reach out to the nodes from master.
-
-Furter we added `--ocp-port 8443`. That is only required if you want to access
-the openshift-web-console. More about that further below.
-
-### Connect to the cluster
-
-Find out the connection details of the cluster:
-
-```bash
-$ gocli ports k8s
-8443
-$ gocli scp /etc/origin/master/admin.kubeconfig - > ./kubeconfig
-$ oc --kubeconfig=./kubeconfig config set-cluster node01:8443 --server=127.0.0.1:8443
-$ oc --kubeconfig=./kubeconfig config set-cluster node01:8443 --insecure-skip-tls-verify=true
-$ oc --kubeconfig ./kubeconfig get nodes
 ```
 
 ### Accessing the webconsole
