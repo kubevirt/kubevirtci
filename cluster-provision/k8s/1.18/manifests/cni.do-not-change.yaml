@@ -1,6 +1,5 @@
 ---
 # Source: calico/templates/calico-config.yaml
-# This file copied from Calico documentation, no changes should be done.
 # This ConfigMap is used to configure a self-hosted Calico installation.
 kind: ConfigMap
 apiVersion: v1
@@ -32,9 +31,6 @@ data:
           "ipam": {
               "type": "calico-ipam"
           },
-          "container_settings": {
-              "allow_ip_forwarding": true
-          },
           "policy": {
               "type": "k8s"
           },
@@ -53,6 +49,7 @@ data:
         }
       ]
     }
+
 ---
 # Source: calico/templates/kdd-crds.yaml
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -765,9 +762,6 @@ spec:
           effect: NoSchedule
       serviceAccountName: calico-kube-controllers
       priorityClassName: system-cluster-critical
-      securityContext:
-        seLinuxOptions:
-          type: spc_t
       containers:
         - name: calico-kube-controllers
           image: calico/kube-controllers:v3.12.0
@@ -798,3 +792,5 @@ metadata:
 
 ---
 # Source: calico/templates/configure-canal.yaml
+
+
