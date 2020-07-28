@@ -1,0 +1,10 @@
+language: go
+
+go:
+  - tip
+
+script:
+  - go test -v
+  - go install
+  - go install github.com/udhos/equalfile/equal
+

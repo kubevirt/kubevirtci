@@ -1,5 +1,5 @@
 *.img
-cli
+cluster-provision/gocli/build/cli
 log.txt
 _ci-configs/*
 

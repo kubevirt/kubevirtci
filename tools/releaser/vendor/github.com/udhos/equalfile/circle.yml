@@ -1,0 +1,9 @@
+general:
+  branches:
+    only:
+      - master
+
+test:
+  override:
+    - go test -v
+

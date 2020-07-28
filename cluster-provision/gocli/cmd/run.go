@@ -45,6 +45,16 @@ type dockerSetting struct {
 	Proxy string
 }
 
+func validProvider(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		providers := images.Dump()
+		return fmt.Errorf("missing provider, valid ones:\n%s", providers)
+	} else if len(args) > 1 {
+		return fmt.Errorf("multiple providers not supported")
+	}
+	return nil
+}
+
 // NewRunCommand returns command that runs given cluster
 func NewRunCommand() *cobra.Command {
 
@@ -52,7 +62,7 @@ func NewRunCommand() *cobra.Command {
 		Use:   "run",
 		Short: "run starts a given cluster",
 		RunE:  run,
-		Args:  cobra.ExactArgs(1),
+		Args:  validProvider,
 	}
 	run.Flags().UintP("nodes", "n", 1, "number of cluster nodes to start")
 	run.Flags().StringP("memory", "m", "3096M", "amount of ram per node")

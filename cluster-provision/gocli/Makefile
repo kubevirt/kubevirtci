@@ -11,17 +11,13 @@ K8S114SUFFIX ?= :latest
 BIN_DIR = $(CURDIR)/build
 GO ?= go
 
-export GO111MODULE=on
-export GOPROXY=direct
-export GOSUMDB=off
-export GOFLAGS=-mod=vendor
-
+GOARGS=GOFLAGS=-mod=vendor CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on GOPROXY=direct GOSUMDB=off
 
 all: container-run
 
 .PHONY: gocli
-cli: fmt
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build \
+cli:
+	$(GOARGS) $(GO) build \
 				-ldflags "\
 					-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.K8S118SUFFIX=$(K8S118SUFFIX)'\
 					-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.K8S117SUFFIX=$(K8S117SUFFIX)'\
@@ -33,8 +29,7 @@ cli: fmt
 
 .PHONY: fmt
 fmt:
-	$(GO) fmt ./cmd/...
-	$(GO) fmt ./docker/...
+	$(GOARGS) $(GO) fmt ./cmd/... ./docker/...
 
 .PHONY: container
 container: cli

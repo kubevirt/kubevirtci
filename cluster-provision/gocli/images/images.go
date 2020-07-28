@@ -1,5 +1,9 @@
 package images
 
+import (
+	"bytes"
+)
+
 var (
 	K8S118SUFFIX     = ""
 	K8S117SUFFIX     = ""
@@ -17,4 +21,16 @@ func init() {
 		"k8s-1.15": K8S115SUFFIX,
 		"k8s-1.14": K8S114SUFFIX,
 	}
+}
+
+func Dump() string {
+	var buffer bytes.Buffer
+
+	for p, s := range SuffixByProvider {
+		buffer.WriteString(" ")
+		buffer.WriteString(p)
+		buffer.WriteString(s)
+		buffer.WriteString("\n")
+	}
+	return buffer.String()
 }

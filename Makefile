@@ -8,6 +8,9 @@ cluster-down:
 bump:
 	./hack/bump.sh "$(provider)" "$(hash)"
 
+test:
+	make -C tools/releaser test
+
 .PHONY: \
 	cluster-up \
 	cluster-down \
