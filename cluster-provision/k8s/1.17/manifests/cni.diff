@@ -1,0 +1,22 @@
+--- calico.3.15.1.yaml	2020-07-26 11:55:32.000000000 +0300
++++ cni_updated.yaml	2020-07-26 12:30:39.000000000 +0300
+@@ -34,6 +34,9 @@
+           "ipam": {
+               "type": "calico-ipam"
+           },
++          "container_settings": {
++              "allow_ip_forwarding": true
++          },
+           "policy": {
+               "type": "k8s"
+           },
+@@ -3709,6 +3712,9 @@
+           effect: NoSchedule
+       serviceAccountName: calico-kube-controllers
+       priorityClassName: system-cluster-critical
++      securityContext:
++        seLinuxOptions:
++          type: spc_t
+       containers:
+         - name: calico-kube-controllers
+           image: calico/kube-controllers:v3.15.1
