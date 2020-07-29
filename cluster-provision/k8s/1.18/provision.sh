@@ -249,7 +249,6 @@ admission_flag="enable-admission-plugins"
 $reset_command
 
 cp -f /tmp/cni_dual.yaml $cni_manifest
-sed -i -e "s?$default_cidr?$pod_cidr?g" $cni_manifest
 
 
 # audit log configuration
