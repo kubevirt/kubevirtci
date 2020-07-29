@@ -158,8 +158,13 @@ echo "net.netfilter.nf_conntrack_max=1000000" >> /etc/sysctl.conf
 
 systemctl restart NetworkManager
 
-mkdir -p $kubeadmn_patches_path
+nmcli connection modify "System eth0" \
+   ipv6.method auto \
+   ipv6.addr-gen-mode eui64
 
+nmcli connection up "System eth0"
+
+mkdir -p $kubeadmn_patches_path
 cat >$kubeadmn_patches_path/kustomization.yaml <<EOF
 patchesJson6902:
 - target:
@@ -205,52 +210,6 @@ spec:
           type: spc_t
 EOF
 
-
-pod_cidr="10.244.0.0/16"
-kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456 --experimental-kustomize $kubeadmn_patches_path/
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
-
-
-
-# Wait at least for 7 pods
-while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
-    echo "Waiting for at least 7 pods to appear ..."
-    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
-    sleep 10
-done
-
-# Wait until k8s pods are running
-while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | grep -v Running)" ]; do
-    echo "Waiting for k8s pods to enter the Running state ..."
-    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | >&2 grep -v Running || true
-    sleep 10
-done
-
-# Make sure all containers are ready
-while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
-    echo "Waiting for all containers to become ready ..."
-    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
-    sleep 10
-done
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
-
-reset_command="kubeadm reset"
-admission_flag="admission-control"
-# k8s 1.11 asks for confirmation on kubeadm reset, which can be suppressed by a new force flag
-reset_command="kubeadm reset --force"
-
-# k8s 1.11 uses new flags for admission plugins
-# old one is deprecated only, but can not be combined with new one, which is used in api server config created by kubeadm
-admission_flag="enable-admission-plugins"
-
-$reset_command
-
-cp -f /tmp/cni_dual.yaml $cni_manifest
-
-
 # audit log configuration
 mkdir /etc/kubernetes/audit
 
@@ -276,7 +235,7 @@ rules:
 EOF
 
 cat > /etc/kubernetes/kubeadm.conf <<EOF
-apiVersion: kubeadm.k8s.io/v1beta1
+apiVersion: kubeadm.k8s.io/v1beta2
 bootstrapTokens:
 - groups:
   - system:bootstrappers:kubeadm:default-node-token
@@ -304,30 +263,29 @@ apiServer:
     mountPath: /var/log/k8s-audit
     name: audit-log
   timeoutForControlPlane: 4m0s
-featureGates:
-  IPv6DualStack: true
-apiVersion: kubeadm.k8s.io/v1beta1
+apiVersion: kubeadm.k8s.io/v1beta2
 certificatesDir: /etc/kubernetes/pki
 clusterName: kubernetes
-controlPlaneEndpoint: ""
 controllerManager:
   extraArgs:
+    cluster-cidr: 10.244.0.0/16,fd20:0:2::/64
     feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true
-    cluster-cidr: "10.244.0.0/16,fd20:0:2::/64"
-    service-cluster-ip-range: "10.96.0.0/12,fd00:10:96::/112"
     node-cidr-mask-size-ipv4: "16"
     node-cidr-mask-size-ipv6: "64"
+    service-cluster-ip-range: 10.96.0.0/12,fd00:10:96::/112
 dns:
   type: CoreDNS
 etcd:
   local:
     dataDir: /var/lib/etcd
+featureGates:
+  IPv6DualStack: true
 imageRepository: k8s.gcr.io
 kind: ClusterConfiguration
-kubernetesVersion: ${version}
+kubernetesVersion: v${version}
 networking:
   dnsDomain: cluster.local
-  podSubnet: "10.244.0.0/16,fd20:0:2::/64"
+  podSubnet: 10.244.0.0/16,fd20:0:2::/64
   serviceSubnet: 10.96.0.0/12,fd00:10:96::/112
 ---
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
@@ -337,6 +295,36 @@ mode: ipvs
 featureGates:
   IPv6DualStack: true
 EOF
+
+kubeadm init --config /etc/kubernetes/kubeadm.conf --experimental-kustomize /provision/kubeadm-patches/
+
+kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
+
+# Wait at least for 7 pods
+while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
+    echo "Waiting for at least 7 pods to appear ..."
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
+    sleep 10
+done
+
+# Wait until k8s pods are running
+while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | grep -v Running)" ]; do
+    echo "Waiting for k8s pods to enter the Running state ..."
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | >&2 grep -v Running || true
+    sleep 10
+done
+
+# Make sure all containers are ready
+while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
+    echo "Waiting for all containers to become ready ..."
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
+    sleep 10
+done
+
+kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
+
+kubeadm reset --force
 
 # Create local-volume directories
 for i in {1..10}
