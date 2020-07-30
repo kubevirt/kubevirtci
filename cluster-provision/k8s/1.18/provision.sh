@@ -205,47 +205,6 @@ spec:
           type: spc_t
 EOF
 
-
-pod_cidr="10.244.0.0/16"
-kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456 --experimental-kustomize $kubeadmn_patches_path/
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
-
-# Wait at least for 7 pods
-while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
-    echo "Waiting for at least 7 pods to appear ..."
-    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
-    sleep 10
-done
-
-# Wait until k8s pods are running
-while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | grep -v Running)" ]; do
-    echo "Waiting for k8s pods to enter the Running state ..."
-    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | >&2 grep -v Running || true
-    sleep 10
-done
-
-# Make sure all containers are ready
-while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
-    echo "Waiting for all containers to become ready ..."
-    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
-    sleep 10
-done
-
-kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
-
-reset_command="kubeadm reset"
-admission_flag="admission-control"
-# k8s 1.11 asks for confirmation on kubeadm reset, which can be suppressed by a new force flag
-reset_command="kubeadm reset --force"
-
-# k8s 1.11 uses new flags for admission plugins
-# old one is deprecated only, but can not be combined with new one, which is used in api server config created by kubeadm
-admission_flag="enable-admission-plugins"
-
-$reset_command
-
 # audit log configuration
 mkdir /etc/kubernetes/audit
 
@@ -319,6 +278,46 @@ networking:
   podSubnet: 10.244.0.0/16
   serviceSubnet: 10.96.0.0/12
 EOF
+
+pod_cidr="10.244.0.0/16"
+kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456 --experimental-kustomize $kubeadmn_patches_path/
+
+kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
+
+# Wait at least for 7 pods
+while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
+    echo "Waiting for at least 7 pods to appear ..."
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
+    sleep 10
+done
+
+# Wait until k8s pods are running
+while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | grep -v Running)" ]; do
+    echo "Waiting for k8s pods to enter the Running state ..."
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | >&2 grep -v Running || true
+    sleep 10
+done
+
+# Make sure all containers are ready
+while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
+    echo "Waiting for all containers to become ready ..."
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
+    sleep 10
+done
+
+kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
+
+reset_command="kubeadm reset"
+admission_flag="admission-control"
+# k8s 1.11 asks for confirmation on kubeadm reset, which can be suppressed by a new force flag
+reset_command="kubeadm reset --force"
+
+# k8s 1.11 uses new flags for admission plugins
+# old one is deprecated only, but can not be combined with new one, which is used in api server config created by kubeadm
+admission_flag="enable-admission-plugins"
+
+$reset_command
 
 # Create local-volume directories
 for i in {1..10}
