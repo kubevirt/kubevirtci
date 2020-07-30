@@ -230,7 +230,7 @@ rules:
 EOF
 
 cat > /etc/kubernetes/kubeadm.conf <<EOF
-apiVersion: kubeadm.k8s.io/v1beta1
+apiVersion: kubeadm.k8s.io/v1beta2
 bootstrapTokens:
 - groups:
   - system:bootstrappers:kubeadm:default-node-token
@@ -258,10 +258,9 @@ apiServer:
     mountPath: /var/log/k8s-audit
     name: audit-log
   timeoutForControlPlane: 4m0s
-apiVersion: kubeadm.k8s.io/v1beta1
+apiVersion: kubeadm.k8s.io/v1beta2
 certificatesDir: /etc/kubernetes/pki
 clusterName: kubernetes
-controlPlaneEndpoint: ""
 controllerManager:
   extraArgs:
     feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true
@@ -272,7 +271,7 @@ etcd:
     dataDir: /var/lib/etcd
 imageRepository: k8s.gcr.io
 kind: ClusterConfiguration
-kubernetesVersion: ${version}
+kubernetesVersion: v${version}
 networking:
   dnsDomain: cluster.local
   podSubnet: 10.244.0.0/16
