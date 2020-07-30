@@ -279,8 +279,7 @@ networking:
   serviceSubnet: 10.96.0.0/12
 EOF
 
-pod_cidr="10.244.0.0/16"
-kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456 --experimental-kustomize $kubeadmn_patches_path/
+kubeadm init --config /etc/kubernetes/kubeadm.conf --experimental-kustomize /provision/kubeadm-patches/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
@@ -308,16 +307,7 @@ done
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
 
-reset_command="kubeadm reset"
-admission_flag="admission-control"
-# k8s 1.11 asks for confirmation on kubeadm reset, which can be suppressed by a new force flag
-reset_command="kubeadm reset --force"
-
-# k8s 1.11 uses new flags for admission plugins
-# old one is deprecated only, but can not be combined with new one, which is used in api server config created by kubeadm
-admission_flag="enable-admission-plugins"
-
-$reset_command
+kubeadm reset --force
 
 # Create local-volume directories
 for i in {1..10}
