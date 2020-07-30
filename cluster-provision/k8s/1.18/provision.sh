@@ -119,7 +119,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
 EOT
 
 systemctl daemon-reload
@@ -157,6 +157,11 @@ sysctl -w net.netfilter.nf_conntrack_max=1000000
 echo "net.netfilter.nf_conntrack_max=1000000" >> /etc/sysctl.conf
 
 systemctl restart NetworkManager
+
+nmcli connection modify "System eth0" \
+   ipv6.method auto \
+   ipv6.addr-gen-mode eui64
+nmcli connection up "System eth0"
 
 mkdir -p $kubeadmn_patches_path
 
@@ -248,7 +253,7 @@ apiServer:
     audit-log-path: /var/log/k8s-audit/k8s-audit.log
     audit-policy-file: /etc/kubernetes/audit/adv-audit.yaml
     enable-admission-plugins: NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
-    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,AdvancedAuditing=true
+    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,AdvancedAuditing=true,IPv6DualStack=true
   extraVolumes:
   - hostPath: /etc/kubernetes/audit
     mountPath: /etc/kubernetes/audit
@@ -263,19 +268,32 @@ certificatesDir: /etc/kubernetes/pki
 clusterName: kubernetes
 controllerManager:
   extraArgs:
-    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true
+    cluster-cidr: 10.244.0.0/16,fd10:244::/112
+    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true
+    node-cidr-mask-size-ipv4: "16"
+    node-cidr-mask-size-ipv6: "112"
+    service-cluster-ip-range: 10.96.0.0/12,fd10:96::/108
 dns:
   type: CoreDNS
 etcd:
   local:
     dataDir: /var/lib/etcd
+featureGates:
+  IPv6DualStack: true
 imageRepository: k8s.gcr.io
 kind: ClusterConfiguration
 kubernetesVersion: v${version}
 networking:
   dnsDomain: cluster.local
-  podSubnet: 10.244.0.0/16
-  serviceSubnet: 10.96.0.0/12
+  podSubnet: 10.244.0.0/16,fd10:244::/112
+  serviceSubnet: 10.96.0.0/12,fd10:96::/108
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+clusterCIDR: 10.244.0.0/16,fd10:244::/112
+mode: ipvs
+featureGates:
+  IPv6DualStack: true
 EOF
 
 kubeadm init --config /etc/kubernetes/kubeadm.conf --experimental-kustomize /provision/kubeadm-patches/
