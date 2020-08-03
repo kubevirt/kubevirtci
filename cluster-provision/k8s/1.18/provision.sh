@@ -119,7 +119,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
 EOT
 
 systemctl daemon-reload
@@ -157,6 +157,11 @@ sysctl -w net.netfilter.nf_conntrack_max=1000000
 echo "net.netfilter.nf_conntrack_max=1000000" >> /etc/sysctl.conf
 
 systemctl restart NetworkManager
+
+nmcli connection modify "System eth0" \
+   ipv6.method auto \
+   ipv6.addr-gen-mode eui64
+nmcli connection up "System eth0"
 
 mkdir -p $kubeadmn_patches_path
 
@@ -205,9 +210,33 @@ spec:
           type: spc_t
 EOF
 
+# audit log configuration
+mkdir /etc/kubernetes/audit
 
-pod_cidr="10.244.0.0/16"
-kubeadm init --pod-network-cidr=$pod_cidr --kubernetes-version v${version} --token abcdef.1234567890123456 --experimental-kustomize $kubeadmn_patches_path/
+audit_api_version="audit.k8s.io/v1"
+cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
+apiVersion: ${audit_api_version}
+kind: Policy
+rules:
+- level: Request
+  users: ["kubernetes-admin"]
+  resources:
+  - group: kubevirt.io
+    resources:
+    - virtualmachines
+    - virtualmachineinstances
+    - virtualmachineinstancereplicasets
+    - virtualmachineinstancepresets
+    - virtualmachineinstancemigrations
+  omitStages:
+  - RequestReceived
+  - ResponseStarted
+  - Panic
+EOF
+
+kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
+envsubst < /tmp/kubeadm.conf > $kubeadm_manifest
+kubeadm init --config $kubeadm_manifest --experimental-kustomize /provision/kubeadm-patches/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
@@ -235,90 +264,7 @@ done
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
 
-reset_command="kubeadm reset"
-admission_flag="admission-control"
-# k8s 1.11 asks for confirmation on kubeadm reset, which can be suppressed by a new force flag
-reset_command="kubeadm reset --force"
-
-# k8s 1.11 uses new flags for admission plugins
-# old one is deprecated only, but can not be combined with new one, which is used in api server config created by kubeadm
-admission_flag="enable-admission-plugins"
-
-$reset_command
-
-# audit log configuration
-mkdir /etc/kubernetes/audit
-
-audit_api_version="audit.k8s.io/v1"
-cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
-apiVersion: ${audit_api_version}
-kind: Policy
-rules:
-- level: Request
-  users: ["kubernetes-admin"]
-  resources:
-  - group: kubevirt.io
-    resources:
-    - virtualmachines
-    - virtualmachineinstances
-    - virtualmachineinstancereplicasets
-    - virtualmachineinstancepresets
-    - virtualmachineinstancemigrations
-  omitStages:
-  - RequestReceived
-  - ResponseStarted
-  - Panic
-EOF
-
-cat > /etc/kubernetes/kubeadm.conf <<EOF
-apiVersion: kubeadm.k8s.io/v1beta1
-bootstrapTokens:
-- groups:
-  - system:bootstrappers:kubeadm:default-node-token
-  token: abcdef.1234567890123456
-  ttl: 24h0m0s
-  usages:
-  - signing
-  - authentication
-kind: InitConfiguration
----
-apiServer:
-  extraArgs:
-    allow-privileged: "true"
-    audit-log-format: json
-    audit-log-path: /var/log/k8s-audit/k8s-audit.log
-    audit-policy-file: /etc/kubernetes/audit/adv-audit.yaml
-    enable-admission-plugins: NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
-    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,AdvancedAuditing=true
-  extraVolumes:
-  - hostPath: /etc/kubernetes/audit
-    mountPath: /etc/kubernetes/audit
-    name: audit-conf
-    readOnly: true
-  - hostPath: /var/log/k8s-audit
-    mountPath: /var/log/k8s-audit
-    name: audit-log
-  timeoutForControlPlane: 4m0s
-apiVersion: kubeadm.k8s.io/v1beta1
-certificatesDir: /etc/kubernetes/pki
-clusterName: kubernetes
-controlPlaneEndpoint: ""
-controllerManager:
-  extraArgs:
-    feature-gates: BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true
-dns:
-  type: CoreDNS
-etcd:
-  local:
-    dataDir: /var/lib/etcd
-imageRepository: k8s.gcr.io
-kind: ClusterConfiguration
-kubernetesVersion: ${version}
-networking:
-  dnsDomain: cluster.local
-  podSubnet: 10.244.0.0/16
-  serviceSubnet: 10.96.0.0/12
-EOF
+kubeadm reset --force
 
 # Create local-volume directories
 for i in {1..10}
