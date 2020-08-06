@@ -35,5 +35,8 @@ done
 iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 iptables -A FORWARD -i br0 -o eth0 -j ACCEPT
+ip6tables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+ip6tables -A FORWARD -i br0 -o eth0 -j ACCEPT
 
 exec dnsmasq --interface=br0 --enable-ra -d ${DHCP_HOSTS} --dhcp-range=192.168.66.10,192.168.66.200,infinite --dhcp-range=::10,::200,constructor:br0,static
