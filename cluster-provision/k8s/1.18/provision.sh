@@ -87,7 +87,7 @@ cat << EOF > /etc/docker/daemon.json
   "log-driver": "json-file",
   "exec-opts": ["native.cgroupdriver=systemd"],
   "ipv6": true,
-  "fixed-cidr-v6": "2001:db8:1::/64",
+  "fixed-cidr-v6": "2001:db9:1::/64",
   "selinux-enabled": true
 }
 EOF
@@ -132,10 +132,11 @@ systemctl enable kubelet && systemctl start kubelet
 modprobe bridge
 modprobe br_netfilter
 cat <<EOF >  /etc/sysctl.d/k8s.conf
-net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
 net.ipv4.ip_forward = 1
+net.ipv6.conf.all.disable_ipv6 = 0
 net.ipv6.conf.all.forwarding = 1
+net.bridge.bridge-nf-call-ip6tables = 1
 EOF
 sysctl --system
 
