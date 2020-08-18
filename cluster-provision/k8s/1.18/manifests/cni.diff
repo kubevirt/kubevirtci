@@ -1,5 +1,5 @@
---- cni.do-not-change.yaml	2020-07-29 16:49:33.000000000 +0300
-+++ cni_dual.yaml	2020-07-29 16:49:38.000000000 +0300
+--- cni.do-not-change.yaml	2020-08-13 12:25:23.690257660 +0200
++++ cni.patched.yaml	2020-08-13 12:43:02.668237485 +0200
 @@ -32,7 +32,14 @@
            "nodename": "__KUBERNETES_NODE_NAME__",
            "mtu": __CNI_MTU__,
@@ -9,7 +9,7 @@
 +              "assign_ipv4": "true",
 +              "assign_ipv6": "true",
 +              "ipv4_pools": ["default-ipv4-ippool"],
-+              "ipv6_pools": ["default-ipv6-ippool"]
++              "ipv6_pools": ["natted-ipv6-ippool"]
 +          },
 +          "container_settings": {
 +              "allow_ip_forwarding": true
@@ -44,3 +44,20 @@
        containers:
          - name: calico-kube-controllers
            image: calico/kube-controllers:v3.15.1
+@@ -3741,4 +3753,16 @@
+ ---
+ # Source: calico/templates/configure-canal.yaml
+ 
++---
++apiVersion: crd.projectcalico.org/v1
++kind: IPPool
++metadata:
++  name: natted-ipv6-ippool
++spec:
++  blockSize: 122
++  cidr: fd10:244::/112
++  natOutgoing: true
++  ipipMode: Never
++  nodeSelector: all()
++  vxlanMode: Never
+ 

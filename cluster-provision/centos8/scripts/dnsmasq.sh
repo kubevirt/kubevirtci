@@ -7,6 +7,7 @@ NUM_SECONDARY_NICS=${NUM_SECONDARY_NICS:-0}
 
 ip link add br0 type bridge
 echo 0 > /proc/sys/net/ipv6/conf/br0/disable_ipv6
+echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
 ip link set dev br0 up
 ip addr add dev br0 192.168.66.02/24
 ip -6 addr add fd00::1/64 dev br0
@@ -35,5 +36,8 @@ done
 iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 iptables -A FORWARD -i br0 -o eth0 -j ACCEPT
+ip6tables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+ip6tables -A FORWARD -i br0 -o eth0 -j ACCEPT
 
 exec dnsmasq --interface=br0 --enable-ra -d ${DHCP_HOSTS} --dhcp-range=192.168.66.10,192.168.66.200,infinite --dhcp-range=::10,::200,constructor:br0,static
