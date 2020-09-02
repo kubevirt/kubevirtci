@@ -1,20 +1,20 @@
 SHELL := /bin/bash
 
-BIN_DIR = $(CURDIR)/build
-GO ?= go
+IMAGES_FILE ?= images.json
 
 export GO111MODULE=on
 export GOPROXY=direct
 export GOSUMDB=off
 export GOFLAGS=-mod=vendor
 
+BIN_DIR = $(CURDIR)/build
+GO ?= go
 
 all: container-run
 
 .PHONY: gocli
-cli: fmt
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -o $(BIN_DIR)/cli ./cmd/cli
-
+cli:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -ldflags "-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.SUFFIXES=$(shell cat $(IMAGES_FILE)|base64 -w 0)'" -o $(BIN_DIR)/cli ./cmd/cli
 .PHONY: fmt
 fmt:
 	$(GO) fmt ./cmd/...
