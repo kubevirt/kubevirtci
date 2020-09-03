@@ -5,7 +5,7 @@ set -e
 if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
     _cli="pack8s"
 else
-    _cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-kubevirtci/gocli@sha256:22586076428b7d285c7bfc6cfab50be2f7e4b69ad0f643bc598d1ab2f76ba116}"
+    _cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-kubevirtci/gocli@sha256:e7df282664fb4a1f2f523f46bf4ff72333f5578da8c63cc3165f367d4d79ba2f}"
     _cli="docker run --privileged --net=host --rm ${USE_TTY} -v /var/run/docker.sock:/var/run/docker.sock"
     # gocli will try to mount /lib/modules to make it accessible to dnsmasq in
     # in case it exists
