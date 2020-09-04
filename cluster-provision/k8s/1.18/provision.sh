@@ -300,9 +300,9 @@ for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml | grep value | awk '{print 
 for i in $(grep -A 2 "IMAGE" /provision/local-volume.yaml | grep value | awk -F\" '{print $2}'); do docker_pull_retry $i; done
 
 # Create a properly labelled tmp directory for testing
-mkdir -p /provision/kubevirt.io/tests
-chcon -t container_file_t /provision/kubevirt.io/tests
-echo "tmpfs /provision/kubevirt.io/tests tmpfs rw,context=system_u:object_r:container_file_t:s0 0 1" >> /etc/fstab
+mkdir -p /var/provision/kubevirt.io/tests
+chcon -t container_file_t /var/provision/kubevirt.io/tests
+echo "tmpfs /var/provision/kubevirt.io/tests tmpfs rw,context=system_u:object_r:container_file_t:s0 0 1" >> /etc/fstab
 
 dnf install -y NetworkManager-config-server
 
