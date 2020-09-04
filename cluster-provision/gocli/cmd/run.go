@@ -77,6 +77,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
 	run.Flags().String("container-org", "kubevirtci", "the organization at the registry to pull the container from")
 	run.Flags().String("container-suffix", "", "Override container suffix stored at the cli binary")
+	run.Flags().String("gpu", "", "pci address of a GPU to assign to a node")
 
 	return run
 }
@@ -166,6 +167,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	containerRegistry, err := cmd.Flags().GetString("container-registry")
+	if err != nil {
+		return err
+	}
+	gpuAddress, err := cmd.Flags().GetString("gpu")
 	if err != nil {
 		return err
 	}
@@ -409,10 +414,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodeQemuArgs = fmt.Sprintf("%s -device virtio-net-pci,netdev=secondarynet%s,mac=52:55:00:d1:56:%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, netSuffix, macSuffix, netSuffix, netSuffix)
 		}
 
-		if len(nodeQemuArgs) > 0 {
-			nodeQemuArgs = "--qemu-args \"" + nodeQemuArgs + "\""
-		}
-
 		nodeName := nodeNameFromIndex(x + 1)
 		nodeNum := fmt.Sprintf("%02d", x+1)
 		if reverse {
@@ -428,7 +429,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 		volumes <- vol.Name
 
-		node, err := cli.ContainerCreate(ctx, &container.Config{
+
+        vmContainerConfig := &container.Config{
 			Image: clusterImage,
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
@@ -437,7 +439,37 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 				"/var/run/disk/": {},
 			},
 			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), nodeQemuArgs)},
-		}, &container.HostConfig{
+        }
+
+        // assign a GPU to one node
+        if gpuAddress != "" && x == int(nodes)-1{
+            iommu_group, err := getPCIDeviceIOMMUGroup(gpuAddress)
+            if err != nil {
+                return err
+            }
+            vfioDevice := fmt.Sprintf("/dev/vfio/%s", iommu_group)
+            deviceMappings := []DeviceMapping{
+                {
+                    PathOnHost:        "/dev/vfio/vfio",
+                    PathInContainer:   "/dev/vfio/vfio",
+                    CgroupPermissions: "mrw",
+                },
+                {
+                    PathOnHost:        vfioDevice,
+                    PathInContainer:   vfioDevice,
+                    CgroupPermissions: "mrw",
+                },
+            }
+			nodeQemuArgs = fmt.Sprintf("%s -M q35,accel=kvm,kernel_irqchip=split -device intel-iommu,intremap=on,caching-mode=on -device vfio-pci,host=%s", nodeQemuArgs, gpuAddress)
+            vmContainerConfig.Devices = deviceMappings
+        }
+
+		if len(nodeQemuArgs) > 0 {
+			nodeQemuArgs = "--qemu-args \"" + nodeQemuArgs + "\""
+		}
+
+
+		node, err := cli.ContainerCreate(ctx, vmContainerConfig, &container.HostConfig{
 			Mounts: []mount.Mount{
 				{
 					Type:   "volume",
@@ -587,3 +619,15 @@ func getDockerProxyConfig(proxy string) (string, error) {
 	}
 	return buf.String(), nil
 }
+// getDeviceIOMMUGroup gets devices iommu_group
+// e.g. /sys/bus/pci/devices/0000\:65\:00.0/iommu_group -> ../../../../../kernel/iommu_groups/45
+func getPCIDeviceIOMMUGroup(pciAddress string) (string, error) {
+        iommuLink := filepath.Join("/sys/bus/pci/devices", pciAddress, "iommu_group")
+        iommuPath, err := os.Readlink(iommuLink)
+        if err != nil {
+                return "", fmt.Errorf("failed to read iommu_group link %s for device %s - %v", iommuLink, pciAddress, err)
+        }
+        _, iommuGroup := filepath.Split(iommuPath)
+        return iommuGroup, nil
+}
+
