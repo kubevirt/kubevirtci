@@ -218,6 +218,13 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			"registry:192.168.66.2",
 			"ceph:192.168.66.2",
 		},
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: "/lib/modules",
+				Target: "/lib/modules",
+			},
+		},
 	}, nil, prefix+"-dnsmasq")
 	if err != nil {
 		return err
