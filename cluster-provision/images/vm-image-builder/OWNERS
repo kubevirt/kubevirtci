@@ -1,0 +1,6 @@
+filters:
+  ".*":
+    reviewers:
+      - ormergi
+    approvers:
+      - ormergi
