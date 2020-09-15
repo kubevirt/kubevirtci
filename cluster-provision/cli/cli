@@ -173,7 +173,7 @@ if [ "$COMMAND" = "update" ] ; then
   exit 0
 fi
 
-DNSMASQ_CID=$(docker run -d ${PORTS} -e NUM_NODES=${NODES} --name ${PREFIX}dnsmasq --privileged ${BASE} /bin/bash -c /dnsmasq.sh)
+DNSMASQ_CID=$(docker run -d ${PORTS} -v /lib/modules:/lib/modules -e NUM_NODES=${NODES} --name ${PREFIX}dnsmasq --privileged ${BASE} /bin/bash -c /dnsmasq.sh)
 CONTAINERS=${DNSMASQ_CID}
 
 if [ "$COMMAND" == "provision" ] ; then
