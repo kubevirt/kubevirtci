@@ -194,6 +194,21 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
+	// Mount /lib/modules at dnsmasq if it's there since sometimes
+	// some kernel modules may be mounted
+	dnsmasqMounts := []mount.Mount{}
+	_, err = os.Stat("/lib/modules")
+	if err == nil {
+		dnsmasqMounts = []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: "/lib/modules",
+				Target: "/lib/modules",
+			},
+		}
+
+	}
+
 	// Start dnsmasq
 	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: cluster,
@@ -218,13 +233,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			"registry:192.168.66.2",
 			"ceph:192.168.66.2",
 		},
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: "/lib/modules",
-				Target: "/lib/modules",
-			},
-		},
+		Mounts: dnsmasqMounts,
 	}, nil, prefix+"-dnsmasq")
 	if err != nil {
 		return err

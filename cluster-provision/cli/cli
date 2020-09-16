@@ -173,7 +173,13 @@ if [ "$COMMAND" = "update" ] ; then
   exit 0
 fi
 
-DNSMASQ_CID=$(docker run -d ${PORTS} -v /lib/modules:/lib/modules -e NUM_NODES=${NODES} --name ${PREFIX}dnsmasq --privileged ${BASE} /bin/bash -c /dnsmasq.sh)
+# gocli will try to mount /lib/modules to make it accessible to dnsmasq in
+# in case it exists
+if [ -d /lib/modules ]; then
+        dnsmasq_mounts="-v /lib/modules/:/lib/modules/"
+fi
+
+DNSMASQ_CID=$(docker run -d ${PORTS} ${dnsmasq_mounts} -e NUM_NODES=${NODES} --name ${PREFIX}dnsmasq --privileged ${BASE} /bin/bash -c /dnsmasq.sh)
 CONTAINERS=${DNSMASQ_CID}
 
 if [ "$COMMAND" == "provision" ] ; then
