@@ -19,7 +19,7 @@ function docker_pull_retry() {
     fi
 }
 
-kubeadmn_patches_path="/provision/kubeadm-patches"
+kubeadmn_patches_path="/var/provision/kubeadm-patches"
 
 # Need to have the latest kernel
 dnf update -y kernel
@@ -30,14 +30,14 @@ if growpart /dev/vda 1; then
     xfs_growfs -d /
 fi
 
-mkdir -p /provision
+mkdir -p /var/provision
 
 dnf install -y patch
-cni_manifest="/provision/cni.yaml"
+cni_manifest="/var/provision/cni.yaml"
 cp /tmp/cni.do-not-change.yaml $cni_manifest
 patch $cni_manifest /tmp/cni.diff
 
-cp /tmp/local-volume.yaml /provision/local-volume.yaml
+cp /tmp/local-volume.yaml /var/provision/local-volume.yaml
 
 # Disable swap
 swapoff -a
@@ -349,7 +349,7 @@ cp -rf /tmp/cnao/ /opt/
 for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml | grep value | awk '{print $2}'); do docker_pull_retry $i; done
 
 # Pre pull local-volume-provisioner
-for i in $(grep -A 2 "IMAGE" /provision/local-volume.yaml | grep value | awk -F\" '{print $2}'); do docker_pull_retry $i; done
+for i in $(grep -A 2 "IMAGE" /var/provision/local-volume.yaml | grep value | awk -F\" '{print $2}'); do docker_pull_retry $i; done
 
 # Create a properly labelled tmp directory for testing
 mkdir -p /var/provision/kubevirt.io/tests
