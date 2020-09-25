@@ -1,6 +1,7 @@
 package cmd
 
 import (
+    "bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -631,3 +632,21 @@ func getPCIDeviceIOMMUGroup(pciAddress string) (string, error) {
         return iommuGroup, nil
 }
 
+func getDevicePCIID(pciAddress string) (string, error) {
+    file, err := os.Open(filepath.Join("/sys/bus/pci/devices", pciAddress, "uevent"))
+    if err != nil {
+        return "", err
+    }
+    defer file.Close()
+
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+        line := scanner.Text()
+        if strings.HasPrefix(line, "PCI_ID") {
+            equal := strings.Index(line, "=")
+            value := strings.TrimSpace(line[equal+1:])
+            return strings.ToLower(value), nil
+        }
+    }
+    return "", fmt.Errorf("no pci_id is found")
+}
