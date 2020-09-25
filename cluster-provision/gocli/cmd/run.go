@@ -460,7 +460,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
                     CgroupPermissions: "mrw",
                 },
             }
-			nodeQemuArgs = fmt.Sprintf("%s -M q35,accel=kvm,kernel_irqchip=split -device intel-iommu,intremap=on,caching-mode=on -device vfio-pci,host=%s", nodeQemuArgs, gpuAddress)
+			nodeQemuArgs = fmt.Sprintf("%s -device vfio-pci,host=%s", nodeQemuArgs, gpuAddress)
             vmContainerConfig.Devices = deviceMappings
         }
 
