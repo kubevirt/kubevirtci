@@ -96,4 +96,5 @@ exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,c
   -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
   -device virtio-rng-pci \
   -vnc :${n} -cpu host -m ${MEMORY} -smp ${CPU} ${QEMU_ARGS} \
-  -serial pty
+  -serial pty -M q35,accel=kvm,kernel_irqchip=split \
+  -device intel-iommu,intremap=on,caching-mode=on -soundhw hda
