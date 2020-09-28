@@ -74,6 +74,9 @@ dnf -y install container-selinux
 #   which in turn forces docker-ce to an older version, making it incompatible with docker-ce-cli...
 dnf -y module disable container-tools
 
+# Install iptables needed for docker-ce
+dnf install -y iptables
+
 # Install Docker CE.
 dnf install -y docker-ce --nobest
 
