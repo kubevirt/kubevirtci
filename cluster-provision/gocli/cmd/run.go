@@ -27,6 +27,7 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/images"
 )
 
+const soundcardPCIID = "8086:2668"
 const proxySettings = `
 mkdir -p /etc/systemd/system/docker.service.d/
 
@@ -521,8 +522,25 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 
 		if success {
+            // move the VM sound card to a vfio-pci driver to prepare for assignment
+            err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), soundcardPCIID, "")
+            if err != nil {
+                return err
+            }
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName)}, os.Stdout)
 		} else {
+            // move the VM sound card to a vfio-pci driver to prepare for assignment
+            err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), soundcardPCIID, "")
+            if err != nil {
+                return err
+            }
+            if gpuAddress != "" {
+                // move the assigned PCI device to a vfio-pci driver to prepare for assignment
+                err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), "", gpuAddress)
+                if err != nil {
+                    return err
+                }
+            }
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/nodes.sh"}, os.Stdout)
 		}
 
@@ -649,4 +667,24 @@ func getDevicePCIID(pciAddress string) (string, error) {
         }
     }
     return "", fmt.Errorf("no pci_id is found")
+}
+
+// prepareDeviceForAssignment moves the deivce from it's original driver to vfio-pci driver
+func prepareDeviceForAssignment(cli *client.Client, nodeContainer, pciID, pciAddress string) error {
+    devicePCIID = pciID
+    if pciAddress != nil {
+        devicePCIID = getDevicePCIID(pciAddress)
+    }
+    success, err := docker.Exec(cli, nodeContainer, []string{
+        "/bin/bash",
+        "-c",
+        fmt.Sprintf("ssh.sh sudo /bin/bash -s -- --vendor %s < /scripts/bind_device_to_vfio.sh", devicePCIID),
+    }, os.Stdout)
+    if err != nil {
+        return err
+    }
+    if !success {
+        return fmt.Errorf("binding device to vfio driver failed")
+    }
+    return nil
 }

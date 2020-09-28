@@ -14,8 +14,8 @@ function get_device_driver() {
 }
 
 # find the PCI address of the device by vendor_id:product_id
-pci_address=(`lspci -n -d ${vendor}`)
-pci_address="0000:${pci_address[0]}"
+pci_address=(`lspci -D -d ${vendor}`)
+pci_address="${pci_address[0]}"
 dev_sysfs_path="/sys/bus/pci/devices/$pci_address"
 
 if [[ ! -d $dev_sysfs_path ]]; then
