@@ -23,6 +23,7 @@ import (
 
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/images"
 )
 
 const proxySettings = `
@@ -72,6 +73,8 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
 	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
+	run.Flags().String("container-org", "kubevirtci", "the organization at the registry to pull the container from")
+	run.Flags().String("container-suffix", "", "Override container suffix stored at the cli binary")
 
 	return run
 }
@@ -163,6 +166,16 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	containerOrg, err := cmd.Flags().GetString("container-org")
+	if err != nil {
+		return err
+	}
+
+	containerSuffix, err := cmd.Flags().GetString("container-suffix")
+	if err != nil {
+		return err
+	}
+
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return err
@@ -185,8 +198,26 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		done <- fmt.Errorf("Interrupt received, clean up")
 	}()
 
+	clusterImage := cluster
+
+	// Check if cluster container suffix has not being override
+	// in that case use the default preffix stored at the binary
+	if containerSuffix == "" {
+		containerSuffix, found := images.SuffixByProvider[cluster]
+		if found {
+			if containerSuffix == "" {
+				return fmt.Errorf("Empty Suffix for %s provider", cluster)
+			}
+		}
+	}
+	if containerSuffix != "" {
+		clusterImage = fmt.Sprintf("%s/%s%s", containerOrg, cluster, containerSuffix)
+	} else {
+		clusterImage = path.Join(containerOrg, cluster)
+	}
+
 	if len(containerRegistry) > 0 {
-		imageRef := path.Join(containerRegistry, cluster)
+		imageRef := path.Join(containerRegistry, clusterImage)
 		fmt.Printf("Download the image %s\n", imageRef)
 		err = docker.ImagePull(cli, ctx, imageRef, types.ImagePullOptions{})
 		if err != nil {
@@ -211,7 +242,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 
 	// Start dnsmasq
 	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: cluster,
+		Image: clusterImage,
 		Env: []string{
 			fmt.Sprintf("NUM_NODES=%d", nodes),
 			fmt.Sprintf("NUM_SECONDARY_NICS=%d", secondaryNics),
@@ -432,7 +463,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		volumes <- vol.Name
 
 		node, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: cluster,
+			Image: clusterImage,
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
 			},

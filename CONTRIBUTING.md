@@ -6,12 +6,6 @@ See [the KubeVirt contribution guide](https://github.com/kubevirt/kubevirt/blob/
 
 ## Getting started with gocli
 
-Prerequisites:
-* python
-* Bazel
-
-Install Bazel according https://docs.bazel.build/versions/master/install.html
-Change dir to gocli folder:
 ```
 cd cluster-provision/gocli
 ```
@@ -19,7 +13,7 @@ cd cluster-provision/gocli
 Using local gocli images during development, and in order to test before publishing:
 ```
 make container-run
-export KUBEVIRTCI_GOCLI_CONTAINER=bazel:gocli
+export KUBEVIRTCI_GOCLI_CONTAINER=kubevirtci/gocli:latest
 ```
 
 Publishing (after make container-run / make all)

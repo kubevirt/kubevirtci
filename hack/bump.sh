@@ -26,7 +26,12 @@ PROVIDER=${1:?}
 HASH=${2:?}
 
 function main() {
-    sed -i "s/IMAGES\["$PROVIDER"\].*/IMAGES\["$PROVIDER"\]=\""$PROVIDER"@sha256:"$HASH"\"/g" cluster-up/cluster/images.sh
+    if [ "$PROVIDER" == "gocli" ]; then
+        sed -i "s#gocli@sha256:[a-z0-9]*#gocli@sha256:$HASH#" cluster-up/cluster/ephemeral-provider-common.sh
+    else
+        jq ".\"$PROVIDER\" = \"$HASH\"" cluster-provision/gocli/images.json > /tmp/images.json
+        mv /tmp/images.json cluster-provision/gocli/images.json
+    fi
 }
 
 main "$@"
