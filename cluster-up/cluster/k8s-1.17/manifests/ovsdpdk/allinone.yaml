@@ -188,7 +188,7 @@ spec:
       serviceAccountName: ovsdpdk-network-operator
       containers:
         - name: ovsdpdk-network-operator
-          image: quay.io/krsacme/ovsdpdk-network-operator:latest
+          image: quay.io/krsacme/ovsdpdk-network-operator:v0.0.1
           command:
           - ovsdpdk-network-operator
           imagePullPolicy: Always
