@@ -354,6 +354,9 @@ for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml | grep value | awk '{print 
 # Pre pull local-volume-provisioner
 for i in $(grep -A 2 "IMAGE" /var/provision/local-volume.yaml | grep value | awk -F\" '{print $2}'); do docker_pull_retry $i; done
 
+# Pre pull ovsdpdk operator image
+docker_pull_retry quay.io/krsacme/ovsdpdk-network-operator:v0.0.1
+
 # Create a properly labelled tmp directory for testing
 mkdir -p /var/provision/kubevirt.io/tests
 chcon -t container_file_t /var/provision/kubevirt.io/tests
