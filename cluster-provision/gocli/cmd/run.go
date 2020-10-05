@@ -1,7 +1,7 @@
 package cmd
 
 import (
-    "bufio"
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"text/template"
 
@@ -432,7 +433,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		volumes <- vol.Name
 
 
-        vmContainerConfig := &container.Config{
+		vmContainerConfig := &container.Config{
 			Image: clusterImage,
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
@@ -441,30 +442,30 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 				"/var/run/disk/": {},
 			},
 			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), nodeQemuArgs)},
-        }
+		}
 
-        // assign a GPU to one node
-        if gpuAddress != "" && x == int(nodes)-1{
-            iommu_group, err := getPCIDeviceIOMMUGroup(gpuAddress)
-            if err != nil {
-                return err
-            }
-            vfioDevice := fmt.Sprintf("/dev/vfio/%s", iommu_group)
-            deviceMappings := []DeviceMapping{
-                {
-                    PathOnHost:        "/dev/vfio/vfio",
-                    PathInContainer:   "/dev/vfio/vfio",
-                    CgroupPermissions: "mrw",
-                },
-                {
-                    PathOnHost:        vfioDevice,
-                    PathInContainer:   vfioDevice,
-                    CgroupPermissions: "mrw",
-                },
-            }
+		// assign a GPU to one node
+		var deviceMappings []container.DeviceMapping
+		if gpuAddress != "" && x == int(nodes)-1 {
+			iommu_group, err := getPCIDeviceIOMMUGroup(gpuAddress)
+			if err != nil {
+				return err
+			}
+			vfioDevice := fmt.Sprintf("/dev/vfio/%s", iommu_group)
+			deviceMappings = []container.DeviceMapping{
+				{
+					PathOnHost:        "/dev/vfio/vfio",
+					PathInContainer:   "/dev/vfio/vfio",
+					CgroupPermissions: "mrw",
+				},
+				{
+					PathOnHost:        vfioDevice,
+					PathInContainer:   vfioDevice,
+					CgroupPermissions: "mrw",
+				},
+			}
 			nodeQemuArgs = fmt.Sprintf("%s -device vfio-pci,host=%s", nodeQemuArgs, gpuAddress)
-            vmContainerConfig.Devices = deviceMappings
-        }
+		}
 
 		if len(nodeQemuArgs) > 0 {
 			nodeQemuArgs = "--qemu-args \"" + nodeQemuArgs + "\""
@@ -481,6 +482,9 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			},
 			Privileged:  true,
 			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
+			Resources: container.Resources{
+				Devices: deviceMappings,
+			},
 		}, nil, prefix+"-"+nodeName)
 		if err != nil {
 			return err
@@ -671,9 +675,9 @@ func getDevicePCIID(pciAddress string) (string, error) {
 
 // prepareDeviceForAssignment moves the deivce from it's original driver to vfio-pci driver
 func prepareDeviceForAssignment(cli *client.Client, nodeContainer, pciID, pciAddress string) error {
-    devicePCIID = pciID
-    if pciAddress != nil {
-        devicePCIID = getDevicePCIID(pciAddress)
+    devicePCIID := pciID
+    if pciAddress != "" {
+        devicePCIID, _ = getDevicePCIID(pciAddress)
     }
     success, err := docker.Exec(cli, nodeContainer, []string{
         "/bin/bash",
