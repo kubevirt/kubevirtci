@@ -21,6 +21,10 @@ const (
 	PortAPI = 6443
 	// PortVNC contains first VM VNC port
 	PortVNC = 5901
+	// PortHTTP contains ingress HTTP port
+	PortHTTP = 80
+	// PortHTTPS contains ingress HTTPS port
+	PortHTTPS = 443
 	//PortOCPConsole contains OCP console port
 	PortOCPConsole = 443
 
@@ -37,6 +41,10 @@ const (
 	PortNameAPI = "k8s"
 	// PortNameVNC contains VNC port name
 	PortNameVNC = "vnc"
+	// PortNameHTTP contains HTTP port name
+	PortNameHTTP = "http"
+	// PortNameHTTPS contains HTTPS port name
+	PortNameHTTPS = "https"
 	// PortNameOCPConsole contains OCP console port
 	PortNameOCPConsole = "console"
 )

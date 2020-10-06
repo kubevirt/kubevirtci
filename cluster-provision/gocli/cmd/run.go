@@ -64,6 +64,8 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
 	run.Flags().String("registry-volume", "", "cache docker registry content in the specified volume")
 	run.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
+	run.Flags().Uint("http-port", 0, "port on localhost for http")
+	run.Flags().Uint("https-port", 0, "port on localhost for https")
 	run.Flags().Uint("registry-port", 0, "port on localhost for the docker registry")
 	run.Flags().Uint("ocp-port", 0, "port on localhost for the ocp cluster")
 	run.Flags().Uint("k8s-port", 0, "port on localhost for the k8s cluster")
@@ -110,6 +112,8 @@ func run(cmd *cobra.Command, args []string) (err error) {
 
 	utils.AppendIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
 	utils.AppendIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
+	utils.AppendIfExplicit(portMap, utils.PortHTTP, cmd.Flags(), "http-port")
+	utils.AppendIfExplicit(portMap, utils.PortHTTPS, cmd.Flags(), "https-port")
 	utils.AppendIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port")
 	utils.AppendIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port")
 	utils.AppendIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port")
@@ -254,6 +258,8 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			utils.TCPPortOrDie(utils.PortOCP):      {},
 			utils.TCPPortOrDie(utils.PortAPI):      {},
 			utils.TCPPortOrDie(utils.PortVNC):      {},
+			utils.TCPPortOrDie(utils.PortHTTP):     {},
+			utils.TCPPortOrDie(utils.PortHTTPS):    {},
 		},
 	}, &container.HostConfig{
 		Privileged:      true,
