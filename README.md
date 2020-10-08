@@ -6,10 +6,6 @@ Welcome! This repository hosts code to provision and start containerized Kuberne
 
 See [K8S.md](K8S.md)
 
-## Getting Started with multi-node OKD Provider
-
-See [OKD.md](OKD.md)
-
 ## Testing kubevirt with locally provisioned cluster
 
 See [KUBEVIRT_LOCAL_TESTING.md](KUBEVIRT_LOCAL_TESTING.md)
