@@ -11,12 +11,14 @@ var (
 )
 
 func init() {
-	suffixes, err := base64.StdEncoding.DecodeString(SUFFIXES)
-	if err != nil {
-		panic(err)
-	}
-	err = json.Unmarshal([]byte(suffixes), &SuffixByProvider)
-	if err != nil {
-		panic(err)
+	if len(SUFFIXES) > 0 {
+		suffixes, err := base64.StdEncoding.DecodeString(SUFFIXES)
+		if err != nil {
+			panic(err)
+		}
+		err = json.Unmarshal([]byte(suffixes), &SuffixByProvider)
+		if err != nil {
+			panic(err)
+		}
 	}
 }

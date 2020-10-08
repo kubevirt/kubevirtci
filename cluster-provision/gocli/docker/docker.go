@@ -180,7 +180,7 @@ func Terminal(cli *client.Client, container string, args []string, file *os.File
 	return resp.ExitCode, nil
 }
 
-func NewCleanupHandler(cli *client.Client, errWriter io.Writer) (containers chan string, volumes chan string, done chan error) {
+func NewCleanupHandler(cli *client.Client, cleanupChan chan error, errWriter io.Writer) (containers chan string, volumes chan string, done chan error) {
 
 	ctx := context.Background()
 
@@ -191,6 +191,7 @@ func NewCleanupHandler(cli *client.Client, errWriter io.Writer) (containers chan
 	go func() {
 		createdContainers := []string{}
 		createdVolumes := []string{}
+		defer close(done)
 
 		for {
 			select {
@@ -198,7 +199,7 @@ func NewCleanupHandler(cli *client.Client, errWriter io.Writer) (containers chan
 				createdContainers = append(createdContainers, container)
 			case volume := <-volumes:
 				createdVolumes = append(createdVolumes, volume)
-			case err := <-done:
+			case err := <-cleanupChan:
 				if err != nil {
 					for _, c := range createdContainers {
 						err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
@@ -216,6 +217,7 @@ func NewCleanupHandler(cli *client.Client, errWriter io.Writer) (containers chan
 						}
 					}
 				}
+				return
 			}
 		}
 	}()

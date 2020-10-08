@@ -14,6 +14,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
+	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
 
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
@@ -32,6 +33,8 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
 	provision.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	provision.Flags().String("scripts", "", "location for the provision and run scripts")
+	provision.Flags().String("k8s-version", "", "k8s version")
+	provision.Flags().String("base", "", "base container")
 	provision.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
@@ -61,6 +64,11 @@ func provision(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	_, err = cmd.Flags().GetString("k8s-version")
+	if err != nil {
+		return err
+	}
+
 	portMap := nat.PortMap{}
 
 	utils.AppendIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
@@ -85,17 +93,19 @@ func provision(cmd *cobra.Command, args []string) error {
 	}
 	ctx := context.Background()
 
-	containers, volumes, done := docker.NewCleanupHandler(cli, cmd.OutOrStderr())
+	stop := make(chan error, 10)
+	containers, volumes, done := docker.NewCleanupHandler(cli, stop, cmd.OutOrStderr())
 
 	defer func() {
-		done <- fmt.Errorf("please clean up")
+		stop <- fmt.Errorf("please clean up")
+		<-done
 	}()
 
 	go func() {
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
-		done <- fmt.Errorf("Interrupt received, clean up")
+		stop <- fmt.Errorf("Interrupt received, clean up")
 	}()
 
 	// Pull the base image
@@ -106,21 +116,14 @@ func provision(cmd *cobra.Command, args []string) error {
 	docker.PrintProgress(reader, os.Stdout)
 
 	// Start dnsmasq
-	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: base,
-		Env: []string{
-			fmt.Sprintf("NUM_NODES=1"),
-		},
-		Cmd: []string{"/bin/bash", "-c", "/dnsmasq.sh"},
-		ExposedPorts: nat.PortSet{
-			utils.TCPPortOrDie(utils.PortSSH): {},
-			utils.TCPPortOrDie(utils.PortVNC): {},
-		},
-	}, &container.HostConfig{
-		Privileged:      true,
-		PublishAllPorts: randomPorts,
-		PortBindings:    portMap,
-	}, nil, prefix+"-dnsmasq")
+	dnsmasq, err := containers2.DNSMasq(cli, ctx, &containers2.DNSMasqOptions{
+		ClusterImage:       base,
+		SecondaryNicsCount: 0,
+		RandomPorts:        randomPorts,
+		PortMap:            portMap,
+		Prefix:             prefix,
+		NodeCount:          1,
+	})
 	if err != nil {
 		return err
 	}
@@ -184,20 +187,20 @@ func provision(cmd *cobra.Command, args []string) error {
 	}
 
 	//check if we have a special provision script
-	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "test -f /scripts/provision.sh"}, os.Stdout)
-	if err != nil {
-		return fmt.Errorf("checking for a provision script failed failed: %v", err)
-	}
+	//success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "test -f /scripts/provision.sh"}, os.Stdout)
+	//if err != nil {
+	//	return fmt.Errorf("checking for a provision script failed: %v", err)
+	//}
 
-	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/provision.sh"}, os.Stdout)
+	//success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo version=%s /bin/bash < /scripts/provision.sh", version)}, os.Stdout)
 
-	if err != nil {
-		return err
-	}
+	//if err != nil {
+	//	return err
+	//}
 
-	if !success {
-		return fmt.Errorf("provisioning node %s failed", nodeName)
-	}
+	//if !success {
+	//	return fmt.Errorf("provisioning node %s failed", nodeName)
+	//}
 
 	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "rm /usr/local/bin/ssh.sh"}, os.Stdout)
 	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "rm /ssh_ready"}, os.Stdout)
