@@ -80,7 +80,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		}
 		base = fmt.Sprintf("kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
 
-		prefix = fmt.Sprintf("k8s-provision-%s", filepath.Base(packagePath))
+		prefix = fmt.Sprintf("k8s-%s-provision", filepath.Base(packagePath))
 		target = fmt.Sprintf("kubevirtci/k8s-%s", filepath.Base(packagePath))
 		if scripts == "" {
 			scripts = filepath.Join(packagePath)
@@ -137,11 +137,10 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}()
 
 	// Pull the base image
-	reader, err := cli.ImagePull(ctx, "docker.io/"+base, types.ImagePullOptions{})
+	 err = docker.ImagePull(cli, ctx, "docker.io/"+base, types.ImagePullOptions{})
 	if err != nil {
 		panic(err)
 	}
-	docker.PrintProgress(reader, os.Stdout)
 
 	// Start dnsmasq
 	dnsmasq, err := containers2.DNSMasq(cli, ctx, &containers2.DNSMasqOptions{

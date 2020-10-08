@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
@@ -42,6 +43,26 @@ func GetPrefixedVolumes(cli *client.Client, prefix string) ([]*types.Volume, err
 }
 
 func ImagePull(cli *client.Client, ctx context.Context, ref string, options types.ImagePullOptions) error {
+
+	if !strings.ContainsAny(ref, ":@") {
+		ref = ref + ":latest"
+	}
+	ref = strings.TrimPrefix(ref, "docker.io/")
+
+	images, err := cli.ImageList(ctx, types.ImageListOptions{All: true} )
+	if err != nil {
+		return err
+	}
+
+	for _, img := range  images {
+		for _, tag := range append(img.RepoTags, img.RepoDigests...) {
+			if tag == ref {
+				logrus.Infof("Using local image %s", ref)
+				return nil
+			}
+		}
+	}
+	logrus.Infof("Using remote image %s", ref)
 
 	for _, i := range []int{0, 1, 2, 6} {
 		time.Sleep(time.Duration(i) * time.Second)
