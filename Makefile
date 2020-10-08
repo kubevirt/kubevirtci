@@ -5,9 +5,6 @@ cluster-up:
 cluster-down:
 	./cluster-up/down.sh
 
-bump:
-	./hack/bump.sh "$(provider)" "$(hash)"
-
 .PHONY: \
 	cluster-up \
 	cluster-down \
