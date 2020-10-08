@@ -3,6 +3,8 @@
 
 set -exuo pipefail
 
+(cd ../gocli && make container)
+
 CI=${CI:-"false"}
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 provision_dir="$1"
@@ -12,6 +14,7 @@ function cleanup {
   make cluster-down
 }
 
+export KUBEVIRTCI_GOCLI_CONTAINER=kubevirtci/gocli:devel
 # check cluster-up
 (
   ksh="./cluster-up/kubectl.sh"

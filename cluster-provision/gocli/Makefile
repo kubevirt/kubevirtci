@@ -14,7 +14,7 @@ all: container-run
 
 .PHONY: gocli
 cli:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -ldflags "-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.SUFFIXES=$(shell cat $(IMAGES_FILE)|base64 -w 0)'" -o $(BIN_DIR)/cli ./cmd/cli
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -ldflags "-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.SUFFIX=:devel'" -o $(BIN_DIR)/cli ./cmd/cli
 .PHONY: fmt
 fmt:
 	$(GO) fmt ./cmd/...
@@ -23,6 +23,7 @@ fmt:
 .PHONY: container
 container: cli
 	docker build -t kubevirtci/gocli build/
+	docker tag kubevirtci/gocli kubevirtci/gocli:devel
 
 .PHONY: container-run
 container-run: container

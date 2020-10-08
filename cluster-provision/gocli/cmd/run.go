@@ -209,12 +209,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	// Check if cluster container suffix has not being override
 	// in that case use the default preffix stored at the binary
 	if containerSuffix == "" {
-		containerSuffix, found := images.SuffixByProvider[cluster]
-		if found {
-			if containerSuffix == "" {
-				return fmt.Errorf("Empty Suffix for %s provider", cluster)
-			}
-		}
+		containerSuffix = images.SUFFIX
 	}
 	if containerSuffix != "" {
 		clusterImage = fmt.Sprintf("%s/%s%s", containerOrg, cluster, containerSuffix)
