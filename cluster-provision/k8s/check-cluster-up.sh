@@ -14,7 +14,7 @@ function cleanup {
   make cluster-down
 }
 
-export KUBEVIRTCI_GOCLI_CONTAINER=kubevirtci/gocli:devel
+export KUBEVIRTCI_GOCLI_CONTAINER=kubevirtci/gocli:latest
 # check cluster-up
 (
   ksh="./cluster-up/kubectl.sh"
