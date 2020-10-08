@@ -81,7 +81,7 @@ func NewRunCommand() *cobra.Command {
 	return run
 }
 
-func run(cmd *cobra.Command, args []string) (err error) {
+func run(cmd *cobra.Command, args []string) (retErr error) {
 
 	prefix, err := cmd.Flags().GetString("prefix")
 	if err != nil {
@@ -189,10 +189,10 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	ctx, cancel := context.WithCancel(b)
 
 	stop := make(chan error, 10)
-	containers, volumes, done := docker.NewCleanupHandler(cli, stop, cmd.OutOrStderr())
+	containers, volumes, done := docker.NewCleanupHandler(cli, stop, cmd.OutOrStderr(), false)
 
 	defer func() {
-		stop <- err
+		stop <- retErr
 		<-done
 	}()
 
