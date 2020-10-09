@@ -20,8 +20,8 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
-
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
+	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/images"
 )
@@ -81,7 +81,7 @@ func NewRunCommand() *cobra.Command {
 	return run
 }
 
-func run(cmd *cobra.Command, args []string) (err error) {
+func run(cmd *cobra.Command, args []string) (retErr error) {
 
 	prefix, err := cmd.Flags().GetString("prefix")
 	if err != nil {
@@ -188,10 +188,12 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	b := context.Background()
 	ctx, cancel := context.WithCancel(b)
 
-	containers, volumes, done := docker.NewCleanupHandler(cli, cmd.OutOrStderr())
+	stop := make(chan error, 10)
+	containers, volumes, done := docker.NewCleanupHandler(cli, stop, cmd.OutOrStderr(), false)
 
 	defer func() {
-		done <- err
+		stop <- retErr
+		<-done
 	}()
 
 	go func() {
@@ -199,7 +201,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
 		cancel()
-		done <- fmt.Errorf("Interrupt received, clean up")
+		stop <- fmt.Errorf("Interrupt received, clean up")
 	}()
 
 	clusterImage := cluster
@@ -207,12 +209,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	// Check if cluster container suffix has not being override
 	// in that case use the default preffix stored at the binary
 	if containerSuffix == "" {
-		containerSuffix, found := images.SuffixByProvider[cluster]
-		if found {
-			if containerSuffix == "" {
-				return fmt.Errorf("Empty Suffix for %s provider", cluster)
-			}
-		}
+		containerSuffix = images.SUFFIX
 	}
 	if containerSuffix != "" {
 		clusterImage = fmt.Sprintf("%s/%s%s", containerOrg, cluster, containerSuffix)
@@ -229,52 +226,15 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	// Mount /lib/modules at dnsmasq if it's there since sometimes
-	// some kernel modules may be mounted
-	dnsmasqMounts := []mount.Mount{}
-	_, err = os.Stat("/lib/modules")
-	if err == nil {
-		dnsmasqMounts = []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: "/lib/modules",
-				Target: "/lib/modules",
-			},
-		}
+	dnsmasq, err := containers2.DNSMasq(cli, ctx, &containers2.DNSMasqOptions{
+		ClusterImage:       clusterImage,
+		SecondaryNicsCount: secondaryNics,
+		RandomPorts:        randomPorts,
+		PortMap:            portMap,
+		Prefix:             prefix,
+		NodeCount:          nodes,
+	})
 
-	}
-
-	// Start dnsmasq
-	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: clusterImage,
-		Env: []string{
-			fmt.Sprintf("NUM_NODES=%d", nodes),
-			fmt.Sprintf("NUM_SECONDARY_NICS=%d", secondaryNics),
-		},
-		Cmd: []string{"/bin/bash", "-c", "/dnsmasq.sh"},
-		ExposedPorts: nat.PortSet{
-			utils.TCPPortOrDie(utils.PortSSH):      {},
-			utils.TCPPortOrDie(utils.PortRegistry): {},
-			utils.TCPPortOrDie(utils.PortOCP):      {},
-			utils.TCPPortOrDie(utils.PortAPI):      {},
-			utils.TCPPortOrDie(utils.PortVNC):      {},
-			utils.TCPPortOrDie(utils.PortHTTP):     {},
-			utils.TCPPortOrDie(utils.PortHTTPS):    {},
-		},
-	}, &container.HostConfig{
-		Privileged:      true,
-		PublishAllPorts: randomPorts,
-		PortBindings:    portMap,
-		ExtraHosts: []string{
-			"nfs:192.168.66.2",
-			"registry:192.168.66.2",
-			"ceph:192.168.66.2",
-		},
-		Mounts: dnsmasqMounts,
-	}, nil, prefix+"-dnsmasq")
-	if err != nil {
-		return err
-	}
 	containers <- dnsmasq.ID
 	if err := cli.ContainerStart(ctx, dnsmasq.ID, types.ContainerStartOptions{}); err != nil {
 		return err
@@ -599,7 +559,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	// If background flag was specified, we don't want to clean up if we reach that state
 	if !background {
 		wg.Wait()
-		done <- fmt.Errorf("Done. please clean up")
+		stop <- fmt.Errorf("Done. please clean up")
 	}
 
 	return nil

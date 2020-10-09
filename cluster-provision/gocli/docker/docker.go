@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
@@ -43,6 +44,26 @@ func GetPrefixedVolumes(cli *client.Client, prefix string) ([]*types.Volume, err
 
 func ImagePull(cli *client.Client, ctx context.Context, ref string, options types.ImagePullOptions) error {
 
+	if !strings.ContainsAny(ref, ":@") {
+		ref = ref + ":latest"
+	}
+	ref = strings.TrimPrefix(ref, "docker.io/")
+
+	images, err := cli.ImageList(ctx, types.ImageListOptions{All: true} )
+	if err != nil {
+		return err
+	}
+
+	for _, img := range  images {
+		for _, tag := range append(img.RepoTags, img.RepoDigests...) {
+			if tag == ref {
+				logrus.Infof("Using local image %s", ref)
+				return nil
+			}
+		}
+	}
+	logrus.Infof("Using remote image %s", ref)
+
 	for _, i := range []int{0, 1, 2, 6} {
 		time.Sleep(time.Duration(i) * time.Second)
 		reader, err := cli.ImagePull(ctx, ref, options)
@@ -58,19 +79,6 @@ func ImagePull(cli *client.Client, ctx context.Context, ref string, options type
 		return nil
 	}
 	return fmt.Errorf("failed to download %s four times, giving up.", ref)
-}
-
-func GetDDNSMasqContainer(cli *client.Client, prefix string) (*types.Container, error) {
-	containers, err := GetPrefixedContainers(cli, prefix+"-"+"dnsmasq")
-	if err != nil {
-		return nil, err
-	}
-
-	if len(containers) == 1 {
-		return &containers[0], nil
-	}
-
-	return nil, fmt.Errorf("Could not identify dnsmasq container %s", prefix+"-dnsmasq")
 }
 
 func Exec(cli *client.Client, container string, args []string, out io.Writer) (bool, error) {
@@ -180,7 +188,7 @@ func Terminal(cli *client.Client, container string, args []string, file *os.File
 	return resp.ExitCode, nil
 }
 
-func NewCleanupHandler(cli *client.Client, errWriter io.Writer) (containers chan string, volumes chan string, done chan error) {
+func NewCleanupHandler(cli *client.Client, cleanupChan chan error, errWriter io.Writer, forceClean bool) (containers chan string, volumes chan string, done chan error) {
 
 	ctx := context.Background()
 
@@ -191,6 +199,7 @@ func NewCleanupHandler(cli *client.Client, errWriter io.Writer) (containers chan
 	go func() {
 		createdContainers := []string{}
 		createdVolumes := []string{}
+		defer close(done)
 
 		for {
 			select {
@@ -198,11 +207,21 @@ func NewCleanupHandler(cli *client.Client, errWriter io.Writer) (containers chan
 				createdContainers = append(createdContainers, container)
 			case volume := <-volumes:
 				createdVolumes = append(createdVolumes, volume)
-			case err := <-done:
+			case err := <-cleanupChan:
+				log := false
 				if err != nil {
+					log = true
+				}
+				if err != nil || forceClean {
 					for _, c := range createdContainers {
+						if log {
+							reader, err := cli.ContainerLogs(ctx, c, types.ContainerLogsOptions{ShowStderr: true, ShowStdout: true, Details: true})
+							if err == nil {
+								fmt.Fprintf(os.Stderr, "\n===== %s ====\n", c)
+								io.Copy(os.Stderr, reader)
+							}
+						}
 						err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
-						fmt.Printf("container: %v\n", c)
 						if err != nil {
 							fmt.Fprintf(errWriter, "%v\n", err)
 						}
@@ -216,6 +235,7 @@ func NewCleanupHandler(cli *client.Client, errWriter io.Writer) (containers chan
 						}
 					}
 				}
+				return
 			}
 		}
 	}()

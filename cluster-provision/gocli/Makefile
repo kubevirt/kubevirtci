@@ -14,7 +14,7 @@ all: container-run
 
 .PHONY: gocli
 cli:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -ldflags "-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.SUFFIXES=$(shell cat $(IMAGES_FILE)|base64 -w 0)'" -o $(BIN_DIR)/cli ./cmd/cli
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -ldflags "-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.SUFFIX=:$(KUBEVIRTCI_TAG)'" -o $(BIN_DIR)/cli ./cmd/cli
 .PHONY: fmt
 fmt:
 	$(GO) fmt ./cmd/...

@@ -2,18 +2,24 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
+	"strings"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/go-connections/nat"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
+	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
 
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
@@ -25,13 +31,12 @@ func NewProvisionCommand() *cobra.Command {
 	provision := &cobra.Command{
 		Use:   "provision",
 		Short: "provision starts a given cluster",
-		RunE:  provision,
-		Args:  cobra.ExactArgs(2),
+		RunE:  provisionCluster,
+		Args:  cobra.ExactArgs(1),
 	}
 	provision.Flags().StringP("memory", "m", "3096M", "amount of ram per node")
 	provision.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
 	provision.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
-	provision.Flags().String("scripts", "", "location for the provision and run scripts")
 	provision.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
@@ -39,17 +44,22 @@ func NewProvisionCommand() *cobra.Command {
 	return provision
 }
 
-func provision(cmd *cobra.Command, args []string) error {
-
-	prefix, err := cmd.Flags().GetString("prefix")
+func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
+	packagePath := args[0]
+	versionBytes, err := ioutil.ReadFile(filepath.Join(packagePath, "version"))
 	if err != nil {
 		return err
 	}
-
-	scripts, err := cmd.Flags().GetString("scripts")
+	version := strings.TrimSpace(string(versionBytes))
+	baseBytes, err := ioutil.ReadFile(filepath.Join(packagePath, "base"))
 	if err != nil {
 		return err
 	}
+	base := fmt.Sprintf("kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
+
+	prefix := fmt.Sprintf("k8s-%s-provision", filepath.Base(packagePath))
+	target := fmt.Sprintf("kubevirtci/k8s-%s", filepath.Base(packagePath))
+	scripts := filepath.Join(packagePath)
 
 	memory, err := cmd.Flags().GetString("memory")
 	if err != nil {
@@ -76,51 +86,42 @@ func provision(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	base := args[0]
-	//target := args[1]
-
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return err
 	}
 	ctx := context.Background()
 
-	containers, volumes, done := docker.NewCleanupHandler(cli, cmd.OutOrStderr())
+	stop := make(chan error, 10)
+	containers, volumes, done := docker.NewCleanupHandler(cli, stop, cmd.OutOrStderr(), true)
 
 	defer func() {
-		done <- fmt.Errorf("please clean up")
+		stop <- retErr
+		<-done
 	}()
 
 	go func() {
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
-		done <- fmt.Errorf("Interrupt received, clean up")
+		stop <- fmt.Errorf("Interrupt received, clean up")
 	}()
 
 	// Pull the base image
-	reader, err := cli.ImagePull(ctx, "docker.io/"+base, types.ImagePullOptions{})
+	err = docker.ImagePull(cli, ctx, "docker.io/"+base, types.ImagePullOptions{})
 	if err != nil {
 		panic(err)
 	}
-	docker.PrintProgress(reader, os.Stdout)
 
 	// Start dnsmasq
-	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: base,
-		Env: []string{
-			fmt.Sprintf("NUM_NODES=1"),
-		},
-		Cmd: []string{"/bin/bash", "-c", "/dnsmasq.sh"},
-		ExposedPorts: nat.PortSet{
-			utils.TCPPortOrDie(utils.PortSSH): {},
-			utils.TCPPortOrDie(utils.PortVNC): {},
-		},
-	}, &container.HostConfig{
-		Privileged:      true,
-		PublishAllPorts: randomPorts,
-		PortBindings:    portMap,
-	}, nil, prefix+"-dnsmasq")
+	dnsmasq, err := containers2.DNSMasq(cli, ctx, &containers2.DNSMasqOptions{
+		ClusterImage:       base,
+		SecondaryNicsCount: 0,
+		RandomPorts:        randomPorts,
+		PortMap:            portMap,
+		Prefix:             prefix,
+		NodeCount:          1,
+	})
 	if err != nil {
 		return err
 	}
@@ -150,7 +151,7 @@ func provision(cmd *cobra.Command, args []string) error {
 		Volumes: map[string]struct{}{
 			"/var/run/disk/": {},
 		},
-		Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), qemuArgs)},
+		Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), qemuArgs)},
 	}, &container.HostConfig{
 		Mounts: []mount.Mount{
 			{
@@ -161,7 +162,7 @@ func provision(cmd *cobra.Command, args []string) error {
 		},
 		Privileged:  true,
 		NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
-	}, nil, prefix+"-"+nodeName)
+	}, nil, nodeContainer(prefix, nodeName))
 	if err != nil {
 		return err
 	}
@@ -171,40 +172,99 @@ func provision(cmd *cobra.Command, args []string) error {
 	}
 
 	// Copy scripts
-	fmt.Println(scripts)
-
-	// Wait for vm start
-	success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "while [ ! -f /ssh_ready ] ; do sleep 1; done"}, os.Stdout)
+	srcInfo, err := archive.CopyInfoSourcePath(scripts, false)
 	if err != nil {
 		return err
 	}
 
-	if !success {
-		return fmt.Errorf("checking for ssh.sh script for node %s failed", nodeName)
+	srcArchive, err := archive.TarResource(srcInfo)
+	if err != nil {
+		return err
+	}
+	defer srcArchive.Close()
+
+	dstInfo := archive.CopyInfo{Path: "/scripts"}
+
+	dstDir, preparedArchive, err := archive.PrepareArchiveCopy(srcArchive, srcInfo, dstInfo)
+	if err != nil {
+		return err
+	}
+	defer preparedArchive.Close()
+
+	err = cli.CopyToContainer(ctx, node.ID, dstDir, preparedArchive, types.CopyToContainerOptions{AllowOverwriteDirWithFile: false})
+	if err != nil {
+		return err
+	}
+
+	// Wait for ssh.sh script to exist
+	err = _cmd(cli, nodeContainer(prefix, nodeName), "while [ ! -f /ssh_ready ] ; do sleep 1; done", "checking for ssh.sh script")
+	if err != nil {
+		return err
+	}
+
+	// Wait for the VM to be up
+	err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh echo VM is up", "waiting for node to come up")
+	if err != nil {
+		return err
+	}
+
+	// Copy scripts to the VM
+	err = _cmd(cli, nodeContainer(prefix, nodeName), "scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/manifests/* vagrant@192.168.66.101:/tmp", "copying scripts to the VM")
+	if err != nil {
+		return err
 	}
 
 	//check if we have a special provision script
-	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "test -f /scripts/provision.sh"}, os.Stdout)
-	if err != nil {
-		return fmt.Errorf("checking for a provision script failed failed: %v", err)
-	}
-
-	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/provision.sh"}, os.Stdout)
-
+	err = _cmd(cli, nodeContainer(prefix, nodeName), "test -f /scripts/provision.sh", "checking for provision script")
 	if err != nil {
 		return err
 	}
 
-	if !success {
-		return fmt.Errorf("provisioning node %s failed", nodeName)
+	err = _cmd(cli, nodeContainer(prefix, nodeName), fmt.Sprintf("ssh.sh sudo version=%s /bin/bash < /scripts/provision.sh", version), "provisioning the node")
+	if err != nil {
+		return err
 	}
 
-	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "rm /usr/local/bin/ssh.sh"}, os.Stdout)
-	success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "rm /ssh_ready"}, os.Stdout)
+	err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh sudo shutdown -h", "shutting down the node")
+	if err != nil {
+		return err
+	}
+	err = _cmd(cli, nodeContainer(prefix, nodeName), "rm /usr/local/bin/ssh.sh", "removing the ssh.sh script")
+	if err != nil {
+		return err
+	}
+	err = _cmd(cli, nodeContainer(prefix, nodeName), "rm /ssh_ready", "removing the ssh_ready mark")
+	if err != nil {
+		return err
+	}
+	logrus.Info("waiting for the node to stop")
+	_, err = cli.ContainerWait(ctx, nodeContainer(prefix, nodeName))
+	if err != nil {
+		return fmt.Errorf("waiting for the node to stop failed: %v", err)
+	}
+	logrus.Infof("Commiting the node as %s", target)
+	_, err = cli.ContainerCommit(ctx, node.ID, types.ContainerCommitOptions{
+		Reference: target,
+		Comment:   "PROVISION SUCCEEDED",
+		Author:    "gocli",
+		Changes:   nil,
+		Pause:     false,
+		Config:    nil,
+	})
+	if err != nil {
+		return fmt.Errorf("commiting the node failed: %v", err)
+	}
 
-	go func(id string) {
-		cli.ContainerWait(context.Background(), id)
-	}(node.ID)
+	return nil
+}
 
+func _cmd(cli *client.Client, container string, cmd string, description string) error {
+	logrus.Info(description)
+	success, err := docker.Exec(cli, container, []string{"/bin/bash", "-c", cmd}, os.Stdout)
+	if err != nil {
+		return fmt.Errorf("%s failed: %v", description, err)
+	} else if !success {
+		return fmt.Errorf("%s failed")
+	}
 	return nil
 }
