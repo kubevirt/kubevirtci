@@ -3,7 +3,7 @@
 
 set -exuo pipefail
 
-(cd ../gocli && make container)
+make -C ../gocli container
 
 CI=${CI:-"false"}
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

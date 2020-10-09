@@ -9,7 +9,7 @@ export base="$(cat base | tr -d '\n')"
 
 cd $DIR
 
-(cd ../${base} && pwd && ./build.sh)
-(cd ../gocli && make cli)
+(cd ../${base} && ./build.sh)
+make -C ../gocli cli
 ../gocli/build/cli provision ${provision_dir}
 ./check-cluster-up.sh ${provision_dir}
