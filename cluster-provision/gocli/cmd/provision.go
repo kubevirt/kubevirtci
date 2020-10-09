@@ -32,13 +32,11 @@ func NewProvisionCommand() *cobra.Command {
 		Use:   "provision",
 		Short: "provision starts a given cluster",
 		RunE:  provisionCluster,
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 	}
 	provision.Flags().StringP("memory", "m", "3096M", "amount of ram per node")
 	provision.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
 	provision.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
-	provision.Flags().String("scripts", "", "location for the provision and run scripts")
-	provision.Flags().String("k8s-version", "", "k8s version")
 	provision.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
@@ -47,48 +45,21 @@ func NewProvisionCommand() *cobra.Command {
 }
 
 func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
-	var base string
-	var target string
-
-	prefix, err := cmd.Flags().GetString("prefix")
+	packagePath := args[0]
+	versionBytes, err := ioutil.ReadFile(filepath.Join(packagePath, "version"))
 	if err != nil {
 		return err
 	}
-
-	scripts, err := cmd.Flags().GetString("scripts")
+	version := strings.TrimSpace(string(versionBytes))
+	baseBytes, err := ioutil.ReadFile(filepath.Join(packagePath, "base"))
 	if err != nil {
 		return err
 	}
+	base := fmt.Sprintf("kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
 
-	version, err := cmd.Flags().GetString("k8s-version")
-	if err != nil {
-		return err
-	}
-
-	if len(args) == 1 {
-		packagePath := args[0]
-		if version == "" {
-			versionBytes, err := ioutil.ReadFile(filepath.Join(packagePath, "version"))
-			if err != nil {
-				return err
-			}
-			version = strings.TrimSpace(string(versionBytes))
-		}
-		baseBytes, err := ioutil.ReadFile(filepath.Join(packagePath, "base"))
-		if err != nil {
-			return err
-		}
-		base = fmt.Sprintf("kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
-
-		prefix = fmt.Sprintf("k8s-%s-provision", filepath.Base(packagePath))
-		target = fmt.Sprintf("kubevirtci/k8s-%s", filepath.Base(packagePath))
-		if scripts == "" {
-			scripts = filepath.Join(packagePath)
-		}
-	} else {
-		base = args[0]
-		target = args[1]
-	}
+	prefix := fmt.Sprintf("k8s-%s-provision", filepath.Base(packagePath))
+	target := fmt.Sprintf("kubevirtci/k8s-%s", filepath.Base(packagePath))
+	scripts := filepath.Join(packagePath)
 
 	memory, err := cmd.Flags().GetString("memory")
 	if err != nil {
@@ -137,7 +108,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}()
 
 	// Pull the base image
-	 err = docker.ImagePull(cli, ctx, "docker.io/"+base, types.ImagePullOptions{})
+	err = docker.ImagePull(cli, ctx, "docker.io/"+base, types.ImagePullOptions{})
 	if err != nil {
 		panic(err)
 	}
@@ -282,7 +253,6 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	})
 	if err != nil {
 		return fmt.Errorf("commiting the node failed: %v", err)
-		return err
 	}
 
 	return nil
