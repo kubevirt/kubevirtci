@@ -1,3 +1,6 @@
+
+export KUBEVIRTCI_TAG ?= $(shell curl -L https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirtci/latest)
+
 cluster-up:
 	./cluster-up/check.sh
 	./cluster-up/up.sh
