@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"text/template"
 
@@ -26,6 +28,7 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/images"
 )
 
+const soundcardPCIID = "8086:2668"
 const proxySettings = `
 mkdir -p /etc/systemd/system/docker.service.d/
 
@@ -77,6 +80,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
 	run.Flags().String("container-org", "kubevirtci", "the organization at the registry to pull the container from")
 	run.Flags().String("container-suffix", "", "Override container suffix stored at the cli binary")
+	run.Flags().String("gpu", "", "pci address of a GPU to assign to a node")
 
 	return run
 }
@@ -166,6 +170,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	containerRegistry, err := cmd.Flags().GetString("container-registry")
+	if err != nil {
+		return err
+	}
+	gpuAddress, err := cmd.Flags().GetString("gpu")
 	if err != nil {
 		return err
 	}
@@ -409,10 +417,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodeQemuArgs = fmt.Sprintf("%s -device virtio-net-pci,netdev=secondarynet%s,mac=52:55:00:d1:56:%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, netSuffix, macSuffix, netSuffix, netSuffix)
 		}
 
-		if len(nodeQemuArgs) > 0 {
-			nodeQemuArgs = "--qemu-args \"" + nodeQemuArgs + "\""
-		}
-
 		nodeName := nodeNameFromIndex(x + 1)
 		nodeNum := fmt.Sprintf("%02d", x+1)
 		if reverse {
@@ -428,7 +432,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 		volumes <- vol.Name
 
-		node, err := cli.ContainerCreate(ctx, &container.Config{
+
+		vmContainerConfig := &container.Config{
 			Image: clusterImage,
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
@@ -437,7 +442,37 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 				"/var/run/disk/": {},
 			},
 			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), nodeQemuArgs)},
-		}, &container.HostConfig{
+		}
+
+		// assign a GPU to one node
+		var deviceMappings []container.DeviceMapping
+		if gpuAddress != "" && x == int(nodes)-1 {
+			iommu_group, err := getPCIDeviceIOMMUGroup(gpuAddress)
+			if err != nil {
+				return err
+			}
+			vfioDevice := fmt.Sprintf("/dev/vfio/%s", iommu_group)
+			deviceMappings = []container.DeviceMapping{
+				{
+					PathOnHost:        "/dev/vfio/vfio",
+					PathInContainer:   "/dev/vfio/vfio",
+					CgroupPermissions: "mrw",
+				},
+				{
+					PathOnHost:        vfioDevice,
+					PathInContainer:   vfioDevice,
+					CgroupPermissions: "mrw",
+				},
+			}
+			nodeQemuArgs = fmt.Sprintf("%s -device vfio-pci,host=%s", nodeQemuArgs, gpuAddress)
+		}
+
+		if len(nodeQemuArgs) > 0 {
+			nodeQemuArgs = "--qemu-args \"" + nodeQemuArgs + "\""
+		}
+
+
+		node, err := cli.ContainerCreate(ctx, vmContainerConfig, &container.HostConfig{
 			Mounts: []mount.Mount{
 				{
 					Type:   "volume",
@@ -447,6 +482,9 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			},
 			Privileged:  true,
 			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
+			Resources: container.Resources{
+				Devices: deviceMappings,
+			},
 		}, nil, prefix+"-"+nodeName)
 		if err != nil {
 			return err
@@ -488,8 +526,25 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 
 		if success {
+            // move the VM sound card to a vfio-pci driver to prepare for assignment
+            err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), soundcardPCIID, "")
+            if err != nil {
+                return err
+            }
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName)}, os.Stdout)
 		} else {
+            // move the VM sound card to a vfio-pci driver to prepare for assignment
+            err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), soundcardPCIID, "")
+            if err != nil {
+                return err
+            }
+            if gpuAddress != "" {
+                // move the assigned PCI device to a vfio-pci driver to prepare for assignment
+                err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), "", gpuAddress)
+                if err != nil {
+                    return err
+                }
+            }
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/nodes.sh"}, os.Stdout)
 		}
 
@@ -586,4 +641,54 @@ func getDockerProxyConfig(proxy string) (string, error) {
 		return "", err
 	}
 	return buf.String(), nil
+}
+// getDeviceIOMMUGroup gets devices iommu_group
+// e.g. /sys/bus/pci/devices/0000\:65\:00.0/iommu_group -> ../../../../../kernel/iommu_groups/45
+func getPCIDeviceIOMMUGroup(pciAddress string) (string, error) {
+        iommuLink := filepath.Join("/sys/bus/pci/devices", pciAddress, "iommu_group")
+        iommuPath, err := os.Readlink(iommuLink)
+        if err != nil {
+                return "", fmt.Errorf("failed to read iommu_group link %s for device %s - %v", iommuLink, pciAddress, err)
+        }
+        _, iommuGroup := filepath.Split(iommuPath)
+        return iommuGroup, nil
+}
+
+func getDevicePCIID(pciAddress string) (string, error) {
+    file, err := os.Open(filepath.Join("/sys/bus/pci/devices", pciAddress, "uevent"))
+    if err != nil {
+        return "", err
+    }
+    defer file.Close()
+
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+        line := scanner.Text()
+        if strings.HasPrefix(line, "PCI_ID") {
+            equal := strings.Index(line, "=")
+            value := strings.TrimSpace(line[equal+1:])
+            return strings.ToLower(value), nil
+        }
+    }
+    return "", fmt.Errorf("no pci_id is found")
+}
+
+// prepareDeviceForAssignment moves the deivce from it's original driver to vfio-pci driver
+func prepareDeviceForAssignment(cli *client.Client, nodeContainer, pciID, pciAddress string) error {
+    devicePCIID := pciID
+    if pciAddress != "" {
+        devicePCIID, _ = getDevicePCIID(pciAddress)
+    }
+    success, err := docker.Exec(cli, nodeContainer, []string{
+        "/bin/bash",
+        "-c",
+        fmt.Sprintf("ssh.sh sudo /bin/bash -s -- --vendor %s < /scripts/bind_device_to_vfio.sh", devicePCIID),
+    }, os.Stdout)
+    if err != nil {
+        return err
+    }
+    if !success {
+        return fmt.Errorf("binding device to vfio driver failed")
+    }
+    return nil
 }
