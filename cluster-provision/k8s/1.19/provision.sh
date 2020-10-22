@@ -67,6 +67,11 @@ dnf -y install yum-utils \
 # Add Docker repository.
 dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
 
+# Enable the nightly version to get a new enough runc version which includes containerd
+# with a new enough runc version to avoid https://github.com/kubernetes/kubernetes/issues/95296#issuecomment-714419461
+# which manifests in /dev/* permission denied flakes on cpu manager enabled nodes
+dnf config-manager --set-enabled docker-ce-nightly
+
 # Install package(s) that trigger the enablement of the container-tools yum module
 dnf -y install container-selinux
 
