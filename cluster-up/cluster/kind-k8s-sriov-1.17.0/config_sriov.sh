@@ -267,6 +267,16 @@ function apply_sriov_node_policy {
   return 0
 }
 
+function apply_sriov_network {
+  local -r sriov_network_file="$1"
+
+  _kubectl apply -f $sriov_network_file || return 1
+  wait_k8s_object "sriovnetwork" "sriov-network-example" "sriov-network-operator" || return 1
+  wait_k8s_object "net-attach-def" "sriov-network-example" "default" || return 1
+
+  echo "sriov network is ready 'sriov-network-example'" || return 0
+}
+
 # The first worker needs to be handled specially as it has no ending number, and sort will not work
 # We add the 0 to it and we remove it if it's the candidate worker
 WORKER=$(_kubectl get nodes | grep $WORKER_NODE_ROOT | sed "s/\b$WORKER_NODE_ROOT\b/${WORKER_NODE_ROOT}0/g" | sort -r | awk 'NR==1 {print $1}')
@@ -330,6 +340,9 @@ wait_pods_ready
 # Verify that sriov node has sriov VFs allocatable resource
 resource_name=$(cat $policy | grep 'resourceName:' | awk '{print $2}')
 wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM_VFS || exit 1
+
+# Create sriov-network
+apply_sriov_network "$MANIFESTS_DIR/sriov-network-example.yaml"|| exit 1
 
 _kubectl get nodes
 _kubectl get pods -n $SRIOV_OPERATOR_NAMESPACE
