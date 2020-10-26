@@ -432,18 +432,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 		volumes <- vol.Name
 
-
-		vmContainerConfig := &container.Config{
-			Image: clusterImage,
-			Env: []string{
-				fmt.Sprintf("NODE_NUM=%s", nodeNum),
-			},
-			Volumes: map[string]struct{}{
-				"/var/run/disk/": {},
-			},
-			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), nodeQemuArgs)},
-		}
-
 		// assign a GPU to one node
 		var deviceMappings []container.DeviceMapping
 		if gpuAddress != "" && x == int(nodes)-1 {
@@ -471,6 +459,16 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodeQemuArgs = "--qemu-args \"" + nodeQemuArgs + "\""
 		}
 
+		vmContainerConfig := &container.Config{
+			Image: clusterImage,
+			Env: []string{
+				fmt.Sprintf("NODE_NUM=%s", nodeNum),
+			},
+			Volumes: map[string]struct{}{
+				"/var/run/disk/": {},
+			},
+			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), nodeQemuArgs)},
+		}
 
 		node, err := cli.ContainerCreate(ctx, vmContainerConfig, &container.HostConfig{
 			Mounts: []mount.Mount{
@@ -526,25 +524,25 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 
 		if success {
-            // move the VM sound card to a vfio-pci driver to prepare for assignment
-            err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), soundcardPCIID, "")
-            if err != nil {
-                return err
-            }
+			// move the VM sound card to a vfio-pci driver to prepare for assignment
+			err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), soundcardPCIID, "")
+			if err != nil {
+				return err
+			}
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName)}, os.Stdout)
 		} else {
-            // move the VM sound card to a vfio-pci driver to prepare for assignment
-            err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), soundcardPCIID, "")
-            if err != nil {
-                return err
-            }
-            if gpuAddress != "" {
-                // move the assigned PCI device to a vfio-pci driver to prepare for assignment
-                err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), "", gpuAddress)
-                if err != nil {
-                    return err
-                }
-            }
+			// move the VM sound card to a vfio-pci driver to prepare for assignment
+			err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), soundcardPCIID, "")
+			if err != nil {
+				return err
+			}
+			if gpuAddress != "" {
+				// move the assigned PCI device to a vfio-pci driver to prepare for assignment
+				err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), "", gpuAddress)
+				if err != nil {
+					return err
+				}
+			}
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/nodes.sh"}, os.Stdout)
 		}
 
@@ -642,53 +640,54 @@ func getDockerProxyConfig(proxy string) (string, error) {
 	}
 	return buf.String(), nil
 }
+
 // getDeviceIOMMUGroup gets devices iommu_group
 // e.g. /sys/bus/pci/devices/0000\:65\:00.0/iommu_group -> ../../../../../kernel/iommu_groups/45
 func getPCIDeviceIOMMUGroup(pciAddress string) (string, error) {
-        iommuLink := filepath.Join("/sys/bus/pci/devices", pciAddress, "iommu_group")
-        iommuPath, err := os.Readlink(iommuLink)
-        if err != nil {
-                return "", fmt.Errorf("failed to read iommu_group link %s for device %s - %v", iommuLink, pciAddress, err)
-        }
-        _, iommuGroup := filepath.Split(iommuPath)
-        return iommuGroup, nil
+	iommuLink := filepath.Join("/sys/bus/pci/devices", pciAddress, "iommu_group")
+	iommuPath, err := os.Readlink(iommuLink)
+	if err != nil {
+		return "", fmt.Errorf("failed to read iommu_group link %s for device %s - %v", iommuLink, pciAddress, err)
+	}
+	_, iommuGroup := filepath.Split(iommuPath)
+	return iommuGroup, nil
 }
 
 func getDevicePCIID(pciAddress string) (string, error) {
-    file, err := os.Open(filepath.Join("/sys/bus/pci/devices", pciAddress, "uevent"))
-    if err != nil {
-        return "", err
-    }
-    defer file.Close()
+	file, err := os.Open(filepath.Join("/sys/bus/pci/devices", pciAddress, "uevent"))
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
 
-    scanner := bufio.NewScanner(file)
-    for scanner.Scan() {
-        line := scanner.Text()
-        if strings.HasPrefix(line, "PCI_ID") {
-            equal := strings.Index(line, "=")
-            value := strings.TrimSpace(line[equal+1:])
-            return strings.ToLower(value), nil
-        }
-    }
-    return "", fmt.Errorf("no pci_id is found")
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "PCI_ID") {
+			equal := strings.Index(line, "=")
+			value := strings.TrimSpace(line[equal+1:])
+			return strings.ToLower(value), nil
+		}
+	}
+	return "", fmt.Errorf("no pci_id is found")
 }
 
 // prepareDeviceForAssignment moves the deivce from it's original driver to vfio-pci driver
 func prepareDeviceForAssignment(cli *client.Client, nodeContainer, pciID, pciAddress string) error {
-    devicePCIID := pciID
-    if pciAddress != "" {
-        devicePCIID, _ = getDevicePCIID(pciAddress)
-    }
-    success, err := docker.Exec(cli, nodeContainer, []string{
-        "/bin/bash",
-        "-c",
-        fmt.Sprintf("ssh.sh sudo /bin/bash -s -- --vendor %s < /scripts/bind_device_to_vfio.sh", devicePCIID),
-    }, os.Stdout)
-    if err != nil {
-        return err
-    }
-    if !success {
-        return fmt.Errorf("binding device to vfio driver failed")
-    }
-    return nil
+	devicePCIID := pciID
+	if pciAddress != "" {
+		devicePCIID, _ = getDevicePCIID(pciAddress)
+	}
+	success, err := docker.Exec(cli, nodeContainer, []string{
+		"/bin/bash",
+		"-c",
+		fmt.Sprintf("ssh.sh sudo /bin/bash -s -- --vendor %s < /scripts/bind_device_to_vfio.sh", devicePCIID),
+	}, os.Stdout)
+	if err != nil {
+		return err
+	}
+	if !success {
+		return fmt.Errorf("binding device to vfio driver failed")
+	}
+	return nil
 }
