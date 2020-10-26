@@ -18,6 +18,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=kubevirtci/gocli:latest
 # check cluster-up
 (
   ksh="./cluster-up/kubectl.sh"
+  ssh="./cluster-up/ssh.sh"
   cd "$DIR" && cd ../..
   export KUBEVIRTCI_PROVISION_CHECK=1
   export KUBEVIRT_PROVIDER="k8s-${provision_dir}"
@@ -29,6 +30,15 @@ export KUBEVIRTCI_GOCLI_CONTAINER=kubevirtci/gocli:latest
   ${ksh} wait --for=condition=Ready pod --timeout=200s -n kube-system --all
   ${ksh} get nodes
   ${ksh} get pods -A
+
+  # Run some checks for KUBEVIRT_NUM_NODES
+  # and KUBEVIRT_NUM_SECONDARY_NICS
+  ${ksh} get node node01
+  ${ksh} get node node02
+  ${ssh} node01 -- ip l show eth1
+  ${ssh} node01 -- ip l show eth2
+  ${ssh} node02 -- ip l show eth1
+  ${ssh} node02 -- ip l show eth2
 
   # Run conformance test only at CI and if the provider has them activated
   conformance_config=$DIR/${provision_dir}/conformance.json
