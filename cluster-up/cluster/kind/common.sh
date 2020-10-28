@@ -284,5 +284,6 @@ function down() {
         return
     fi
     $KIND delete cluster --name=${CLUSTER_NAME}
+    docker rm -f $REGISTRY_NAME >> /dev/null
     rm -f ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
 }
