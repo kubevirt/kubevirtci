@@ -12,7 +12,9 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -500,6 +502,20 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 		if !success {
 			return fmt.Errorf("checking for ssh.sh script for node %s failed", nodeName)
+		}
+
+		// Wait for the VM to be up
+		for x := 0; x < 10; x++ {
+			err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh echo VM is up", "waiting for node to come up")
+			if err == nil {
+				break
+			}
+			logrus.WithError(err).Warningf("Could not establish a ssh connection to the VM, retrying ...")
+			time.Sleep(1 * time.Second)
+		}
+
+		if err != nil {
+			return fmt.Errorf("could not establish a connection to the node after a generous timeout: %v", err)
 		}
 
 		if dockerProxy != "" {
