@@ -1,5 +1,5 @@
 
-export KUBEVIRTCI_TAG ?= $(shell curl -L https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirtci/latest)
+export KUBEVIRTCI_TAG ?= $(shell curl -L -Ss https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirtci/latest)
 
 cluster-up:
 	./cluster-up/check.sh
