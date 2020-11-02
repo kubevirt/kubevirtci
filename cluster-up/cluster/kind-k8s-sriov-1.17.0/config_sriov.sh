@@ -10,6 +10,16 @@ KUBECONFIG_PATH="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
 MASTER_NODE="${CLUSTER_NAME}-control-plane"
 WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
 
+if ! skopeo -v &> /dev/null
+then
+        echo "skopeo could not be found, creating alias for sriov operator, see hack/env.sh"
+        cat <<EOF > /usr/local/bin/skopeo
+#!/bin/bash
+docker run --rm quay.io/skopeo/stable "$@"
+EOF
+        chmod +x /usr/local/bin/skopeo
+fi
+
 OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
 
 # This function gets a command string and invoke it
