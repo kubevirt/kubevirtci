@@ -2,12 +2,12 @@
 
 set -ex
 
-function docker_pull_retry() {
+function pull_container_retry() {
     retry=0
     maxRetries=5
     retryAfterSeconds=3
     until [ ${retry} -ge ${maxRetries} ]; do
-        docker pull $@ && break
+        crictl pull $@ && break
         retry=$((${retry} + 1))
         echo "Retrying ${FUNCNAME} [${retry}/${maxRetries}] in ${retryAfterSeconds}(s)"
         sleep ${retryAfterSeconds}
@@ -59,54 +59,20 @@ yum -y install iscsi-initiator-utils
 # To prevent preflight issue realted to tc not found
 dnf install -y tc
 
-# Install docker required packages.
-dnf -y install yum-utils \
-    device-mapper-persistent-data \
-    lvm2
+sudo dnf module enable cri-o:1.18
+sudo dnf install cri-o cri-tools
 
-# Add Docker repository.
-dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+cat << EOF > /etc/containers/registries.conf
+[registries.search]
+registries = ['registry.access.redhat.com', 'registry.fedoraproject.org', 'quay.io', 'docker.io']
 
-# Enable the nightly version to get a new enough runc version which includes containerd
-# with a new enough runc version to avoid https://github.com/kubernetes/kubernetes/issues/95296#issuecomment-714419461
-# which manifests in /dev/* permission denied flakes on cpu manager enabled nodes
-dnf config-manager --set-enabled docker-ce-nightly
+[registries.insecure]
+registries = ['registry:5000']
 
-# Install package(s) that trigger the enablement of the container-tools yum module
-dnf -y install container-selinux
-
-# Disable the container-tools module, as it forces containerd.io to an ancient version,
-#   which in turn forces docker-ce to an older version, making it incompatible with docker-ce-cli...
-dnf -y module disable container-tools
-
-# Install iptables needed for docker-ce
-dnf install -y iptables
-
-# Install Docker CE.
-dnf install -y docker-ce --nobest
-
-# Create /etc/docker directory.
-mkdir /etc/docker
-
-# Setup docker daemon
-cat << EOF > /etc/docker/daemon.json
-{
-  "insecure-registries" : ["registry:5000"],
-  "log-driver": "json-file",
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "ipv6": true,
-  "fixed-cidr-v6": "2001:db9:1::/64",
-  "selinux-enabled": true
-}
+[registries.block]
+registries = []
 EOF
 
-mkdir -p /etc/systemd/system/docker.service.d
-
-# Restart Docker
-systemctl daemon-reload
-systemctl restart docker
-
-#TODO: el8 repo
 # Add Kubernetes repository.
 cat <<EOF >/etc/yum.repos.d/kubernetes.repo
 [kubernetes]
@@ -130,14 +96,10 @@ cat <<EOT >/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
 EOT
 
-systemctl daemon-reload
-
-systemctl enable docker && systemctl start docker
-systemctl enable kubelet && systemctl start kubelet
-
 # Needed for kubernetes service routing and dns
 # https://github.com/kubernetes/kubernetes/issues/33798#issuecomment-250962627
 modprobe bridge
+modprobe overlay
 modprobe br_netfilter
 cat <<EOF >  /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-iptables = 1
@@ -150,6 +112,11 @@ sysctl --system
 
 echo bridge >> /etc/modules
 echo br_netfilter >> /etc/modules
+echo overlay >> /etc/modules
+
+systemctl daemon-reload
+systemctl enable crio && systemctl start crio
+systemctl enable kubelet && systemctl start kubelet
 
 # configure additional settings for cni plugin
 cat <<EOF >/etc/NetworkManager/conf.d/001-calico.conf
@@ -289,23 +256,23 @@ chmod -R 777 /var/local/kubevirt-storage/local-volume
 chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 
 # Pre pull fluentd image used in logging
-docker_pull_retry fluent/fluentd:v1.2-debian
-docker_pull_retry fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
+pull_container_retry fluent/fluentd:v1.2-debian
+pull_container_retry fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
 
 # Pre pull images used in Ceph CSI
-docker_pull_retry quay.io/k8scsi/csi-attacher:v1.0.1
-docker_pull_retry quay.io/k8scsi/csi-provisioner:v1.0.1
-docker_pull_retry quay.io/k8scsi/csi-snapshotter:v1.0.1
-docker_pull_retry quay.io/cephcsi/rbdplugin:v1.0.0
-docker_pull_retry quay.io/k8scsi/csi-node-driver-registrar:v1.0.2
+pull_container_retry quay.io/k8scsi/csi-attacher:v1.0.1
+pull_container_retry quay.io/k8scsi/csi-provisioner:v1.0.1
+pull_container_retry quay.io/k8scsi/csi-snapshotter:v1.0.1
+pull_container_retry quay.io/cephcsi/rbdplugin:v1.0.0
+pull_container_retry quay.io/k8scsi/csi-node-driver-registrar:v1.0.2
 
 # Pre pull cluster network addons operator images and store manifests
 # so we can use them at cluster-up
 cp -rf /tmp/cnao/ /opt/
-for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml | grep value | awk '{print $2}'); do docker_pull_retry $i; done
+for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml | grep value | awk '{print $2}'); do pull_container_retry $i; done
 
 # Pre pull local-volume-provisioner
-for i in $(grep -A 2 "IMAGE" /var/provision/local-volume.yaml | grep value | awk -F\" '{print $2}'); do docker_pull_retry $i; done
+for i in $(grep -A 2 "IMAGE" /var/provision/local-volume.yaml | grep value | awk -F\" '{print $2}'); do pull_container_retry $i; done
 
 # Create a properly labelled tmp directory for testing
 mkdir -p /var/provision/kubevirt.io/tests
