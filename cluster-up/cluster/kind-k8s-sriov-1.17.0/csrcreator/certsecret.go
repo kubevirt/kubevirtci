@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/retry"
 )
 
 var (
@@ -45,66 +46,77 @@ func generateCSR() ([]byte, []byte, error) {
 
 func getSignedCertificate(request []byte) ([]byte, error) {
 	csrName := strings.Join([]string{prefix, "csr"}, "-")
-	log.Printf("before")
-	csr, err := clientset.CertificatesV1beta1().CertificateSigningRequests().Get(csrName, metav1.GetOptions{})
-	log.Printf("after")
-	if csr != nil || err == nil {
-		log.Printf("CSR %s already exists, removing it first", csrName)
-		clientset.CertificatesV1beta1().CertificateSigningRequests().Delete(csrName, &metav1.DeleteOptions{})
-	}
+	
+	certificate := []byte{}
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		log.Printf("before")
+		csr, err := clientset.CertificatesV1beta1().CertificateSigningRequests().Get(csrName, metav1.GetOptions{})
+		log.Printf("after")
+		if csr != nil || err == nil {
+			log.Printf("CSR %s already exists, removing it first", csrName)	
+			err = clientset.CertificatesV1beta1().CertificateSigningRequests().Delete(csrName, &metav1.DeleteOptions{})
+		}
+		
+		log.Printf("creating new CSR %s", csrName)
+		/* build Kubernetes CSR object */
+		csr = &v1beta1.CertificateSigningRequest{}
+		csr.ObjectMeta.Name = csrName
+		csr.ObjectMeta.Namespace = namespace
+		csr.Spec.Request = request
+		csr.Spec.Groups = []string{"system:authenticated"}
+		csr.Spec.Usages = []v1beta1.KeyUsage{v1beta1.UsageDigitalSignature, v1beta1.UsageServerAuth, v1beta1.UsageKeyEncipherment}
 
-	log.Printf("creating new CSR %s", csrName)
-	/* build Kubernetes CSR object */
-	csr = &v1beta1.CertificateSigningRequest{}
-	csr.ObjectMeta.Name = csrName
-	csr.ObjectMeta.Namespace = namespace
-	csr.Spec.Request = request
-	csr.Spec.Groups = []string{"system:authenticated"}
-	csr.Spec.Usages = []v1beta1.KeyUsage{v1beta1.UsageDigitalSignature, v1beta1.UsageServerAuth, v1beta1.UsageKeyEncipherment}
-
-	/* push CSR to Kubernetes API server */
-	csr, err = clientset.CertificatesV1beta1().CertificateSigningRequests().Create(csr)
-	if err != nil {
-		return nil, errors.Wrap(err, "error creating CSR in Kubernetes API: %s")
-	}
-	log.Printf("CSR pushed to the Kubernetes API")
-
-	if csr.Status.Certificate != nil {
-		log.Printf("using already issued certificate for CSR %s", csrName)
-		return csr.Status.Certificate, nil
-	}
-	/* approve certificate in K8s API */
-	csr.ObjectMeta.Name = csrName
-	csr.ObjectMeta.Namespace = namespace
-	csr.Status.Conditions = append(csr.Status.Conditions, v1beta1.CertificateSigningRequestCondition{
-		Type:           v1beta1.CertificateApproved,
-		Reason:         "Approved by net-attach-def admission controller installer",
-		Message:        "This CSR was approved by net-attach-def admission controller installer.",
-		LastUpdateTime: metav1.Now(),
-	})
-	csr, err = clientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(csr)
-	log.Printf("certificate approval sent")
-	if err != nil {
-		return nil, errors.Wrap(err, "error approving CSR in Kubernetes API")
-	}
-
-	/* wait for the cert to be issued */
-	log.Printf("waiting for the signed certificate to be issued...")
-	start := time.Now()
-	for range time.Tick(time.Second) {
-		csr, err = clientset.CertificatesV1beta1().CertificateSigningRequests().Get(csrName, metav1.GetOptions{})
+		/* push CSR to Kubernetes API server */
+		csr, err = clientset.CertificatesV1beta1().CertificateSigningRequests().Create(csr)
 		if err != nil {
-			return nil, errors.Wrap(err, "error getting signed ceritificate from the API server")
+			return errors.Wrap(err, "error creating CSR in Kubernetes API: %s")
 		}
+		log.Printf("CSR pushed to the Kubernetes API")
+
 		if csr.Status.Certificate != nil {
-			return csr.Status.Certificate, nil
+			log.Printf("using already issued certificate for CSR %s", csrName)
+			certificate = csr.Status.Certificate
+			return nil
 		}
-		if time.Since(start) > 60*time.Second {
-			break
+		/* approve certificate in K8s API */
+		csr.ObjectMeta.Name = csrName
+		csr.ObjectMeta.Namespace = namespace
+		csr.Status.Conditions = append(csr.Status.Conditions, v1beta1.CertificateSigningRequestCondition{
+			Type:           v1beta1.CertificateApproved,
+			Reason:         "Approved by net-attach-def admission controller installer",
+			Message:        "This CSR was approved by net-attach-def admission controller installer.",
+			LastUpdateTime: metav1.Now(),
+		})
+		csr, err = clientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(csr)
+		log.Printf("certificate approval sent")
+		if err != nil {
+			return errors.Wrap(err, "error approving CSR in Kubernetes API")
 		}
+
+		/* wait for the cert to be issued */
+		log.Printf("waiting for the signed certificate to be issued...")
+		start := time.Now()
+		for range time.Tick(time.Second) {
+			csr, err = clientset.CertificatesV1beta1().CertificateSigningRequests().Get(csrName, metav1.GetOptions{})
+			if err != nil {
+				return errors.Wrap(err, "error getting signed ceritificate from the API server")
+			}
+			if csr.Status.Certificate != nil {
+				certificate = csr.Status.Certificate 
+				return nil
+			}
+			if time.Since(start) > 60*time.Second {
+				break
+			}
+		}
+
+		return errors.New("error getting certificate from the API server: request timed out - verify that Kubernetes certificate signer is setup, more at https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/#a-note-to-cluster-administrators")
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, errors.New("error getting certificate from the API server: request timed out - verify that Kubernetes certificate signer is setup, more at https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/#a-note-to-cluster-administrators")
+	return certificate, nil
 }
 
 // Install creates resources required by mutating admission webhook
@@ -148,12 +160,14 @@ func generate(config *rest.Config, k8sNamespace, namePrefix, secretName string) 
 		log.Fatalf("Failed to create file %s", namePrefix)
 	}
 
-	_, err = clientset.CoreV1().Secrets(namespace).Create(secret)
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		_, err = clientset.CoreV1().Secrets(namespace).Create(secret)
+		return err
+	})
 	if err != nil {
 		log.Fatal("Failed to create secret", err)
 	}
 	log.Printf("Secret %s %s created", namespace, secretName)
-
 }
 
 func main() {
