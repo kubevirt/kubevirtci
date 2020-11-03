@@ -63,7 +63,13 @@ export CRIO_OS=CentOS_8_Stream
 export CRIO_VERSION=1.18
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$CRIO_OS/devel:kubic:libcontainers:stable.repo
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION/$CRIO_OS/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.repo
-dnf install cri-o cri-tools
+dnf install -y cri-o
+
+# Install crictl
+(
+cd /usr/bin/
+curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/v${CRIO_VERSION}.0/crictl-v${CRIO_VERSION}.0-linux-amd64.tar.gz | tar xvz
+)
 
 cat << EOF > /etc/containers/registries.conf
 [registries.search]
