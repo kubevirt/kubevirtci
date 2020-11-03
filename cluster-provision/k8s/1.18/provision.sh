@@ -59,8 +59,11 @@ yum -y install iscsi-initiator-utils
 # To prevent preflight issue realted to tc not found
 dnf install -y tc
 
-sudo dnf module enable cri-o:1.18
-sudo dnf install cri-o cri-tools
+export CRIO_OS=CentOS_8_Stream
+export CRIO_VERSION=1.18
+curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$CRIO_OS/devel:kubic:libcontainers:stable.repo
+curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION/$CRIO_OS/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.repo
+dnf install cri-o cri-tools
 
 cat << EOF > /etc/containers/registries.conf
 [registries.search]
