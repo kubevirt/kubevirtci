@@ -71,6 +71,10 @@ cd /usr/bin/
 curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/v${CRIO_VERSION}.0/crictl-v${CRIO_VERSION}.0-linux-amd64.tar.gz | tar xvz
 )
 
+# "crio pull" and "docker pull" is needed in test repos to pre-pull images
+# don't break them by doing a symlink
+ln -s /usr/bin/crictl /usr/bin/docker
+
 cat << EOF > /etc/containers/registries.conf
 [registries.search]
 registries = ['registry.access.redhat.com', 'registry.fedoraproject.org', 'quay.io', 'docker.io']
