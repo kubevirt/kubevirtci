@@ -16,8 +16,8 @@ while ! hostnamectl  |grep Transient ; do
     fi
 done
 
-# Wait for docker, else network might not be ready yet
-while [[ `systemctl status docker | grep active | wc -l` -eq 0 ]]
+# Wait for crio, else network might not be ready yet
+while [[ `systemctl status crio | grep active | wc -l` -eq 0 ]]
 do
     sleep 2
 done
