@@ -10,7 +10,12 @@ KUBECONFIG_PATH="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
 MASTER_NODE="${CLUSTER_NAME}-control-plane"
 WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
 
-OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
+# In order to bump, update this env var
+# Tested with:
+# 4.4, 4.6
+export RELEASE_VERSION=4.6
+
+OPERATOR_GIT_HASH=$(git ls-remote --heads https://github.com/openshift/sriov-network-operator.git | grep release-$RELEASE_VERSION | cut -f1)
 
 # This function gets a command string and invoke it
 # until the command returns an empty string or until timeout
@@ -192,16 +197,26 @@ function deploy_sriov_operator {
     curl -L https://github.com/openshift/sriov-network-operator/archive/${OPERATOR_GIT_HASH}/sriov-network-operator.tar.gz | tar xz -C ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/
   fi
 
+  if [ ! $RELEASE_VERSION = "4.4.0" ]; then
+    # we need ENABLE_ADMISSION_CONTROLLER to stay true because we need the resource injector (the webhook as well, but for now we disable it)
+    sed -i 's/^deploy-setup-k8s: export ENABLE_ADMISSION_CONTROLLER=false/#deploy-setup-k8s: export ENABLE_ADMISSION_CONTROLLER=false/g' $operator_path/Makefile
+    # remove the need of installing skopeo until https://github.com/openshift/sriov-network-operator/issues/395 would be able to be used
+    sed -i 's/skopeo/echo/g' $operator_path/hack/env.sh
+    sed -i 's#jq --raw-output#echo > /dev/null#g' $operator_path/hack/env.sh
+  fi
+
   echo 'Installing the SR-IOV operator'
   pushd $operator_path
-    export RELEASE_VERSION=4.4
+    export RELEASE_VERSION="$RELEASE_VERSION.0"
     export SRIOV_NETWORK_OPERATOR_IMAGE=quay.io/openshift/origin-sriov-network-operator:${RELEASE_VERSION}
     export SRIOV_NETWORK_CONFIG_DAEMON_IMAGE=quay.io/openshift/origin-sriov-network-config-daemon:${RELEASE_VERSION}
     export SRIOV_NETWORK_WEBHOOK_IMAGE=quay.io/openshift/origin-sriov-network-webhook:${RELEASE_VERSION}
     export NETWORK_RESOURCES_INJECTOR_IMAGE=quay.io/openshift/origin-sriov-dp-admission-controller:${RELEASE_VERSION}
     export SRIOV_CNI_IMAGE=quay.io/openshift/origin-sriov-cni:${RELEASE_VERSION}
     export SRIOV_DEVICE_PLUGIN_IMAGE=quay.io/openshift/origin-sriov-network-device-plugin:${RELEASE_VERSION}
+    export SRIOV_INFINIBAND_CNI_IMAGE=quay.io/openshift/origin-sriov-infiniband-cni:${RELEASE_VERSION}
     export OPERATOR_EXEC=${KUBECTL}
+    export ENABLE_ADMISSION_CONTROLLER="true"
     make deploy-setup-k8s SHELL=/bin/bash  # on prow nodes the default shell is dash and some commands are not working
   popd
 
@@ -238,6 +253,16 @@ function apply_sriov_node_policy {
   SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
   SRIOV_DEVICE_PLUGIN_LABEL="app=sriov-device-plugin"
   SRIOV_CNI_LABEL="app=sriov-cni"
+
+  echo "show webhooks"
+  _kubectl get validatingwebhookconfiguration -A
+
+  if [ ! $RELEASE_VERSION = "4.4.0" ]; then
+    # See https://bugzilla.redhat.com/show_bug.cgi?id=1850505
+    echo "Disable operator webhook, else it would failed creating it because its not in the supported NIC list"
+    _kubectl patch sriovoperatorconfig default --type=merge -n sriov-network-operator --patch '{ "spec": { "enableOperatorWebhook": false } }'
+    timeout 100s bash -c "until ! _kubectl get validatingwebhookconfiguration -o custom-columns=:metadata.name | grep operator-webhook-config; do sleep 1; done"
+  fi
 
   echo "Applying SriovNetworkNodeConfigPolicy:"
   cat $policy_file
