@@ -334,4 +334,10 @@ wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM
 _kubectl get nodes
 _kubectl get pods -n $SRIOV_OPERATOR_NAMESPACE
 echo
+
+# Upon cluster start we might see "etcdserver: request timed out"
+# when accessing API, due to IO pressure.
+# Let the transient pass away (skip it by export SKIP_SRIOV_SLEEP=1)
+[ -z $SKIP_SRIOV_SLEEP ] && echo "sleeping 120 seconds to stabilize etcd, export SKIP_SRIOV_SLEEP=1 to skip"  && sleep 120
+
 echo "$KUBEVIRT_PROVIDER cluster is ready"
