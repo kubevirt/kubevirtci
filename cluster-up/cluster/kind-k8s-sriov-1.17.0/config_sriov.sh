@@ -115,29 +115,29 @@ function is_taint_absence {
 function wait_for_taint_absence {
   local -r taint=$1
 
-  local -r tries=60
+  local -r tries=24
   local -r wait_time=5
 
-  local -r wait_message="Waiting for $taint taint absence"
-  local -r error_message="Taint $taint $name did not removed"
+  local -r wait_message="Waiting for taint '$taint' absence"
+  local -r error_message="Taint $taint did not removed"
   local -r action="is_taint_absence $taint"
 
   retry "$tries" "$wait_time" "$action" "$wait_message" && return 0
-  echo $error_message && return 1
+  echo "$error_message" && return 1
 }
 
 function wait_for_taint {
   local -r taint=$1
 
-  local -r tries=60
+  local -r tries=24
   local -r wait_time=5
 
-  local -r wait_message="Waiting for $taint taint to present"
-  local -r error_message="Taint $taint $name did not present"
+  local -r wait_message="Waiting for taint '$taint' to present"
+  local -r error_message="Taint '$taint' did not present"
   local -r action="_kubectl get nodes -o custom-columns=taints:.spec.taints[*].effect --no-headers | grep -i $taint"
 
   retry "$tries" "$wait_time" "$action" "$wait_message" && return 0
-  echo $error_message && return 1
+  echo "$error_message" && return 1
 }
 
 # not using kubectl wait since with the sriov operator the pods get restarted a couple of times and this is
