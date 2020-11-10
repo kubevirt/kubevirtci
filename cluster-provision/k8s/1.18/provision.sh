@@ -123,9 +123,9 @@ net.bridge.bridge-nf-call-ip6tables = 1
 EOF
 sysctl --system
 
-echo bridge >> /etc/modules
-echo br_netfilter >> /etc/modules
-echo overlay >> /etc/modules
+echo bridge >> /etc/modules-load.d/k8s.conf
+echo br_netfilter >> /etc/modules-load.d/k8s.conf
+echo overlay >> /etc/modules-load.d/k8s.conf
 
 systemctl daemon-reload
 systemctl enable crio && systemctl start crio
