@@ -335,3 +335,10 @@ _kubectl get nodes
 _kubectl get pods -n $SRIOV_OPERATOR_NAMESPACE
 echo
 echo "$KUBEVIRT_PROVIDER cluster is ready"
+
+# oc get pods -A --no-headers | awk '{system ("echo; echo LOGGER " $1 " " $2 "; kubectl logs -n " $1 " " $2)}'
+PWD=$(pwd)
+echo $PWD
+
+_kubectl get pods -A --no-headers | awk -v PWD=$PWD '{system ("echo; echo LOGGER " $1 " " $2 "; "PWD"/_ci-configs/kind-k8s-sriov-1.17.0/.kubectl --kubeconfig="PWD"/_ci-configs/kind-k8s-sriov-1.17.0/.kubeconfig logs -n " $1 " " $2)}'
+
