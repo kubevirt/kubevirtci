@@ -115,7 +115,7 @@ function is_taint_absence {
 function wait_for_taint_absence {
   local -r taint=$1
 
-  local -r tries=24
+  local -r tries=30
   local -r wait_time=5
 
   local -r wait_message="Waiting for taint '$taint' absence"
@@ -129,7 +129,7 @@ function wait_for_taint_absence {
 function wait_for_taint {
   local -r taint=$1
 
-  local -r tries=24
+  local -r tries=30
   local -r wait_time=5
 
   local -r wait_message="Waiting for taint '$taint' to present"
