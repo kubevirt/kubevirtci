@@ -91,24 +91,6 @@ function _configure_network() {
     done
 }
 
-function prepare_workers() {
-    # appending eventual workers to the yaml
-    for ((n=0;n<$(($KUBEVIRT_NUM_NODES-1));n++)); do
-        cat << EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
-- role: worker
-  kubeadmConfigPatches:
-  - |
-    kind: JoinConfiguration
-    nodeRegistration:
-      kubeletExtraArgs:
-        "feature-gates": "CPUManager=true"
-        "cpu-manager-policy": "static"
-        "kube-reserved": "cpu=500m"
-        "system-reserved": "cpu=500m"
-EOF
-    done
-}
-
 function _get_nodes() {
     _kubectl get nodes --no-headers
 }
@@ -210,9 +192,40 @@ function setup_kind() {
     prepare_config
 }
 
+function _add_worker_kubeadm_config_patch() {
+    cat << EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
+  kubeadmConfigPatches:
+  - |-
+    kind: JoinConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        "feature-gates": "CPUManager=true"
+        "cpu-manager-policy": "static"
+        "kube-reserved": "cpu=500m"
+        "system-reserved": "cpu=500m"
+EOF
+}
+
+function _add_workers() {
+    # appending eventual workers to the yaml
+    for ((n=0;n<$(($KUBEVIRT_NUM_NODES-1));n++)); do
+        cat << EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
+- role: worker
+EOF
+    _add_worker_kubeadm_config_patch
+    done
+}
+
+function _prepare_kind_config() {
+    _add_workers
+
+    echo "Final KIND config:"
+    cat ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
+}
+
 function kind_up() {
     _fetch_kind
-    prepare_workers
+    _prepare_kind_config
     setup_kind
 }
 
