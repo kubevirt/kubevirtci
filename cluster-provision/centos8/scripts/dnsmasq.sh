@@ -5,12 +5,21 @@ set -ex
 NUM_NODES=${NUM_NODES-1}
 NUM_SECONDARY_NICS=${NUM_SECONDARY_NICS:-0}
 
+function update_link_mtu() {
+  local link_name="$1"
+
+  if [ "$KUBEVIRT_WITH_JUMBO_FRAMES" == "true" ]; then
+    ip link set dev $link_name mtu 9000
+  fi
+}
+
 ip link add br0 type bridge
 echo 0 > /proc/sys/net/ipv6/conf/br0/disable_ipv6
 echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
 ip link set dev br0 up
 ip addr add dev br0 192.168.66.02/24
 ip -6 addr add fd00::1/64 dev br0
+update_link_mtu br0
 
 # Create secondary networks
 for snet in $(seq 1 ${NUM_SECONDARY_NICS}); do
@@ -22,6 +31,7 @@ for i in $(seq 1 ${NUM_NODES}); do
   n="$(printf "%02d" ${i})"
   ip tuntap add dev tap${n} mode tap user $(whoami)
   ip link set tap${n} master br0
+  update_link_mtu tap${n}
   ip link set dev tap${n} up
   DHCP_HOSTS="${DHCP_HOSTS} --dhcp-host=52:55:00:d1:55:${n},192.168.66.1${n},[fd00::1${n}],node${n},infinite"
   for s in $(seq 1 ${NUM_SECONDARY_NICS}); do

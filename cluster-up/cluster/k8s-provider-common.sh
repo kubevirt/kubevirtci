@@ -43,4 +43,12 @@ function up() {
         $kubectl create -f /opt/cnao/network-addons-config-example.cr.yaml
         $kubectl wait networkaddonsconfig cluster --for condition=Available --timeout=200s
     fi
+
+    if [ "$KUBEVIRT_WITH_JUMBO_FRAMES" == "true" ];then
+      client_kubectl=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+      $client_kubectl patch configmap/calico-config -n kube-system --type merge \
+          -p '{"data":{"veth_mtu": "9000"}}'
+
+      $client_kubectl rollout restart daemonset calico-node -n kube-system
+    fi
 }
