@@ -192,6 +192,19 @@ function setup_kind() {
     prepare_config
 }
 
+function _add_worker_extra_mounts() {
+    if [[ "$KUBEVIRT_PROVIDER" =~ sriov.* ]]; then
+        cat <<EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
+  extraMounts:
+  - containerPath: /lib/modules
+    hostPath: /lib/modules
+    readOnly: true
+  - containerPath: /dev/vfio/
+    hostPath: /dev/vfio/
+EOF
+  fi
+}
+
 function _add_worker_kubeadm_config_patch() {
     cat << EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
   kubeadmConfigPatches:
@@ -213,6 +226,7 @@ function _add_workers() {
 - role: worker
 EOF
     _add_worker_kubeadm_config_patch
+    _add_worker_extra_mounts
     done
 }
 
