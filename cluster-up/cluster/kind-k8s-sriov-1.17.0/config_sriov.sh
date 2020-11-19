@@ -293,7 +293,7 @@ for ifs in "${sriov_pfs[@]}"; do
   ifs_name="${ifs%%/device/*}"
   ifs_name="${ifs_name##*/}"
 
-  if [ $(echo "${PF_BLACKLIST[@]}" | grep -q "${ifs_name}") ]; then
+  if [ $(echo "${PF_BLACKLIST[@]}" | grep "${ifs_name}") ]; then
     continue
   fi
 
