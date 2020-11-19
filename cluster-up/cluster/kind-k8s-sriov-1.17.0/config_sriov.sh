@@ -150,6 +150,23 @@ function wait_pods_ready {
     done
 }
 
+function wait_pods_condition_by_label {
+  local -r tries=10
+  local -r wait_time=1
+  local -r namespace=$1
+  local -r label=$2
+  local -r condition=$3
+
+  local -r wait_message="waiting for pod label $label at namespace $namespace to meet condition $condition"
+  local -r error_message="pod label $label at namespace $namespace did not meet condition $condition"
+  local -r action="_kubectl wait pods -n $namespace -l $label --for condition=$condition --timeout 30s >/dev/null && echo succeed"
+
+  if ! retry "$tries" "$wait_time" "$action" "$wait_message"; then
+    echo $error_message
+    return 1
+  fi
+}
+
 function wait_allocatable_resource {
   local -r node=$1
   local resource_name=$2
@@ -238,6 +255,7 @@ function apply_sriov_node_policy {
   SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
   SRIOV_DEVICE_PLUGIN_LABEL="app=sriov-device-plugin"
   SRIOV_CNI_LABEL="app=sriov-cni"
+  CONDITION="Ready"
 
   echo "Applying SriovNetworkNodeConfigPolicy:"
   cat $policy_file
@@ -254,8 +272,8 @@ function apply_sriov_node_policy {
   wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_DEVICE_PLUGIN_LABEL || return 1
 
   # Wait for cni and device-plugin pods to be ready
-  _kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_CNI_LABEL           --for condition=Ready --timeout 10m
-  _kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_DEVICE_PLUGIN_LABEL --for condition=Ready --timeout 10m
+  wait_pods_condition_by_label $SRIOV_OPERATOR_NAMESPACE $SRIOV_CNI_LABEL $CONDITION || return 1
+  wait_pods_condition_by_label $SRIOV_OPERATOR_NAMESPACE $SRIOV_DEVICE_PLUGIN_LABEL $CONDITION || return 1
 
   # Since SriovNodeNetworkPolicy doesnt have Status to indicate if its
   # configured successfully, it is necessary to wait for the "NoSchedule"
