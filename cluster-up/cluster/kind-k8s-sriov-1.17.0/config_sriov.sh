@@ -12,8 +12,9 @@ WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
 
 OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
 
-# This function gets a command string and invoke it
-# until the command returns an empty string or until timeout
+# This function gets a command string and invoke it repeatedly
+# until the command returns a non empty STDOUT string (success)
+# or until timeout (failure)
 function retry {
   local -r tries=$1
   local -r wait_time=$2
