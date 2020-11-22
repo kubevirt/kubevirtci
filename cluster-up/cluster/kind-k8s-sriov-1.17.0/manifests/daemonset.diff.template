@@ -1,0 +1,20 @@
+--- daemonset.yaml.vanilla	2020-11-18 13:34:20.000000000 +0200
++++ daemonset.yaml	2020-12-06 10:23:14.000000000 +0200
+@@ -50,6 +50,8 @@
+         volumeMounts:
+         - name: host
+           mountPath: /host
++        - name: configs
++          mountPath: $IGNORE_PATH
+         # - name: hostetc
+         #   mountPath: /host/etc
+         # - name: hostdev
+@@ -74,6 +76,8 @@
+       - name: host
+         hostPath:
+           path: /
++      - name: configs
++        emptyDir: {}
+       # - name: hostetc
+       #   hostPath:
+       #     path: /etc

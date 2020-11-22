@@ -10,8 +10,17 @@ KUBECONFIG_PATH="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
 MASTER_NODE="${CLUSTER_NAME}-control-plane"
 WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
 
-OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
 SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
+NUM_PF_REQUIRED=${NUM_PF_REQUIRED:-1}
+
+export RELEASE_VERSION=4.8.0
+OPERATOR_GIT_HASH=49045c36efb9136813f049b9977fe2b93c0a46c0
+
+re='^[0-9]+$'
+if ! [[ $NUM_PF_REQUIRED =~ $re ]] || [[ $NUM_PF_REQUIRED -eq "0" ]]; then
+  echo "FATAL: Wrong value of NUM_PF_REQUIRED, must be numeric, non zero, less or equal to actual PF available"
+  exit 1
+fi
 
 # This function gets a command and invoke it repeatedly
 # until the command return code is zero
@@ -171,17 +180,47 @@ function deploy_sriov_operator {
     curl -LSs https://github.com/openshift/sriov-network-operator/archive/${OPERATOR_GIT_HASH}/sriov-network-operator.tar.gz | tar xz -C ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/
   fi
 
+  export SRIOV_NETWORK_OPERATOR_IMAGE=quay.io/openshift/origin-sriov-network-operator:${RELEASE_VERSION}
+
+  if [ ! $RELEASE_VERSION = "4.4.0" ]; then
+    # we need ENABLE_ADMISSION_CONTROLLER to stay true because we need the resource injector (the webhook as well, but for now we disable it)
+    sed -i 's/^deploy-setup-k8s: export ENABLE_ADMISSION_CONTROLLER=false/#deploy-setup-k8s: export ENABLE_ADMISSION_CONTROLLER=false/g' $operator_path/Makefile
+  fi
+
+  for ifs in "${sriov_pfs_totalvfs[@]}"; do
+    ifs="${ifs%%/sriov_totalvfs}"
+    export IGNORE_PATH=$ifs
+
+    docker pull $SRIOV_NETWORK_OPERATOR_IMAGE
+    TAG=$(docker create $SRIOV_NETWORK_OPERATOR_IMAGE)
+    docker cp $TAG:/bindata/manifests/daemon/daemonset.yaml daemonset.yaml
+
+    daemonset_diff="$MANIFESTS_DIR/daemonset.diff.template"
+    envsubst < $daemonset_diff > daemonset.diff
+    patch daemonset.yaml daemonset.diff
+    docker cp daemonset.yaml $TAG:/bindata/manifests/daemon/daemonset.yaml
+    docker commit $TAG localhost:$HOST_PORT/kubevirt/patched_sriov_operator:${RELEASE_VERSION}
+    docker push localhost:$HOST_PORT/kubevirt/patched_sriov_operator:${RELEASE_VERSION}
+
+    docker rm $TAG
+    export SRIOV_NETWORK_OPERATOR_IMAGE=registry:5000/kubevirt/patched_sriov_operator:${RELEASE_VERSION}
+
+    break # because there can be just one for now
+  done
+
   echo 'Installing the SR-IOV operator'
   pushd $operator_path
-    export RELEASE_VERSION=4.4
-    export SRIOV_NETWORK_OPERATOR_IMAGE=quay.io/openshift/origin-sriov-network-operator:${RELEASE_VERSION}
+    export SKIP_VAR_SET=1
+    export CGO_ENABLED=0
     export SRIOV_NETWORK_CONFIG_DAEMON_IMAGE=quay.io/openshift/origin-sriov-network-config-daemon:${RELEASE_VERSION}
     export SRIOV_NETWORK_WEBHOOK_IMAGE=quay.io/openshift/origin-sriov-network-webhook:${RELEASE_VERSION}
     export NETWORK_RESOURCES_INJECTOR_IMAGE=quay.io/openshift/origin-sriov-dp-admission-controller:${RELEASE_VERSION}
     export SRIOV_CNI_IMAGE=quay.io/openshift/origin-sriov-cni:${RELEASE_VERSION}
     export SRIOV_DEVICE_PLUGIN_IMAGE=quay.io/openshift/origin-sriov-network-device-plugin:${RELEASE_VERSION}
+    export SRIOV_INFINIBAND_CNI_IMAGE=quay.io/openshift/origin-sriov-infiniband-cni:${RELEASE_VERSION}
     export OPERATOR_EXEC=${KUBECTL}
-    make deploy-setup-k8s SHELL=/bin/bash  # on prow nodes the default shell is dash and some commands are not working
+    export ENABLE_ADMISSION_CONTROLLER="true"
+    make deploy-setup-k8s SHELL=/bin/bash # on prow nodes the default shell is dash and some commands are not working
   popd
 
   echo 'Generating webhook certificates for the SR-IOV operator webhooks'
@@ -191,13 +230,13 @@ function deploy_sriov_operator {
   popd
 
   echo 'Setting caBundle for SR-IOV webhooks'
-  wait_k8s_object "validatingwebhookconfiguration" "operator-webhook-config"
-  _kubectl patch validatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
+  wait_k8s_object "validatingwebhookconfiguration" "sriov-operator-webhook-config"
+  _kubectl patch validatingwebhookconfiguration sriov-operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
 
-  wait_k8s_object "mutatingwebhookconfiguration"   "operator-webhook-config"
-  _kubectl patch mutatingwebhookconfiguration operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
+  wait_k8s_object "mutatingwebhookconfiguration" "sriov-operator-webhook-config"
+  _kubectl patch mutatingwebhookconfiguration sriov-operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
 
-  wait_k8s_object "mutatingwebhookconfiguration"   "network-resources-injector-config"
+  wait_k8s_object "mutatingwebhookconfiguration" "network-resources-injector-config"
   _kubectl patch mutatingwebhookconfiguration network-resources-injector-config --patch '{"webhooks":[{"name":"network-resources-injector-config.k8s.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/network-resources-injector.cert)"'" }}]}'
 
   return 0
@@ -205,6 +244,19 @@ function deploy_sriov_operator {
 
 function apply_sriov_node_policy {
   local -r policy_file=$1
+
+  echo "show webhooks before removal"
+  _kubectl get validatingwebhookconfiguration -A
+
+  if [ ! $RELEASE_VERSION = "4.4.0" ]; then
+    # See https://bugzilla.redhat.com/show_bug.cgi?id=1850505
+    echo "Disable operator webhook, else it would failed creating it because its not in the supported NIC list"
+    _kubectl patch sriovoperatorconfig default --type=merge -n sriov-network-operator --patch '{ "spec": { "enableOperatorWebhook": false } }'
+    timeout 100s bash -c "until ! $KUBECTL get validatingwebhookconfiguration -o custom-columns=:metadata.name | grep sriov-operator-webhook-config; do sleep 1; done"
+  fi
+
+  echo "show webhooks after removal"
+  _kubectl get validatingwebhookconfiguration -A
 
   # Substitute $NODE_PF and $NODE_PF_NUM_VFS and create SriovNetworkNodePolicy CR
   local -r policy=$(envsubst < $policy_file)
@@ -234,8 +286,18 @@ mkdir -p /var/run/netns/
 export pid="$(docker inspect -f '{{.State.Pid}}' $SRIOV_NODE)"
 ln -sf /proc/$pid/ns/net "/var/run/netns/$SRIOV_NODE"
 
+PF_COUNTER=0
+# Scan available sriov PFs
 sriov_pfs=( /sys/class/net/*/device/sriov_numvfs )
+if [ $sriov_pfs == "/sys/class/net/*/device/sriov_numvfs" ]; then
+  echo "FATAL: No sriov PFs found"
+  exit 1
+fi
 
+sriov_pfs_totalvfs=( $(find /sys/devices -name sriov_totalvfs 2>/dev/null) )
+for ifs in "${sriov_pfs_totalvfs[@]}"; do
+   echo $ifs
+done
 
 for ifs in "${sriov_pfs[@]}"; do
   ifs_name="${ifs%%/device/*}"
@@ -245,24 +307,53 @@ for ifs in "${sriov_pfs[@]}"; do
     continue
   fi
 
-  # We set the variable below only in the first iteration as we need only one PF
-  # to inject into the Network Configuration manifest. We need to move all pfs to
-  # the node's namespace and for that reason we do not interrupt the loop.
-  if [ -z "$NODE_PF" ]; then
-    # These values are used to populate the network definition policy yaml.
-    # We just use the first suitable pf
-    # We need the num of vfs because if we don't set this value equals to the total, in case of mellanox
-    # the sriov operator will trigger a node reboot to update the firmware
-    export NODE_PF="$ifs_name"
-    export NODE_PF_NUM_VFS=$(cat /sys/class/net/"$NODE_PF"/device/sriov_totalvfs)
+  export PF_ADDRESS=$(cat /sys/class/net/$ifs_name/device/uevent | grep PCI_SLOT_NAME | cut -d= -f2)
+  export tmp_pf_num_vfs=$(cat /sys/class/net/"$ifs_name"/device/sriov_totalvfs)
+
+  # In case two clusters started at the same time, they might race on the same PF.
+  # The first will manage to assign the PF to its container, and the 2nd will just skip it
+  # and try the rest of the PFs available.
+  if ip link set "$ifs_name" netns "$SRIOV_NODE"; then
+    if timeout 5s bash -c "until docker exec $SRIOV_NODE ip address | grep -w $ifs_name; do sleep 1; done"; then
+      # We set the variable below only in the first iteration as we need only one PF
+      # to inject into the Network Configuration manifest. We need to move all pfs to
+      # the node's namespace and for that reason we do not interrupt the loop.
+      if [ -z "$NODE_PF" ]; then
+        # These values are used to populate the network definition policy yaml.
+        # We just use the first suitable pf
+        # We need the num of vfs because if we don't set this value equals to the total, in case of mellanox
+        # the sriov operator will trigger a node reboot to update the firmware
+        export NODE_PF="$ifs_name"
+        export NODE_PF_NUM_VFS=$tmp_pf_num_vfs
+      fi
+
+      for index in "${!sriov_pfs_totalvfs[@]}"; do
+        [ $(grep $PF_ADDRESS"/sriov_totalvfs" <<< ${sriov_pfs_totalvfs[index]}) ] && unset -v 'sriov_pfs_totalvfs[$index]'
+      done
+
+      PF_COUNTER=$((PF_COUNTER+1))
+      if [[ $PF_COUNTER -eq $NUM_PF_REQUIRED ]]; then
+        echo "Allocated requested number of PFs"
+        break
+      fi
+    fi
   fi
-  ip link set "$ifs_name" netns "$SRIOV_NODE"
 done
+
+if [[ $PF_COUNTER -lt $NUM_PF_REQUIRED ]]; then
+  echo "FATAL: Could not allocate enough PFs, please check PF_BLACKLIST, NUM_PF_REQUIRED, and how many PF actually available or used already"
+  exit 1
+fi
 
 SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
 ${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
 ${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
 _kubectl label node $SRIOV_NODE sriov=true
+
+TOTAL_PF=$((${#sriov_pfs_totalvfs[@]} + $NUM_PF_REQUIRED))
+if [ $TOTAL_PF != 2 ]; then
+   echo "Warning currently supporting only 2 PFs total for the POC"
+fi
 
 deploy_multus
 wait_pods_ready
