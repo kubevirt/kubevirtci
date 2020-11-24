@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"kubevirt.io/kubevirtci/cluster-up/cluster/kind-k8s-sriov-1.17.0/certcreator/certlib"
+	"./certlib"
 )
 
 func handleKubeClientConfig(kubeconfig string) (*rest.Config, error) {

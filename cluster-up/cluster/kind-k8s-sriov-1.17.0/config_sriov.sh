@@ -208,8 +208,8 @@ function deploy_sriov_operator {
 
   echo 'Generating webhook certificates for the SR-IOV operator webhooks'
   pushd "${CERTCREATOR_PATH}"
-    go run . -namespace sriov-network-operator -secret operator-webhook-service -hook operator-webhook -kubeconfig $KUBECONFIG_PATH || return 1
-    go run . -namespace sriov-network-operator -secret network-resources-injector-secret -hook network-resources-injector -kubeconfig $KUBECONFIG_PATH || return 1
+    go run certsecret.go -namespace sriov-network-operator -secret operator-webhook-service -hook operator-webhook -kubeconfig $KUBECONFIG_PATH || return 1
+    go run certsecret.go -namespace sriov-network-operator -secret network-resources-injector-secret -hook network-resources-injector -kubeconfig $KUBECONFIG_PATH || return 1
   popd
 
   echo 'Setting caBundle for SR-IOV webhooks'
