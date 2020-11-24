@@ -1,4 +1,4 @@
-module kubevirt.io/kubevirtci/cluster-up/cluster/kind-k8s-sriov-1.17.0/certcreator
+module certcreator
 
 go 1.13
 
