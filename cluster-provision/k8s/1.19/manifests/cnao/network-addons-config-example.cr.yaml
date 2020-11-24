@@ -1,5 +1,5 @@
 ---
-apiVersion: networkaddonsoperator.network.kubevirt.io/v1alpha1
+apiVersion: networkaddonsoperator.network.kubevirt.io/v1
 kind: NetworkAddonsConfig
 metadata:
   name: cluster
