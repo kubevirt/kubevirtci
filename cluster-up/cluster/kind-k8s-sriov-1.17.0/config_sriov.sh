@@ -144,14 +144,40 @@ function wait_for_taint {
   echo $error_message && return 1
 }
 
+function _check_all_pods_ready() {
+  all_pods_ready_condition=$(_kubectl get pods -A --no-headers -o custom-columns=':.status.conditions[?(@.type == "Ready")].status')
+  if [ "$?" -eq 0 ]; then
+    pods_not_ready_count=$(grep -cw False <<< "$all_pods_ready_condition")
+    if [ "$pods_not_ready_count" -eq 0 ]; then
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 # not using kubectl wait since with the sriov operator the pods get restarted a couple of times and this is
 # more reliable
 function wait_pods_ready {
-    while [ -n "$(_kubectl get pods --all-namespaces -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
-        echo "Waiting for all pods to become ready ..."
-        _kubectl get pods --all-namespaces -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
-        sleep 10
-    done
+  local -r tries=30
+  local -r wait_time=10
+
+  local -r wait_message="Waiting for all pods to become ready.."
+  local -r error_message="Not all pods were ready after $(($tries*$wait_time)) seconds"
+
+  local -r get_pods='_kubectl get pods --all-namespaces'
+  local -r action="_check_all_pods_ready"
+
+  set +x
+  trap "set -x" RETURN
+
+  if ! retry "$tries" "$wait_time" "$action" "$wait_message" "$get_pods"; then
+    echo $error_message
+    return 1
+  fi
+
+  echo "all pods are ready"
+  return 0
 }
 
 function wait_pods_condition_by_label {
