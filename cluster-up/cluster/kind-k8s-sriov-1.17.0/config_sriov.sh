@@ -145,10 +145,8 @@ function deploy_multus {
   echo 'Waiting for Multus deployment to become ready'
   daemonset_name=$(cat $MANIFESTS_DIR/multus.yaml | grep -i daemonset -A 3 | grep -Po '(?<=name:) \S*amd64$')
   daemonset_namespace=$(cat $MANIFESTS_DIR/multus.yaml | grep -i daemonset -A 3 | grep -Po '(?<=namespace:) \S*$' | head -1)
-  wait_k8s_object "daemonset" $daemonset_name $daemonset_namespace || return 1
-
-  required_replicas=$(_kubectl get daemonset kube-multus-ds-amd64 -n  kube-system -o jsonpath='{.status.desiredNumberScheduled}')
-  wait_for_daemonSet $daemonset_name $daemonset_namespace $required_replicas || return 1
+  required_replicas=$(_kubectl get daemonset $daemonset_name -n $daemonset_namespace -o jsonpath='{.status.desiredNumberScheduled}')
+  wait_for_daemonSet $daemonset_name $daemonset_namespace $required_replicas
 
   return 0
 }
@@ -253,7 +251,7 @@ ${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly wh
 ${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
 _kubectl label node $SRIOV_NODE sriov=true
 
-deploy_multus || exit 1
+deploy_multus
 wait_pods_ready
 
 deploy_sriov_operator
