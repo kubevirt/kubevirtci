@@ -26,8 +26,8 @@ export KUBEVIRTCI_GOCLI_CONTAINER=kubevirtci/gocli:latest
   export KUBEVIRT_NUM_SECONDARY_NICS=2
   trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
   bash -x ./cluster-up/up.sh
-  ${ksh} wait --for=condition=Ready pod --timeout=200s --all
-  ${ksh} wait --for=condition=Ready pod --timeout=200s -n kube-system --all
+  timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s --all; do sleep 1; done"
+  timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s -n kube-system --all; do sleep 1; done"
   ${ksh} get nodes
   ${ksh} get pods -A
 
