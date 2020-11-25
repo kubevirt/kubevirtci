@@ -11,6 +11,7 @@ MASTER_NODE="${CLUSTER_NAME}-control-plane"
 WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
 
 OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
+SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
 
 # This function gets a command and invoke it repeatedly
 # until the command return code is zero
@@ -61,30 +62,6 @@ function wait_for_daemonSet {
   echo $error_message && return 1
 }
 
-function wait_pod {
-  local namespace=$1
-  local label=$2
-
-  local -r tries=60
-  local -r wait_time=5
-
-  local -r wait_message="Waiting for pods with $label to create"
-  local -r error_message="Pods with  label $label at $namespace namespace found"
-
-  if [[ $namespace != "" ]];then
-    namespace="-n $namespace"
-  fi
-
-  if [[ $label != "" ]];then
-    label="-l $label"
-  fi
-
-  local -r action="_kubectl get pod $namespace $label -o custom-columns=NAME:.metadata.name --no-headers"
-
-  retry "$tries" "$wait_time" "$action" "$wait_message" && return  0
-  echo $error_message && return 1
-}
-
 function wait_k8s_object {
   local -r object_type=$1
   local -r name=$2
@@ -104,44 +81,6 @@ function wait_k8s_object {
 
   retry "$tries" "$wait_time" "$action" "$wait_message" && return 0
   echo $error_message && return  1
-}
-
-
-function is_taint_absence {
-  local -r taint=$1
-
-  result=$(_kubectl get nodes -o jsonpath="{.items[*].spec.taints[?(@.effect == \"$taint\")].effect}" || echo error)
-  if [[ -z $result ]]; then
-    echo "not-present"
-  fi
-}
-
-function wait_for_taint_absence {
-  local -r taint=$1
-
-  local -r tries=60
-  local -r wait_time=5
-
-  local -r wait_message="Waiting for $taint taint absence"
-  local -r error_message="Taint $taint $name did not removed"
-  local -r action="is_taint_absence $taint"
-
-  retry "$tries" "$wait_time" "$action" "$wait_message" && return 0
-  echo $error_message && return 1
-}
-
-function wait_for_taint {
-  local -r taint=$1
-
-  local -r tries=60
-  local -r wait_time=5
-
-  local -r wait_message="Waiting for $taint taint to present"
-  local -r error_message="Taint $taint $name did not present"
-  local -r action="_kubectl get nodes -o custom-columns=taints:.spec.taints[*].effect --no-headers | grep -i $taint"
-
-  retry "$tries" "$wait_time" "$action" "$wait_message" && return 0
-  echo $error_message && return 1
 }
 
 function _check_all_pods_ready() {
@@ -180,35 +119,17 @@ function wait_pods_ready {
   return 0
 }
 
-function wait_pods_condition_by_label {
-  local -r tries=10
-  local -r wait_time=1
-  local -r namespace=$1
-  local -r label=$2
-  local -r condition=$3
-
-  local -r wait_message="waiting for pod label $label at namespace $namespace to meet condition $condition"
-  local -r error_message="pod label $label at namespace $namespace did not meet condition $condition"
-  local -r action="_kubectl wait pods -n $namespace -l $label --for condition=$condition --timeout 30s >/dev/null && echo succeed"
-
-  if ! retry "$tries" "$wait_time" "$action" "$wait_message"; then
-    echo $error_message
-    return 1
-  fi
-}
-
 function wait_allocatable_resource {
   local -r node=$1
   local resource_name=$2
   local -r expected_value=$3
 
-  local -r tries=30
+  local -r tries=48
   local -r wait_time=10
 
   local -r wait_message="wait for $node node to have allocatable resource: $resource_name: $expected_value"
   local -r error_message="node $node doesnt have allocatable resource $resource_name:$expected_value"
 
-  # In order to project spesific resource name with -o custom-columns
   # it is necessary to add '\' before '.' in the resource name.
   resource_name=$(echo $resource_name | sed s/\\./\\\\\./g)
   local -r action='_kubectl get node $node -ocustom-columns=:.status.allocatable.$resource_name --no-headers | grep -w $expected_value'
@@ -272,37 +193,13 @@ function deploy_sriov_operator {
 }
 
 function apply_sriov_node_policy {
-  policy_file=$1
+  local -r policy_file=$1
 
-  SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
-  SRIOV_DEVICE_PLUGIN_LABEL="app=sriov-device-plugin"
-  SRIOV_CNI_LABEL="app=sriov-cni"
-  CONDITION="Ready"
-
-  echo "Applying SriovNetworkNodeConfigPolicy:"
-  cat $policy_file
   # Substitute $NODE_PF and $NODE_PF_NUM_VFS and create SriovNetworkNodePolicy CR
-  envsubst < $policy_file | _kubectl create -f -
-
-  # Ensure SriovNetworkNodePolicy CR is created
-  policy_name=$(cat $policy_file | grep -Po '(?<=name:) \S*')
-  wait_k8s_object "SriovNetworkNodePolicy" "$policy_name" "$SRIOV_OPERATOR_NAMESPACE"  || return 1
-
-  # Wait for sriov-operator to reconcile SriovNodeNetworkPolicy
-  # and create cni and device-plugin pods
-  wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_CNI_LABEL  || return 1
-  wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_DEVICE_PLUGIN_LABEL || return 1
-
-  # Wait for cni and device-plugin pods to be ready
-  wait_pods_condition_by_label $SRIOV_OPERATOR_NAMESPACE $SRIOV_CNI_LABEL $CONDITION || return 1
-  wait_pods_condition_by_label $SRIOV_OPERATOR_NAMESPACE $SRIOV_DEVICE_PLUGIN_LABEL $CONDITION || return 1
-
-  # Since SriovNodeNetworkPolicy doesnt have Status to indicate if its
-  # configured successfully, it is necessary to wait for the "NoSchedule"
-  # taint to present and then absent.
-  taint="NoSchedule"
-  wait_for_taint "$taint" || echo "Taint $taint did not present on nodes after creating SriovNodeNetworkPolicy"
-  wait_for_taint_absence "$taint" || return  1
+  local -r policy=$(envsubst < $policy_file)
+  echo "Applying SriovNetworkNodeConfigPolicy:"
+  echo "$policy"
+  _kubectl create -f - <<< "$policy"
 
   return 0
 }
@@ -362,14 +259,13 @@ wait_pods_ready
 deploy_sriov_operator
 wait_pods_ready
 
-# Substitute NODE_PF and NODE_PF_NUM_VFS then create SriovNetworkNodePolicy CR
 policy="$MANIFESTS_DIR/network_config_policy.yaml"
-apply_sriov_node_policy "$policy" || exit 1
-wait_pods_ready
+apply_sriov_node_policy "$policy"
 
 # Verify that sriov node has sriov VFs allocatable resource
-resource_name=$(cat $policy | grep 'resourceName:' | awk '{print $2}')
-wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM_VFS || exit 1
+resource_name=$(sed -n 's/.*resourceName: *//p' $policy)
+wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM_VFS
+wait_pods_ready
 
 _kubectl get nodes
 _kubectl get pods -n $SRIOV_OPERATOR_NAMESPACE
