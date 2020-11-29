@@ -49,7 +49,8 @@ function wait_for_daemonSet {
   fi
 
   if (( required_replicas < 0 )); then
-      echo "DaemonSet $name ready replicas number is not valid: $required_replicas" && return 1
+      echo "DaemonSet $name ready replicas number is not valid: $required_replicas"
+      return 1
   fi
 
   local -r tries=30
@@ -58,8 +59,12 @@ function wait_for_daemonSet {
   error_message="DaemonSet $name did not have $required_replicas ready replicas"
   action="_kubectl get daemonset $namespace $name -o jsonpath='{.status.numberReady}' | grep -w $required_replicas"
 
-  retry "$tries" "$wait_time" "$action" "$wait_message" && return  0
-  echo $error_message && return 1
+  if ! retry "$tries" "$wait_time" "$action" "$wait_message";then
+    echo $error_message
+    return 1
+  fi
+
+  return  0
 }
 
 function wait_k8s_object {
@@ -79,8 +84,12 @@ function wait_k8s_object {
 
   local -r action="_kubectl get $object_type $name $namespace -o custom-columns=NAME:.metadata.name --no-headers"
 
-  retry "$tries" "$wait_time" "$action" "$wait_message" && return 0
-  echo $error_message && return  1
+  if ! retry "$tries" "$wait_time" "$action" "$wait_message";then
+    echo $error_message
+    return  1
+  fi
+
+  return 0
 }
 
 function _check_all_pods_ready() {
@@ -134,8 +143,12 @@ function wait_allocatable_resource {
   resource_name=$(echo $resource_name | sed s/\\./\\\\\./g)
   local -r action='_kubectl get node $node -ocustom-columns=:.status.allocatable.$resource_name --no-headers | grep -w $expected_value'
 
-  retry $tries $wait_time "$action" "$wait_message" && return 0
-  echo $error_message && return 1
+  if ! retry $tries $wait_time "$action" "$wait_message"; then
+    echo $error_message
+    return 1
+  fi
+
+  return 0
 }
 
 function deploy_multus {
