@@ -272,6 +272,9 @@ function apply_sriov_node_policy {
   wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_CNI_LABEL  || return 1
   wait_pod $SRIOV_OPERATOR_NAMESPACE $SRIOV_DEVICE_PLUGIN_LABEL || return 1
 
+  _kubectl wait pods -n $SRIOV_OPERATOR_NAMESPACE -l $SRIOV_CNI_LABEL --for condition=X --timeout 1m
+  echo $?
+
   # Wait for cni and device-plugin pods to be ready
   wait_pods_condition_by_label $SRIOV_OPERATOR_NAMESPACE $SRIOV_CNI_LABEL $CONDITION || return 1
   wait_pods_condition_by_label $SRIOV_OPERATOR_NAMESPACE $SRIOV_DEVICE_PLUGIN_LABEL $CONDITION || return 1
