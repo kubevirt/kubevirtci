@@ -120,7 +120,7 @@ function wait_for_taint_absence {
   local -r wait_time=5
 
   local -r wait_message="Waiting for $taint taint absence"
-  local -r error_message="Taint $taint $name did not removed"
+  local -r error_message="Taint $taint did not removed"
   local -r action="is_taint_absence $taint"
 
   retry "$tries" "$wait_time" "$action" "$wait_message" && return 0
@@ -134,7 +134,7 @@ function wait_for_taint {
   local -r wait_time=5
 
   local -r wait_message="Waiting for $taint taint to present"
-  local -r error_message="Taint $taint $name did not present"
+  local -r error_message="Taint $taint did not present"
   local -r action="_kubectl get nodes -o custom-columns=taints:.spec.taints[*].effect --no-headers | grep -i $taint"
 
   retry "$tries" "$wait_time" "$action" "$wait_message" && return 0
