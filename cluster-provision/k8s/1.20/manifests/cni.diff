@@ -1,0 +1,63 @@
+--- cni.do-not-change.yaml	2020-08-13 12:25:23.690257660 +0200
++++ cni.patched.yaml	2020-08-13 12:43:02.668237485 +0200
+@@ -32,7 +32,14 @@
+           "nodename": "__KUBERNETES_NODE_NAME__",
+           "mtu": __CNI_MTU__,
+           "ipam": {
+-              "type": "calico-ipam"
++              "type": "calico-ipam",
++              "assign_ipv4": "true",
++              "assign_ipv6": "true",
++              "ipv4_pools": ["default-ipv4-ippool"],
++              "ipv6_pools": ["natted-ipv6-ippool"]
++          },
++          "container_settings": {
++              "allow_ip_forwarding": true
+           },
+           "policy": {
+               "type": "k8s"
+@@ -3578,6 +3585,8 @@
+             # no effect. This should fall within `--cluster-cidr`.
+             # - name: CALICO_IPV4POOL_CIDR
+             #   value: "192.168.0.0/16"
++            - name: IP6
++              value: "autodetect"
+             # Disable file logging so `kubectl logs` works.
+             - name: CALICO_DISABLE_FILE_LOGGING
+               value: "true"
+@@ -3586,7 +3595,7 @@
+               value: "ACCEPT"
+             # Disable IPv6 on Kubernetes.
+             - name: FELIX_IPV6SUPPORT
+-              value: "false"
++              value: "true"
+             # Set Felix logging to "info"
+             - name: FELIX_LOGSEVERITYSCREEN
+               value: "info"
+@@ -3709,6 +3718,9 @@
+           effect: NoSchedule
+       serviceAccountName: calico-kube-controllers
+       priorityClassName: system-cluster-critical
++      securityContext:
++        seLinuxOptions:
++          type: spc_t
+       containers:
+         - name: calico-kube-controllers
+           image: calico/kube-controllers:v3.15.1
+@@ -3741,4 +3753,16 @@
+ ---
+ # Source: calico/templates/configure-canal.yaml
+ 
++---
++apiVersion: crd.projectcalico.org/v1
++kind: IPPool
++metadata:
++  name: natted-ipv6-ippool
++spec:
++  blockSize: 122
++  cidr: fd10:244::/112
++  natOutgoing: true
++  ipipMode: Never
++  nodeSelector: all()
++  vxlanMode: Never
+ 
