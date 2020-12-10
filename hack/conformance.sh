@@ -20,8 +20,10 @@ teardown() {
     ./sonobuoy status --json
     ./sonobuoy logs > "${ARTIFACTS}/sonobuoy.log"
     results_tarball=$(./sonobuoy retrieve)
-    tar -xvzf "$results_tarball" plugins/e2e/results/
-    cp -f "$(find plugins/e2e/results/* -name "*.xml")" "${ARTIFACTS}/"
+    cp "$results_tarball" "${ARTIFACTS}/"
+    tar -ztvf "$results_tarball"
+    tar -xvzf "$results_tarball" plugins/e2e/
+    cp -f "$(find plugins/e2e/* -name "*.xml")" "${ARTIFACTS}/"
 
     if [ $rv -ne 0 ]; then
         echo "error found, exiting"
