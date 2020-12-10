@@ -88,7 +88,7 @@
     "~/sonobuoy/plugins.d"
   ],
   "Namespace": "sonobuoy",
-  "WorkerImage": "sonobuoy/sonobuoy:v0.19.0",
+  "WorkerImage": "projects.registry.vmware.com/sonobuoy/sonobuoy:v0.19.0",
   "ImagePullPolicy": "IfNotPresent",
   "ImagePullSecrets": "",
   "ProgressUpdatesPort": "8099"
