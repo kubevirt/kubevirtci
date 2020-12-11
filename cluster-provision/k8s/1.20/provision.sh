@@ -178,38 +178,27 @@ nmcli connection up "System eth0"
 
 mkdir -p $kubeadmn_patches_path
 
-cat >$kubeadmn_patches_path/kustomization.yaml <<EOF
-patchesJson6902:
-- target:
-    version: v1
-    kind: Pod
-    name: kube-apiserver
-    namespace: kube-system
-  path: add-security-context.yaml
-- target:
-    version: v1
-    kind: Pod
-    name: kube-controller-manager
-    namespace: kube-system
-  path: add-security-context.yaml
-- target:
-    version: v1
-    kind: Pod
-    name: kube-scheduler
-    namespace: kube-system
-  path: add-security-context.yaml
-- target:
-    version: v1
-    kind: Pod
-    name: etcd
-    namespace: kube-system
-  path: add-security-context.yaml
+cat >$kubeadmn_patches_path/kube-apiserver.yaml <<EOF
+spec:
+  securityContext:
+    seLinuxOptions:
+      type: spc_t
 EOF
-
-cat >$kubeadmn_patches_path/add-security-context.yaml <<EOF
-- op: add
-  path: /spec/securityContext
-  value:
+cat >$kubeadmn_patches_path/kube-controller-manager.yaml <<EOF
+spec:
+  securityContext:
+    seLinuxOptions:
+      type: spc_t
+EOF
+cat >$kubeadmn_patches_path/kube-scheduler.yaml <<EOF
+spec:
+  securityContext:
+    seLinuxOptions:
+      type: spc_t
+EOF
+cat >$kubeadmn_patches_path/etcd.yaml <<EOF
+spec:
+  securityContext:
     seLinuxOptions:
       type: spc_t
 EOF
@@ -249,7 +238,7 @@ EOF
 
 kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
 envsubst < /tmp/kubeadm.conf > $kubeadm_manifest
-kubeadm init --config $kubeadm_manifest --experimental-kustomize /provision/kubeadm-patches/
+kubeadm init --config $kubeadm_manifest --experimental-patches /provision/kubeadm-patches/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
