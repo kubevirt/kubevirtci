@@ -274,18 +274,26 @@ function apply_sriov_node_policy {
   echo "Applying SriovNetworkNodeConfigPolicy:"
   echo "$policy"
 
+  if [ ! $RELEASE_VERSION = "4.4.0" ]; then
+    # See https://bugzilla.redhat.com/show_bug.cgi?id=1850505
+    echo "Disable operator webhook, else it would failed creating it because its not in the supported NIC list"
+    _kubectl patch sriovoperatorconfig default --type=merge -n sriov-network-operator --patch '{ "spec": { "enableOperatorWebhook": false } }'
+    timeout 100s bash -c "until ! $KUBECTL get validatingwebhookconfiguration -o custom-columns=:metadata.name | grep sriov-operator-webhook-config; do sleep 1; done"
+  fi
+  _kubectl create -f - <<< "$policy"
+  
   # until https://github.com/k8snetworkplumbingwg/sriov-network-operator/issues/3 is fixed we need to inject CaBundle and retry policy creation
-  tries=0
-  until _kubectl create -f - <<< "$policy"; do
-    if [ $tries -eq 10 ]; then
-      echo "could not create policy"
-      return 1
-    fi
-    _kubectl patch validatingwebhookconfiguration sriov-operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
-    _kubectl patch mutatingwebhookconfiguration sriov-operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
-    _kubectl patch mutatingwebhookconfiguration network-resources-injector-config --patch '{"webhooks":[{"name":"network-resources-injector-config.k8s.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/network-resources-injector.cert)"'" }}]}'
-    tries=$((tries+1))
-  done
+  #tries=0
+  #until _kubectl create -f - <<< "$policy"; do
+  #  if [ $tries -eq 10 ]; then
+  #    echo "could not create policy"
+  #    return 1
+  #  fi
+  #  _kubectl patch validatingwebhookconfiguration sriov-operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
+  #  _kubectl patch mutatingwebhookconfiguration sriov-operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
+  #  _kubectl patch mutatingwebhookconfiguration network-resources-injector-config --patch '{"webhooks":[{"name":"network-resources-injector-config.k8s.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/network-resources-injector.cert)"'" }}]}'
+  #  tries=$((tries+1))
+  #done
 
   return 0
 }
