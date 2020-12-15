@@ -154,6 +154,31 @@ function wait_allocatable_resource {
 
   if ! retry $tries $wait_time "$action" "$wait_message"; then
     echo $error_message
+
+    echo "LOGS network-resources-injector"
+    POD=$(_kubectl get pods -n sriov-network-operator | grep network-resources-injector | awk '{print $1}')
+    _kubectl logs -n sriov-network-operator $POD
+
+    echo "LOGS operator-webhook"
+    POD=$(_kubectl get pods -n sriov-network-operator | grep operator-webhook | awk '{print $1}')
+    _kubectl logs -n sriov-network-operator $POD
+
+    echo "LOGS sriov-cni"
+    POD=$(_kubectl get pods -n sriov-network-operator | grep sriov-cni | awk '{print $1}')
+    _kubectl logs -n sriov-network-operator $POD
+
+    echo "LOGS sriov-device-plugin"
+    POD=$(_kubectl get pods -n sriov-network-operator | grep sriov-device-plugin | awk '{print $1}')
+    _kubectl logs -n sriov-network-operator $POD
+
+    echo "LOGS sriov-network-config-daemon"
+    POD=$(_kubectl get pods -n sriov-network-operator | grep sriov-network-config-daemon | awk '{print $1}')
+    _kubectl logs -n sriov-network-operator $POD
+
+    echo "LOGS sriov-network-operator"
+    POD=$(_kubectl get pods -n sriov-network-operator | grep sriov-network-operator | awk '{print $1}')
+    _kubectl logs -n sriov-network-operator $POD
+
     return 1
   fi
 
@@ -346,6 +371,8 @@ function setns_sriov_ifs {
 }
 
 setns_sriov_ifs
+
+lspci -i $NODE_PF -vvvv
 
 SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
 ${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
