@@ -13,7 +13,7 @@ WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
 SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
 NUM_PF_REQUIRED=${NUM_PF_REQUIRED:-1}
 
-export RELEASE_VERSION=4.8.0
+export RELEASE_VERSION=4.8
 OPERATOR_GIT_HASH=49045c36efb9136813f049b9977fe2b93c0a46c0
 
 re='^[0-9]+$'
@@ -155,6 +155,13 @@ function wait_allocatable_resource {
   if ! retry $tries $wait_time "$action" "$wait_message"; then
     echo $error_message
 
+    set +e
+    echo "ALL PODS"
+    _kubectl get pods -A
+
+    # TODO, after we have logs, check if the reset patch is what cause it
+    # because clean bump worked
+
     echo "LOGS network-resources-injector"
     POD=$(_kubectl get pods -n sriov-network-operator | grep network-resources-injector | awk '{print $1}')
     _kubectl logs -n sriov-network-operator $POD
@@ -178,6 +185,7 @@ function wait_allocatable_resource {
     echo "LOGS sriov-network-operator"
     POD=$(_kubectl get pods -n sriov-network-operator | grep sriov-network-operator | awk '{print $1}')
     _kubectl logs -n sriov-network-operator $POD
+    set -e
 
     return 1
   fi
@@ -274,26 +282,57 @@ function apply_sriov_node_policy {
   echo "Applying SriovNetworkNodeConfigPolicy:"
   echo "$policy"
 
-  if [ ! $RELEASE_VERSION = "4.4.0" ]; then
-    # See https://bugzilla.redhat.com/show_bug.cgi?id=1850505
-    echo "Disable operator webhook, else it would failed creating it because its not in the supported NIC list"
-    _kubectl patch sriovoperatorconfig default --type=merge -n sriov-network-operator --patch '{ "spec": { "enableOperatorWebhook": false } }'
-    timeout 100s bash -c "until ! $KUBECTL get validatingwebhookconfiguration -o custom-columns=:metadata.name | grep sriov-operator-webhook-config; do sleep 1; done"
-  fi
-  _kubectl create -f - <<< "$policy"
+  #if [ ! $RELEASE_VERSION = "4.4" ]; then
+  #  # See https://bugzilla.redhat.com/show_bug.cgi?id=1850505
+  #  echo "Disable operator webhook, else it would failed creating it because its not in the supported NIC list"
+  #  _kubectl patch sriovoperatorconfig default --type=merge -n sriov-network-operator --patch '{ "spec": { "enableOperatorWebhook": false } }'
+  #  timeout 100s bash -c "until ! $KUBECTL get validatingwebhookconfiguration -o custom-columns=:metadata.name | grep sriov-operator-webhook-config; do sleep 1; done"
+  #fi
+  #_kubectl create -f - <<< "$policy"
   
   # until https://github.com/k8snetworkplumbingwg/sriov-network-operator/issues/3 is fixed we need to inject CaBundle and retry policy creation
-  #tries=0
-  #until _kubectl create -f - <<< "$policy"; do
-  #  if [ $tries -eq 10 ]; then
-  #    echo "could not create policy"
-  #    return 1
-  #  fi
-  #  _kubectl patch validatingwebhookconfiguration sriov-operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
-  #  _kubectl patch mutatingwebhookconfiguration sriov-operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
-  #  _kubectl patch mutatingwebhookconfiguration network-resources-injector-config --patch '{"webhooks":[{"name":"network-resources-injector-config.k8s.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/network-resources-injector.cert)"'" }}]}'
-  #  tries=$((tries+1))
-  #done
+  tries=0
+  until _kubectl create -f - <<< "$policy"; do
+    if [ $tries -eq 10 ]; then
+      echo "could not create policy"
+      
+      set +e
+      echo "ALL PODS"
+      _kubectl get pods -A
+
+      echo "LOGS network-resources-injector"
+      POD=$(_kubectl get pods -n sriov-network-operator | grep network-resources-injector | awk '{print $1}')
+      _kubectl logs -n sriov-network-operator $POD
+
+      echo "LOGS operator-webhook"
+      POD=$(_kubectl get pods -n sriov-network-operator | grep operator-webhook | awk '{print $1}')
+      _kubectl logs -n sriov-network-operator $POD
+
+      echo "LOGS sriov-cni"
+      POD=$(_kubectl get pods -n sriov-network-operator | grep sriov-cni | awk '{print $1}')
+      _kubectl logs -n sriov-network-operator $POD
+
+      echo "LOGS sriov-device-plugin"
+      POD=$(_kubectl get pods -n sriov-network-operator | grep sriov-device-plugin | awk '{print $1}')
+      _kubectl logs -n sriov-network-operator $POD
+
+      echo "LOGS sriov-network-config-daemon"
+      POD=$(_kubectl get pods -n sriov-network-operator | grep sriov-network-config-daemon | awk '{print $1}')
+      _kubectl logs -n sriov-network-operator $POD
+
+      echo "LOGS sriov-network-operator"
+      POD=$(_kubectl get pods -n sriov-network-operator | grep sriov-network-operator | awk '{print $1}')
+      _kubectl logs -n sriov-network-operator $POD
+      
+      set -e
+
+      return 1
+    fi
+    _kubectl patch validatingwebhookconfiguration sriov-operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
+    _kubectl patch mutatingwebhookconfiguration sriov-operator-webhook-config --patch '{"webhooks":[{"name":"operator-webhook.sriovnetwork.openshift.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/operator-webhook.cert)"'" }}]}'
+    _kubectl patch mutatingwebhookconfiguration network-resources-injector-config --patch '{"webhooks":[{"name":"network-resources-injector-config.k8s.io", "clientConfig": { "caBundle": "'"$(cat $CERTCREATOR_PATH/network-resources-injector.cert)"'" }}]}'
+    tries=$((tries+1))
+  done
 
   return 0
 }
@@ -407,7 +446,7 @@ metadata:
   name: unsupported-nic-ids
   namespace: sriov-network-operator
 EOF
-#sleep 60
+sleep 60
 _kubectl get configmap -n sriov-network-operator unsupported-nic-ids -oyaml
 
 policy="$MANIFESTS_DIR/network_config_policy.yaml"
