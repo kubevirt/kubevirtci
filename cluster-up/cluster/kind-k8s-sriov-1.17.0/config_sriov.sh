@@ -205,14 +205,40 @@ function deploy_sriov_operator {
 
 function apply_sriov_node_policy {
   local -r policy_file=$1
+  local -r node_pf=$2
+  local -r num_vfs=$3
 
   # Substitute $NODE_PF and $NODE_PF_NUM_VFS and create SriovNetworkNodePolicy CR
-  local -r policy=$(envsubst < $policy_file)
+  local -r policy=$(NODE_PF=$node_pf NODE_PF_NUM_VFS=$num_vfs envsubst < $policy_file)
   echo "Applying SriovNetworkNodeConfigPolicy:"
   echo "$policy"
   _kubectl create -f - <<< "$policy"
 
   return 0
+}
+
+function move_sriov_pfs_netns_to_node {
+  local -r node=$1
+  local -r pid="$(docker inspect -f '{{.State.Pid}}' $node)"
+  local pf_array=()
+
+  mkdir -p /var/run/netns/
+  ln -sf /proc/$pid/ns/net "/var/run/netns/$node"
+
+  local -r sriov_pfs=( /sys/class/net/*/device/sriov_numvfs )
+  for ifs in "${sriov_pfs[@]}"; do
+    local ifs_name="${ifs%%/device/*}"
+    ifs_name="${ifs_name##*/}"
+
+    if [ $(echo "${PF_BLACKLIST[@]}" | grep "${ifs_name}") ]; then
+      continue
+    fi
+
+    ip link set "$ifs_name" netns "$node"
+    pf_array+=($ifs_name)
+  done
+
+  echo ${pf_array[@]}
 }
 
 # The first worker needs to be handled specially as it has no ending number, and sort will not work
@@ -229,35 +255,7 @@ if [[ "$SRIOV_NODE" == "${WORKER_NODE_ROOT}0" ]]; then
   SRIOV_NODE=${WORKER_NODE_ROOT}
 fi
 
-#move the pf to the node
-mkdir -p /var/run/netns/
-export pid="$(docker inspect -f '{{.State.Pid}}' $SRIOV_NODE)"
-ln -sf /proc/$pid/ns/net "/var/run/netns/$SRIOV_NODE"
-
-sriov_pfs=( /sys/class/net/*/device/sriov_numvfs )
-
-
-for ifs in "${sriov_pfs[@]}"; do
-  ifs_name="${ifs%%/device/*}"
-  ifs_name="${ifs_name##*/}"
-
-  if [ $(echo "${PF_BLACKLIST[@]}" | grep "${ifs_name}") ]; then
-    continue
-  fi
-
-  # We set the variable below only in the first iteration as we need only one PF
-  # to inject into the Network Configuration manifest. We need to move all pfs to
-  # the node's namespace and for that reason we do not interrupt the loop.
-  if [ -z "$NODE_PF" ]; then
-    # These values are used to populate the network definition policy yaml.
-    # We just use the first suitable pf
-    # We need the num of vfs because if we don't set this value equals to the total, in case of mellanox
-    # the sriov operator will trigger a node reboot to update the firmware
-    export NODE_PF="$ifs_name"
-    export NODE_PF_NUM_VFS=$(cat /sys/class/net/"$NODE_PF"/device/sriov_totalvfs)
-  fi
-  ip link set "$ifs_name" netns "$SRIOV_NODE"
-done
+NODE_PFS=($(move_sriov_pfs_netns_to_node $SRIOV_NODE))
 
 SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
 ${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
@@ -270,11 +268,17 @@ wait_pods_ready
 deploy_sriov_operator
 wait_pods_ready
 
-policy="$MANIFESTS_DIR/network_config_policy.yaml"
-apply_sriov_node_policy "$policy"
+# We use just the first suitable pf, for the SriovNetworkNodePolicy manifest.
+# We also need the num of vfs because if we don't set this value equals to the total, in case of mellanox
+# the sriov operator will trigger a node reboot to update the firmware
+NODE_PF=$NODE_PFS
+NODE_PF_NUM_VFS=$(docker exec $SRIOV_NODE cat /sys/class/net/$NODE_PF/device/sriov_totalvfs)
+
+POLICY="$MANIFESTS_DIR/network_config_policy.yaml"
+apply_sriov_node_policy "$POLICY" "$NODE_PF" "$NODE_PF_NUM_VFS"
 
 # Verify that sriov node has sriov VFs allocatable resource
-resource_name=$(sed -n 's/.*resourceName: *//p' $policy)
+resource_name=$(sed -n 's/.*resourceName: *//p' $POLICY)
 wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM_VFS
 wait_pods_ready
 
