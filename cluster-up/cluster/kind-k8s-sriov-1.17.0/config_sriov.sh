@@ -218,6 +218,8 @@ function deploy_sriov_operator {
       echo "Skipping reset workaround for ConnectX"
       break
     fi
+    ### break for all, in order to check the fix
+    break
 
     ifs="${ifs%%/sriov_totalvfs}"
     export IGNORE_PATH=$ifs
@@ -243,7 +245,8 @@ function deploy_sriov_operator {
   pushd $operator_path
     export SKIP_VAR_SET=1
     export CGO_ENABLED=0
-    export SRIOV_NETWORK_CONFIG_DAEMON_IMAGE=quay.io/openshift/origin-sriov-network-config-daemon:${RELEASE_VERSION}
+    #export SRIOV_NETWORK_CONFIG_DAEMON_IMAGE=quay.io/openshift/origin-sriov-network-config-daemon:${RELEASE_VERSION}
+    export SRIOV_NETWORK_CONFIG_DAEMON_IMAGE=quay.io/oshoval/origin-sriov-network-config-daemon:reset
     export SRIOV_NETWORK_WEBHOOK_IMAGE=quay.io/openshift/origin-sriov-network-webhook:${RELEASE_VERSION}
     export NETWORK_RESOURCES_INJECTOR_IMAGE=quay.io/openshift/origin-sriov-dp-admission-controller:${RELEASE_VERSION}
     export SRIOV_CNI_IMAGE=quay.io/openshift/origin-sriov-cni:${RELEASE_VERSION}
