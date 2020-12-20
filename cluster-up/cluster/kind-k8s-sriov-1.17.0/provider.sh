@@ -8,7 +8,7 @@ export KIND_NODE_IMAGE="kindest/node:v1.17.0"
 source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
 
 function up() {
-    if [[ "$KUBEVIRT_NUM_NODES" -ne 2 ]]; then
+    if [[ "$KUBEVIRT_NUM_NODES" -lt 2 ]]; then
         echo 'SR-IOV cluster can be only started with 2 nodes'
         exit 1
     fi
@@ -22,5 +22,10 @@ function up() {
 
     kind_up
 
+    export SRIOV_POLICY_FILE_PATH="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests/network_config_policy.yaml"
+    export PATCHED_SRIOV_POLICY_FILE_PATH="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/sriov_network_node_policy.yaml"
+
     ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/config_sriov.sh
+
+    ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/deploy_sriov_operator.sh
 }
