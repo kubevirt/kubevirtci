@@ -1,16 +1,15 @@
 set -xe
 
+source cluster-up/hack/common.sh
 source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
 
 MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests"
 CERTCREATOR_PATH="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/certcreator"
 KUBECONFIG_PATH="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
 
-MASTER_NODE="${CLUSTER_NAME}-control-plane"
-WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
-
 OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
 SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
+PATCHED_SRIOV_POLICY_FILE_PATH=${PATCHED_SRIOV_POLICY_FILE_PATH:-none}
 
 # This function gets a command and invoke it repeatedly
 # until the command return code is zero
@@ -127,7 +126,7 @@ function wait_pods_ready {
   return 0
 }
 
-function wait_allocatable_resource {
+function wait_node_allocatable_resource {
   local -r node=$1
   local resource_name=$2
   local -r expected_value=$3
@@ -202,33 +201,22 @@ function deploy_sriov_operator {
   return 0
 }
 
-function apply_sriov_node_policy {
-  local -r policy_file=$1
-
-  # Substitute $NODE_PF and $NODE_PF_NUM_VFS and create SriovNetworkNodePolicy CR
-  local -r policy=$(envsubst < $policy_file)
-  echo "Applying SriovNetworkNodeConfigPolicy:"
-  echo "$policy"
-  _kubectl create -f - <<< "$policy"
-
-  return 0
-}
-
 deploy_multus
 wait_pods_ready
 
 deploy_sriov_operator
 wait_pods_ready
 
-policy="$MANIFESTS_DIR/network_config_policy.yaml"
-apply_sriov_node_policy "$policy"
+_kubectl apply -f $PATCHED_SRIOV_POLICY_FILE_PATH
 
-# Verify that sriov node has sriov VFs allocatable resource
-resource_name=$(sed -n 's/.*resourceName: *//p' $policy)
-wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM_VFS
+# Verify that each sriov capable node has sriov VFs allocatable resource
+resource_name=$(sed -n 's/.*resourceName: *//p' $PATCHED_SRIOV_POLICY_FILE_PATH)
+num_vfs=$(sed -n 's/.*numVfs: *//p' $PATCHED_SRIOV_POLICY_FILE_PATH)
+for node in $(_kubectl get nodes -l sriov=true --no-headers -ocustom-columns=:.metadata.name); do
+    wait_node_allocatable_resource "$node" "openshift.io/$resource_name" "$num_vfs"
+done
 wait_pods_ready
 
 _kubectl get nodes
 _kubectl get pods -n $SRIOV_OPERATOR_NAMESPACE
 echo
-echo "$KUBEVIRT_PROVIDER cluster is ready"
