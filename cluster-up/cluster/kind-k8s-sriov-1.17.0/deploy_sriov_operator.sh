@@ -177,7 +177,10 @@ function deploy_sriov_operator {
     export SRIOV_NETWORK_WEBHOOK_IMAGE=quay.io/openshift/origin-sriov-network-webhook:${RELEASE_VERSION}
     export NETWORK_RESOURCES_INJECTOR_IMAGE=quay.io/openshift/origin-sriov-dp-admission-controller:${RELEASE_VERSION}
     export SRIOV_CNI_IMAGE=quay.io/openshift/origin-sriov-cni:${RELEASE_VERSION}
-    export SRIOV_DEVICE_PLUGIN_IMAGE=quay.io/openshift/origin-sriov-network-device-plugin:${RELEASE_VERSION}
+    # Use custom image, rebuilt with reverting this https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin/pull/177.
+    # This change is necessary in order to restrict sriov-device-plugin 
+    # PCI network devices discovery to the cluster node network namesapce.
+    export SRIOV_DEVICE_PLUGIN_IMAGE=docker.io/dockerneties/sriov-device-plugin:latest
     export OPERATOR_EXEC=${KUBECTL}
     make deploy-setup-k8s SHELL=/bin/bash  # on prow nodes the default shell is dash and some commands are not working
   popd
