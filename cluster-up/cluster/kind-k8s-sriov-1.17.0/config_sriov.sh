@@ -1,63 +1,97 @@
 #!/bin/bash
-set -xe
 
+set -ex
+
+if [ "$(id -u)" -ne 0 ]; then 
+  echo "This script requires sudo privileges"
+  exit 1
+fi
+
+source cluster-up/hack/common.sh 
 source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
 
-MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests"
-CERTCREATOR_PATH="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/certcreator"
-KUBECONFIG_PATH="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
+PF_BLACKLIST=${PF_BLACKLIST:-none}
+SRIOV_PF_DEVICES_ROOT_DIR=( /sys/class/net/*/device/sriov_numvfs )
+SRIOV_WORKER_NODES_LABEL="sriov=true"
 
-MASTER_NODE="${CLUSTER_NAME}-control-plane"
-WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
+SRIOV_POLICY_FILE_PATH=${SRIOV_POLICY_FILE_PATH:-none}
+PATCHED_SRIOV_POLICY_FILE_PATH=${PATCHED_SRIOV_POLICY_FILE_PATH:-node}
 
-OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
-SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
+echo "Geting SRIOV PF interfaces names"
+pf_names=()
+pf_vfs_count=()
+for interface in "${SRIOV_PF_DEVICES_ROOT_DIR[@]}"; do
+  interface_name="${interface%%/device/*}"
+  interface_name="${interface_name##*/}"
 
-# The first worker needs to be handled specially as it has no ending number, and sort will not work
-# We add the 0 to it and we remove it if it's the candidate worker
-WORKER=$(_kubectl get nodes | grep $WORKER_NODE_ROOT | sed "s/\b$WORKER_NODE_ROOT\b/${WORKER_NODE_ROOT}0/g" | sort -r | awk 'NR==1 {print $1}')
-if [[ -z "$WORKER" ]]; then
-  SRIOV_NODE=$MASTER_NODE
-else
-  SRIOV_NODE=$WORKER
-fi
-
-# this is to remove the ending 0 in case the candidate worker is the first one
-if [[ "$SRIOV_NODE" == "${WORKER_NODE_ROOT}0" ]]; then
-  SRIOV_NODE=${WORKER_NODE_ROOT}
-fi
-
-#move the pf to the node
-mkdir -p /var/run/netns/
-export pid="$(docker inspect -f '{{.State.Pid}}' $SRIOV_NODE)"
-ln -sf /proc/$pid/ns/net "/var/run/netns/$SRIOV_NODE"
-
-sriov_pfs=( /sys/class/net/*/device/sriov_numvfs )
-
-
-for ifs in "${sriov_pfs[@]}"; do
-  ifs_name="${ifs%%/device/*}"
-  ifs_name="${ifs_name##*/}"
-
-  if [ $(echo "${PF_BLACKLIST[@]}" | grep "${ifs_name}") ]; then
+  if [ $(echo "${PF_BLACKLIST[@]}" | grep "${interface_name}") ]; then
     continue
   fi
 
-  # We set the variable below only in the first iteration as we need only one PF
-  # to inject into the Network Configuration manifest. We need to move all pfs to
-  # the node's namespace and for that reason we do not interrupt the loop.
-  if [ -z "$NODE_PF" ]; then
-    # These values are used to populate the network definition policy yaml.
-    # We just use the first suitable pf
-    # We need the num of vfs because if we don't set this value equals to the total, in case of mellanox
-    # the sriov operator will trigger a node reboot to update the firmware
-    export NODE_PF="$ifs_name"
-    export NODE_PF_NUM_VFS=$(cat /sys/class/net/"$NODE_PF"/device/sriov_totalvfs)
-  fi
-  ip link set "$ifs_name" netns "$SRIOV_NODE"
+  pf_names+=( $interface_name )
 done
+echo "${pf_names[@]}"
 
-SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
-${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
-${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
-_kubectl label node $SRIOV_NODE sriov=true
+echo "Getting total VF's count that supported by the card"
+vfs_count=$(cat "/sys/class/net/${pf_names[0]}/device/sriov_totalvfs")
+echo $vfs_count
+
+echo "Patch PF's names and VF's count to SriovNetworkNodePolicy"
+cp -f $SRIOV_POLICY_FILE_PATH $PATCHED_SRIOV_POLICY_FILE_PATH
+sed -i "s?numVfs:?numVfs: $vfs_count?g" $PATCHED_SRIOV_POLICY_FILE_PATH
+pf_names_comma_separeted=$(echo "${pf_names[@]}" | sed  's/ /\,/g')
+sed -i "s?pfNames:?pfNames: [$pf_names_comma_separeted]?g" $PATCHED_SRIOV_POLICY_FILE_PATH
+cat $PATCHED_SRIOV_POLICY_FILE_PATH
+
+echo "Get worker nodes"
+worker_nodes=( $(_kubectl get nodes -l node-role.kubernetes.io/worker -o custom-columns=:.metadata.name --no-headers) )
+echo "${worker_nodes[@]}"
+
+echo "Attach PF's to workers nodes"
+mkdir -p /var/run/netns/
+
+pf_count="${#pf_names[@]}"
+for i in $(seq $pf_count); do 
+  index=$((i-1))
+  current_node="${worker_nodes[$index]}"
+
+  if [ -z $current_node ]; then
+    echo "All workers were configured"
+    break
+  fi
+
+  current_pf="${pf_names[$index]}"
+  if [ -z $current_pf ]; then 
+    echo "All PF's were attached to worker nodes"
+    break
+  fi
+
+  echo "[$current_node] Attaching PF '$current_pf' to node network namespace"
+  pid="$(docker inspect -f '{{.State.Pid}}' $current_node)"
+  current_node_network_namespace=$current_node
+
+  # Create symlink to current worker node (container) network-namespace
+  # at /var/run/netns (consumned by iplink) so it will be visibale by iplink.
+  # This is necessary since docker does not creating the requierd 
+  # symlink for a container network-namesapce.
+  ln -sf /proc/$pid/ns/net "/var/run/netns/$current_node_network_namespace"
+
+  # Move current PF to current node network-namespace
+  ip link set $current_pf netns $current_node_network_namespace
+
+  # Ensure current PF is up
+  ip netns exec $current_node_network_namespace ip link set up dev $current_pf
+
+  echo "node '$current_node' network-namespace '$current_node_network_namespace' links state"
+  ip netns exec $current_node_network_namespace ip link show
+
+  current_node_cmd="docker exec -it -d $current_node"
+  # kind remounts it as readonly when it starts, we need it to be writeable
+  ${current_node_cmd} mount -o remount,rw /sys
+
+  # Ensure vfio binary is executable
+  ${current_node_cmd} chmod 666 /dev/vfio/vfio
+
+  echo "label node '$current_node' as sriov capable node '$SRIOV_WORKER_NODES_LABEL'"
+  _kubectl label node $current_node $SRIOV_WORKER_NODES_LABEL
+done
