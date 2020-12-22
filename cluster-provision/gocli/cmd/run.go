@@ -83,7 +83,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
-	run.Flags().String("container-registry", "docker.io", "the registry to pull cluster container from")
+	run.Flags().String("container-registry", "quay.io", "the registry to pull cluster container from")
 	run.Flags().String("container-org", "kubevirtci", "the organization at the registry to pull the container from")
 	run.Flags().String("container-suffix", "", "Override container suffix stored at the cli binary")
 	run.Flags().String("gpu", "", "pci address of a GPU to assign to a node")
