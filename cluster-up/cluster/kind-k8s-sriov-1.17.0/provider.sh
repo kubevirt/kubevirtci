@@ -2,7 +2,19 @@
 
 set -e
 
-export CLUSTER_NAME="sriov"
+DEFAULT_CLUSTER_NAME="sriov"
+DEFAULT_HOST_PORT=5000
+ALTERNATE_HOST_PORT=5001
+export CLUSTER_NAME=${CLUSTER_NAME:-$DEFAULT_CLUSTER_NAME}
+export KIND_NODE_IMAGE="kindest/node:v1.17.0"
+
+if [ $CLUSTER_NAME == $DEFAULT_CLUSTER_NAME ]; then
+    export HOST_PORT=$DEFAULT_HOST_PORT
+else
+    export HOST_PORT=$ALTERNATE_HOST_PORT
+fi
+
+source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
 
 function set_kind_params() {
     export KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.17.0}"
