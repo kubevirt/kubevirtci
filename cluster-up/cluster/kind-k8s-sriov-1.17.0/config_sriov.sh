@@ -225,7 +225,9 @@ function move_sriov_pfs_netns_to_node {
   mkdir -p /var/run/netns/
   ln -sf /proc/$pid/ns/net "/var/run/netns/$node"
 
-  local -r sriov_pfs=( /sys/class/net/*/device/sriov_numvfs )
+  local -r sriov_pfs=( $(find /sys/class/net/*/device/sriov_numvfs) )
+  [ "${#sriov_pfs[@]}" -eq 0 ] && echo "FATAL: Could not find available sriov PFs" >&2 && return 1
+
   for ifs in "${sriov_pfs[@]}"; do
     local ifs_name="${ifs%%/device/*}"
     ifs_name="${ifs_name##*/}"
