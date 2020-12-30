@@ -38,7 +38,7 @@ ETCD_IN_MEMORY_DATA_DIR="/tmp/kind-cluster-etcd"
 
 function _wait_kind_up {
     echo "Waiting for kind to be ready ..."
-    while [ -z "$(docker exec --privileged ${CLUSTER_NAME}-control-plane kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --selector=node-role.kubernetes.io/master -o=jsonpath='{.items..status.conditions[-1:].status}' | grep True)" ]; do
+    while ! docker exec --privileged "${CLUSTER_NAME}"-control-plane kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --selector=node-role.kubernetes.io/master -o=jsonpath='{.items..status.conditions[-1:].status}' | grep -q True; do
         echo "Waiting for kind to be ready ..."
         sleep 10
     done
@@ -54,7 +54,7 @@ function _wait_containers_ready {
 function _fetch_kind() {
     KIND="${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/.kind
     current_kind_version=$($KIND --version |& awk '{print $3}')
-    if [[ $current_kind_version != $KIND_VERSION ]]; then
+    if [[ "$current_kind_version" != "$KIND_VERSION" ]]; then
         echo "Downloading kind v$KIND_VERSION"
         curl -LSs https://github.com/kubernetes-sigs/kind/releases/download/v$KIND_VERSION/kind-linux-${ARCH} -o "$KIND"
         chmod +x "$KIND"
@@ -81,17 +81,17 @@ function _ssh_into_node() {
 }
 
 function _run_registry() {
-    until [ -z "$(docker ps -a | grep $REGISTRY_NAME)" ]; do
-        docker stop $REGISTRY_NAME || true
-        docker rm $REGISTRY_NAME || true
+    until ! docker ps -a | grep -q "$REGISTRY_NAME"; do
+        docker stop "$REGISTRY_NAME" || true
+        docker rm "$REGISTRY_NAME" || true
         sleep 5
     done
-    docker run -d -p 5000:5000 --restart=always --name $REGISTRY_NAME registry:2
+    docker run -d -p 5000:5000 --restart=always --name "$REGISTRY_NAME" registry:2
 }
 
 function _configure_registry_on_node() {
     _configure-insecure-registry-and-reload "${NODE_CMD} $1 bash -c"
-    ${NODE_CMD} $1  sh -c "echo $(docker inspect --format '{{.NetworkSettings.IPAddress }}' $REGISTRY_NAME)'\t'registry >> /etc/hosts"
+    ${NODE_CMD} "$1" sh -c "echo $(docker inspect --format '{{.NetworkSettings.IPAddress }}' "$REGISTRY_NAME")'\t'registry >> /etc/hosts"
 }
 
 function _install_cnis {
@@ -125,7 +125,7 @@ function _install_calico_cni {
 
 function prepare_config() {
     BASE_PATH=${KUBEVIRTCI_CONFIG_PATH:-$PWD}
-    cat >$BASE_PATH/$KUBEVIRT_PROVIDER/config-provider-$KUBEVIRT_PROVIDER.sh <<EOF
+    cat >"$BASE_PATH"/"$KUBEVIRT_PROVIDER"/config-provider-"$KUBEVIRT_PROVIDER".sh <<EOF
 master_ip="127.0.0.1"
 kubeconfig=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
 kubectl=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubectl
@@ -137,9 +137,9 @@ EOF
 function _configure_network() {
     # modprobe is present inside kind container but may be missing in the
     # environment running this script, so load the module from inside kind
-    ${NODE_CMD} $1 modprobe br_netfilter
+    ${NODE_CMD} "$1" modprobe br_netfilter
     for knob in arp ip ip6; do
-        ${NODE_CMD} $1 sysctl -w sys.net.bridge.bridge-nf-call-${knob}tables=1
+        ${NODE_CMD} "$1" sysctl -w sys.net.bridge.bridge-nf-call-${knob}tables=1
     done
 }
 
@@ -157,17 +157,17 @@ function _fix_node_labels() {
     #   Master nodes might lack 'scheduable=true' label and have NoScheduable taint.
     #   Worker nodes might lack worker role label.
     master_nodes=$(_get_nodes | grep -i $MASTER_NODES_PATTERN | awk '{print $1}')
-    for node in ${master_nodes[@]}; do
+    for node in "${master_nodes[@]}"; do
         # removing NoSchedule taint if is there
-        if _kubectl taint nodes $node node-role.kubernetes.io/master:NoSchedule-; then
-            _kubectl label node $node kubevirt.io/schedulable=true
+        if _kubectl taint nodes "$node" node-role.kubernetes.io/master:NoSchedule-; then
+            _kubectl label node "$node" kubevirt.io/schedulable=true
         fi
     done
 
     worker_nodes=$(_get_nodes | grep -i $WORKER_NODES_PATTERN | awk '{print $1}')
-    for node in ${worker_nodes[@]}; do
-        _kubectl label node $node kubevirt.io/schedulable=true
-        _kubectl label node $node node-role.kubernetes.io/worker=""
+    for node in "${worker_nodes[@]}"; do
+        _kubectl label node "$node" kubevirt.io/schedulable=true
+        _kubectl label node "$node" node-role.kubernetes.io/worker=""
     done
 }
 
@@ -180,40 +180,42 @@ function _patch_calico_manifest_diff() {
   local -r calico_diff="$KIND_MANIFESTS_DIR/kube-calico.diff.in"
 
   local -r cri_mtu=$(_get_cri_bridge_mtu)
-  local -r ipip_mode=$(sed -n '/name:.*CALICO_IPV4POOL_IPIP.*/{n; s/.*value:.*\(Always\|Never\).*/\1/p}' $calico_manifest)
-  if [ $ipip_mode == "Always" ]; then
+  local -r ipip_mode=$(sed -n '/name:.*CALICO_IPV4POOL_IPIP.*/{n; s/.*value:.*\(Always\|Never\).*/\1/p}' "$calico_manifest")
+  if [ "$ipip_mode" == "Always" ]; then
     overhead=$((20))
     calico_mtu=$((cri_mtu - overhead))
   else
-    calico_mtu=$( sed -n 's/.*veth_mtu:.*\([[:digit:]]\{4,5\}\).*/\1/p' $calico_manifest)
+    calico_mtu=$( sed -n 's/.*veth_mtu:.*\([[:digit:]]\{4,5\}\).*/\1/p' "$calico_manifest")
   fi
 
   # Substitute MTU placeholder with the calculated MTU
-  CNI_MTU=$calico_mtu envsubst < $calico_diff
+  CNI_MTU=$calico_mtu envsubst < "$calico_diff"
 }
 
 function _patch_calico_manifest() {
   local -r calico_manifest="$1"
   local -r diff_string="$2"
   
-  patch $calico_manifest -o - <<< "$diff_string"
+  patch "$calico_manifest" -o - <<< "$diff_string"
 }
 
 function setup_kind() {
-    $KIND --loglevel debug create cluster --retain --name=${CLUSTER_NAME} --config=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml --image=$KIND_NODE_IMAGE
-    $KIND get kubeconfig --name=${CLUSTER_NAME} > ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+    $KIND --loglevel debug create cluster --retain --name="${CLUSTER_NAME}" --config="${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/kind.yaml --image="$KIND_NODE_IMAGE"
+    $KIND get kubeconfig --name="${CLUSTER_NAME}" > "${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/.kubeconfig
 
-    docker cp ${CLUSTER_NAME}-control-plane:$KUBECTL_PATH ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
-    chmod u+x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+    docker cp "${CLUSTER_NAME}"-control-plane:"$KUBECTL_PATH" "${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/.kubectl
+    chmod u+x "${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/.kubectl
 
-    if [ $KUBEVIRT_WITH_KIND_ETCD_IN_MEMORY == "true" ]; then
+    if [ "$KUBEVIRT_WITH_KIND_ETCD_IN_MEMORY" == "true" ]; then
         for node in $(_get_nodes | awk '{print $1}' | grep control-plane); do
             echo "[$node] Checking KIND cluster etcd data is mounted to RAM: $ETCD_IN_MEMORY_DATA_DIR"
-            docker exec $node df -h $(dirname $ETCD_IN_MEMORY_DATA_DIR) | grep -P '(tmpfs|ramfs)'
-            [ $(echo $?) != 0 ] && echo "[$node] etcd data directory is not mounted to RAM" && return 1
+            docker exec "$node" df -h "$(dirname $ETCD_IN_MEMORY_DATA_DIR)" | grep -P '(tmpfs|ramfs)'
+            # TODO inject error, and see if we can remove this line
+            #[ $(echo $?) != 0 ] && echo "[$node] etcd data directory is not mounted to RAM" && return 1
 
-            docker exec $node du -h $ETCD_IN_MEMORY_DATA_DIR
-            [ $(echo $?) != 0 ] && echo "[$node] Failed to check etcd data directory" && return 1
+            # TODO same
+            docker exec "$node" du -h $ETCD_IN_MEMORY_DATA_DIR
+            #[ $(echo $?) != 0 ] && echo "[$node] Failed to check etcd data directory" && return 1
         done
     fi
 
@@ -248,7 +250,7 @@ function setup_kind() {
 
 function _add_worker_extra_mounts() {
     if [[ "$KUBEVIRT_PROVIDER" =~ sriov.* ]]; then
-        cat <<EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
+        cat <<EOF >> "${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/kind.yaml
   extraMounts:
   - containerPath: /lib/modules
     hostPath: /lib/modules
@@ -260,7 +262,7 @@ EOF
 }
 
 function _add_worker_kubeadm_config_patch() {
-    cat << EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
+    cat << EOF >> "${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/kind.yaml
   kubeadmConfigPatches:
   - |-
     kind: JoinConfiguration
@@ -275,8 +277,8 @@ EOF
 
 function _add_workers() {
     # appending eventual workers to the yaml
-    for ((n=0;n<$(($KUBEVIRT_NUM_NODES-1));n++)); do
-        cat << EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
+    for ((n=0;n<$((KUBEVIRT_NUM_NODES-1));n++)); do
+        cat << EOF >> "${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/kind.yaml
 - role: worker
 EOF
     _add_worker_kubeadm_config_patch
@@ -285,8 +287,8 @@ EOF
 }
 
 function _add_kubeadm_config_patches() {
-    if [ $KUBEVIRT_WITH_KIND_ETCD_IN_MEMORY == "true" ]; then
-        cat <<EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
+    if [ "$KUBEVIRT_WITH_KIND_ETCD_IN_MEMORY" == "true" ]; then
+        cat <<EOF >> "${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/kind.yaml
 kubeadmConfigPatches:
 - |
   kind: ClusterConfiguration
@@ -305,7 +307,7 @@ function _prepare_kind_config() {
     _add_kubeadm_config_patches
 
     echo "Final KIND config:"
-    cat ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
+    cat "${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/kind.yaml
 }
 
 function kind_up() {
@@ -320,10 +322,10 @@ function _kubectl() {
 
 function down() {
     _fetch_kind
-    if [ -z "$($KIND get clusters | grep ${CLUSTER_NAME})" ]; then
+    if ! $KIND get clusters | grep -q "${CLUSTER_NAME}"; then
         return
     fi
-    $KIND delete cluster --name=${CLUSTER_NAME}
-    docker rm -f $REGISTRY_NAME >> /dev/null
-    rm -f ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
+    $KIND delete cluster --name="${CLUSTER_NAME}"
+    docker rm -f "${REGISTRY_NAME}" >> /dev/null
+    rm -f "${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/kind.yaml
 }

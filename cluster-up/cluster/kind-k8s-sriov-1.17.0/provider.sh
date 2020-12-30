@@ -40,4 +40,4 @@ function up() {
 
 set_kind_params
 
-source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
+source "${KUBEVIRTCI_PATH}"/cluster/kind/common.sh

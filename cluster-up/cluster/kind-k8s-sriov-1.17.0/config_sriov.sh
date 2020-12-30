@@ -1,7 +1,8 @@
 #!/bin/bash
 set -xe
 
-source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
+# shellcheck source=cluster-up/cluster/kind/common.sh
+source "${KUBEVIRTCI_PATH}"/cluster/kind/common.sh
 
 MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests"
 CERTCREATOR_PATH="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/certcreator"
@@ -27,11 +28,11 @@ function retry {
 
   eval $action
   local return_code=$?
-  for i in $(seq $tries); do
+  for i in $(seq "$tries"); do
     if [[ $return_code -ne 0 ]] ; then
       echo "[$i/$tries] $wait_message"
       eval $waiting_action
-      sleep $wait_time
+      sleep "$wait_time"
       eval $action
       return_code=$?
     else
@@ -63,7 +64,7 @@ function wait_for_daemonSet {
   action="_kubectl get daemonset $namespace $name -o jsonpath='{.status.numberReady}' | grep -w $required_replicas"
 
   if ! retry "$tries" "$wait_time" "$action" "$wait_message";then
-    echo $error_message
+    echo "$error_message"
     return 1
   fi
 
@@ -88,7 +89,7 @@ function wait_k8s_object {
   local -r action="_kubectl get $object_type $name $namespace -o custom-columns=NAME:.metadata.name --no-headers"
 
   if ! retry "$tries" "$wait_time" "$action" "$wait_message";then
-    echo $error_message
+    echo "$error_message"
     return  1
   fi
 
@@ -97,6 +98,8 @@ function wait_k8s_object {
 
 function _check_all_pods_ready() {
   all_pods_ready_condition=$(_kubectl get pods -A --no-headers -o custom-columns=':.status.conditions[?(@.type == "Ready")].status')
+  # we need both output of the command above, and its retcode, therefore ignore SC2181
+  # shellcheck disable=SC2181
   if [ "$?" -eq 0 ]; then
     pods_not_ready_count=$(grep -cw False <<< "$all_pods_ready_condition")
     if [ "$pods_not_ready_count" -eq 0 ]; then
@@ -114,7 +117,7 @@ function wait_pods_ready {
   local -r wait_time=10
 
   local -r wait_message="Waiting for all pods to become ready.."
-  local -r error_message="Not all pods were ready after $(($tries*$wait_time)) seconds"
+  local -r error_message="Not all pods were ready after $((tries*wait_time)) seconds"
 
   local -r get_pods='_kubectl get pods --all-namespaces'
   local -r action="_check_all_pods_ready"
@@ -123,7 +126,7 @@ function wait_pods_ready {
   trap "set -x" RETURN
 
   if ! retry "$tries" "$wait_time" "$action" "$wait_message" "$get_pods"; then
-    echo $error_message
+    echo "$error_message"
     return 1
   fi
 
@@ -143,11 +146,12 @@ function wait_allocatable_resource {
   local -r error_message="node $node doesnt have allocatable resource $resource_name:$expected_value"
 
   # it is necessary to add '\' before '.' in the resource name.
+  # TODO echo here the resource before and after and try to fix SC2001: See if you can use ${variable//search/replace} instead
+  # shellcheck disable=SC2001
   resource_name=$(echo $resource_name | sed s/\\./\\\\\./g)
   local -r action='_kubectl get node $node -ocustom-columns=:.status.allocatable.$resource_name --no-headers | grep -w $expected_value'
-
   if ! retry $tries $wait_time "$action" "$wait_message"; then
-    echo $error_message
+    echo "$error_message"
     return 1
   fi
 
@@ -156,7 +160,7 @@ function wait_allocatable_resource {
 
 function deploy_multus {
   echo 'Deploying Multus'
-  _kubectl create -f $MANIFESTS_DIR/multus.yaml
+  _kubectl create -f "$MANIFESTS_DIR"/multus.yaml
 
   echo 'Waiting for Multus deployment to become ready'
   daemonset_name=$(cat $MANIFESTS_DIR/multus.yaml | grep -i daemonset -A 3 | grep -Po '(?<=name:) \S*amd64$')
