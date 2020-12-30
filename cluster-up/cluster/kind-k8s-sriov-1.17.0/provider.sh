@@ -3,6 +3,8 @@
 set -e
 
 export CLUSTER_NAME="sriov"
+# TODO set it 1 only on kubevirtci, not on kubevirt
+SHELL_CHECK=${SHELL_CHECK:-1}
 
 function set_kind_params() {
     export KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.17.0}"
@@ -11,6 +13,11 @@ function set_kind_params() {
 }
 
 function up() {
+    if [ "$SHELL_CHECK" -eq 1 ]; then
+        echo "Performing shellcheck"
+        docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable -x cluster-up/cluster/kind/common.sh cluster-up/cluster/kind-k8s-sriov-1.17.0/*.sh
+    fi
+
     if [[ "$KUBEVIRT_NUM_NODES" -ne 2 ]]; then
         echo 'SR-IOV cluster can be only started with 2 nodes'
         exit 1
