@@ -203,6 +203,24 @@ function deploy_sriov_operator {
   return 0
 }
 
+function wait_sync_status {
+  local namespace=$1
+  local node=$2
+
+  local -r tries=30
+  local -r wait_time=1
+  wait_message="Waiting for SriovNetworkNodeState to have syncStatus Succeeded"
+  error_message="SriovNetworkNodeState did not meet syncStatus Succeeded"
+  action="_kubectl get -n ${namespace} SriovNetworkNodeState ${node} -o jsonpath='{.status.syncStatus}' | grep Succeeded"
+
+  if ! retry "$tries" "$wait_time" "$action" "$wait_message";then
+    echo $error_message
+    return 1
+  fi
+
+  return  0
+}
+
 function apply_sriov_node_policy {
   local -r policy_file=$1
   local -r node_pf=$2
@@ -273,6 +291,8 @@ wait_pods_ready
 # the sriov operator will trigger a node reboot to update the firmware
 NODE_PF=$NODE_PFS
 NODE_PF_NUM_VFS=$(docker exec $SRIOV_NODE cat /sys/class/net/$NODE_PF/device/sriov_totalvfs)
+
+wait_sync_status "$SRIOV_OPERATOR_NAMESPACE" "$SRIOV_NODE"
 
 POLICY="$MANIFESTS_DIR/network_config_policy.yaml"
 apply_sriov_node_policy "$POLICY" "$NODE_PF" "$NODE_PF_NUM_VFS"
