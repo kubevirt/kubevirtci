@@ -25,9 +25,6 @@ do
     sleep 2
 done
 
-mkdir -p /var/lib/etcd/
-mount -t tmpfs -o size=300M tmpfs /var/lib/etcd/
-
 kubeadm init --config /etc/kubernetes/kubeadm.conf --experimental-kustomize /provision/kubeadm-patches/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /provision/kubeadm-patches/add-security-context-deployment-patch.yaml)"
