@@ -45,7 +45,6 @@ systemctl daemon-reload
 systemctl restart docker
 EOF
 `
-const etcdDataMountSize = int(512)
 const etcdDataDir = "/var/lib/etcd"
 
 var cli *client.Client
@@ -88,6 +87,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("container-suffix", "", "Override container suffix stored at the cli binary")
 	run.Flags().String("gpu", "", "pci address of a GPU to assign to a node")
 	run.Flags().Bool("run-etcd-on-memory", true, "configure etcd to run on RAM memory, etcd data will not be persistent")
+	run.Flags().String("etcd-capacity", "512M", "set etcd data mount size.\nthis flag takes affect only when 'run-etcd-on-memory' is specified")
 
 	return run
 }
@@ -196,6 +196,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	runEtcdOnMemory, err := cmd.Flags().GetBool("run-etcd-on-memory")
+	if err != nil {
+		return err
+	}
+
+	etcdDataMountSize, err := cmd.Flags().GetString("etcd-capacity")
 	if err != nil {
 		return err
 	}
@@ -727,7 +732,7 @@ func prepareDeviceForAssignment(cli *client.Client, nodeContainer, pciID, pciAdd
 	return nil
 }
 
-func prepareEtcdDataMount(node string, etcdDataDir string, mountSize int) error {
+func prepareEtcdDataMount(node string, etcdDataDir string, mountSize string) error {
 	var err error
 	var success bool
 
@@ -741,7 +746,7 @@ func prepareEtcdDataMount(node string, etcdDataDir string, mountSize int) error 
 		return fmt.Errorf("verify etcd data directory '%s'on node %s exists failed: %v", etcdDataDir, node, err)
 	}
 
-	success, err = docker.Exec(cli, node, []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo mount -t tmpfs -o size=%dM tmpfs %s", mountSize, etcdDataDir)}, os.Stdout)
+	success, err = docker.Exec(cli, node, []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo mount -t tmpfs -o size=%s tmpfs %s", mountSize, etcdDataDir)}, os.Stdout)
 	if !success || err != nil {
 		return fmt.Errorf("create tmpfs mount '%s' for etcd data on node %s failed: %v", etcdDataDir, node, err)
 	}
