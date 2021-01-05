@@ -20,6 +20,10 @@ require (
 	github.com/stevvooe/resumable v0.0.0-20180830230917-22b14a53ba50 // indirect
 	golang.org/x/crypto v0.0.0-20180409150046-beb2a9779c3b
 	golang.org/x/net v0.0.0-20180406214816-61147c48b25b
+	k8s.io/apimachinery v0.18.4
 )
 
-replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.4.1
+replace (
+    github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.4.1
+    k8s.io/apimachinery/resource => k8s.io/apimachinery/resource v0.18.4
+)

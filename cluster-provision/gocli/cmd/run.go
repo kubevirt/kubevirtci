@@ -22,6 +22,7 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
@@ -108,6 +109,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	if err != nil {
 		return err
 	}
+	resource.MustParse(memory)
 
 	reverse, err := cmd.Flags().GetBool("reverse")
 	if err != nil {
@@ -204,6 +206,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	if err != nil {
 		return err
 	}
+	resource.MustParse(etcdDataMountSize)
 
 	cli, err = client.NewEnvClient()
 	if err != nil {
