@@ -203,24 +203,6 @@ function deploy_sriov_operator {
   return 0
 }
 
-function wait_sync_status {
-  local namespace=$1
-  local node=$2
-
-  local -r tries=30
-  local -r wait_time=1
-  wait_message="Waiting for SriovNetworkNodeState to have syncStatus Succeeded"
-  error_message="SriovNetworkNodeState did not meet syncStatus Succeeded"
-  action="_kubectl get -n ${namespace} SriovNetworkNodeState ${node} -o jsonpath='{.status.syncStatus}' | grep Succeeded"
-
-  if ! retry "$tries" "$wait_time" "$action" "$wait_message";then
-    echo $error_message
-    return 1
-  fi
-
-  return  0
-}
-
 function apply_sriov_node_policy {
   local -r policy_file=$1
   local -r node_pf=$2
@@ -283,16 +265,18 @@ _kubectl label node $SRIOV_NODE sriov=true
 deploy_multus
 wait_pods_ready
 
-deploy_sriov_operator
-wait_pods_ready
-
 # We use just the first suitable pf, for the SriovNetworkNodePolicy manifest.
 # We also need the num of vfs because if we don't set this value equals to the total, in case of mellanox
 # the sriov operator will trigger a node reboot to update the firmware
 NODE_PF=$NODE_PFS
 NODE_PF_NUM_VFS=$(docker exec $SRIOV_NODE cat /sys/class/net/$NODE_PF/device/sriov_totalvfs)
 
-wait_sync_status "$SRIOV_OPERATOR_NAMESPACE" "$SRIOV_NODE"
+for pf in "${NODE_PFS[@]}"; do
+  docker exec $SRIOV_NODE bash -c "echo 0 > /sys/class/net/$pf/device/sriov_numvfs"
+done
+
+deploy_sriov_operator
+wait_pods_ready
 
 POLICY="$MANIFESTS_DIR/network_config_policy.yaml"
 apply_sriov_node_policy "$POLICY" "$NODE_PF" "$NODE_PF_NUM_VFS"
