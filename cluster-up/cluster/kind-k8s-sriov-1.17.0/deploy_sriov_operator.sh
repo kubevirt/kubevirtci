@@ -11,6 +11,9 @@ KUBECONFIG_PATH="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
 OPERATOR_GIT_HASH=8d3c30de8ec5a9a0c9eeb84ea0aa16ba2395cd68  # release-4.4
 SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
 
+SRIOV_NODE_LABEL=${SRIOV_NODE_LABEL:-"sriov=true"}
+NODE_PFS_ANNOTATION=${NODE_PFS_ANNOTATION:-"node_pfs"}
+
 # This function gets a command and invoke it repeatedly
 # until the command return code is zero
 function retry {
@@ -203,14 +206,19 @@ function deploy_sriov_operator {
 
 function apply_sriov_node_policy {
   local -r policy_file=$1
-  local -r node_pf=$2
+  local -r pfs_names_json_arrays=$2
   local -r num_vfs=$3
+  
+  # Format to singal array ["ens1","ens2"],["ens3"] => ["ens1","ens2","ens3"]
+  local all_pfs_names_json_array=$(sed 's/\].*\[/"," /g' <<< "$pfs_names_json_arrays")
+  
+  # Patch SriovNetworkNodesPolicy with PF's names and VF's count
+  sed -i "s?pfNames:.*?pfNames: $all_pfs_names_json_array?g" $policy_file
+  sed -i "s?numVfs:.*?numVfs: $num_vfs?g" $policy_file
 
-  # Substitute $NODE_PF and $NODE_PF_NUM_VFS and create SriovNetworkNodePolicy CR
-  local -r policy=$(NODE_PF=$node_pf NODE_PF_NUM_VFS=$num_vfs envsubst < $policy_file)
-  echo "Applying SriovNetworkNodeConfigPolicy:"
-  echo "$policy"
-  _kubectl create -f - <<< "$policy"
+  echo "Create SriovNetworkNodeConfigPolicy"
+  cat $policy_file
+  kubectl create -f $policy_file
 
   return 0
 }
@@ -221,18 +229,23 @@ wait_pods_ready
 deploy_sriov_operator
 wait_pods_ready
 
-# We use just the first suitable pf, for the SriovNetworkNodePolicy manifest.
-# We also need the num of vfs because if we don't set this value equals to the total, in case of mellanox
-# the sriov operator will trigger a node reboot to update the firmware
-NODE_PF=$NODE_PFS
-NODE_PF_NUM_VFS=$(docker exec $SRIOV_NODE cat /sys/class/net/$NODE_PF/device/sriov_totalvfs)
+# Patch SriovNetworkNodesPolicy
+policy_template="$MANIFESTS_DIR/network_config_policy.yaml"
+policy="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/network_config_policy.yaml"
+cp -f $policy_template $policy
 
-POLICY="$MANIFESTS_DIR/network_config_policy.yaml"
-apply_sriov_node_policy "$POLICY" "$NODE_PF" "$NODE_PF_NUM_VFS"
+used_pfs_names_annotations=$(_kubectl get nodes -l $SRIOV_NODE_LABEL \
+  -o jsonpath="{.items[*].metadata.annotations.$NODE_PFS_ANNOTATION}")
+vfs_count=$(cat /sys/bus/pci/devices/*/sriov_totalvfs | head -1)
+apply_sriov_node_policy "$policy" "$used_pfs_names_annotations" "$vfs_count"
 
 # Verify that sriov node has sriov VFs allocatable resource
-resource_name=$(sed -n 's/.*resourceName: *//p' $POLICY)
-wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM_VFS
+resource_name=$(sed -n 's/.*resourceName: *//p' $policy)
+resource_name="openshift.io/$resource_name"
+
+sriov_node=$(_kubectl get nodes -l $SRIOV_NODE_LABEL \
+  -o custom-columns=:.metadata.name --no-headers)
+wait_allocatable_resource "$sriov_node" "$resource_name" "$vfs_count"
 wait_pods_ready
 
 _kubectl get nodes
