@@ -27,8 +27,11 @@ function up() {
 
     # remove the rancher.io kind default storageClass
     _kubectl delete sc standard
-
+    
+    export SRIOV_NODE_LABEL=${SRIOV_NODE_LABEL:-"sriov=true"}
+    export NODE_PFS_ANNOTATION=${NODE_PFS_ANNOTATION:-"node_pfs"}
     ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/config_sriov.sh
+    ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/deploy_sriov_operator.sh
 }
 
 set_kind_params
