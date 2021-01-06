@@ -22,6 +22,7 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
@@ -45,6 +46,9 @@ systemctl daemon-reload
 systemctl restart docker
 EOF
 `
+const etcdDataDir = "/var/lib/etcd"
+
+var cli *client.Client
 
 type dockerSetting struct {
 	Proxy string
@@ -83,6 +87,8 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("container-org", "kubevirtci", "the organization at the registry to pull the container from")
 	run.Flags().String("container-suffix", "", "Override container suffix stored at the cli binary")
 	run.Flags().String("gpu", "", "pci address of a GPU to assign to a node")
+	run.Flags().Bool("run-etcd-on-memory", true, "configure etcd to run on RAM memory, etcd data will not be persistent")
+	run.Flags().String("etcd-capacity", "512M", "set etcd data mount size.\nthis flag takes affect only when 'run-etcd-on-memory' is specified")
 
 	return run
 }
@@ -103,6 +109,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	if err != nil {
 		return err
 	}
+	resource.MustParse(memory)
 
 	reverse, err := cmd.Flags().GetBool("reverse")
 	if err != nil {
@@ -190,7 +197,18 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	cli, err := client.NewEnvClient()
+	runEtcdOnMemory, err := cmd.Flags().GetBool("run-etcd-on-memory")
+	if err != nil {
+		return err
+	}
+
+	etcdDataMountSize, err := cmd.Flags().GetString("etcd-capacity")
+	if err != nil {
+		return err
+	}
+	resource.MustParse(etcdDataMountSize)
+
+	cli, err = client.NewEnvClient()
 	if err != nil {
 		return err
 	}
@@ -533,6 +551,15 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			}
 		}
 
+		if runEtcdOnMemory {
+			logrus.Infof("Creating in-memory mount for etcd data on node %s", nodeName)
+			err = prepareEtcdDataMount(nodeContainer(prefix, nodeName), etcdDataDir, etcdDataMountSize)
+			if err != nil {
+				logrus.Errorf("failed to create mount for etcd data on node %s: %v", nodeName, err)
+				return err
+			}
+		}
+
 		//check if we have a special provision script
 		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("test -f /scripts/%s.sh", nodeName)}, os.Stdout)
 		if err != nil {
@@ -705,5 +732,32 @@ func prepareDeviceForAssignment(cli *client.Client, nodeContainer, pciID, pciAdd
 	if !success {
 		return fmt.Errorf("binding device to vfio driver failed")
 	}
+	return nil
+}
+
+func prepareEtcdDataMount(node string, etcdDataDir string, mountSize string) error {
+	var err error
+	var success bool
+
+	success, err = docker.Exec(cli, node, []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo mkdir -p %s", etcdDataDir)}, os.Stdout)
+	if !success || err != nil {
+		return fmt.Errorf("create etcd data directory '%s'on node %s failed: %v", etcdDataDir, node, err)
+	}
+
+	success, err = docker.Exec(cli, node, []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo test -d %s", etcdDataDir)}, os.Stdout)
+	if !success || err != nil {
+		return fmt.Errorf("verify etcd data directory '%s'on node %s exists failed: %v", etcdDataDir, node, err)
+	}
+
+	success, err = docker.Exec(cli, node, []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo mount -t tmpfs -o size=%s tmpfs %s", mountSize, etcdDataDir)}, os.Stdout)
+	if !success || err != nil {
+		return fmt.Errorf("create tmpfs mount '%s' for etcd data on node %s failed: %v", etcdDataDir, node, err)
+	}
+
+	success, err = docker.Exec(cli, node, []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo df -h %s", etcdDataDir)}, os.Stdout)
+	if !success || err != nil {
+		return fmt.Errorf("verify that a mount for etcd data is exists on node %s failed: %v", node, err)
+	}
+
 	return nil
 }
