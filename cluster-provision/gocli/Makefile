@@ -1,6 +1,7 @@
 SHELL := /bin/bash
 
 IMAGES_FILE ?= images.json
+KUBEVIRTCI_IMAGE_REPO ?= quay.io/kubevirtci
 
 export GO111MODULE=on
 export GOPROXY=direct
@@ -22,11 +23,11 @@ fmt:
 
 .PHONY: container
 container: cli
-	docker build -t quay.io/kubevirtci/gocli build/
+	docker build -t ${KUBEVIRTCI_IMAGE_REPO}/gocli build/
 
 .PHONY: container-run
 container-run: container
-	docker run quay.io/kubevirtci/gocli
+	docker run ${KUBEVIRTCI_IMAGE_REPO}/gocli
 
 .PHONY: vendor
 vendor:
@@ -35,4 +36,4 @@ vendor:
 
 .PHONY: push
 push: container
-	docker push quay.io/kubevirtci/gocli
+	docker push ${KUBEVIRTCI_IMAGE_REPO}/gocli
