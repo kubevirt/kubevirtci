@@ -255,6 +255,9 @@ if [[ "$SRIOV_NODE" == "${WORKER_NODE_ROOT}0" ]]; then
   SRIOV_NODE=${WORKER_NODE_ROOT}
 fi
 
+ip link
+PF_BLACKLIST=dev7
+
 NODE_PFS=($(move_sriov_pfs_netns_to_node $SRIOV_NODE))
 
 SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
