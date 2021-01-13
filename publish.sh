@@ -4,7 +4,7 @@ set -ex
 
 export KUBEVIRTCI_TAG=$(date +"%y%m%d%H%M")-$(git rev-parse --short HEAD)
 
-TARGET_REPO="kubevirtci"
+TARGET_REPO="quay.io/kubevirtci"
 TARGET_GIT_REMOTE="https://kubevirt-bot@github.com/kubevirt/kubevirtci.git"
 
 # Build gocli
