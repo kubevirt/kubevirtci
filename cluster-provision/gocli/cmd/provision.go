@@ -108,7 +108,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}()
 
 	// Pull the base image
-	err = docker.ImagePull(cli, ctx, "docker.io/"+base, types.ImagePullOptions{})
+	err = docker.ImagePull(cli, ctx, "quay.io/"+base, types.ImagePullOptions{})
 	if err != nil {
 		panic(err)
 	}

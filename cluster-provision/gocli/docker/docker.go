@@ -5,17 +5,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Sirupsen/logrus"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/client"
-	"golang.org/x/crypto/ssh/terminal"
 	"io"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"time"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/client"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 func GetPrefixedContainers(cli *client.Client, prefix string) ([]types.Container, error) {
@@ -47,14 +48,16 @@ func ImagePull(cli *client.Client, ctx context.Context, ref string, options type
 	if !strings.ContainsAny(ref, ":@") {
 		ref = ref + ":latest"
 	}
-	ref = strings.TrimPrefix(ref, "docker.io/")
+	for _, prefix := range []string{"docker.io/", "quay.io/"} {
+		ref = strings.TrimPrefix(ref, prefix)
+	}
 
-	images, err := cli.ImageList(ctx, types.ImageListOptions{All: true} )
+	images, err := cli.ImageList(ctx, types.ImageListOptions{All: true})
 	if err != nil {
 		return err
 	}
 
-	for _, img := range  images {
+	for _, img := range images {
 		for _, tag := range append(img.RepoTags, img.RepoDigests...) {
 			if tag == ref {
 				logrus.Infof("Using local image %s", ref)

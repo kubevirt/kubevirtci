@@ -9,7 +9,7 @@ TARGET_GIT_REMOTE="https://kubevirt-bot@github.com/kubevirt/kubevirtci.git"
 
 # Build gocli
 (cd cluster-provision/gocli && make container)
-docker tag kubevirtci/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
+docker tag ${TARGET_REPO}/kubevirtci/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
 
 # Provision all base images
 (cd cluster-provision/centos8 && ./build.sh)
