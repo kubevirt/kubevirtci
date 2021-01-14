@@ -48,9 +48,7 @@ func ImagePull(cli *client.Client, ctx context.Context, ref string, options type
 	if !strings.ContainsAny(ref, ":@") {
 		ref = ref + ":latest"
 	}
-	for _, prefix := range []string{"docker.io/", "quay.io/"} {
-		ref = strings.TrimPrefix(ref, prefix)
-	}
+	ref = strings.TrimPrefix(ref, "docker.io/")
 
 	images, err := cli.ImageList(ctx, types.ImageListOptions{All: true})
 	if err != nil {

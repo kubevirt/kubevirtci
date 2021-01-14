@@ -22,9 +22,9 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
@@ -246,9 +246,9 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	if len(containerRegistry) > 0 {
-		imageRef := path.Join(containerRegistry, clusterImage)
-		fmt.Printf("Download the image %s\n", imageRef)
-		err = docker.ImagePull(cli, ctx, imageRef, types.ImagePullOptions{})
+		clusterImage = path.Join(containerRegistry, clusterImage)
+		fmt.Printf("Download the image %s\n", clusterImage)
+		err = docker.ImagePull(cli, ctx, clusterImage, types.ImagePullOptions{})
 		if err != nil {
 			panic(err)
 		}
@@ -262,6 +262,9 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		Prefix:             prefix,
 		NodeCount:          nodes,
 	})
+	if err != nil {
+		return err
+	}
 
 	containers <- dnsmasq.ID
 	if err := cli.ContainerStart(ctx, dnsmasq.ID, types.ContainerStartOptions{}); err != nil {

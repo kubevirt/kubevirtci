@@ -14,7 +14,7 @@ function cleanup {
   make cluster-down
 }
 
-export KUBEVIRTCI_GOCLI_CONTAINER=kubevirtci/gocli:latest
+export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 # check cluster-up
 (
   ksh="./cluster-up/kubectl.sh"

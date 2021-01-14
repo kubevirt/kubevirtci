@@ -55,10 +55,10 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	if err != nil {
 		return err
 	}
-	base := fmt.Sprintf("kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
+	base := fmt.Sprintf("quay.io/kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
 
 	prefix := fmt.Sprintf("k8s-%s-provision", filepath.Base(packagePath))
-	target := fmt.Sprintf("kubevirtci/k8s-%s", filepath.Base(packagePath))
+	target := fmt.Sprintf("quay.io/kubevirtci/k8s-%s", filepath.Base(packagePath))
 	scripts := filepath.Join(packagePath)
 
 	memory, err := cmd.Flags().GetString("memory")
@@ -108,7 +108,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}()
 
 	// Pull the base image
-	err = docker.ImagePull(cli, ctx, "quay.io/"+base, types.ImagePullOptions{})
+	err = docker.ImagePull(cli, ctx, base, types.ImagePullOptions{})
 	if err != nil {
 		panic(err)
 	}
