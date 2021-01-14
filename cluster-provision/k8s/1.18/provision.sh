@@ -2,6 +2,18 @@
 
 set -ex
 
+KUBEVIRTCI_SHARED_DIR=/var/lib/kubevirtci
+mkdir -p $KUBEVIRTCI_SHARED_DIR
+cat << EOF > $KUBEVIRTCI_SHARED_DIR/common.sh
+#!/bin/bash
+
+set -ex
+
+KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
+KUBELET_FEATURE_GATES="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
+EOF
+source $KUBEVIRTCI_SHARED_DIR/common.sh
+
 function pull_container_retry() {
     retry=0
     maxRetries=5
@@ -21,8 +33,8 @@ function pull_container_retry() {
 
 kubeadmn_patches_path="/var/provision/kubeadm-patches"
 
-# Need to have the latest kernel
-dnf update -y kernel
+# Update to the latest packages
+dnf update -y
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
@@ -63,7 +75,7 @@ export CRIO_OS=CentOS_8_Stream
 export CRIO_VERSION=1.18
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$CRIO_OS/devel:kubic:libcontainers:stable.repo
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION/$CRIO_OS/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.repo
-dnf install -y cri-o
+dnf install -y cri-o -vv
 
 # Install crictl
 (
@@ -106,7 +118,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
+KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --feature-gates=${KUBELET_FEATURE_GATES}
 EOT
 
 # Needed for kubernetes service routing and dns
