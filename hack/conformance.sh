@@ -4,7 +4,7 @@ set -xeuo pipefail
 
 ARTIFACTS=${ARTIFACTS:-${PWD}}
 config_file=${1:-}
-sonobuoy_version=0.19.0
+sonobuoy_version=0.20.0
 [[ -f "$config_file" ]] && sonobuoy_version=$(jq -r '.Version' "$config_file" | grep -oE '[0-9\.]+')
 
 if [[ -z "$KUBEVIRT_PROVIDER" ]]; then
