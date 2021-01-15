@@ -22,11 +22,11 @@ fmt:
 
 .PHONY: container
 container: cli
-	docker build -t kubevirtci/gocli build/
+	docker build -t quay.io/kubevirtci/gocli build/
 
 .PHONY: container-run
 container-run: container
-	docker run kubevirtci/gocli
+	docker run quay.io/kubevirtci/gocli
 
 .PHONY: vendor
 vendor:
@@ -35,4 +35,4 @@ vendor:
 
 .PHONY: push
 push: container
-	docker push kubevirtci/gocli
+	docker push quay.io/kubevirtci/gocli
