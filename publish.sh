@@ -17,7 +17,7 @@ docker tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
 # Provision all clusters
 for i in $(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n'); do
     cluster-provision/gocli/build/cli provision cluster-provision/k8s/$i
-    docker tag kubevirtci/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
+    docker tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
 done
 
 # Push all images
