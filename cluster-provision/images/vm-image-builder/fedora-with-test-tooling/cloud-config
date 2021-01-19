@@ -1,0 +1,11 @@
+#cloud-config
+password: fedora
+chpasswd: { expire: False }
+ssh_pwauth: yes
+runcmd:
+  - sudo dnf install -y qemu-guest-agent stress dmidecode virt-what 
+  - sudo dnf clean all
+  - sudo hostnamectl set-hostname ""
+  - sudo hostnamectl set-hostname "" --transient
+  - sudo systemctl start qemu-guest-agent
+  - sudo shutdown
