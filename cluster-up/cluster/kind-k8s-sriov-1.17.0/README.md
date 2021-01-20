@@ -39,7 +39,7 @@ General considerations:
 - A sriov PF must be available for the cluster.
 In order to achieve that, there are two options:
 1. `PF_BLACKLIST` the non used PFs, in order to prevent them from being allocated.
-2. Assign just one PF for each cluster by using `export NUM_PF_REQUIRED=1` (this is the default value).
+2. Assign just one PF for each cluster by using `export PF_COUNT_PER_NODE=1` (this is the default value).
 - The cluster names must be different.
 This can be achieved by setting `export CLUSTER_NAME=sriov2` on the 2nd cluster.
 The default `CLUSTER_NAME` is `sriov`.
