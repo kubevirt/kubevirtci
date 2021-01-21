@@ -183,7 +183,7 @@ function deploy_sriov_operator {
     # unsupported nics
     # cross communication of the two clusters
     # Working on official PRs to fix those.
-    export SRIOV_NETWORK_CONFIG_DAEMON_IMAGE=quay.io/oshoval/origin-sriov-network-config-daemon:x557_reset
+    export SRIOV_NETWORK_CONFIG_DAEMON_IMAGE=quay.io/oshoval/origin-sriov-network-config-daemon:test_11
     export SRIOV_NETWORK_WEBHOOK_IMAGE=quay.io/openshift/origin-sriov-network-webhook:${RELEASE_VERSION}
     export NETWORK_RESOURCES_INJECTOR_IMAGE=quay.io/openshift/origin-sriov-dp-admission-controller:${RELEASE_VERSION}
     export SRIOV_CNI_IMAGE=quay.io/openshift/origin-sriov-cni:${RELEASE_VERSION}
@@ -317,17 +317,17 @@ wait_pods_ready
 deploy_sriov_operator
 wait_pods_ready
 
-cat <<EOF | _kubectl apply -f -
-apiVersion: v1
-data:
-  X557: 8086 1589 154c
-kind: ConfigMap
-metadata:
-  name: unsupported-nic-ids
-  namespace: sriov-network-operator
-EOF
+#cat <<EOF | _kubectl apply -f -
+#apiVersion: v1
+#data:
+#  X557: 8086 1589 154c
+#kind: ConfigMap
+#metadata:
+#  name: unsupported-nic-ids
+#  namespace: sriov-network-operator
+#EOF
 sleep 60
-_kubectl get configmap -n sriov-network-operator unsupported-nic-ids -oyaml
+#_kubectl get configmap -n sriov-network-operator unsupported-nic-ids -oyaml
 
 # We use just the first suitable pf, for the SriovNetworkNodePolicy manifest.
 # We also need the num of vfs because if we don't set this value equals to the total, in case of mellanox
