@@ -22,5 +22,8 @@ function up() {
 
     kind_up
 
+    # remove the rancher.io kind default storageClass
+    _kubectl delete sc standard
+
     ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/config_sriov.sh
 }
