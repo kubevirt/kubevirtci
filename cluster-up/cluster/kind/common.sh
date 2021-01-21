@@ -186,8 +186,17 @@ function setup_kind() {
         done
     fi
 
+    local CNI_VERSION="v0.8.5"
+    local CNI_ARCHIVE="cni-plugins-linux-${ARCH}-$CNI_VERSION.tgz"
+    local CNI_URL="https://github.com/containernetworking/plugins/releases/download/$CNI_VERSION/$CNI_ARCHIVE"
+    if [ ! -f ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE ]; then
+        echo "Downloading $CNI_ARCHIVE"
+        curl -sSL -o ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE $CNI_URL
+    fi
+
     for node in $(_get_nodes | awk '{print $1}'); do
-        docker exec $node /bin/sh -c "curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.8.5/cni-plugins-linux-${ARCH}-v0.8.5.tgz | tar xz -C /opt/cni/bin"
+        docker cp "${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE" $node:/
+        docker exec $node /bin/sh -c "tar xf $CNI_ARCHIVE -C /opt/cni/bin"
     done
 
     echo "Installing Calico CNI plugin"
