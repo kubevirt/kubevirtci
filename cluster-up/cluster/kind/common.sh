@@ -168,9 +168,9 @@ function setup_kind() {
         done
     fi
 
-    for node in $(_get_nodes | awk '{print $1}'); do
-        docker exec $node /bin/sh -c "curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.8.5/cni-plugins-linux-amd64-v0.8.5.tgz | tar xz -C /opt/cni/bin"
-    done
+    #for node in $(_get_nodes | awk '{print $1}'); do
+    #    docker exec $node /bin/sh -c "curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.8.5/cni-plugins-linux-amd64-v0.8.5.tgz | tar xz -C /opt/cni/bin"
+    #done
 
     echo "Installing Calico CNI plugin"
     calico_manifest="$KIND_MANIFESTS_DIR/kube-calico.yaml.in"
