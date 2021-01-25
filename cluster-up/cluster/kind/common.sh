@@ -92,6 +92,35 @@ function _configure_registry_on_node() {
     ${NODE_CMD} $1  sh -c "echo $(docker inspect --format '{{.NetworkSettings.IPAddress }}' $REGISTRY_NAME)'\t'registry >> /etc/hosts"
 }
 
+function _install_cnis {
+    _install_cni_plugins
+    _install_calico_cni
+}
+
+function _install_cni_plugins {
+    local CNI_VERSION="v0.8.5"
+    local CNI_ARCHIVE="cni-plugins-linux-${ARCH}-$CNI_VERSION.tgz"
+    local CNI_URL="https://github.com/containernetworking/plugins/releases/download/$CNI_VERSION/$CNI_ARCHIVE"
+    if [ ! -f ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE ]; then
+        echo "Downloading $CNI_ARCHIVE"
+        curl -sSL -o ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE $CNI_URL
+    fi
+
+    for node in $(_get_nodes | awk '{print $1}'); do
+        docker cp "${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE" $node:/
+        docker exec $node /bin/sh -c "tar xf $CNI_ARCHIVE -C /opt/cni/bin"
+    done
+}
+
+function _install_calico_cni {
+    echo "Installing Calico CNI plugin"
+    calico_manifest="$KIND_MANIFESTS_DIR/kube-calico.yaml.in"
+    patched_diff=$(_patch_calico_manifest_diff $calico_manifest)
+    echo "Log Calico manifest diff:"
+    echo "$patched_diff"
+    _patch_calico_manifest "$calico_manifest" "$patched_diff" | _kubectl apply -f -
+}
+
 function prepare_config() {
     BASE_PATH=${KUBEVIRTCI_CONFIG_PATH:-$PWD}
     cat >$BASE_PATH/$KUBEVIRT_PROVIDER/config-provider-$KUBEVIRT_PROVIDER.sh <<EOF
@@ -186,25 +215,7 @@ function setup_kind() {
         done
     fi
 
-    local CNI_VERSION="v0.8.5"
-    local CNI_ARCHIVE="cni-plugins-linux-${ARCH}-$CNI_VERSION.tgz"
-    local CNI_URL="https://github.com/containernetworking/plugins/releases/download/$CNI_VERSION/$CNI_ARCHIVE"
-    if [ ! -f ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE ]; then
-        echo "Downloading $CNI_ARCHIVE"
-        curl -sSL -o ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE $CNI_URL
-    fi
-
-    for node in $(_get_nodes | awk '{print $1}'); do
-        docker cp "${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE" $node:/
-        docker exec $node /bin/sh -c "tar xf $CNI_ARCHIVE -C /opt/cni/bin"
-    done
-
-    echo "Installing Calico CNI plugin"
-    calico_manifest="$KIND_MANIFESTS_DIR/kube-calico.yaml.in"
-    patched_diff=$(_patch_calico_manifest_diff $calico_manifest)
-    echo "Log Calico manifest diff:"
-    echo "$patched_diff"
-    _patch_calico_manifest "$calico_manifest" "$patched_diff" | _kubectl apply -f -
+    _install_cnis
 
     _wait_kind_up
     _kubectl cluster-info
