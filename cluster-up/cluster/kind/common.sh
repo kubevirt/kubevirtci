@@ -2,6 +2,24 @@
 
 set -e
 
+# check CPU arch
+PLATFORM=$(uname -m)
+case ${PLATFORM} in
+x86_64* | i?86_64* | amd64*)
+    ARCH="amd64"
+    ;;
+ppc64le)
+    ARCH="ppc64le"
+    ;;
+aarch64* | arm64*)
+    ARCH="arm64"
+    ;;
+*)
+    echo "invalid Arch, only support x86_64, ppc64le, aarch64"
+    exit 1
+    ;;
+esac
+
 NODE_CMD="docker exec -it -d "
 export KIND_MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/kind/manifests"
 export KIND_NODE_CLI="docker exec -it "
@@ -35,7 +53,7 @@ function _wait_containers_ready {
 
 function _fetch_kind() {
     if [ ! -f ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kind ]; then
-        curl -LSs  https://github.com/kubernetes-sigs/kind/releases/download/v0.7.0/kind-linux-amd64 -o ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kind
+        curl -LSs  https://github.com/kubernetes-sigs/kind/releases/download/v0.7.0/kind-linux-${ARCH} -o ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kind
         chmod +x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kind
     fi
     KIND=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kind
@@ -169,7 +187,7 @@ function setup_kind() {
     fi
 
     for node in $(_get_nodes | awk '{print $1}'); do
-        docker exec $node /bin/sh -c "curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.8.5/cni-plugins-linux-amd64-v0.8.5.tgz | tar xz -C /opt/cni/bin"
+        docker exec $node /bin/sh -c "curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.8.5/cni-plugins-linux-${ARCH}-v0.8.5.tgz | tar xz -C /opt/cni/bin"
     done
 
     echo "Installing Calico CNI plugin"
