@@ -24,6 +24,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
   export KUBEVIRT_PROVIDER="k8s-${provision_dir}"
   export KUBEVIRT_NUM_NODES=2
   export KUBEVIRT_NUM_SECONDARY_NICS=2
+  export KUBEVIRT_WITH_CNAO="true"
   trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
   bash -x ./cluster-up/up.sh
   timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s --all; do sleep 1; done"
