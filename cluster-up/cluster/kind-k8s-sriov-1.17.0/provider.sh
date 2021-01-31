@@ -3,9 +3,12 @@
 set -e
 
 export CLUSTER_NAME="sriov"
-export KIND_NODE_IMAGE="kindest/node:v1.17.0"
 
-source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
+function set_kind_params() {
+    export KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.17.0}"
+    export KIND_VERSION="${KIND_VERSION:-0.7.0}"
+    export KUBECTL_PATH="${KUBECTL_PATH:-/kind/bin/kubectl}"
+}
 
 function up() {
     if [[ "$KUBEVIRT_NUM_NODES" -ne 2 ]]; then
@@ -27,3 +30,7 @@ function up() {
 
     ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/config_sriov.sh
 }
+
+set_kind_params
+
+source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
