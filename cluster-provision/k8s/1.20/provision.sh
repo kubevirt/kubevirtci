@@ -4,13 +4,14 @@ set -ex
 
 KUBEVIRTCI_SHARED_DIR=/var/lib/kubevirtci
 mkdir -p $KUBEVIRTCI_SHARED_DIR
-cat << EOF > $KUBEVIRTCI_SHARED_DIR/kubelet_args.sh
+cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 #!/bin/bash
 set -ex
 export KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
 export KUBELET_FEATURE_GATES="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
+export ISTIO_VERSION=1.9.0
 EOF
-source $KUBEVIRTCI_SHARED_DIR/kubelet_args.sh
+source $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 
 function pull_container_retry() {
     retry=0
@@ -69,8 +70,17 @@ yum -y install iscsi-initiator-utils
 # To prevent preflight issue related to tc not found
 dnf install -y tc
 
-export CRIO_VERSION=1.20
+# Install istioctl
+export PATH=/opt/istio-$ISTIO_VERSION/bin:$PATH
+(
+  set -E
+  cd /opt/
+  curl -L https://istio.io/downloadIstio | sh -
+)
+# generate Istio manifests for pre-pulling images
+istioctl manifest generate --set profile=demo --set components.cni.enabled=true > /tmp/istio-deployment.yaml
 
+export CRIO_VERSION=1.20
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable.repo
 [devel_kubic_libcontainers_stable]
 name=Stable Releases of Upstream github.com/containers packages (CentOS_8_Stream)
@@ -300,6 +310,9 @@ for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml | grep value | awk '{print 
 
 # Pre pull local-volume-provisioner
 for i in $(grep -A 2 "IMAGE" /provision/local-volume.yaml | grep value | awk -F\" '{print $2}'); do pull_container_retry $i; done
+
+# Pre pull istio images
+for i in $(grep "image:" /tmp/istio-deployment.yaml | grep -v "{{" | awk '{print $2}' | tr -d '"' | sort -u) ; do pull_container_retry $i ; done
 
 # Create a properly labelled tmp directory for testing
 mkdir -p /var/provision/kubevirt.io/tests
