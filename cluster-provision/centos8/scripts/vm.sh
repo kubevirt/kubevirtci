@@ -33,7 +33,7 @@ function calc_next_disk {
 }
 
 NODE_NUM=${NODE_NUM-1}
-n="$(printf "%02d" ${NODE_NUM})"
+n="$(printf "%02d" $(( 10#${NODE_NUM} )))"
 
 cat >/usr/local/bin/ssh.sh <<EOL
 #!/bin/bash
