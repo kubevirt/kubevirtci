@@ -4,25 +4,26 @@ filters:
       - davidvossel
       - rmohr
       - slintes
-      - cynepco3hahue
       - vladikr
       - dhiller
       - qinqon
       - oshoval
       - phoracek
       - ormergi
-      - danielBelenky
       - stu-gott
       - jean-edouard
+      - fgimenez
     approvers:
       - davidvossel
       - rmohr
       - slintes
-      - cynepco3hahue
       - vladikr
       - dhiller
       - qinqon
       - phoracek
-      - danielBelenky
       - stu-gott
       - jean-edouard
+      - fgimenez
+    emeritus_approvers:
+      - cynepco3hahue
+      - danielBelenky

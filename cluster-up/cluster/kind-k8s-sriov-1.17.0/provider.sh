@@ -16,6 +16,12 @@ fi
 
 source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
 
+function set_kind_params() {
+    export KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.17.0}"
+    export KIND_VERSION="${KIND_VERSION:-0.7.0}"
+    export KUBECTL_PATH="${KUBECTL_PATH:-/kind/bin/kubectl}"
+}
+
 function up() {
     if [[ "$KUBEVIRT_NUM_NODES" -ne 2 ]]; then
         echo 'SR-IOV cluster can be only started with 2 nodes'
@@ -31,5 +37,12 @@ function up() {
 
     kind_up
 
+    # remove the rancher.io kind default storageClass
+    _kubectl delete sc standard
+
     ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/config_sriov.sh
 }
+
+set_kind_params
+
+source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
