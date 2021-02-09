@@ -69,10 +69,24 @@ yum -y install iscsi-initiator-utils
 # To prevent preflight issue related to tc not found
 dnf install -y tc
 
-export CRIO_OS=CentOS_8_Stream
 export CRIO_VERSION=1.20
-curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$CRIO_OS/devel:kubic:libcontainers:stable.repo
-curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION/$CRIO_OS/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.repo
+
+cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable.repo
+[devel_kubic_libcontainers_stable]
+name=Stable Releases of Upstream github.com/containers packages (CentOS_8_Stream)
+type=rpm-md
+baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcontainers_stable/
+gpgcheck=0
+enabled=1
+EOF
+cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable_cri-o_1.20.repo
+[devel_kubic_libcontainers_stable_cri-o_1.20]
+name=devel:kubic:libcontainers:stable:cri-o:1.20 (CentOS_8_Stream)
+type=rpm-md
+baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcontainers_stable_cri-o_1.20
+gpgcheck=0
+enabled=1
+EOF
 dnf install -y cri-o
 
 # "crio pull" and "docker pull" is needed in test repos to pre-pull images
