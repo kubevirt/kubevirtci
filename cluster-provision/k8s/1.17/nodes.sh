@@ -2,6 +2,8 @@
 
 set -ex
 
+source /var/lib/kubevirtci/kubelet_args.sh
+
 # Ensure that hugepages are there
 # Hugetlb holds total huge page size in kB including both 2M or 1G hugepages
 HUGETLB=`cat /proc/meminfo | sed -e "s/ //g" | grep "Hugetlb:"`
@@ -32,8 +34,8 @@ done
 
 if [ -f /etc/sysconfig/kubelet ]; then
     # TODO use config file! this is deprecated
-    cat <<EOT >>/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=${KUBELET_EXTRA_ARGS} --feature-gates=CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m
+    cat <<EOT >/etc/sysconfig/kubelet
+KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --feature-gates=${KUBELET_FEATURE_GATES},CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m
 EOT
 else
     cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf

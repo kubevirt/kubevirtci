@@ -2,6 +2,16 @@
 
 set -ex
 
+KUBEVIRTCI_SHARED_DIR=/var/lib/kubevirtci
+mkdir -p $KUBEVIRTCI_SHARED_DIR
+cat << EOF > $KUBEVIRTCI_SHARED_DIR/kubelet_args.sh
+#!/bin/bash
+set -ex
+export KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
+export KUBELET_FEATURE_GATES="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
+EOF
+source $KUBEVIRTCI_SHARED_DIR/kubelet_args.sh
+
 function docker_pull_retry() {
     retry=0
     maxRetries=5
@@ -127,7 +137,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
+KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --feature-gates=${KUBELET_FEATURE_GATES}
 EOT
 
 systemctl daemon-reload
