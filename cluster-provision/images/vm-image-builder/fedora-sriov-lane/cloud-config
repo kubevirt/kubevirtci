@@ -22,5 +22,8 @@ runcmd:
   - sudo dnf clean all
   - sudo hostnamectl set-hostname ""
   - sudo hostnamectl set-hostname "" --transient
-  - sudo systemctl start qemu-guest-agent
+  - sudo systemctl stop qemu-guest-agent
+  - sudo systemctl disable qemu-guest-agent
+  - sudo mv /lib/systemd/system/qemu-guest-agent.service /home/fedora/
+  - sudo systemctl daemon-reload
   - sudo shutdown
