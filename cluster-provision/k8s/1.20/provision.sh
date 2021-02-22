@@ -17,7 +17,7 @@ function pull_container_retry() {
     maxRetries=5
     retryAfterSeconds=3
     until [ ${retry} -ge ${maxRetries} ]; do
-        crictl pull $@ && break
+        podman pull $@ && break
         retry=$((${retry} + 1))
         echo "Retrying ${FUNCNAME} [${retry}/${maxRetries}] in ${retryAfterSeconds}(s)"
         sleep ${retryAfterSeconds}
@@ -79,19 +79,22 @@ baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcon
 gpgcheck=0
 enabled=1
 EOF
-cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable_cri-o_1.20.repo
-[devel_kubic_libcontainers_stable_cri-o_1.20]
-name=devel:kubic:libcontainers:stable:cri-o:1.20 (CentOS_8_Stream)
+cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}.repo
+[devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}]
+name=devel:kubic:libcontainers:stable:cri-o:${CRIO_VERSION} (CentOS_8_Stream)
 type=rpm-md
-baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcontainers_stable_cri-o_1.20
+baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}
 gpgcheck=0
 enabled=1
 EOF
 dnf install -y cri-o
 
-# "crio pull" and "docker pull" is needed in test repos to pre-pull images
+# install podman for functionality missing in crictl (tag, etc)
+dnf install -y podman
+
+# link docker to podman as we need docker in test repos to pre-pull images
 # don't break them by doing a symlink
-ln -s /usr/bin/crictl /usr/bin/docker
+ln -s /usr/bin/podman /usr/bin/docker
 
 cat << EOF > /etc/containers/registries.conf
 [registries.search]
