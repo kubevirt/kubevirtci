@@ -1,18 +1,26 @@
 #!/bin/bash
 set -xe
 
-source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
-source sriov_operator.sh
+PF_COUNT_PER_NODE=${PF_COUNT_PER_NODE:-1}
+[ $PF_COUNT_PER_NODE -le 0 ] && echo "FATAL: PF_COUNT_PER_NODE must be a positive integer" >&2 && exit 1
 
-MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/manifests"
+SCRIPT_PATH=$(dirname "$(realpath "$0")")
+
+source ${SCRIPT_PATH}/sriov-components/sriov_components.sh
+
+CONFIGURE_VFS_SCRIPT_PATH="$SCRIPT_PATH/configure_vfs.sh"
 
 MASTER_NODE="${CLUSTER_NAME}-control-plane"
 WORKER_NODE_ROOT="${CLUSTER_NAME}-worker"
-PF_COUNT_PER_NODE=${PF_COUNT_PER_NODE:-1}
 
-SRIOV_OPERATOR_NAMESPACE="sriov-network-operator"
-
-[ $PF_COUNT_PER_NODE -le 0 ] && echo "FATAL: PF_COUNT_PER_NODE must be a positive integer" >&2 && exit 1
+SRIOV_COMPONENTS_NAMESPACE="sriov"
+SRIOV_NODE_LABEL_KEY="sriov_capable"
+SRIOV_NODE_LABEL_VALUE="true"
+SRIOV_NODE_LABEL="$SRIOV_NODE_LABEL_KEY=$SRIOV_NODE_LABEL_VALUE"
+SRIOVDP_RESOURCE_PREFIX="kubevirt.io"
+SRIOVDP_RESOURCE_NAME="sriov_net"
+VFS_DRIVER="vfio-pci"
+VFS_DRIVER_KMODULE="vfio_pci"
 
 function move_sriov_pfs_netns_to_node {
   local -r node=$1
@@ -61,37 +69,33 @@ if [[ "$SRIOV_NODE" == "${WORKER_NODE_ROOT}0" ]]; then
 fi
 
 NODE_PFS=($(move_sriov_pfs_netns_to_node "$SRIOV_NODE" "$PF_COUNT_PER_NODE"))
-
-SRIOV_NODE_CMD="docker exec -it -d ${SRIOV_NODE}"
-${SRIOV_NODE_CMD} mount -o remount,rw /sys     # kind remounts it as readonly when it starts, we need it to be writeable
-${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
-_kubectl label node $SRIOV_NODE sriov=true
-
-for pf in "${NODE_PFS[@]}"; do
-  docker exec $SRIOV_NODE bash -c "echo 0 > /sys/class/net/$pf/device/sriov_numvfs"
-done
-
-sriov_operator::deploy_multus
-sriov_operator::wait_pods_ready
-
-sriov_operator::deploy_sriov_operator
-sriov_operator::wait_pods_ready
-
-# We use just the first suitable pf, for the SriovNetworkNodePolicy manifest.
-# We also need the num of vfs because if we don't set this value equals to the total, in case of mellanox
-# the sriov operator will trigger a node reboot to update the firmware
 NODE_PF=$NODE_PFS
-NODE_PF_NUM_VFS=$(docker exec $SRIOV_NODE cat /sys/class/net/$NODE_PF/device/sriov_totalvfs)
 
-POLICY="$MANIFESTS_DIR/network_config_policy.yaml"
-sriov_operator::apply_sriov_node_policy "$POLICY" "$NODE_PF" "$NODE_PF_NUM_VFS"
+SRIOV_NODE_CMD="docker exec ${SRIOV_NODE}"
+NODE_PF_NUM_VFS=$(${SRIOV_NODE_CMD} cat /sys/class/net/$NODE_PF/device/sriov_totalvfs)
+
+# KIND mounts sysfs as readonly, this script requires R/W access to sysfs
+${SRIOV_NODE_CMD} mount -o remount,rw /sys
+${SRIOV_NODE_CMD} chmod 666 /dev/vfio/vfio
+
+# Create and configure SRIOV Virtual Functions on SRIOV node
+docker cp "$CONFIGURE_VFS_SCRIPT_PATH" "$SRIOV_NODE:/"
+config_vf_script=$(basename "$CONFIGURE_VFS_SCRIPT_PATH")
+${SRIOV_NODE_CMD} bash -c "DRIVER=$VFS_DRIVER DRIVER_KMODULE=$VFS_DRIVER_KMODULE ./$config_vf_script"
+
+_kubectl label node $SRIOV_NODE $SRIOV_NODE_LABEL
+
+sriov_components::deploy_multus
+sriov_components::deploy \
+  "$NODE_PF" \
+  "$VFS_DRIVER" \
+  "$SRIOVDP_RESOURCE_PREFIX" "$SRIOVDP_RESOURCE_NAME" \
+  "$SRIOV_NODE_LABEL_KEY" "$SRIOV_NODE_LABEL_VALUE"
 
 # Verify that sriov node has sriov VFs allocatable resource
-resource_name=$(sed -n 's/.*resourceName: *//p' $POLICY)
-sriov_operator::wait_allocatable_resource $SRIOV_NODE "openshift.io/$resource_name" $NODE_PF_NUM_VFS
-sriov_operator::wait_pods_ready
+resource_name="$SRIOVDP_RESOURCE_PREFIX/$SRIOVDP_RESOURCE_NAME"
+sriov_components::wait_allocatable_resource "$SRIOV_NODE" "$resource_name" "$NODE_PF_NUM_VFS"
+sriov_components::wait_pods_ready
 
 _kubectl get nodes
-_kubectl get pods -n $SRIOV_OPERATOR_NAMESPACE
-echo
-echo "$KUBEVIRT_PROVIDER cluster is ready"
+_kubectl get pods -n $SRIOV_COMPONENTS_NAMESPACE
