@@ -2,6 +2,8 @@
 
 set -ex
 
+source /var/lib/kubevirtci/kubelet_args.sh
+
 # Ensure that hugepages are there
 cat /proc/meminfo | sed -e "s/ //g" | grep "HugePages_Total:64"
 
@@ -16,8 +18,8 @@ while ! hostnamectl  |grep Transient ; do
     fi
 done
 
-# Wait for docker, else network might not be ready yet
-while [[ `systemctl status docker | grep active | wc -l` -eq 0 ]]
+# Wait for crio, else network might not be ready yet
+while [[ `systemctl status crio | grep active | wc -l` -eq 0 ]]
 do
     sleep 2
 done
@@ -25,7 +27,7 @@ done
 if [ -f /etc/sysconfig/kubelet ]; then
     # TODO use config file! this is deprecated
     cat <<EOT >>/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=${KUBELET_EXTRA_ARGS} --feature-gates=CPUManager=true,IPv6DualStack=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m
+KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --feature-gates=${KUBELET_FEATURE_GATES},CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m
 EOT
 else
     cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
