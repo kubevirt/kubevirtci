@@ -1,4 +1,7 @@
 #!/bin/bash
+
+[ $(id -u) -ne 0 ] && echo "FATAL: this script requires sudo privileges" >&2 && exit 1
+
 set -xe
 
 PF_COUNT_PER_NODE=${PF_COUNT_PER_NODE:-1}
