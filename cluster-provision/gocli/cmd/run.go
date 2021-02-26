@@ -467,9 +467,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
 			},
-			Volumes: map[string]struct{}{
-				"/var/run/disk/": {},
-			},
 			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s %s", memory, strconv.Itoa(int(cpu)), blockDev, nodeQemuArgs)},
 		}
 
