@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -17,6 +16,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/go-connections/nat"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
@@ -133,7 +133,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	nodeName := nodeNameFromIndex(1)
 	nodeNum := fmt.Sprintf("%02d", 1)
 
-	vol, err := cli.VolumeCreate(ctx, volume.VolumesCreateBody{
+	vol, err := cli.VolumeCreate(ctx, volume.VolumeCreateBody{
 		Name: fmt.Sprintf("%s-%s", prefix, nodeName),
 	})
 	if err != nil {
@@ -162,7 +162,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		},
 		Privileged:  true,
 		NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
-	}, nil, nodeContainer(prefix, nodeName))
+	}, nil, nil, nodeContainer(prefix, nodeName))
 	if err != nil {
 		return err
 	}
@@ -238,10 +238,15 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	logrus.Info("waiting for the node to stop")
-	_, err = cli.ContainerWait(ctx, nodeContainer(prefix, nodeName))
-	if err != nil {
-		return fmt.Errorf("waiting for the node to stop failed: %v", err)
+	okChan, errChan := cli.ContainerWait(ctx, nodeContainer(prefix, nodeName), container.WaitConditionNotRunning)
+	select {
+	case <-okChan:
+	case err := <-errChan:
+		if err != nil {
+			return fmt.Errorf("waiting for the node to stop failed: %v", err)
+		}
 	}
+
 	logrus.Infof("Commiting the node as %s", target)
 	_, err = cli.ContainerCommit(ctx, node.ID, types.ContainerCommitOptions{
 		Reference: target,

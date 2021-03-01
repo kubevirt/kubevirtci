@@ -14,7 +14,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -22,6 +21,7 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -287,7 +287,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	var registryMounts []mount.Mount
 	if registryVol != "" {
 
-		vol, err := cli.VolumeCreate(ctx, volume.VolumesCreateBody{
+		vol, err := cli.VolumeCreate(ctx, volume.VolumeCreateBody{
 			Name: fmt.Sprintf("%s-%s", prefix, "registry"),
 		})
 		if err != nil {
@@ -309,7 +309,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		Mounts:      registryMounts,
 		Privileged:  true, // fixme we just need proper selinux volume labeling
 		NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
-	}, nil, prefix+"-registry")
+	}, nil, nil, prefix+"-registry")
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			},
 			Privileged:  true,
 			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
-		}, nil, prefix+"-nfs-ganesha")
+		}, nil, nil, prefix+"-nfs-ganesha")
 		if err != nil {
 			return err
 		}
@@ -386,7 +386,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			},
 			Privileged:  true,
 			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
-		}, nil, prefix+"-fluentd")
+		}, nil, nil, prefix+"-fluentd")
 		if err != nil {
 			return err
 		}
@@ -422,7 +422,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodeNum = fmt.Sprintf("%02d", (int(nodes) - x))
 		}
 
-		vol, err := cli.VolumeCreate(ctx, volume.VolumesCreateBody{
+		vol, err := cli.VolumeCreate(ctx, volume.VolumeCreateBody{
 			Name: fmt.Sprintf("%s-%s", prefix, nodeName),
 		})
 		if err != nil {
@@ -487,7 +487,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			Resources: container.Resources{
 				Devices: deviceMappings,
 			},
-		}, nil, prefix+"-"+nodeName)
+		}, nil, nil, prefix+"-"+nodeName)
 		if err != nil {
 			return err
 		}
@@ -582,7 +582,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 
 		go func(id string) {
-			cli.ContainerWait(ctx, id)
+			cli.ContainerWait(ctx, id, container.WaitConditionNotRunning)
 			wg.Done()
 		}(node.ID)
 	}
