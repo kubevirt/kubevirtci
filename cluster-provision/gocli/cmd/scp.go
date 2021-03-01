@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"os"
 
 	"github.com/docker/docker/client"
@@ -94,8 +95,12 @@ func scp(cmd *cobra.Command, args []string) error {
 	if len(containers) != 1 {
 		return fmt.Errorf("failed to found the container with name %s", prefix+"-"+containerName)
 	}
+	container, err := cli.ContainerInspect(context.Background(), containers[0].ID)
+	if err != nil {
+		return err
+	}
 
-	sshPort, err := utils.GetPublicPort(utils.PortSSH, containers[0].Ports)
+	sshPort, err := utils.GetPublicPort(utils.PortSSH, container.NetworkSettings.Ports)
 	if err != nil {
 		return err
 	}
