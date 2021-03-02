@@ -7,6 +7,9 @@ make -C ../gocli container
 
 CI=${CI:-"false"}
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+RUN_KUBEVIRT_CONFORMANCE=${RUN_KUBEVIRT_CONFORMANCE:-"false"}
+
 provision_dir="$1"
 
 function cleanup {
@@ -44,6 +47,19 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
   conformance_config=$DIR/${provision_dir}/conformance.json
 
   if [ "${CI}" == "true" -a -f $conformance_config ]; then
+    sonobouy_plugins=""
+
+    if [ "$RUN_KUBEVIRT_CONFORMANCE" == "true" ]; then
+      LATEST=$(curl -L "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/latest")
+      ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-operator.yaml"
+      ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-cr.yaml"
+
+      ${ksh} wait -n kubevirt kv kubevirt --for condition=Available --timeout 15m
+
+      export SONOBUOY_EXTRA_ARGS="--plugin https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/conformance.yaml"
+      hack/conformance.sh $conformance_config
+    fi
+
     export SONOBUOY_EXTRA_ARGS="--plugin systemd-logs --plugin e2e"
     hack/conformance.sh $conformance_config
   fi

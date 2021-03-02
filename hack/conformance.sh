@@ -17,24 +17,40 @@ export KUBECONFIG
 
 teardown() {
     rv=$?
+
     ./sonobuoy status --json
     ./sonobuoy logs > "${ARTIFACTS}/sonobuoy.log"
+
     results_tarball=$(./sonobuoy retrieve)
     cp "$results_tarball" "${ARTIFACTS}/"
     tar -ztvf "$results_tarball"
-    tar -xvzf "$results_tarball" plugins/e2e/
-    cp -f "$(find plugins/e2e/* -name "*.xml")" "${ARTIFACTS}/"
+
+    # Get each plugin junit report rename from 'junit.xml' to 'junit.<plugin-name>.<file number>.xml',
+    # and move to artifacts directory
+    plugins=$(./sonobuoy status --json | jq -r '[.plugins[]] | unique_by(.plugin) | .[].plugin')
+    for plugin in $plugins; do
+      tar -xvzf "$results_tarball" "plugins/$plugin/"
+      idx=1
+      for report in $(find "plugins/$plugin/"* -name "*.xml"); do
+        plugin_report=$(basename $report)
+        plugin_report="${plugin_report/.xml/.${plugin}.${idx}.xml}"
+        cp -f $report "${ARTIFACTS}/$plugin_report"
+        idx=$((idx+1))
+      done
+    done
+
+    passed=$(./sonobuoy status --json | jq  ' .plugins[] | select(."result-status" == "passed")'  | wc -l)
+    failed=$(./sonobuoy status --json | jq  ' .plugins[] | select(."result-status" == "failed")'  | wc -l)
+
+   ./sonobuoy delete --wait
 
     if [ $rv -ne 0 ]; then
         echo "error found, exiting"
         exit $rv
     fi
 
-    passed=$(./sonobuoy status --json | jq  ' .plugins[] | select(."result-status" == "passed")'  | wc -l)
-    failed=$(./sonobuoy status --json | jq  ' .plugins[] | select(."result-status" == "failed")'  | wc -l)
-
     if [ "$passed" -eq 0 ] || [ "$failed" -ne 0 ]; then
-        echo "sonobuoy failed"
+        echo "sonobuoy failed, running conformance tests with plugins: ($plugins)"
         exit 1
     fi
 }
