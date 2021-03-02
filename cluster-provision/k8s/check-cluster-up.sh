@@ -8,7 +8,7 @@ make -C ../gocli container
 CI=${CI:-"false"}
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-RUN_KUBEVIRT_CONFORMANCE=${RUN_KUBEVIRT_CONFORMANCE:-"false"}
+RUN_KUBEVIRT_CONFORMANCE=${RUN_KUBEVIRT_CONFORMANCE:-"true"}
 
 provision_dir="$1"
 
