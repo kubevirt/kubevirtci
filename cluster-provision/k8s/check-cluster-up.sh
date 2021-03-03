@@ -42,7 +42,9 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 
   # Run conformance test only at CI and if the provider has them activated
   conformance_config=$DIR/${provision_dir}/conformance.json
+
   if [ "${CI}" == "true" -a -f $conformance_config ]; then
+    export SONOBUOY_EXTRA_ARGS="--plugin systemd-logs --plugin e2e"
     hack/conformance.sh $conformance_config
   fi
 )

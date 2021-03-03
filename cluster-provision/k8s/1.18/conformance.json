@@ -74,14 +74,7 @@
     "advertiseaddress": "",
     "timeoutseconds": 10800
   },
-  "Plugins": [
-    {
-      "name": "e2e"
-    },
-    {
-      "name": "systemd-logs"
-    }
-  ],
+  "Plugins": null,
   "PluginSearchPath": [
     "./plugins.d",
     "/etc/sonobuoy/plugins.d",
