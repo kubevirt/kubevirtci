@@ -1,16 +1,42 @@
---- a/cluster-provision/k7s/1.17/manifests/cni.do-not-change.yaml
-+++ b/cluster-provision/k8s/1.17/manifests/cni.do-not-change.yaml
-@@ -34,6 +34,9 @@ data:
+diff --git a/cluster-provision/k8s/1.20/manifests/cni.do-not-change.yaml b/cluster-provision/k8s/1.20/manifests/cni.do-not-change.yaml
+index bcc4ee0c..17a045ff 100644
+--- a/cluster-provision/k8s/1.20/manifests/cni.do-not-change.yaml
++++ b/cluster-provision/k8s/1.20/manifests/cni.do-not-change.yaml
+@@ -32,7 +32,14 @@ data:
+           "nodename": "__KUBERNETES_NODE_NAME__",
+           "mtu": __CNI_MTU__,
            "ipam": {
-               "type": "calico-ipam"
-           },
+-              "type": "calico-ipam"
++              "type": "calico-ipam",
++              "assign_ipv4": "true",
++              "assign_ipv6": "true",
++              "ipv4_pools": ["default-ipv4-ippool"],
++              "ipv6_pools": ["natted-ipv6-ippool"]
++          },
 +          "container_settings": {
 +              "allow_ip_forwarding": true
-+          },
+           },
            "policy": {
                "type": "k8s"
-           },
-@@ -3820,6 +3823,9 @@ spec:
+@@ -3671,6 +3678,8 @@ spec:
+             # no effect. This should fall within `--cluster-cidr`.
+             # - name: CALICO_IPV4POOL_CIDR
+             #   value: "192.168.0.0/16"
++            - name: IP6
++              value: "autodetect"
+             # Disable file logging so `kubectl logs` works.
+             - name: CALICO_DISABLE_FILE_LOGGING
+               value: "true"
+@@ -3679,7 +3688,7 @@ spec:
+               value: "ACCEPT"
+             # Disable IPv6 on Kubernetes.
+             - name: FELIX_IPV6SUPPORT
+-              value: "false"
++              value: "true"
+             # Set Felix logging to "info"
+             - name: FELIX_LOGSEVERITYSCREEN
+               value: "info"
+@@ -3820,6 +3829,9 @@ spec:
            effect: NoSchedule
        serviceAccountName: calico-kube-controllers
        priorityClassName: system-cluster-critical
@@ -20,3 +46,20 @@
        containers:
          - name: calico-kube-controllers
            image: docker.io/calico/kube-controllers:v3.18.0
+@@ -3869,4 +3881,16 @@ spec:
+ ---
+ # Source: calico/templates/configure-canal.yaml
+ 
++---
++apiVersion: crd.projectcalico.org/v1
++kind: IPPool
++metadata:
++  name: natted-ipv6-ippool
++spec:
++  blockSize: 122
++  cidr: fd10:244::/112
++  natOutgoing: true
++  ipipMode: Never
++  nodeSelector: all()
++  vxlanMode: Never
+ 
