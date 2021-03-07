@@ -236,7 +236,7 @@ function move_sriov_pfs_netns_to_node {
     local pf_name="${pf%%/device/*}"
     pf_name="${pf_name##*/}"
 
-    if [ $(echo "${PF_BLACKLIST[@]}" | grep "${pf_name}") ]; then
+    if echo "${PF_BLACKLIST[@]}" | grep -qw "${pf_name}"; then
       continue
     fi
 
