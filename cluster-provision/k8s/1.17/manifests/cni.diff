@@ -1,4 +1,4 @@
---- a/cluster-provision/k7s/1.17/manifests/cni.do-not-change.yaml
+--- a/cluster-provision/k8s/1.17/manifests/cni.do-not-change.yaml
 +++ b/cluster-provision/k8s/1.17/manifests/cni.do-not-change.yaml
 @@ -34,6 +34,9 @@ data:
            "ipam": {
@@ -10,7 +10,7 @@
            "policy": {
                "type": "k8s"
            },
-@@ -3820,6 +3823,9 @@ spec:
+@@ -3792,6 +3795,9 @@ spec:
            effect: NoSchedule
        serviceAccountName: calico-kube-controllers
        priorityClassName: system-cluster-critical
@@ -19,4 +19,4 @@
 +          type: spc_t
        containers:
          - name: calico-kube-controllers
-           image: docker.io/calico/kube-controllers:v3.18.0
+           image: docker.io/calico/kube-controllers:v3.17.3
