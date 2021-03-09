@@ -296,12 +296,16 @@ chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 docker_pull_retry fluent/fluentd:v1.2-debian
 docker_pull_retry fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
 
-# Pre pull images used in Ceph CSI
-docker_pull_retry quay.io/k8scsi/csi-attacher:v1.0.1
-docker_pull_retry quay.io/k8scsi/csi-provisioner:v1.0.1
-docker_pull_retry quay.io/k8scsi/csi-snapshotter:v1.0.1
-docker_pull_retry quay.io/cephcsi/rbdplugin:v1.0.0
-docker_pull_retry quay.io/k8scsi/csi-node-driver-registrar:v1.0.2
+# Pre pull images used in Rook Ceph
+docker_pull_retry rook/ceph:v1.5.8
+docker_pull_retry ceph/ceph:v15
+docker_pull_retry quay.io/cephcsi/cephcsi:v3.2.0
+docker_pull_retry k8s.gcr.io/sig-storage/snapshot-controller:v4.0.0
+docker_pull_retry k8s.gcr.io/sig-storage/csi-resizer:v1.0.0
+docker_pull_retry k8s.gcr.io/sig-storage/csi-attacher:v3.0.0
+docker_pull_retry k8s.gcr.io/sig-storage/csi-provisioner:v2.0.0
+docker_pull_retry k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.0
+docker_pull_retry k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1
 
 # Pre pull cluster network addons operator images and store manifests
 # so we can use them at cluster-up

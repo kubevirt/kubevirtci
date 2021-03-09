@@ -7,6 +7,8 @@ MEMORY=3096M
 CPU=2
 QEMU_ARGS=""
 NEXT_DISK=""
+BLOCK_DEV=""
+BLOCK_DEV_SIZE=""
 
 while true; do
   case "$1" in
@@ -14,6 +16,8 @@ while true; do
     -c | --cpu ) CPU="$2"; shift 2 ;;
     -q | --qemu-args ) QEMU_ARGS="$2"; shift 2 ;;
     -n | --next-disk ) NEXT_DISK="$2"; shift 2 ;;
+    -b | --block-device ) BLOCK_DEV="$2"; shift 2 ;;
+    -s | --block-device-size ) BLOCK_DEV_SIZE="$2"; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -94,7 +98,16 @@ fi
 # Prevent the emulated soundcard from messing with host sound
 export QEMU_AUDIO_DRV=none
 
-exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=unsafe \
+block_dev_arg=""
+
+if [ -n "${BLOCK_DEV}" ]; then
+  # 10Gi default
+  block_device_size="${BLOCK_DEV_SIZE:-10737418240}"
+  qemu-img create -f qcow2 ${BLOCK_DEV} ${block_device_size}
+  block_dev_arg="-drive format=qcow2,file=${BLOCK_DEV},if=virtio,cache=unsafe"
+fi
+
+exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=unsafe ${block_dev_arg} \
   -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
   -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
   -device virtio-rng-pci \

@@ -352,37 +352,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 	}
 
-	if cephEnabled {
-		// Pull Ceph image
-		err = docker.ImagePull(cli, ctx, utils.CephImage, types.ImagePullOptions{})
-		if err != nil {
-			panic(err)
-		}
-
-		cephStorage, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: utils.CephImage,
-			Env: []string{
-				"MON_IP=192.168.66.2",
-				"CEPH_PUBLIC_NETWORK=0.0.0.0/0",
-				"DEMO_DAEMONS=osd,mds",
-				"CEPH_DEMO_UID=demo",
-			},
-			Cmd: strslice.StrSlice{
-				"demo",
-			},
-		}, &container.HostConfig{
-			Privileged:  true,
-			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
-		}, nil, prefix+"-ceph")
-		if err != nil {
-			return err
-		}
-		containers <- cephStorage.ID
-		if err := cli.ContainerStart(ctx, cephStorage.ID, types.ContainerStartOptions{}); err != nil {
-			return err
-		}
-	}
-
 	if logDir != "" {
 		logDir, err := filepath.Abs(logDir)
 		if err != nil {
@@ -488,6 +457,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodeQemuArgs = "--qemu-args \"" + nodeQemuArgs + "\""
 		}
 
+		blockDev := ""
+		if cephEnabled {
+			blockDev = "--block-device /var/run/disk/blockdev.qcow2 --block-device-size 32212254720"
+		}
+
 		vmContainerConfig := &container.Config{
 			Image: clusterImage,
 			Env: []string{
@@ -496,7 +470,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			Volumes: map[string]struct{}{
 				"/var/run/disk/": {},
 			},
-			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), nodeQemuArgs)},
+			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s %s", memory, strconv.Itoa(int(cpu)), blockDev, nodeQemuArgs)},
+		}
+
+		if cephEnabled {
+			vmContainerConfig.Volumes["/var/lib/rook"] = struct{}{}
 		}
 
 		node, err := cli.ContainerCreate(ctx, vmContainerConfig, &container.HostConfig{
@@ -613,29 +591,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	if cephEnabled {
-		keyRing := new(bytes.Buffer)
-		success, err := docker.Exec(cli, nodeContainer(prefix, "ceph"), []string{
-			"/bin/bash",
-			"-c",
-			"ceph auth print-key client.admin | base64",
-		}, keyRing)
-		if err != nil {
-			return err
-		}
 		nodeName := nodeNameFromIndex(1)
-		key := bytes.TrimSpace(keyRing.Bytes())
-		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
 			"/bin/bash",
 			"-c",
-			fmt.Sprintf("ssh.sh sudo sed -i \"s/replace-me/%s/g\" /tmp/ceph/ceph-secret.yaml", key),
-		}, os.Stdout)
-		if err != nil {
-			return err
-		}
-		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
-			"/bin/bash",
-			"-c",
-			"ssh.sh sudo /bin/bash < /scripts/ceph-csi.sh",
+			"ssh.sh sudo /bin/bash < /scripts/rook-ceph.sh",
 		}, os.Stdout)
 		if err != nil {
 			return err

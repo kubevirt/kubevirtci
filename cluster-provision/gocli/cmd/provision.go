@@ -264,7 +264,7 @@ func _cmd(cli *client.Client, container string, cmd string, description string) 
 	if err != nil {
 		return fmt.Errorf("%s failed: %v", description, err)
 	} else if !success {
-		return fmt.Errorf("%s failed")
+		return fmt.Errorf("%s failed", cmd)
 	}
 	return nil
 }
