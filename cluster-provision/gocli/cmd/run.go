@@ -82,6 +82,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
+	run.Flags().Bool("enable-istio", false, "deploys Istio service mesh")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
 	run.Flags().String("container-registry", "quay.io", "the registry to pull cluster container from")
 	run.Flags().String("container-org", "kubevirtci", "the organization at the registry to pull the container from")
@@ -167,6 +168,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	cephEnabled, err := cmd.Flags().GetBool("enable-ceph")
+	if err != nil {
+		return err
+	}
+
+	istioEnabled, err := cmd.Flags().GetBool("enable-istio")
 	if err != nil {
 		return err
 	}
@@ -636,6 +642,21 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 		if !success {
 			return fmt.Errorf("provisioning Ceph CSI failed")
+		}
+	}
+
+	if istioEnabled {
+		nodeName := nodeNameFromIndex(1)
+		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+			"/bin/bash",
+			"-c",
+			"ssh.sh sudo /bin/bash < /scripts/istio.sh",
+		}, os.Stdout)
+		if err != nil {
+			return err
+		}
+		if !success {
+			return fmt.Errorf("deploying Istio service mesh failed")
 		}
 	}
 
