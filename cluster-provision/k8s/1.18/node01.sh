@@ -47,3 +47,6 @@ done
 
 local_volume_manifest="/var/provision/local-volume.yaml"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$local_volume_manifest"
+
+# FIXME: Delete this
+echo "You are running me"
