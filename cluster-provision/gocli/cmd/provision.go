@@ -40,6 +40,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
+	provision.Flags().Bool("cgroupv2", false, "set UNIFIED_CGROUP_HIERARCHY environment variable for the provision script")
 
 	return provision
 }
@@ -220,7 +221,17 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	err = _cmd(cli, nodeContainer(prefix, nodeName), fmt.Sprintf("ssh.sh sudo version=%s /bin/bash < /scripts/provision.sh", version), "provisioning the node")
+	cgroupv2, err := cmd.Flags().GetBool("cgroupv2")
+	if err != nil {
+		return err
+	}
+
+	envVars := fmt.Sprintf("version=%s", version)
+	if cgroupv2 {
+		envVars = fmt.Sprintf("%s UNIFIED_CGROUP_HIERARCHY=1", envVars)
+	}
+
+	err = _cmd(cli, nodeContainer(prefix, nodeName), fmt.Sprintf("ssh.sh sudo %s /bin/bash < /scripts/provision.sh", envVars), "provisioning the node")
 	if err != nil {
 		return err
 	}
