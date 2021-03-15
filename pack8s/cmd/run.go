@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -167,7 +166,6 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		AddHost: &[]string{
 			"nfs:192.168.66.2",
 			"registry:192.168.66.2",
-			"ceph:192.168.66.2",
 		},
 		Args: []string{cluster, "/bin/bash", "-c", "/dnsmasq.sh"},
 		Env: &[]string{
@@ -203,29 +201,6 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			return err
 		}
 		log.Noticef("NFS container ready")
-	}
-
-	if runOpts.enableCeph {
-		cephName := fmt.Sprintf("%s-ceph", cOpts.Prefix)
-		cephLabels := []string{fmt.Sprintf("%s=011", podman.LabelGeneration)}
-		_, err = ldgr.RunContainer(iopodman.Create{
-			Args: []string{images.CephImage, "demo"},
-			Name: &cephName,
-			Env: &[]string{
-				"MON_IP=192.168.66.2",
-				"CEPH_PUBLIC_NETWORK=0.0.0.0/0",
-				"DEMO_DAEMONS=osd,mds",
-				"CEPH_DEMO_UID=demo",
-			},
-			Label:      &cephLabels,
-			Network:    &dnsmasqNetwork,
-			Privileged: &runOpts.privileged,
-		})
-		if err != nil {
-			log.Errorf("CEPH run failed: %v", err)
-			return err
-		}
-		log.Noticef("CEPH container ready")
 	}
 
 	if runOpts.logDir != "" {
@@ -299,10 +274,15 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			return err
 		}
 
+		blockDev := ""
+		if runOpts.enableCeph {
+			blockDev = "--block-device /var/run/disk/blockdev.qcow2 --block-device-size 32212254720"
+		}
+
 		contNodeName := nodeContainer(cOpts.Prefix, nodeName)
 		contNodeMountsStrings := nodeMounts.ToStrings()
 		contNodeID, err := ldgr.RunContainer(iopodman.Create{
-			Args: []string{cluster, "/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s", runOpts.memory, strconv.Itoa(int(runOpts.cpu)), nodeQemuArgs)},
+			Args: []string{cluster, "/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s %s", runOpts.memory, strconv.Itoa(int(runOpts.cpu)), blockDev, nodeQemuArgs)},
 			Env: &[]string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
 			},
@@ -348,29 +328,11 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	log.Noticef("Nodes ready")
 
 	if runOpts.enableCeph {
-		keyRing := new(bytes.Buffer)
-		err := hnd.Exec(nodeContainer(cOpts.Prefix, "ceph"), []string{
-			"/bin/bash",
-			"-c",
-			"ceph auth print-key connent.admin | base64",
-		}, keyRing)
-		if err != nil {
-			return err
-		}
 		nodeName := nodeNameFromIndex(1)
-		key := bytes.TrimSpace(keyRing.Bytes())
 		err = hnd.Exec(nodeContainer(cOpts.Prefix, nodeName), []string{
 			"/bin/bash",
 			"-c",
-			fmt.Sprintf("ssh.sh sudo sed -i \"s/replace-me/%s/g\" /tmp/ceph/ceph-secret.yaml", key),
-		}, os.Stdout)
-		if err != nil {
-			return err
-		}
-		err = hnd.Exec(nodeContainer(cOpts.Prefix, nodeName), []string{
-			"/bin/bash",
-			"-c",
-			"ssh.sh sudo /bin/bash < /scripts/ceph-csi.sh",
+			"ssh.sh sudo /bin/bash < /scripts/rook-ceph.sh",
 		}, os.Stdout)
 		if err != nil {
 			return fmt.Errorf("provisioning Ceph CSI failed: %s", err)
