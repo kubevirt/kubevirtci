@@ -41,6 +41,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	provision.Flags().Bool("cgroupv2", false, "set UNIFIED_CGROUP_HIERARCHY environment variable for the provision script")
+	provision.Flags().String("container-suffix", "", "use additional suffix for the provisioned container image")
 
 	return provision
 }
@@ -58,8 +59,16 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}
 	base := fmt.Sprintf("quay.io/kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
 
-	prefix := fmt.Sprintf("k8s-%s-provision", filepath.Base(packagePath))
-	target := fmt.Sprintf("quay.io/kubevirtci/k8s-%s", filepath.Base(packagePath))
+	containerSuffix, err := cmd.Flags().GetString("container-suffix")
+	if err != nil {
+		return err
+	}
+	name := filepath.Base(packagePath)
+	if len(containerSuffix) > 0 {
+		name = fmt.Sprintf("%s-%s", name, containerSuffix)
+	}
+	prefix := fmt.Sprintf("k8s-%s-provision", name)
+	target := fmt.Sprintf("quay.io/kubevirtci/k8s-%s", name)
 	scripts := filepath.Join(packagePath)
 
 	memory, err := cmd.Flags().GetString("memory")
