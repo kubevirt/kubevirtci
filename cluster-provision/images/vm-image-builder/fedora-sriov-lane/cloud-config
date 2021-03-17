@@ -23,4 +23,5 @@ runcmd:
   - sudo hostnamectl set-hostname ""
   - sudo hostnamectl set-hostname "" --transient
   - sudo systemctl start qemu-guest-agent
+  - sudo sed -i /users-groups/d /etc/cloud/cloud.cfg
   - sudo shutdown
