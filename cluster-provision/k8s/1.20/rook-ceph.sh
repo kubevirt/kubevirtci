@@ -1,10 +1,6 @@
 #!/bin/bash
 set -xe
 
-# ceph mon permission
-mkdir -p /var/lib/rook
-chcon -t container_file_t /var/lib/rook
-
 # Deploy common snapshot controller and CRDs
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/snapshot.storage.k8s.io_volumesnapshots.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
