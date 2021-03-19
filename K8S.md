@@ -47,3 +47,18 @@ docker exec $node01_id yum install -y socat
 # Attach to node01 console
 docker exec -it $node01_id socat - /dev/pts/0
 ```
+
+# Snapshots
+qemu-based providers allow you to
+```
+# save the cluster state to a named snapshot
+cluster-up/save.sh snapname
+```
+do some harm to your cluster, and then
+```
+# restore the cluster to its formerly named snapshot
+cluster-up/restore.sh snapname
+```
+Note that Kubernetes is not entirely crash consistent; it may take some time
+to recover after restore.
+

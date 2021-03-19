@@ -132,3 +132,23 @@ function _kubectl() {
 function down() {
     ${_cli} rm --prefix $provider_prefix
 }
+
+function _send_monitor_to_nodes() {
+    local MONITOR_SOCKET="/var/run/mon.sock"
+    local pids=""
+    local node_containers=$(docker ps --filter name="^$KUBEVIRT_PROVIDER-node" --format '{{.Names}}')
+    for container in $node_containers
+    do
+        echo $* | docker exec -i "$container" socat - UNIX-CONNECT:"$MONITOR_SOCKET" &
+        pids="$pids $!"
+    done
+    wait $pids
+}
+
+function save() {
+    _send_monitor_to_nodes savevm "$1"
+}
+
+function restore() {
+    _send_monitor_to_nodes loadvm "$1"
+}
