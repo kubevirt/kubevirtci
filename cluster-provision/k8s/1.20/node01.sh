@@ -47,3 +47,7 @@ done
 
 local_volume_manifest="/provision/local-volume.yaml"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$local_volume_manifest"
+
+# ceph mon permission
+mkdir -p /var/lib/rook
+chcon -t container_file_t /var/lib/rook
