@@ -15,14 +15,26 @@ docker tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
 (cd cluster-provision/centos8 && ./build.sh)
 
 # Provision all clusters
-for i in $(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n'); do
+CLUSTERS="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n')"
+for i in ${CLUSTERS}; do
     cluster-provision/gocli/build/cli provision cluster-provision/k8s/$i
     docker tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
 done
 
+# Provision 1.20-cgroupsv2 cluster
+CGV2_CLUSTER="1.20"
+CGV2_SUFFIX="cgroupsv2"
+CGV2_IMAGE="${CGV2_CLUSTER}-${CGV2_SUFFIX}"
+cluster-provision/gocli/build/cli provision \
+    --cgroupv2=true --container-suffix=${CGV2_SUFFIX} \
+    cluster-provision/k8s/${CGV2_CLUSTER}
+docker tag ${TARGET_REPO}/k8s-${CGV2_IMAGE} \
+    ${TARGET_REPO}/k8s-${CGV2_IMAGE}:${KUBEVIRTCI_TAG}
+
 # Push all images
+IMAGES="${CLUSTERS} ${CGV2_IMAGE}"
 docker push ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
-for i in $(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n'); do
+for i in ${IMAGES}; do
     docker push ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
 done
 
