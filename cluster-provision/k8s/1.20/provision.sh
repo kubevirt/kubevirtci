@@ -2,12 +2,20 @@
 
 set -ex
 
+# Configure cgroup version
+if [ "${UNIFIED_CGROUP_HIERARCHY}" == "1" ]; then
+    CMDLINE_LINUX_APPEND="${CMDLINE_LINUX_APPEND} systemd.unified_cgroup_hierarchy=1"
+    CGROUP_DRIVER="cgroupfs"
+else
+    CGROUP_DRIVER="systemd"
+fi
+
 KUBEVIRTCI_SHARED_DIR=/var/lib/kubevirtci
 mkdir -p $KUBEVIRTCI_SHARED_DIR
 cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 #!/bin/bash
 set -ex
-export KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
+export KUBELET_CGROUP_ARGS="--cgroup-driver=${CGROUP_DRIVER} --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
 export KUBELET_FEATURE_GATES="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
 export ISTIO_VERSION=1.9.0
 EOF
@@ -55,7 +63,9 @@ swapoff -a
 sed -i '/ swap / s/^/#/' /etc/fstab
 
 # Disable spectre and meltdown patches
-echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} spectre_v2=off nopti hugepagesz=2M hugepages=64 intel_iommu=on modprobe.blacklist=nouveau"' >> /etc/default/grub
+CMDLINE_LINUX_APPEND="${CMDLINE_LINUX_APPEND} spectre_v2=off nopti hugepagesz=2M hugepages=64 intel_iommu=on modprobe.blacklist=nouveau"
+
+echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} '"${CMDLINE_LINUX_APPEND}"'"' >> /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
 
 systemctl stop firewalld || :
@@ -102,6 +112,16 @@ enabled=1
 EOF
 dnf install -y cri-o
 
+if [ "${UNIFIED_CGROUP_HIERARCHY}" == "1" ]; then
+    CRIO_CONF_DIR=/etc/crio/crio.conf.d
+    mkdir -p ${CRIO_CONF_DIR}
+    cat << EOF > ${CRIO_CONF_DIR}/00-cgroupv2.conf
+[crio.runtime]
+conmon_cgroup = "pod"
+cgroup_manager = "cgroupfs"
+EOF
+fi
+
 # install podman for functionality missing in crictl (tag, etc)
 dnf install -y podman
 
@@ -141,7 +161,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=${CGROUP_DRIVER} --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
 EOT
 
 # Needed for kubernetes service routing and dns

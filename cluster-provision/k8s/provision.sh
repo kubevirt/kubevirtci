@@ -9,7 +9,18 @@ export base="$(cat base | tr -d '\n')"
 
 cd $DIR
 
+gocli_args=""
+
+if [ "${CGROUPV2}" == "true" ]; then
+    gocli_args="${gocli_args} --cgroupv2=true"
+    CONTAINER_SUFFIX=cgroupsv2
+fi
+
+if [ -n "${CONTAINER_SUFFIX}" ]; then
+    gocli_args="${gocli_args} --container-suffix=${CONTAINER_SUFFIX}"
+fi
+
 (cd ../${base} && ./build.sh)
 make -C ../gocli cli
-../gocli/build/cli provision ${provision_dir}
-./check-cluster-up.sh ${provision_dir}
+../gocli/build/cli provision ${gocli_args} ${provision_dir}
+CONTAINER_SUFFIX=${CONTAINER_SUFFIX} ./check-cluster-up.sh ${provision_dir}

@@ -12,6 +12,11 @@ RUN_KUBEVIRT_CONFORMANCE=${RUN_KUBEVIRT_CONFORMANCE:-"true"}
 
 provision_dir="$1"
 
+provider="${provision_dir}"
+if [ -n "${CONTAINER_SUFFIX}" ]; then
+    provider="${provision_dir}-${CONTAINER_SUFFIX}"
+fi
+
 function cleanup {
   cd "$DIR" && cd ../..
   make cluster-down
@@ -24,7 +29,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
   ssh="./cluster-up/ssh.sh"
   cd "$DIR" && cd ../..
   export KUBEVIRTCI_PROVISION_CHECK=1
-  export KUBEVIRT_PROVIDER="k8s-${provision_dir}"
+  export KUBEVIRT_PROVIDER="k8s-${provider}"
   export KUBEVIRT_NUM_NODES=2
   export KUBEVIRT_NUM_SECONDARY_NICS=2
   trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
