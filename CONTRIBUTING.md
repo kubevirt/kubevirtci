@@ -13,7 +13,7 @@ cd cluster-provision/gocli
 Using local gocli images during development, and in order to test before publishing:
 ```
 make container-run
-export KUBEVIRTCI_GOCLI_CONTAINER=kubevirtci/gocli:latest
+export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 ```
 
 Publishing (after make container-run / make all)
