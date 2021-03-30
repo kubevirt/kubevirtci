@@ -12,30 +12,40 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 func GetPrefixedContainers(cli *client.Client, prefix string) ([]types.Container, error) {
-	args, err := filters.ParseFlag("name="+prefix, filters.NewArgs())
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
+		All: true,
+	})
 	if err != nil {
 		return nil, err
 	}
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
-		Filters: args,
-		All:     true,
-	})
-	return containers, err
+	return filterByPrefix(containers, prefix), nil
+}
+
+func filterByPrefix(containers []types.Container, prefix string) []types.Container {
+	prefixedConatiners := []types.Container{}
+	for i, c := range containers {
+		for _, name := range c.Names {
+			if strings.HasPrefix(name, prefix) || strings.HasPrefix(name, "/"+prefix) {
+				prefixedConatiners = append(prefixedConatiners, containers[i])
+			}
+		}
+	}
+	return prefixedConatiners
 }
 
 func GetPrefixedVolumes(cli *client.Client, prefix string) ([]*types.Volume, error) {
-	args, err := filters.ParseFlag("name="+prefix, filters.NewArgs())
-	if err != nil {
-		return nil, err
-	}
+	args := filters.NewArgs(filters.KeyValuePair{
+		Key:   "name",
+		Value: prefix,
+	})
 	volumes, err := cli.VolumeList(context.Background(), args)
 	if err != nil {
 		return nil, err
@@ -97,10 +107,9 @@ func Exec(cli *client.Client, container string, args []string, out io.Writer) (b
 		return false, err
 	}
 
-	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecConfig{
-		AttachStderr: true,
-		AttachStdout: true,
-		Tty:          true,
+	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecStartCheck{
+		Detach: false,
+		Tty:    true,
 	})
 	if err != nil {
 		return false, err
@@ -137,11 +146,9 @@ func Terminal(cli *client.Client, container string, args []string, file *os.File
 		return -1, err
 	}
 
-	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecConfig{
-		AttachStderr: true,
-		AttachStdout: true,
-		AttachStdin:  true,
-		Tty:          terminal.IsTerminal(int(file.Fd())),
+	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecStartCheck{
+		Detach: false,
+		Tty:    terminal.IsTerminal(int(file.Fd())),
 	})
 	if err != nil {
 		return -1, err

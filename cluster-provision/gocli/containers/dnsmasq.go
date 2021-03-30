@@ -64,7 +64,7 @@ func DNSMasq(cli *client.Client, ctx context.Context, options *DNSMasqOptions) (
 			"ceph:192.168.66.2",
 		},
 		Mounts: dnsmasqMounts,
-	}, nil, options.Prefix+"-dnsmasq")
+	}, nil, nil, options.Prefix+"-dnsmasq")
 	if err != nil {
 		return nil, err
 	}

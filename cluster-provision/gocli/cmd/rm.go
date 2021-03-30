@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
@@ -37,8 +39,24 @@ func rm(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	for _, c := range containers {
+	var dnsmasq *types.Container
+nodnsmasq:
+	for i, c := range containers {
+		for _, name := range c.Names {
+			if strings.HasSuffix(name, "dnsmasq") {
+				dnsmasq = &containers[i]
+				continue nodnsmasq
+			}
+		}
 		err := cli.ContainerRemove(context.Background(), c.ID, types.ContainerRemoveOptions{Force: true})
+		if err != nil {
+			return err
+		}
+	}
+
+	// delete dnsmasq at the end since other containers rely on ints network namespace
+	if dnsmasq != nil {
+		err := cli.ContainerRemove(context.Background(), dnsmasq.ID, types.ContainerRemoveOptions{Force: true})
 		if err != nil {
 			return err
 		}

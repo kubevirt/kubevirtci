@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/go-connections/nat"
 )
 
@@ -50,17 +49,26 @@ const (
 )
 
 // GetPublicPort returns public port by private port
-func GetPublicPort(port uint16, ports []types.Port) (uint16, error) {
-	for _, p := range ports {
-		if p.PrivatePort == port {
-			return p.PublicPort, nil
+func GetPublicPort(port uint16, ports nat.PortMap) (uint16, error) {
+	portStr := strconv.Itoa(int(port)) + "/tcp"
+	for k, p := range ports {
+		if k == nat.Port(portStr) {
+			if len(p) > 0 {
+				publicPort, err := strconv.Atoi(p[0].HostPort)
+				if err != nil {
+					return 0, err
+				}
+				return uint16(publicPort), nil
+			} else {
+				return 0, fmt.Errorf("no public port for %v", port)
+			}
 		}
 	}
 	return 0, fmt.Errorf("port is not exposed")
 }
 
 // PrintPublicPort prints public port
-func PrintPublicPort(port uint16, ports []types.Port) error {
+func PrintPublicPort(port uint16, ports nat.PortMap) error {
 	p, err := GetPublicPort(port, ports)
 	if err != nil {
 		return err

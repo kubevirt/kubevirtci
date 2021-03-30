@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/docker/docker/client"
@@ -76,28 +77,32 @@ func ports(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		portName = args[0]
 	}
+	container, err := cli.ContainerInspect(context.Background(), containers[0].ID)
+	if err != nil {
+		return err
+	}
 
 	if portName != "" {
 		err = nil
 		switch portName {
 		case utils.PortNameSSH:
-			err = utils.PrintPublicPort(utils.PortSSH, containers[0].Ports)
+			err = utils.PrintPublicPort(utils.PortSSH, container.NetworkSettings.Ports)
 		case utils.PortNameSSHWorker:
-			err = utils.PrintPublicPort(utils.PortSSHWorker, containers[0].Ports)
+			err = utils.PrintPublicPort(utils.PortSSHWorker, container.NetworkSettings.Ports)
 		case utils.PortNameAPI:
-			err = utils.PrintPublicPort(utils.PortAPI, containers[0].Ports)
+			err = utils.PrintPublicPort(utils.PortAPI, container.NetworkSettings.Ports)
 		case utils.PortNameRegistry:
-			err = utils.PrintPublicPort(utils.PortRegistry, containers[0].Ports)
+			err = utils.PrintPublicPort(utils.PortRegistry, container.NetworkSettings.Ports)
 		case utils.PortNameOCP:
-			err = utils.PrintPublicPort(utils.PortOCP, containers[0].Ports)
+			err = utils.PrintPublicPort(utils.PortOCP, container.NetworkSettings.Ports)
 		case utils.PortNameOCPConsole:
-			err = utils.PrintPublicPort(utils.PortOCPConsole, containers[0].Ports)
+			err = utils.PrintPublicPort(utils.PortOCPConsole, container.NetworkSettings.Ports)
 		case utils.PortNameVNC:
-			err = utils.PrintPublicPort(utils.PortVNC, containers[0].Ports)
+			err = utils.PrintPublicPort(utils.PortVNC, container.NetworkSettings.Ports)
 		case utils.PortNameHTTP:
-			err = utils.PrintPublicPort(utils.PortHTTP, containers[0].Ports)
+			err = utils.PrintPublicPort(utils.PortHTTP, container.NetworkSettings.Ports)
 		case utils.PortNameHTTPS:
-			err = utils.PrintPublicPort(utils.PortHTTPS, containers[0].Ports)
+			err = utils.PrintPublicPort(utils.PortHTTPS, container.NetworkSettings.Ports)
 		}
 
 		if err != nil {
@@ -105,8 +110,10 @@ func ports(cmd *cobra.Command, args []string) error {
 		}
 
 	} else {
-		for _, p := range containers[0].Ports {
-			fmt.Printf("%d/%s -> %s:%d\n", p.PrivatePort, p.Type, p.IP, p.PublicPort)
+		for k, pp := range container.NetworkSettings.Ports {
+			for _, p := range pp {
+				fmt.Printf("%s -> %s:%s\n", k, p.HostIP, p.HostPort)
+			}
 		}
 	}
 
