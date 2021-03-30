@@ -304,6 +304,7 @@ var _ = Describe("podman", func() {
 			Expect(err).To(BeNil())
 
 			images, err := handler.ListImages()
+			Expect(err).To(BeNil())
 
 			found := false
 
