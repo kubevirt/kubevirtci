@@ -471,7 +471,9 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 
 		if cephEnabled {
-			vmContainerConfig.Volumes["/var/lib/rook"] = struct{}{}
+			vmContainerConfig.Volumes = map[string]struct{}{
+				"/var/lib/rook": struct{}{},
+			}
 		}
 
 		node, err := cli.ContainerCreate(ctx, vmContainerConfig, &container.HostConfig{
