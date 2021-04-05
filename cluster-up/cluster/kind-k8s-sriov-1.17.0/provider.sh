@@ -35,7 +35,7 @@ function up() {
     # remove the rancher.io kind default storageClass
     _kubectl delete sc standard
 
-    ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/config_sriov.sh
+    ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/config_sriov_cluster.sh
 
     # In order to support live migration on containerized cluster we need to workaround
     # Libvirt uuid check for source and target nodes.
