@@ -29,7 +29,7 @@ function validate_nodes_sriov_allocatable_resource() {
 
   local num_vfs
   for sriov_node in $sriov_nodes; do
-    num_vfs=$(node::total_vfs_count_on_node "$sriov_node")
+    num_vfs=$(node::total_vfs_count "$sriov_node")
     sriov_components::wait_allocatable_resource "$sriov_node" "$resource_name" "$num_vfs"
   done
 }
@@ -38,7 +38,7 @@ worker_nodes=($(_kubectl get nodes -l node-role.kubernetes.io/worker -o custom-c
 worker_nodes_count=${#worker_nodes[@]}
 [ "$worker_nodes_count" -eq 0 ] && echo "FATAL: no worker nodes found" >&2 && exit 1
 
-pfs_names=($(node::get_pfs_names))
+pfs_names=($(node::discover_host_pfs))
 pf_count="${#pfs_names[@]}"
 [ "$pf_count" -eq 0 ] && echo "FATAL: Could not find available sriov PF's" >&2 && exit 1
 
@@ -50,7 +50,7 @@ total_pf_required=$((worker_nodes_count*PF_COUNT_PER_NODE))
   Total PF count required:  $total_pf_required" >&2 && exit 1
 
 ## Move SRIOV Physical Functions to worker nodes create VF's and configure their drivers
-node::configure_nodes_sriov_pfs_and_vfs "${worker_nodes[*]}" "${pfs_names[*]}" "$PF_COUNT_PER_NODE"
+node::configure_sriov_pfs_and_vfs "${worker_nodes[*]}" "${pfs_names[*]}" "$PF_COUNT_PER_NODE"
 
 ## Deploy Multus and SRIOV components
 sriov_components::deploy_multus

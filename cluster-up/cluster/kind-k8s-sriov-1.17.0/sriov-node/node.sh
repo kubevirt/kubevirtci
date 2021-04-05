@@ -4,7 +4,7 @@ SCRIPT_PATH=${SCRIPT_PATH:-$(dirname "$(realpath "$0")")}
 
 CONFIGURE_VFS_SCRIPT_PATH="${SCRIPT_PATH}/configure_vfs.sh"
 
-function node::get_pfs_names() {
+function node::discover_host_pfs() {
   local -r sriov_pfs=( $(find /sys/class/net/*/device/sriov_numvfs) )
   [ "${#sriov_pfs[@]}" -eq 0 ] && echo "FATAL: Could not find available sriov PFs on host" >&2 && return 1
 
@@ -23,7 +23,7 @@ function node::get_pfs_names() {
   echo "${pfs_names[@]}"
 }
 
-function node::configure_nodes_sriov_pfs_and_vfs() {
+function node::configure_sriov_pfs_and_vfs() {
   local -r nodes_array=($1)
   local -r pfs_names_array=($2)
   local -r pf_count_per_node=$3
@@ -85,7 +85,7 @@ function move_pf_to_node_netns() {
   ip netns exec "$node_name" ip link show
 }
 
-function node::total_vfs_count_on_node() {
+function node::total_vfs_count() {
   local -r node_name=$1
   local -r node_pid=$(docker inspect -f '{{.State.Pid}}' "$node_name")
   local -r pfs_sriov_numvfs=( $(cat /proc/$node_pid/root/sys/class/net/*/device/sriov_numvfs) )
