@@ -151,8 +151,7 @@ sysctl --system
 echo bridge >> /etc/modules
 echo br_netfilter >> /etc/modules
 
-# Bump NetworkManager to 1.22.8
-NM_VERSION=1.30.0
+NM_VERSION=1.32.0
 dnf install -y NetworkManager-$NM_VERSION
 
 # configure additional settings for cni plugin

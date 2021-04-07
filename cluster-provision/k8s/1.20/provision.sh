@@ -186,7 +186,7 @@ systemctl daemon-reload
 systemctl enable crio && systemctl start crio
 systemctl enable kubelet && systemctl start kubelet
 
-NM_VERSION=1.30.0
+NM_VERSION=1.32.0
 dnf install -y NetworkManager-$NM_VERSION
 
 # configure additional settings for cni plugin
