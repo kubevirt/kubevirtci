@@ -3,7 +3,6 @@ filters:
     reviewers:
       - davidvossel
       - rmohr
-      - slintes
       - vladikr
       - dhiller
       - qinqon
@@ -16,7 +15,6 @@ filters:
     approvers:
       - davidvossel
       - rmohr
-      - slintes
       - vladikr
       - dhiller
       - qinqon
@@ -27,3 +25,4 @@ filters:
     emeritus_approvers:
       - cynepco3hahue
       - danielBelenky
+      - slintes
