@@ -50,12 +50,13 @@ total_pf_required=$((worker_nodes_count*PF_COUNT_PER_NODE))
   Total PF count required:  $total_pf_required" >&2 && exit 1
 
 ## Move SRIOV Physical Functions to worker nodes create VF's and configure their drivers
-node::configure_sriov_pfs_and_vfs "${worker_nodes[*]}" "${pfs_names[*]}" "$PF_COUNT_PER_NODE"
+PFS_IN_USE=""
+node::configure_sriov_pfs_and_vfs "${worker_nodes[*]}" "${pfs_names[*]}" "$PF_COUNT_PER_NODE" "PFS_IN_USE"
 
 ## Deploy Multus and SRIOV components
 sriov_components::deploy_multus
 sriov_components::deploy \
-  "${pfs_names[*]}" \
+  "$PFS_IN_USE" \
   "$VFS_DRIVER" \
   "$SRIOVDP_RESOURCE_PREFIX" "$SRIOVDP_RESOURCE_NAME" \
   "$SRIOV_NODE_LABEL_KEY" "$SRIOV_NODE_LABEL_VALUE"

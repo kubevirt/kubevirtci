@@ -3,6 +3,7 @@
 SCRIPT_PATH=${SCRIPT_PATH:-$(dirname "$(realpath "$0")")}
 
 CONFIGURE_VFS_SCRIPT_PATH="${SCRIPT_PATH}/configure_vfs.sh"
+PFS_IN_USE=${PFS_IN_USE:-}
 
 function node::discover_host_pfs() {
   local -r sriov_pfs=( $(find /sys/class/net/*/device/sriov_numvfs) )
@@ -23,14 +24,20 @@ function node::discover_host_pfs() {
   echo "${pfs_names[@]}"
 }
 
+# node::configure_sriov_pfs_and_vfs moves SRIOV PF's to nodes netns,
+# create SRIOV VF's and configure their driver on each node.
+# Exports 'PFS_IN_USE' env variable with the list of SRIOV PF's
+# that been moved to nodes netns.
 function node::configure_sriov_pfs_and_vfs() {
   local -r nodes_array=($1)
   local -r pfs_names_array=($2)
   local -r pf_count_per_node=$3
+  local -r pfs_in_use_var_name=$4
 
   local -r config_vf_script=$(basename "$CONFIGURE_VFS_SCRIPT_PATH")
   local pfs_to_move=()
   local pfs_array_offset=0
+  local pfs_in_use=()
   local node_exec
 
   # 'iplink' learns which network namespaces there are by checking /var/run/netns
@@ -48,6 +55,7 @@ function node::configure_sriov_pfs_and_vfs() {
     done
     # Increment the offset for next slice
     pfs_array_offset=$((pfs_array_offset + pf_count_per_node))
+    pfs_in_use+=( $pf_name )
 
     # KIND mounts sysfs as read-only by default, remount as R/W"
     node_exec="docker exec $node"
@@ -60,6 +68,9 @@ function node::configure_sriov_pfs_and_vfs() {
 
     _kubectl label node $node $SRIOV_NODE_LABEL
   done
+
+  # Set new variable with the used PF names that will consumed by the caller
+  eval $pfs_in_use_var_name="'${pfs_in_use[*]}'"
 }
 
 function prepare_node_netns() {
