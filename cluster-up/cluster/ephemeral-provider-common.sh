@@ -44,6 +44,7 @@ kubectl=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubectl
 gocli=${BASE_PATH}/../cluster-up/cli.sh
 docker_prefix=\${DOCKER_PREFIX:-localhost:$(_port registry)/kubevirt}
 manifest_docker_prefix=\${DOCKER_PREFIX:-registry:5000/kubevirt}
+feature_gates=CPUNodeDiscovery,HypervStrictCheck
 EOF
 }
 
