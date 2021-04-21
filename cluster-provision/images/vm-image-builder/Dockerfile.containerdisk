@@ -1,2 +1,0 @@
-FROM kubevirt/container-disk-v1alpha
-ADD image /disk
