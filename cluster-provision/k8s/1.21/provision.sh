@@ -16,7 +16,7 @@ cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 #!/bin/bash
 set -ex
 export KUBELET_CGROUP_ARGS="--cgroup-driver=${CGROUP_DRIVER} --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
-export KUBELET_FEATURE_GATES="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
+export KUBELET_FEATURE_GATES="VolumeSnapshotDataSource=true,IPv6DualStack=true"
 export ISTIO_VERSION=1.9.0
 EOF
 source $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
@@ -161,7 +161,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=${CGROUP_DRIVER} --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=${CGROUP_DRIVER} --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="VolumeSnapshotDataSource=true,IPv6DualStack=true"
 EOT
 
 # Needed for kubernetes service routing and dns
