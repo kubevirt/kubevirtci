@@ -83,6 +83,11 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().Bool("enable-istio", false, "deploys Istio service mesh")
+	run.Flags().Bool("enable-prometheus", false, "deploys Prometheus operator")
+	run.Flags().UintP("prometheus-replicas", "x", 1, "number of prometheus replicas to start")
+	run.Flags().Bool("enable-prometheus-alertmanager", false, "deploys Prometheus alertmanager")
+	run.Flags().UintP("prometheus-alertmanager-replicas", "y", 1, "number of prometheus alertmanager replicas to start")
+	run.Flags().Bool("enable-grafana", false, "deploys Grafana")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
 	run.Flags().String("container-registry", "quay.io", "the registry to pull cluster container from")
 	run.Flags().String("container-org", "kubevirtci", "the organization at the registry to pull the container from")
@@ -173,6 +178,31 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	istioEnabled, err := cmd.Flags().GetBool("enable-istio")
+	if err != nil {
+		return err
+	}
+
+	prometheusEnabled, err := cmd.Flags().GetBool("enable-prometheus")
+	if err != nil {
+		return err
+	}
+
+	prometheusReplicas, err := cmd.Flags().GetUint("prometheus-replicas")
+	if err != nil {
+		return err
+	}
+
+	prometheusAlertmanagerEnabled, err := cmd.Flags().GetBool("enable-prometheus-alertmanager")
+	if err != nil {
+		return err
+	}
+
+	prometheusAlertmanagerReplicas, err := cmd.Flags().GetUint("prometheus-alertmanager-replicas")
+	if err != nil {
+		return err
+	}
+
+	grafanaEnabled, err := cmd.Flags().GetBool("enable-grafana")
 	if err != nil {
 		return err
 	}
@@ -616,6 +646,32 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 		if !success {
 			return fmt.Errorf("deploying Istio service mesh failed")
+		}
+	}
+
+	if prometheusEnabled {
+		nodeName := nodeNameFromIndex(1)
+
+		params := fmt.Sprintf("--prometheus-replicas %s ", strconv.Itoa(int(prometheusReplicas)))
+
+		if prometheusAlertmanagerEnabled {
+			params += fmt.Sprintf("--alertmanager true --alertmanager-replicas %s ", strconv.Itoa(int(prometheusAlertmanagerReplicas)))
+		}
+
+		if grafanaEnabled {
+			params += fmt.Sprintf("--grafana true ")
+		}
+
+		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+			"/bin/bash",
+			"-c",
+			fmt.Sprintf("ssh.sh sudo /bin/bash -s -- %s < /scripts/prometheus.sh", params),
+		}, os.Stdout)
+		if err != nil {
+			return err
+		}
+		if !success {
+			return fmt.Errorf("deploying Prometheus operator failed")
 		}
 	}
 
