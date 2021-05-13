@@ -22,6 +22,9 @@ KUBEVIRT_NUM_NODES=${KUBEVIRT_NUM_NODES:-1}
 KUBEVIRT_MEMORY_SIZE=${KUBEVIRT_MEMORY_SIZE:-5120M}
 KUBEVIRT_NUM_SECONDARY_NICS=${KUBEVIRT_NUM_SECONDARY_NICS:-0}
 KUBEVIRT_DEPLOY_ISTIO=${KUBEVIRT_DEPLOY_ISTIO:-false}
+KUBEVIRT_DEPLOY_PROMETHEUS=${KUBEVIRT_DEPLOY_PROMETHEUS:-false}
+KUBEVIRT_PROMETHEUS_REPLICAS=${KUBEVIRT_PROMETHEUS_REPLICAS:-1}
+KUBEVIRT_DEPLOY_GRAFANA=${KUBEVIRT_DEPLOY_GRAFANA:-false}
 
 # If on a developer setup, expose ocp on 8443, so that the openshift web console can be used (the port is important because of auth redirects)
 # http and https ports are accessed by testing framework and should not be randomized

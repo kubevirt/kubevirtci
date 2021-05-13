@@ -77,6 +77,22 @@ function _add_common_params() {
         params=" --enable-ceph $params"
     fi
 
+    if [[ $KUBEVIRT_DEPLOY_PROMETHEUS == "true" ]] && 
+        [[ $KUBEVIRT_PROVIDER_EXTRA_ARGS != *"--enable-prometheus"* ]]; then
+        params=" --enable-prometheus $params"
+
+        if [[ ! $KUBEVIRT_PROMETHEUS_REPLICAS -eq 1 ]] && 
+            [[ $KUBEVIRT_PROVIDER_EXTRA_ARGS != *"--prometheus-replicas"* ]]; then
+            params=" --prometheus-replicas $KUBEVIRT_PROMETHEUS_REPLICAS $params"
+        fi
+
+        if [[ $KUBEVIRT_DEPLOY_GRAFANA == "true" ]] && 
+            [[ $KUBEVIRT_PROVIDER_EXTRA_ARGS != *"--enable-grafana"* ]]; then
+            params=" --enable-grafana $params"
+        fi
+    fi
+
+
     echo $params
 }
 
