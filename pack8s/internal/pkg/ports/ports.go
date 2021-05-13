@@ -24,6 +24,10 @@ const (
 	PortVNC = 5901
 	//PortOCPConsole contains OCP console port
 	PortOCPConsole = 443
+	//PortPrometheus contains Prometheus server port
+	PortPrometheus = 9090
+	//PortGrafana contains Grafana server port
+	PortGrafana = 3000
 
 	// PortNameSSH contains master node SSH port name
 	PortNameSSH = "ssh"
@@ -40,11 +44,15 @@ const (
 	PortNameVNC = "vnc"
 	// PortNameOCPConsole contains OCP console port
 	PortNameOCPConsole = "console"
+	// PortNamePrometheus contains Prometheus server port
+	PortNamePrometheus = "prometheus"
+	// PortNameGrafana contains Grafana server port
+	PortNameGrafana = "grafana"
 )
 
 func IsKnownPortName(name string) bool {
 	switch name {
-	case PortNameSSH, PortNameSSHWorker, PortNameAPI, PortNameOCP, PortNameOCPConsole, PortNameRegistry, PortNameVNC:
+	case PortNameSSH, PortNameSSHWorker, PortNameAPI, PortNameOCP, PortNameOCPConsole, PortNameRegistry, PortNameVNC, PortNamePrometheus, PortNameGrafana:
 		return true
 	default:
 		return false
@@ -67,6 +75,10 @@ func NameToNumber(name string) (int, error) {
 		return PortOCPConsole, nil
 	case PortNameVNC:
 		return PortVNC, nil
+	case PortNamePrometheus:
+		return PortPrometheus, nil
+	case PortNameGrafana:
+		return PortGrafana, nil
 	default:
 		return 0, fmt.Errorf("unknown port: %s", name)
 	}

@@ -24,25 +24,32 @@ import (
 )
 
 type runOptions struct {
-	privileged     bool
-	nodes          uint
-	memory         string
-	cpu            uint
-	secondaryNics  uint
-	qemuArgs       string
-	background     bool
-	reverse        bool
-	randomPorts    bool
-	registryVolume string
-	vncPort        uint
-	registryPort   uint
-	ocpPort        uint
-	k8sPort        uint
-	sshPort        uint
-	nfsData        string
-	logDir         string
-	enableCeph     bool
-	downloadOnly   bool
+	privileged                     bool
+	nodes                          uint
+	memory                         string
+	cpu                            uint
+	secondaryNics                  uint
+	qemuArgs                       string
+	background                     bool
+	reverse                        bool
+	randomPorts                    bool
+	registryVolume                 string
+	vncPort                        uint
+	registryPort                   uint
+	ocpPort                        uint
+	k8sPort                        uint
+	sshPort                        uint
+	prometheusPort                 uint
+	grafanaPort                    uint
+	nfsData                        string
+	logDir                         string
+	enableCeph                     bool
+	enablePrometheus               bool
+	prometheusReplicas             uint
+	enablePrometheusAlertmanager   bool
+	prometheusAlertmanagerReplicas uint
+	enableGrafana                  bool
+	downloadOnly                   bool
 }
 
 func (ro runOptions) WantsNFS() bool {
@@ -84,9 +91,16 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().UintVar(&runOpts.ocpPort, "ocp-port", 0, "port on localhost for the ocp cluster")
 	run.Flags().UintVar(&runOpts.k8sPort, "k8s-port", 0, "port on localhost for the k8s cluster")
 	run.Flags().UintVar(&runOpts.sshPort, "ssh-port", 0, "port on localhost for ssh server")
+	run.Flags().UintVar(&runOpts.prometheusPort, "prometheus-port", 0, "port on localhost for prometheus server")
+	run.Flags().UintVar(&runOpts.grafanaPort, "grafana-port", 0, "port on localhost for grafana server")
 	run.Flags().StringVar(&runOpts.nfsData, "nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().StringVar(&runOpts.logDir, "log-to-dir", "", "enables aggregated cluster logging to the folder")
 	run.Flags().BoolVar(&runOpts.enableCeph, "enable-ceph", false, "enables dynamic storage provisioning using Ceph")
+	run.Flags().BoolVar(&runOpts.enablePrometheus, "enable-prometheus", false, "deploys Prometheus operator")
+	run.Flags().UintVar(&runOpts.prometheusReplicas, "prometheus-replicas", 1, "number of prometheus replicas to start")
+	run.Flags().BoolVar(&runOpts.enablePrometheusAlertmanager, "enable-prometheus-alertmanager", false, "deploys Prometheus alertmanager")
+	run.Flags().UintVar(&runOpts.prometheusAlertmanagerReplicas, "prometheus-alertmanager-replicas", 1, "number of prometheus alertmanager replicas to start")
+	run.Flags().BoolVar(&runOpts.enableGrafana, "enable-grafana", false, "deploys Grafana")
 	run.Flags().BoolVar(&runOpts.downloadOnly, "download-only", false, "download cluster images and exith")
 
 	return run
@@ -118,6 +132,14 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		ports.PortInfo{
 			ExposedPort: ports.PortRegistry,
 			Name:        "registry-port",
+		},
+		ports.PortInfo{
+			ExposedPort: ports.PortPrometheus,
+			Name:        "prometheus-port",
+		},
+		ports.PortInfo{
+			ExposedPort: ports.PortGrafana,
+			Name:        "grafana-port",
 		},
 	})
 	if err != nil {
@@ -159,6 +181,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	dnsmasqExpose := ports.ToStrings(
 		ports.PortSSH, ports.PortRegistry, ports.PortOCP,
 		ports.PortAPI, ports.PortVNC,
+		ports.PortPrometheus, ports.PortGrafana,
 	)
 	dnsmasqPorts := portMap.ToStrings()
 	dnsmasqLabels := []string{fmt.Sprintf("%s=000", podman.LabelGeneration)}
@@ -336,6 +359,29 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		}, os.Stdout)
 		if err != nil {
 			return fmt.Errorf("provisioning Ceph CSI failed: %s", err)
+		}
+	}
+
+	if runOpts.enablePrometheus {
+		nodeName := nodeNameFromIndex(1)
+
+		params := fmt.Sprintf("--prometheus-replicas %s ", strconv.Itoa(int(runOpts.prometheusReplicas)))
+
+		if runOpts.enablePrometheusAlertmanager {
+			params += fmt.Sprintf("--alertmanager true --alertmanager-replicas %s ", strconv.Itoa(int(runOpts.prometheusAlertmanagerReplicas)))
+		}
+
+		if runOpts.enableGrafana {
+			params += fmt.Sprintf("--grafana true ")
+		}
+
+		err = hnd.Exec(nodeContainer(cOpts.Prefix, nodeName), []string{
+			"/bin/bash",
+			"-c",
+			fmt.Sprintf("ssh.sh sudo /bin/bash -s -- %s < /scripts/prometheus.sh", params),
+		}, os.Stdout)
+		if err != nil {
+			return fmt.Errorf("deploying Prometheus operator failed")
 		}
 	}
 
