@@ -355,6 +355,17 @@ docker_pull_retry k8s.gcr.io/sig-storage/csi-provisioner:v2.0.0
 docker_pull_retry k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.0
 docker_pull_retry k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1
 
+# Pre pull images used in Prometheus operator
+docker_pull_retry quay.io/prometheus-operator/prometheus-operator:v0.47.0
+docker_pull_retry quay.io/prometheus/prometheus:v2.26.0
+docker_pull_retry quay.io/brancz/kube-rbac-proxy:v0.8.0
+docker_pull_retry quay.io/prometheus/alertmanager:v0.21.0
+docker_pull_retry quay.io/brancz/kube-rbac-proxy:v0.8.0
+docker_pull_retry quay.io/prometheus/alertmanager:v0.21.0
+docker_pull_retry quay.io/prometheus/node-exporter:v1.1.2
+docker_pull_retry k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.0.0
+docker_pull_retry grafana/grafana:7.5.4
+
 # Pre pull cluster network addons operator images and store manifests
 # so we can use them at cluster-up
 cp -rf /tmp/cnao/ /opt/
