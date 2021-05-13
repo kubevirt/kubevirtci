@@ -22,7 +22,7 @@ func NewPortCommand() *cobra.Command {
 If no port name is specified, all exposed ports are printed.
 If an extra port name is specified, only the exposed port is printed.
 
-Known port names are 'ssh', 'registry', 'ocp' and 'k8s'.
+Known port names are 'ssh', 'registry', 'ocp', 'k8s', 'prometheus' and 'grafana'.
 `,
 		RunE: ports,
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -32,7 +32,7 @@ Known port names are 'ssh', 'registry', 'ocp' and 'k8s'.
 
 			if len(args) == 1 {
 				switch args[0] {
-				case utils.PortNameSSH, utils.PortNameSSHWorker, utils.PortNameAPI, utils.PortNameOCP, utils.PortNameOCPConsole, utils.PortNameRegistry, utils.PortNameVNC, utils.PortNameHTTP, utils.PortNameHTTPS:
+				case utils.PortNameSSH, utils.PortNameSSHWorker, utils.PortNameAPI, utils.PortNameOCP, utils.PortNameOCPConsole, utils.PortNameRegistry, utils.PortNameVNC, utils.PortNameHTTP, utils.PortNameHTTPS, utils.PortNamePrometheus, utils.PortNameGrafana:
 					return nil
 				default:
 					return fmt.Errorf("unknown port name %s", args[0])
@@ -103,6 +103,10 @@ func ports(cmd *cobra.Command, args []string) error {
 			err = utils.PrintPublicPort(utils.PortHTTP, container.NetworkSettings.Ports)
 		case utils.PortNameHTTPS:
 			err = utils.PrintPublicPort(utils.PortHTTPS, container.NetworkSettings.Ports)
+		case utils.PortNamePrometheus:
+			err = utils.PrintPublicPort(utils.PortPrometheus, container.NetworkSettings.Ports)
+		case utils.PortNameGrafana:
+			err = utils.PrintPublicPort(utils.PortGrafana, container.NetworkSettings.Ports)
 		}
 
 		if err != nil {

@@ -79,6 +79,8 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("ocp-port", 0, "port on localhost for the ocp cluster")
 	run.Flags().Uint("k8s-port", 0, "port on localhost for the k8s cluster")
 	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
+	run.Flags().Uint("prometheus-port", 0, "port on localhost for prometheus server")
+	run.Flags().Uint("grafana-port", 0, "port on localhost for grafana server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
@@ -136,6 +138,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	utils.AppendIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port")
 	utils.AppendIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port")
 	utils.AppendIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port")
+	utils.AppendIfExplicit(portMap, utils.PortPrometheus, cmd.Flags(), "prometheus-port")
+	utils.AppendIfExplicit(portMap, utils.PortGrafana, cmd.Flags(), "grafana-port")
 
 	qemuArgs, err := cmd.Flags().GetString("qemu-args")
 	if err != nil {

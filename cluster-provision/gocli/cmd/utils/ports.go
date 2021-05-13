@@ -26,6 +26,10 @@ const (
 	PortHTTPS = 443
 	//PortOCPConsole contains OCP console port
 	PortOCPConsole = 443
+	//PortPrometheus contains Prometheus server port
+	PortPrometheus = 9090
+	//PortGrafana contains Grafana server port
+	PortGrafana = 3000
 
 	// PortNameSSH contains master node SSH port name
 	PortNameSSH = "ssh"
@@ -46,6 +50,10 @@ const (
 	PortNameHTTPS = "https"
 	// PortNameOCPConsole contains OCP console port
 	PortNameOCPConsole = "console"
+	// PortNamePrometheus contains Prometheus server port
+	PortNamePrometheus = "prometheus"
+	// PortNameGrafana contains Grafana server port
+	PortNameGrafana = "grafana"
 )
 
 // GetPublicPort returns public port by private port
