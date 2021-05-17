@@ -25,16 +25,4 @@ Therefore, prometheus-operator can make use of the `kubevirt-prometheus-metrics`
 
 The `kubevirt-prometheus-metrics` service can then be discovered by the ServiceMonitor using label selectors.
 
-KubeVirt’s virt-operator can check the existence of the MonitorNamespace and MonitorServiceAccount, and automatically creates a ServiceMonitor resource in the MonitorNamespace. Additionally, KubeVirt also appropriate role and rolebinding in KubeVirt’s namespace.
-
-To configure KubeVirt to automatically creates a ServiceMonitor, we need to configure KubeVirt as follows:
-
-```
-apiVersion: kubevirt.io/v1alpha3
-kind: KubeVirt
-metadata:
-  name: kubevirt
-spec:
-  monitorNamespace: monitoring
-  monitorAccount: prometheus-k8s
-  ```
+KubeVirt’s virt-operator, by default, checks the existence of the MonitorNamespace and MonitorServiceAccount, and automatically creates a ServiceMonitor resource in the MonitorNamespace. Additionally, KubeVirt also appropriate role and rolebinding in KubeVirt’s namespace.

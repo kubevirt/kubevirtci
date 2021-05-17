@@ -27,8 +27,6 @@ var _ = Describe("ports", func() {
 				ports.PortNameAPI:        6443,
 				ports.PortNameVNC:        5901,
 				ports.PortNameOCPConsole: 443,
-				ports.PortNamePrometheus: 9090,
-				ports.PortNameGrafana:    3000,
 			}
 			for portKey, portValue := range portMap {
 				res, err := ports.NameToNumber(portKey)
