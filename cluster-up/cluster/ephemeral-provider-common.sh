@@ -16,9 +16,11 @@ fi
 
 if docker ps >/dev/null; then
     _cri_bin=docker
+    _docker_socket="/var/run/docker.sock"
     echo "selecting docker as container runtime"
 elif podman ps >/dev/null; then
     _cri_bin=podman
+    _docker_socket="${HOME}/podman.sock"
     echo "selecting podman as container runtime"
 else
     echo "no working container runtime found. Neither docker nor podman seems to work."
@@ -26,7 +28,7 @@ else
 fi
 
 _cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-quay.io/kubevirtci/gocli:${KUBEVIRTCI_TAG}}"
-_cli="${_cri_bin} run --privileged --net=host --rm ${USE_TTY} -v /var/run/docker.sock:/var/run/docker.sock"
+_cli="${_cri_bin} run --privileged --net=host --rm ${USE_TTY} -v ${_docker_socket}:/var/run/docker.sock"
 # gocli will try to mount /lib/modules to make it accessible to dnsmasq in
 # in case it exists
 if [ -d /lib/modules ]; then
