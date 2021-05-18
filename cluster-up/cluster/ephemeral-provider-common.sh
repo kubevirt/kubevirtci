@@ -14,18 +14,25 @@ if [ -n "${KUBEVIRTCI_TAG}" ] && [ -n "${KUBEVIRTCI_GOCLI_CONTAINER}" ]; then
     echo "WARNING: KUBEVIRTCI_GOCLI_CONTAINER is set and will take precedence over the also set KUBEVIRTCI_TAG"
 fi
 
-if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
-    _cli="pack8s"
+if docker ps >/dev/null; then
+    _cri_bin=docker
+    echo "selecting docker as container runtime"
+elif podman ps >/dev/null; then
+    _cri_bin=podman
+    echo "selecting podman as container runtime"
 else
-    _cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-quay.io/kubevirtci/gocli:${KUBEVIRTCI_TAG}}"
-    _cli="docker run --privileged --net=host --rm ${USE_TTY} -v /var/run/docker.sock:/var/run/docker.sock"
-    # gocli will try to mount /lib/modules to make it accessible to dnsmasq in
-    # in case it exists
-    if [ -d /lib/modules ]; then
-        _cli="${_cli} -v /lib/modules/:/lib/modules/"
-    fi
-    _cli="${_cli} ${_cli_container}"
+    echo "no working container runtime found. Neither docker nor podman seems to work."
+    exit 1
 fi
+
+_cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-quay.io/kubevirtci/gocli:${KUBEVIRTCI_TAG}}"
+_cli="${_cri_bin} run --privileged --net=host --rm ${USE_TTY} -v /var/run/docker.sock:/var/run/docker.sock"
+# gocli will try to mount /lib/modules to make it accessible to dnsmasq in
+# in case it exists
+if [ -d /lib/modules ]; then
+    _cli="${_cli} -v /lib/modules/:/lib/modules/"
+fi
+_cli="${_cli} ${_cli_container}"
 
 function _main_ip() {
     echo 127.0.0.1
