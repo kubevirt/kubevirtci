@@ -13,6 +13,9 @@ kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/common.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/crds.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/operator.yaml
 
+# Deploy Rook toolbox
+kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/toolbox.yaml
+
 # Create cluster
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/cluster-test.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/pool-test.yaml
@@ -25,6 +28,8 @@ until kubectl --kubeconfig /etc/kubernetes/admin.conf get cephblockpools -n rook
     echo "Waiting for Ceph to be Ready, sleeping 5s and rechecking"
     sleep 5
 done
+
+kubectl --kubeconfig /etc/kubernetes/admin.conf wait --for=condition=available deployment/rook-ceph-tools -n rook-ceph
 
 # k8s resources
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/storageclass-test.yaml
