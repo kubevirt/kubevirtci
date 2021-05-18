@@ -26,3 +26,6 @@ Therefore, prometheus-operator can make use of the `kubevirt-prometheus-metrics`
 The `kubevirt-prometheus-metrics` service can then be discovered by the ServiceMonitor using label selectors.
 
 KubeVirt’s virt-operator, by default, checks the existence of the MonitorNamespace and MonitorServiceAccount, and automatically creates a ServiceMonitor resource in the MonitorNamespace. Additionally, KubeVirt also appropriate role and rolebinding in KubeVirt’s namespace.
+
+## Upgrading
+All the files are based on the `release-0.8` of the repository [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus), the only change applied was decreasing the Prometheus and Alertmanager replicas from 2 to 1.
