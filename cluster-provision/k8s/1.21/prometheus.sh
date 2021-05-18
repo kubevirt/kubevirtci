@@ -6,16 +6,12 @@ function usage()
     echo    "Script to run an experiment"
     echo    ""
     echo -e "\t-h --help"
-    echo -e "\t-n --prometheus-replicas define the number of prometheus replicas (default 1)"
     echo -e "\t-a --alertmanager deploy prometheus alertmanager (default false)"
-    echo -e "\t-m --alertmanager-replicas define the number of alertmanager replicas (default 1)"
     echo -e "\t-g --grafana deploy grafana with dashboards (default false)"
     echo    ""
 }
 
-PREPLICAS=1
 ALERTMANAGER="false"
-AREPLICAS=1
 GRAFANA="false"
 while [ "$1" != "" ]; do
     PARAM=$1; shift
@@ -25,14 +21,8 @@ while [ "$1" != "" ]; do
             usage
             exit 0
             ;;
-        -n | --prometheus-replicas)
-            PREPLICAS=$VALUE
-            ;;
         -a | --alertmanager)
             ALERTMANAGER=$VALUE
-            ;;
-        -m | --alertmanager-replicas)
-            AREPLICAS=$VALUE
             ;;
         -g | --grafana)
             GRAFANA=$VALUE
@@ -77,8 +67,6 @@ kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/promet
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/prometheus/prometheus-serviceAccount.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/prometheus/prometheus-podDisruptionBudget.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/prometheus/prometheus-service.yaml
-### Set the number of prometheus replicas
-sed -i "s/replicas: 1/replicas: ${PREPLICAS}/g" /tmp/prometheus/prometheus/prometheus-prometheus.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/prometheus/prometheus-prometheus.yaml
 
 # Deploy Monitors
@@ -115,8 +103,6 @@ if [[ ($ALERTMANAGER != "true") &&  ($ALERTMANAGER != "TRUE") ]]; then
     kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/alertmanager/alertmanager-serviceMonitor.yaml
     kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/alertmanager/alertmanager-podDisruptionBudget.yaml
     kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/alertmanager/alertmanager-service.yaml
-    ### Set the number of alertmanager replicas
-    sed -i "s/replicas: 1/replicas: ${AREPLICAS}/g" /tmp/prometheus/alertmanager/alertmanager-alertmanager.yaml
     kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/alertmanager/alertmanager-alertmanager.yaml
 
     # Deploy alertmanager-rules

@@ -86,9 +86,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().Bool("enable-istio", false, "deploys Istio service mesh")
 	run.Flags().Bool("enable-prometheus", false, "deploys Prometheus operator")
-	run.Flags().UintP("prometheus-replicas", "x", 1, "number of prometheus replicas to start")
 	run.Flags().Bool("enable-prometheus-alertmanager", false, "deploys Prometheus alertmanager")
-	run.Flags().UintP("prometheus-alertmanager-replicas", "y", 1, "number of prometheus alertmanager replicas to start")
 	run.Flags().Bool("enable-grafana", false, "deploys Grafana")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
 	run.Flags().String("container-registry", "quay.io", "the registry to pull cluster container from")
@@ -191,17 +189,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	prometheusReplicas, err := cmd.Flags().GetUint("prometheus-replicas")
-	if err != nil {
-		return err
-	}
-
 	prometheusAlertmanagerEnabled, err := cmd.Flags().GetBool("enable-prometheus-alertmanager")
-	if err != nil {
-		return err
-	}
-
-	prometheusAlertmanagerReplicas, err := cmd.Flags().GetUint("prometheus-alertmanager-replicas")
 	if err != nil {
 		return err
 	}
@@ -656,14 +644,13 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	if prometheusEnabled {
 		nodeName := nodeNameFromIndex(1)
 
-		params := fmt.Sprintf("--prometheus-replicas %s ", strconv.Itoa(int(prometheusReplicas)))
-
+		var params string
 		if prometheusAlertmanagerEnabled {
-			params += fmt.Sprintf("--alertmanager true --alertmanager-replicas %s ", strconv.Itoa(int(prometheusAlertmanagerReplicas)))
+			params += "--alertmanager true "
 		}
 
 		if grafanaEnabled {
-			params += fmt.Sprintf("--grafana true ")
+			params += "--grafana true "
 		}
 
 		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
