@@ -334,8 +334,6 @@ pull_container_retry quay.io/prometheus-operator/prometheus-operator:v0.47.0
 pull_container_retry quay.io/prometheus/prometheus:v2.26.0
 pull_container_retry quay.io/brancz/kube-rbac-proxy:v0.8.0
 pull_container_retry quay.io/prometheus/alertmanager:v0.21.0
-pull_container_retry quay.io/brancz/kube-rbac-proxy:v0.8.0
-pull_container_retry quay.io/prometheus/alertmanager:v0.21.0
 pull_container_retry quay.io/prometheus/node-exporter:v1.1.2
 pull_container_retry k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.0.0
 pull_container_retry grafana/grafana:7.5.4
