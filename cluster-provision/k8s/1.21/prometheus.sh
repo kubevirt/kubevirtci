@@ -54,7 +54,7 @@ kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/promet
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/prometheus-operator/prometheus-operator-deployment.yaml
 
 while [[ $(kubectl --kubeconfig /etc/kubernetes/admin.conf -n monitoring get pods -l app.kubernetes.io/name=prometheus-operator -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
-  echo "Waiting for prometheus operator to be Ready, sleeping 5s and rechecking" && sleep 5;
+  echo "Waiting for prometheus operator to be Ready, sleeping 20s and rechecking" && sleep 20;
 done
 
 # Deploy Prometheus
