@@ -43,6 +43,16 @@ export KUBEVIRT_NUM_NODES=2
 make cluster-up
 ```
 
+#### start cluster with prometheus, alertmanager and grafana
+Prometheus operator is only supported for providers >= 1.21. To enable prometheus, please also export the following variables before running `make cluster-up`:
+```bash
+export KUBEVIRT_PROVIDER=k8s-1.21
+export KUBEVIRT_DEPLOY_PROMETHEUS=true
+export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=false
+export KUBEVIRT_DEPLOY_GRAFANA=true
+```
+
+
 ## kubevirt: testing kubevirt locally with a freshly provisioned cluster
 
 After making changes to a kubevirtci provider, it's recommended to test it locally including kubevirt e2e tests before publishing it.
