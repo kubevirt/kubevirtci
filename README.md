@@ -8,7 +8,7 @@ See [K8S.md](K8S.md)
 
 ## Testing kubevirt with locally provisioned cluster
 
-See [KUBEVIRT_LOCAL_TESTING.md](KUBEVIRT_LOCAL_TESTING.md)
+See [KUBEVIRTCI_LOCAL_TESTING.md](KUBEVIRTCI_LOCAL_TESTING.md)
 
 ## Contributing
 

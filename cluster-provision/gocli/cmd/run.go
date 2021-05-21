@@ -79,10 +79,15 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("ocp-port", 0, "port on localhost for the ocp cluster")
 	run.Flags().Uint("k8s-port", 0, "port on localhost for the k8s cluster")
 	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
+	run.Flags().Uint("prometheus-port", 0, "port on localhost for prometheus server")
+	run.Flags().Uint("grafana-port", 0, "port on localhost for grafana server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().Bool("enable-istio", false, "deploys Istio service mesh")
+	run.Flags().Bool("enable-prometheus", false, "deploys Prometheus operator")
+	run.Flags().Bool("enable-prometheus-alertmanager", false, "deploys Prometheus alertmanager")
+	run.Flags().Bool("enable-grafana", false, "deploys Grafana")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
 	run.Flags().String("container-registry", "quay.io", "the registry to pull cluster container from")
 	run.Flags().String("container-org", "kubevirtci", "the organization at the registry to pull the container from")
@@ -131,6 +136,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	utils.AppendIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port")
 	utils.AppendIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port")
 	utils.AppendIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port")
+	utils.AppendIfExplicit(portMap, utils.PortPrometheus, cmd.Flags(), "prometheus-port")
+	utils.AppendIfExplicit(portMap, utils.PortGrafana, cmd.Flags(), "grafana-port")
 
 	qemuArgs, err := cmd.Flags().GetString("qemu-args")
 	if err != nil {
@@ -173,6 +180,21 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	istioEnabled, err := cmd.Flags().GetBool("enable-istio")
+	if err != nil {
+		return err
+	}
+
+	prometheusEnabled, err := cmd.Flags().GetBool("enable-prometheus")
+	if err != nil {
+		return err
+	}
+
+	prometheusAlertmanagerEnabled, err := cmd.Flags().GetBool("enable-prometheus-alertmanager")
+	if err != nil {
+		return err
+	}
+
+	grafanaEnabled, err := cmd.Flags().GetBool("enable-grafana")
 	if err != nil {
 		return err
 	}
@@ -616,6 +638,31 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 		if !success {
 			return fmt.Errorf("deploying Istio service mesh failed")
+		}
+	}
+
+	if prometheusEnabled {
+		nodeName := nodeNameFromIndex(1)
+
+		var params string
+		if prometheusAlertmanagerEnabled {
+			params += "--alertmanager true "
+		}
+
+		if grafanaEnabled {
+			params += "--grafana true "
+		}
+
+		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+			"/bin/bash",
+			"-c",
+			fmt.Sprintf("ssh.sh sudo /bin/bash -s -- %s < /scripts/prometheus.sh", params),
+		}, os.Stdout)
+		if err != nil {
+			return err
+		}
+		if !success {
+			return fmt.Errorf("deploying Prometheus operator failed")
 		}
 	}
 
