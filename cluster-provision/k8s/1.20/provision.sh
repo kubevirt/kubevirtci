@@ -17,7 +17,7 @@ cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 set -ex
 export KUBELET_CGROUP_ARGS="--cgroup-driver=${CGROUP_DRIVER} --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
 export KUBELET_FEATURE_GATES="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
-export ISTIO_VERSION=1.9.0
+export ISTIO_VERSION=1.10.0
 EOF
 source $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 
