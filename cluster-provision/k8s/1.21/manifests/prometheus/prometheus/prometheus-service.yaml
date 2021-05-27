@@ -20,4 +20,5 @@ spec:
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/part-of: kube-prometheus
     prometheus: k8s
+    ci.kubevirt.io/prometheus: ""
   sessionAffinity: ClientIP
