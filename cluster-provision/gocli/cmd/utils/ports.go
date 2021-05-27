@@ -27,9 +27,9 @@ const (
 	//PortOCPConsole contains OCP console port
 	PortOCPConsole = 443
 	//PortPrometheus contains Prometheus server port
-	PortPrometheus = 9090
+	PortPrometheus = 30007
 	//PortGrafana contains Grafana server port
-	PortGrafana = 3000
+	PortGrafana = 30008
 
 	// PortNameSSH contains master node SSH port name
 	PortNameSSH = "ssh"
