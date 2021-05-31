@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -exuo pipefail
 
+
+if [ "$#" -ne 1 ]; then
+    echo "Usage: create-containerdisk.sh image-directory"
+    echo "Run `create-continerdisk.sh example` to build the `example` image in the `example` folder"
+fi
+
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
 
 export CUSTOMIZE_IMAGE_SCRIPT=${CUSTOMIZE_IMAGE_SCRIPT:-"${SCRIPT_PATH}/customize-image.sh"}
@@ -31,11 +37,11 @@ function cleanup() {
   rm -f "copy-${VM_IMAGE}"
 }
 
-export IMAGE_NAME=${IMAGE_NAME:-example-fedora}
-export TAG=${TAG:-32}
-export OS_VARIANT=${OS_VARIANT:-fedora31}
-export CLOUD_CONFIG_PATH=${CLOUD_CONFIG_PATH:-"${SCRIPT_PATH}/example/cloud-config"}
-export VM_IMAGE_URL=${VM_IMAGE_URL:-$(cat "${SCRIPT_PATH}/example/image-url")}
+export IMAGE_NAME=$1
+export TAG=devel
+export OS_VARIANT="$(cat ${SCRIPT_PATH}/${IMAGE_NAME}/os-variant)"
+export CLOUD_CONFIG_PATH="${SCRIPT_PATH}/${IMAGE_NAME}/cloud-config"
+export VM_IMAGE_URL="$(cat ${SCRIPT_PATH}/${IMAGE_NAME}/image-url)"
 
 readonly VM_IMAGE="source-image.qcow2"
 readonly build_directory="${IMAGE_NAME}_build"
@@ -45,6 +51,7 @@ trap 'cleanup' EXIT SIGINT
 
 pushd "${SCRIPT_PATH}"
   cleanup
+  echo "Downloading the base image ..."
 
    if ! [ -e "${VM_IMAGE}" ]; then
     # Download base VM image
@@ -53,8 +60,12 @@ pushd "${SCRIPT_PATH}"
 
   mkdir "${build_directory}"
 
+  echo "Running the image customization ..."
   customize_image "${VM_IMAGE}" "${OS_VARIANT}" "${build_directory}/${new_vm_image_name}" "${CLOUD_CONFIG_PATH}"
 
-  ${SCRIPT_PATH}/build-containerdisk.sh "${IMAGE_NAME}" "${TAG}" "${build_directory}/${new_vm_image_name}"
-
+  echo "Creating the containerdisk ..."
+  docker build . -t ${IMAGE_NAME}:${TAG} -f - <<END
+FROM scratch
+ADD --chown=107:107 ${build_directory}/${new_vm_image_name} /disk/
+END
 popd
