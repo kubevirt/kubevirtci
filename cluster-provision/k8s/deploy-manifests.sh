@@ -22,9 +22,4 @@ find "$DIR/${provision_dir}/manifests/" -type f -name '*.yaml' \
     -print -exec ${ksh} create -f {} \;
 
 # wait for pods to get ready (we do this repeatedly to give the pods created by the operators time to come up)
-repetition=0
-until [ ${repetition} -ge 3 ]; do
-    sleep 10
-    ${ksh} wait --for=condition=Ready pod --timeout=60s --all --all-namespaces
-    repetition=$((${repetition} + 1))
-done
+timeout 240s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=60s --all --all-namespaces; do sleep 10; done"

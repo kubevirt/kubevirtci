@@ -37,6 +37,9 @@ function main {
     provision_dir="$1"
     image_regex='([a-z0-9\_\.]+[/-]?)+:[a-z0-9\_\.\-]+'
     image_regex_w_double_quotes='"?'"${image_regex}"'"?'
+
+    # last `grep -v` is necessary to avoid trying to pre pull istio "images", as the reges also matches on values
+    # from the generated istio deployment manifest
     (
         # Avoid bailing out because of nothing found in scripts part
         set +e
@@ -45,7 +48,7 @@ function main {
         find "$provision_dir" -type f -name '*.yaml' -print0 | \
             xargs -0 grep -iE '(image|value): '"${image_regex_w_double_quotes}"
         set -e
-    ) | grep -ioE "${image_regex_w_double_quotes}"'$' >> "${temp_file}"
+    ) | grep -ioE "${image_regex_w_double_quotes}"'$' | grep -v '.svc:' >> "${temp_file}"
 
     sed -E 's/"//g' "${temp_file}" | sort | uniq
 }
