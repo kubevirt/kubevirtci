@@ -1,1 +1,7 @@
 fluent/fluentd:v1.2-debian
+docker.io/grafana/grafana:7.5.4
+docker.io/istio/install-cni:1.10.0
+docker.io/istio/operator:1.10.0
+docker.io/istio/pilot:1.10.0
+docker.io/istio/proxyv2:1.10.0
+quay.io/prometheus-operator/prometheus-config-reloader:v0.47.0
