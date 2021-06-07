@@ -14,17 +14,25 @@ if [ -n "${KUBEVIRTCI_TAG}" ] && [ -n "${KUBEVIRTCI_GOCLI_CONTAINER}" ]; then
     echo "WARNING: KUBEVIRTCI_GOCLI_CONTAINER is set and will take precedence over the also set KUBEVIRTCI_TAG"
 fi
 
-if docker ps >/dev/null; then
-    _cri_bin=docker
-    _docker_socket="/var/run/docker.sock"
-    echo "selecting docker as container runtime"
-elif podman ps >/dev/null; then
-    _cri_bin=podman
-    _docker_socket="${HOME}/podman.sock"
-    echo "selecting podman as container runtime"
+if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
+	_cri_bin=podman
+	_docker_socket="${HOME}/podman.sock"
+elif [ "${KUBEVIRTCI_RUNTIME}" = "docker" ]; then
+	_cri_bin=docker
+	_docker_socket="/var/run/docker.sock"
 else
-    echo "no working container runtime found. Neither docker nor podman seems to work."
-    exit 1
+	if curl --unix-socket /${HOME}/podman.sock http://d/v3.0.0/libpod/info > /dev/null 2>&1 ; then
+		_cri_bin=podman
+		_docker_socket="${HOME}/podman.sock"
+		echo "selecting podman as container runtime"
+	elif docker ps >/dev/null; then
+		_cri_bin=docker
+		_docker_socket="/var/run/docker.sock"
+		echo "selecting docker as container runtime"
+	else
+		echo "no working container runtime found. Neither docker nor podman seems to work."
+		exit 1
+	fi
 fi
 
 _cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-quay.io/kubevirtci/gocli:${KUBEVIRTCI_TAG}}"
