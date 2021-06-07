@@ -40,8 +40,10 @@ function pull_container_retry() {
 
 kubeadmn_patches_path="/provision/kubeadm-patches"
 
-# Update to the latest kernel
-dnf update -y kernel
+# Install 5.x kernel from elrepo.org
+sudo dnf -y install https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm
+sudo rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+sudo dnf -y --enablerepo=elrepo-kernel install kernel-ml
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
