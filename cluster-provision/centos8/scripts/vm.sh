@@ -6,6 +6,7 @@ PROVISION=false
 MEMORY=3096M
 CPU=2
 QEMU_ARGS=""
+KERNEL_ARGS=""
 NEXT_DISK=""
 BLOCK_DEV=""
 BLOCK_DEV_SIZE=""
@@ -14,7 +15,8 @@ while true; do
   case "$1" in
     -m | --memory ) MEMORY="$2"; shift 2 ;;
     -c | --cpu ) CPU="$2"; shift 2 ;;
-    -q | --qemu-args ) QEMU_ARGS="$2"; shift 2 ;;
+    -q | --qemu-args ) QEMU_ARGS="${2}"; shift 2 ;;
+    -k | --additional-kernel-args ) KERNEL_ARGS="${2}"; shift 2 ;;
     -n | --next-disk ) NEXT_DISK="$2"; shift 2 ;;
     -b | --block-device ) BLOCK_DEV="$2"; shift 2 ;;
     -s | --block-device-size ) BLOCK_DEV_SIZE="$2"; shift 2 ;;
@@ -111,6 +113,10 @@ exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,c
   -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
   -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
   -device virtio-rng-pci \
-  -vnc :${n} -cpu host,migratable=no,+invtsc -m ${MEMORY} -smp ${CPU} ${QEMU_ARGS} \
+  -initrd /initrd.img \
+  -kernel /vmlinuz \
+  -append "$(cat /kernel.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}" \
+  -vnc :${n} -cpu host,migratable=no,+invtsc -m ${MEMORY} -smp ${CPU} \
   -serial pty -M q35,accel=kvm,kernel_irqchip=split \
-  -device intel-iommu,intremap=on,caching-mode=on -soundhw hda
+  -device intel-iommu,intremap=on,caching-mode=on -soundhw hda \
+  ${QEMU_ARGS}
