@@ -40,8 +40,8 @@ function pull_container_retry() {
 
 kubeadmn_patches_path="/provision/kubeadm-patches"
 
-# Update to the latest kernel
-dnf update -y kernel
+# Install modules of the initrd kernel
+dnf install -y kernel-modules-$(uname -r)
 
 # Resize root partition
 dnf install -y cloud-utils-growpart

@@ -21,8 +21,8 @@ function docker_pull_retry() {
 
 kubeadmn_patches_path="/provision/kubeadm-patches"
 
-# Need to have the latest kernel
-dnf update -y kernel
+# Install modules of the initrd kernel
+dnf install -y kernel-modules-$(uname -r)
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
