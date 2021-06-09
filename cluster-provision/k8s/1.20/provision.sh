@@ -62,12 +62,6 @@ cp /tmp/local-volume.yaml /provision/local-volume.yaml
 swapoff -a
 sed -i '/ swap / s/^/#/' /etc/fstab
 
-# Disable spectre and meltdown patches
-CMDLINE_LINUX_APPEND="${CMDLINE_LINUX_APPEND} spectre_v2=off nopti hugepagesz=2M hugepages=64 intel_iommu=on modprobe.blacklist=nouveau"
-
-echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} '"${CMDLINE_LINUX_APPEND}"'"' >> /etc/default/grub
-grub2-mkconfig -o /boot/grub2/grub.cfg
-
 systemctl stop firewalld || :
 systemctl disable firewalld || :
 # Make sure the firewall is never enabled again
