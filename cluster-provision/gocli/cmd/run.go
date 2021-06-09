@@ -29,6 +29,8 @@ import (
 	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/images"
+
+	"github.com/alessio/shellescape"
 )
 
 const soundcardPCIID = "8086:2668"
@@ -68,6 +70,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
 	run.Flags().UintP("secondary-nics", "", 0, "number of secondary nics to add")
 	run.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
+	run.Flags().String("kernel-args", "", "additional kernel args to pass through to the nodes")
 	run.Flags().BoolP("background", "b", false, "go to background after nodes are up")
 	run.Flags().BoolP("reverse", "r", false, "revert node startup order")
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
@@ -140,6 +143,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	utils.AppendIfExplicit(portMap, utils.PortGrafana, cmd.Flags(), "grafana-port")
 
 	qemuArgs, err := cmd.Flags().GetString("qemu-args")
+	if err != nil {
+		return err
+	}
+	kernelArgs, err := cmd.Flags().GetString("kernel-args")
 	if err != nil {
 		return err
 	}
@@ -475,8 +482,12 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodeQemuArgs = fmt.Sprintf("%s -device vfio-pci,host=%s", nodeQemuArgs, gpuAddress)
 		}
 
+		additionalArgs := []string{}
 		if len(nodeQemuArgs) > 0 {
-			nodeQemuArgs = "--qemu-args \"" + nodeQemuArgs + "\""
+			additionalArgs = append(additionalArgs, "--qemu-args", shellescape.Quote(nodeQemuArgs))
+		}
+		if len(kernelArgs) > 0 {
+			additionalArgs = append(additionalArgs, "--additional-kernel-args", shellescape.Quote(kernelArgs))
 		}
 
 		blockDev := ""
@@ -489,7 +500,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
 			},
-			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s %s", memory, strconv.Itoa(int(cpu)), blockDev, nodeQemuArgs)},
+			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s %s", memory, strconv.Itoa(int(cpu)), blockDev, strings.Join(additionalArgs, " "))},
 		}
 
 		if cephEnabled {
