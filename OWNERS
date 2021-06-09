@@ -12,6 +12,7 @@ filters:
       - stu-gott
       - jean-edouard
       - fgimenez
+      - enp0s3
     approvers:
       - davidvossel
       - rmohr
@@ -22,6 +23,7 @@ filters:
       - stu-gott
       - jean-edouard
       - fgimenez
+      - enp0s3
     emeritus_approvers:
       - cynepco3hahue
       - danielBelenky
