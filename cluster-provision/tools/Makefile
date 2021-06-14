@@ -24,6 +24,16 @@ vendor:
 	$(GO) mod tidy
 	$(GO) mod vendor
 
+.PHONY: test
+test:
+	$(GO) test ./...
+
+.PHONY: coverage
+coverage:
+	$(GO) test -coverprofile=coverage.out ./...
+	$(GO) tool cover -func=coverage.out
+	rm coverage.out
+
 .PHONY: push
 push: container
 	docker push kubevirtci/check-image-pull-policies
