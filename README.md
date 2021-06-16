@@ -10,6 +10,10 @@ See [K8S.md](K8S.md)
 
 See [KUBEVIRTCI_LOCAL_TESTING.md](KUBEVIRTCI_LOCAL_TESTING.md)
 
+## Using podman instead of docker
+
+See [PODMAN.md](PODMAN.md)
+
 ## Contributing
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute. 
