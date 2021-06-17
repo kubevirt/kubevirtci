@@ -4,7 +4,6 @@ set -ex
 
 # Configure cgroup version
 if [ "${UNIFIED_CGROUP_HIERARCHY}" == "1" ]; then
-    CMDLINE_LINUX_APPEND="${CMDLINE_LINUX_APPEND} systemd.unified_cgroup_hierarchy=1"
     CGROUP_DRIVER="cgroupfs"
 else
     CGROUP_DRIVER="systemd"
