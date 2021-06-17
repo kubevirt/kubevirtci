@@ -2,6 +2,15 @@
 
 set -ex
 
+if [ ! -f "/tmp/extra-pre-pull-images" ]; then
+    echo "ERROR: extra-pre-pull-images list missing"
+    exit 1
+fi
+if [ ! -f "/tmp/fetch-images.sh" ]; then
+    echo "ERROR: fetch-images.sh missing"
+    exit 1
+fi
+
 # Configure cgroup version
 if [ "${UNIFIED_CGROUP_HIERARCHY}" == "1" ]; then
     CMDLINE_LINUX_APPEND="${CMDLINE_LINUX_APPEND} systemd.unified_cgroup_hierarchy=1"
@@ -26,14 +35,14 @@ function pull_container_retry() {
     maxRetries=5
     retryAfterSeconds=3
     until [ ${retry} -ge ${maxRetries} ]; do
-        podman pull $@ && break
+        podman pull "$@" && break
         retry=$((${retry} + 1))
-        echo "Retrying ${FUNCNAME} [${retry}/${maxRetries}] in ${retryAfterSeconds}(s)"
+        echo "Retrying ${FUNCNAME[0]} [${retry}/${maxRetries}] in ${retryAfterSeconds}(s)"
         sleep ${retryAfterSeconds}
     done
 
     if [ ${retry} -ge ${maxRetries} ]; then
-        echo "${FUNCNAME} Failed after ${maxRetries} attempts!"
+        echo "${FUNCNAME[0]} Failed after ${maxRetries} attempts!"
         exit 1
     fi
 }
@@ -91,7 +100,7 @@ export PATH=/opt/istio-$ISTIO_VERSION/bin:$PATH
   curl -L https://istio.io/downloadIstio | sh -
 )
 # generate Istio manifests for pre-pulling images
-istioctl manifest generate --set profile=demo --set components.cni.enabled=true > /tmp/istio-deployment.yaml
+istioctl manifest generate --set profile=demo --set components.cni.enabled=true | tee /tmp/istio-deployment.yaml
 
 export CRIO_VERSION=1.20
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable.repo
@@ -314,40 +323,19 @@ chmod -R 777 /var/local/kubevirt-storage/local-volume
 # Setup selinux permissions to local volume directories.
 chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 
-# Pre pull fluentd image used in logging
-pull_container_retry fluent/fluentd:v1.2-debian
-pull_container_retry fluent/fluentd-kubernetes-daemonset:v1.2-debian-syslog
+# Pre pull all images from the manifests
+for image in $(/tmp/fetch-images.sh /tmp); do
+    pull_container_retry "${image}"
+done
 
-# Pre pull images used in Rook Ceph
-pull_container_retry rook/ceph:v1.5.8
-pull_container_retry ceph/ceph:v15
-pull_container_retry quay.io/cephcsi/cephcsi:v3.2.0
-pull_container_retry k8s.gcr.io/sig-storage/snapshot-controller:v4.0.0
-pull_container_retry k8s.gcr.io/sig-storage/csi-resizer:v1.0.0
-pull_container_retry k8s.gcr.io/sig-storage/csi-attacher:v3.0.0
-pull_container_retry k8s.gcr.io/sig-storage/csi-provisioner:v2.0.0
-pull_container_retry k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.0
-pull_container_retry k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1
+# Pre pull additional images from list
+for image in $(cat "/tmp/extra-pre-pull-images"); do
+    pull_container_retry "${image}"
+done
 
-# Pre pull images used in Prometheus operator
-pull_container_retry quay.io/prometheus-operator/prometheus-operator:v0.47.0
-pull_container_retry quay.io/prometheus/prometheus:v2.26.0
-pull_container_retry quay.io/brancz/kube-rbac-proxy:v0.8.0
-pull_container_retry quay.io/prometheus/alertmanager:v0.21.0
-pull_container_retry quay.io/prometheus/node-exporter:v1.1.2
-pull_container_retry k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.0.0
-pull_container_retry grafana/grafana:7.5.4
-
-# Pre pull cluster network addons operator images and store manifests
+# copy network addons operator manifests
 # so we can use them at cluster-up
 cp -rf /tmp/cnao/ /opt/
-for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml | grep value | awk '{print $2}'); do pull_container_retry $i; done
-
-# Pre pull local-volume-provisioner
-for i in $(grep -A 2 "IMAGE" /provision/local-volume.yaml | grep value | awk -F\" '{print $2}'); do pull_container_retry $i; done
-
-# Pre pull istio images
-for i in $(grep "image:" /tmp/istio-deployment.yaml | grep -v "{{" | awk '{print $2}' | tr -d '"' | sort -u) ; do pull_container_retry $i ; done
 
 # Create a properly labelled tmp directory for testing
 mkdir -p /var/provision/kubevirt.io/tests

@@ -22,5 +22,7 @@ fi
 
 (cd ../${base} && ./build.sh)
 make -C ../gocli cli
+cp "${DIR}/fetch-images.sh" "${provision_dir}/"
+trap 'rm -f ${provision_dir}/fetch-images.sh' EXIT SIGINT SIGTERM
 ../gocli/build/cli provision ${gocli_args} ${provision_dir}
 CONTAINER_SUFFIX=${CONTAINER_SUFFIX} ./check-cluster-up.sh ${provision_dir}
