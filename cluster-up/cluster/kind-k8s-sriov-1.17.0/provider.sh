@@ -18,9 +18,9 @@ fi
 SRIOV_TESTS_NS="${SRIOV_TESTS_NS:-kubevirt-test-default1}"
 
 function set_kind_params() {
-    export KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-quay.io/kubevirtci/kindest_node:v1.17.0}"
-    export KIND_VERSION="${KIND_VERSION:-0.7.0}"
-    export KUBECTL_PATH="${KUBECTL_PATH:-/kind/bin/kubectl}"
+    export KIND_VERSION="${KIND_VERSION:-0.11.1}"
+    export KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.19.11@sha256:07db187ae84b4b7de440a73886f008cf903fcf5764ba8106a9fd5243d6f32729}"
+    export KUBECTL_PATH="${KUBECTL_PATH:-/bin/kubectl}"
 }
 
 function up() {
