@@ -2,10 +2,10 @@
 
 set -euo pipefail
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ksh="$(cd "$DIR/../.." && pwd)/cluster-up/kubectl.sh"
 
-function usage {
+function usage() {
     cat <<EOF
 Usage: $0
 
@@ -18,17 +18,17 @@ Usage: $0
 EOF
 }
 
-function main {
+function main() {
 
     manifest_dir=$(mktemp -d)
     trap 'rm -rf $manifest_dir' SIGINT SIGTERM EXIT
-    for namespace in $(${ksh} get namespaces --no-headers --output=custom-columns=:.metadata.name); do
+    for namespace in $(KUBEVIRTCI_VERBOSE=false ${ksh} get namespaces --no-headers --output=custom-columns=:.metadata.name); do
         if [ "$namespace" == 'kube-system' ]; then
             continue
         fi
         mkdir -p "$manifest_dir/$namespace"
-        for pod in $(${ksh} get pods --namespace "$namespace" --no-headers --output=custom-columns=:.metadata.name); do
-            (${ksh} get pod --output=yaml --namespace "$namespace" "$pod") > "$manifest_dir/$namespace/$pod.yaml"
+        for pod in $(KUBEVIRTCI_VERBOSE=false ${ksh} get pods --namespace "$namespace" --no-headers --output=custom-columns=:.metadata.name); do
+            (KUBEVIRTCI_VERBOSE=false ${ksh} get pod --output=yaml --namespace "$namespace" "$pod") >"$manifest_dir/$namespace/$pod.yaml"
         done
     done
 
@@ -36,9 +36,9 @@ function main {
     # TODO: for now we disable (via --dry-run) the non zero exit code in case of failure here to give the teams some time to fix the policies
     docker run --rm -v "$manifest_dir:/manifests:Z" \
         kubevirtci/check-image-pull-policies@sha256:118c4828afa52e58fc07663f400a357764cc1e7432ab56c439bb5c0b4b11b4dc \
-            --manifest-source=/manifests \
-            --dry-run=true \
-            --verbose=false
+        --manifest-source=/manifests \
+        --dry-run=true \
+        --verbose=false
 }
 
 main "$@"

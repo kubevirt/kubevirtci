@@ -3,9 +3,10 @@
 
 set -ex
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-provision_dir="$(basename $(pwd))"
-export base="$(cat base | tr -d '\n')"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+provision_dir="$(basename "$(pwd)")"
+base="$(cat base | tr -d '\n')"
+export base
 
 cd $DIR
 
@@ -22,7 +23,5 @@ fi
 
 (cd ../${base} && ./build.sh)
 make -C ../gocli cli
-cp "${DIR}/fetch-images.sh" "${provision_dir}/"
-trap 'rm -f ${provision_dir}/fetch-images.sh' EXIT SIGINT SIGTERM
 ../gocli/build/cli provision ${gocli_args} ${provision_dir}
 CONTAINER_SUFFIX=${CONTAINER_SUFFIX} ./check-cluster-up.sh ${provision_dir}
