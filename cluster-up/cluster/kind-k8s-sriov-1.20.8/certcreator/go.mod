@@ -1,4 +1,4 @@
-module kubevirt.io/kubevirtci/cluster-up/cluster/kind-k8s-sriov-1.17.0/certcreator
+module kubevirt.io/kubevirtci/cluster-up/cluster/kind-k8s-sriov-1.20.8/certcreator
 
 go 1.13
 
@@ -11,7 +11,7 @@ require (
 	k8s.io/utils v0.0.0-20200124190032-861946025e34 // indirect
 )
 
-// Pinned to kubernetes-1.17.0
+// Pinned to kubernetes-1.20.8
 replace (
 	k8s.io/api => k8s.io/api v0.17.0
 	k8s.io/api/admissionregistration => k8s.io/api/admissionregistration v0.17.0
@@ -32,7 +32,7 @@ replace (
 	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.17.0
 	k8s.io/kubectl => k8s.io/kubectl v0.17.0
 	k8s.io/kubelet => k8s.io/kubelet v0.17.0
-	k8s.io/kubernetes => k8s.io/kubernetes v1.17.0
+	k8s.io/kubernetes => k8s.io/kubernetes v1.20.8
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.17.0
 	k8s.io/metrics => k8s.io/metrics v0.17.0
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.17.0

@@ -1,6 +1,6 @@
-# K8S 1.17.0 with sriov in a Kind cluster
+# K8S 1.20.8 with sriov in a Kind cluster
 
-Provides a pre-deployed k8s cluster with version 1.17.0 that runs using [kind](https://github.com/kubernetes-sigs/kind) The cluster is completely ephemeral and is recreated on every cluster restart. 
+Provides a pre-deployed k8s cluster with version 1.20.8 that runs using [kind](https://github.com/kubernetes-sigs/kind) The cluster is completely ephemeral and is recreated on every cluster restart. 
 The KubeVirt containers are built on the local machine and are then pushed to a registry which is exposed at
 `localhost:5000`.
 
@@ -9,7 +9,7 @@ This version also expects to have sriov-enabled nics on the current host, and wi
 ## Bringing the cluster up
 
 ```bash
-export KUBEVIRT_PROVIDER=kind-k8s-sriov-1.17.0
+export KUBEVIRT_PROVIDER=kind-k8s-sriov-1.20.8
 make cluster-up
 ```
 
@@ -18,14 +18,14 @@ The cluster can be accessed as usual:
 ```bash
 $ cluster-up/kubectl.sh get nodes
 NAME                  STATUS   ROLES    AGE     VERSION
-sriov-control-plane   Ready    master   6m14s   v1.17.0
-sriov-worker          Ready    worker   5m36s   v1.17.0
+sriov-control-plane   Ready    master   6m14s   v1.20.8
+sriov-worker          Ready    worker   5m36s   v1.20.8
 ```
 
 ## Bringing the cluster down
 
 ```bash
-export KUBEVIRT_PROVIDER=kind-k8s-sriov-1.17.0
+export KUBEVIRT_PROVIDER=kind-k8s-sriov-1.20.8
 make cluster-down
 ```
 
