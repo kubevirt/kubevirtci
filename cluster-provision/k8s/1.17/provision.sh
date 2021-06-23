@@ -21,8 +21,8 @@ function docker_pull_retry() {
 
 kubeadmn_patches_path="/var/provision/kubeadm-patches"
 
-# Need to have the latest kernel
-dnf update -y kernel
+# Install modules of the initrd kernel
+dnf install -y kernel-modules-$(uname -r)
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
@@ -42,10 +42,6 @@ cp /tmp/local-volume.yaml /var/provision/local-volume.yaml
 # Disable swap
 swapoff -a
 sed -i '/ swap / s/^/#/' /etc/fstab
-
-# Disable spectre and meltdown patches
-echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} spectre_v2=off nopti hugepagesz=2M hugepages=64 intel_iommu=on modprobe.blacklist=nouveau"' >> /etc/default/grub
-grub2-mkconfig -o /boot/grub2/grub.cfg
 
 systemctl stop firewalld || :
 systemctl disable firewalld || :

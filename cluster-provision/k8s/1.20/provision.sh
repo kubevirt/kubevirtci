@@ -4,7 +4,6 @@ set -ex
 
 # Configure cgroup version
 if [ "${UNIFIED_CGROUP_HIERARCHY}" == "1" ]; then
-    CMDLINE_LINUX_APPEND="${CMDLINE_LINUX_APPEND} systemd.unified_cgroup_hierarchy=1"
     CGROUP_DRIVER="cgroupfs"
 else
     CGROUP_DRIVER="systemd"
@@ -40,8 +39,8 @@ function pull_container_retry() {
 
 kubeadmn_patches_path="/provision/kubeadm-patches"
 
-# Update to the latest kernel
-dnf update -y kernel
+# Install modules of the initrd kernel
+dnf install -y kernel-modules-$(uname -r)
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
@@ -61,12 +60,6 @@ cp /tmp/local-volume.yaml /provision/local-volume.yaml
 # Disable swap
 swapoff -a
 sed -i '/ swap / s/^/#/' /etc/fstab
-
-# Disable spectre and meltdown patches
-CMDLINE_LINUX_APPEND="${CMDLINE_LINUX_APPEND} spectre_v2=off nopti hugepagesz=2M hugepages=64 intel_iommu=on modprobe.blacklist=nouveau"
-
-echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} '"${CMDLINE_LINUX_APPEND}"'"' >> /etc/default/grub
-grub2-mkconfig -o /boot/grub2/grub.cfg
 
 systemctl stop firewalld || :
 systemctl disable firewalld || :

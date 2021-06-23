@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/alessio/shellescape"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -42,6 +43,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	provision.Flags().Bool("cgroupv2", false, "set UNIFIED_CGROUP_HIERARCHY environment variable for the provision script")
 	provision.Flags().String("container-suffix", "", "use additional suffix for the provisioned container image")
+	provision.Flags().StringArray("additional-persistent-kernel-arguments", []string{}, "additional persistent kernel arguments applied after provision")
 
 	return provision
 }
@@ -181,27 +183,8 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	// Copy scripts
-	srcInfo, err := archive.CopyInfoSourcePath(scripts, false)
-	if err != nil {
-		return err
-	}
-
-	srcArchive, err := archive.TarResource(srcInfo)
-	if err != nil {
-		return err
-	}
-	defer srcArchive.Close()
-
-	dstInfo := archive.CopyInfo{Path: "/scripts"}
-
-	dstDir, preparedArchive, err := archive.PrepareArchiveCopy(srcArchive, srcInfo, dstInfo)
-	if err != nil {
-		return err
-	}
-	defer preparedArchive.Close()
-
-	err = cli.CopyToContainer(ctx, node.ID, dstDir, preparedArchive, types.CopyToContainerOptions{AllowOverwriteDirWithFile: false})
+	// copy provider scripts
+	err = copyDirectory(ctx, cli, node.ID, scripts, "/scripts")
 	if err != nil {
 		return err
 	}
@@ -276,6 +259,27 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		}
 	}
 
+	logrus.Info("preparing additional persistent kernel arguments after initial provision")
+	additionalKernelArguments, err := cmd.Flags().GetStringArray("additional-persistent-kernel-arguments")
+	if err != nil {
+		return err
+	}
+	if cgroupv2 {
+		additionalKernelArguments = append(additionalKernelArguments, "systemd.unified_cgroup_hierarchy=1")
+	}
+
+	dir, err := ioutil.TempDir("", "gocli")
+	if err != nil {
+		return fmt.Errorf("failed creating a temporary directory: %v", err)
+	}
+	defer os.RemoveAll(dir)
+	if err := ioutil.WriteFile(filepath.Join(dir, "additional.kernel.args"), []byte(shellescape.QuoteCommand(additionalKernelArguments)), 0666); err != nil {
+		return fmt.Errorf("failed creating additional.kernel.args file: %v", err)
+	}
+	if err := copyDirectory(ctx, cli, node.ID, dir, "/"); err != nil {
+		return fmt.Errorf("failed copying additional kernel arguments into the container: %v", err)
+	}
+
 	logrus.Infof("Commiting the node as %s", target)
 	_, err = cli.ContainerCommit(ctx, node.ID, types.ContainerCommitOptions{
 		Reference: target,
@@ -289,6 +293,33 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return fmt.Errorf("commiting the node failed: %v", err)
 	}
 
+	return nil
+}
+
+func copyDirectory(ctx context.Context, cli *client.Client, containerID string, sourceDirectory string, targetDirectory string) error {
+	srcInfo, err := archive.CopyInfoSourcePath(sourceDirectory, false)
+	if err != nil {
+		return err
+	}
+
+	srcArchive, err := archive.TarResource(srcInfo)
+	if err != nil {
+		return err
+	}
+	defer srcArchive.Close()
+
+	dstInfo := archive.CopyInfo{Path: targetDirectory}
+
+	dstDir, preparedArchive, err := archive.PrepareArchiveCopy(srcArchive, srcInfo, dstInfo)
+	if err != nil {
+		return err
+	}
+	defer preparedArchive.Close()
+
+	err = cli.CopyToContainer(ctx, containerID, dstDir, preparedArchive, types.CopyToContainerOptions{AllowOverwriteDirWithFile: false})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

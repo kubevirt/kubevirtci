@@ -20,9 +20,15 @@ RUN curl -LO https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_V
   && chmod u+x dockerize \
   && mv dockerize /usr/local/bin/
 
-COPY scripts/* /
+COPY scripts/download_box.sh /
+
 RUN echo "Centos8 version $centos_version"
 
 ENV CENTOS_URL https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-Vagrant-8-$centos_version.x86_64.vagrant-libvirt.box
 
 RUN /download_box.sh ${CENTOS_URL}
+
+RUN curl -L -o /initrd.img http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/images/pxeboot/initrd.img
+RUN curl -L -o /vmlinuz http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/images/pxeboot/vmlinuz
+
+COPY scripts/* /
