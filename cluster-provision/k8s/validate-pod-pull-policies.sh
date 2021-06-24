@@ -22,13 +22,13 @@ function main() {
 
     manifest_dir=$(mktemp -d)
     trap 'rm -rf $manifest_dir' SIGINT SIGTERM EXIT
-    for namespace in $(KUBEVIRTCI_VERBOSE=false ${ksh} get namespaces --no-headers --output=custom-columns=:.metadata.name); do
+    for namespace in $(${ksh} get namespaces --no-headers --output=custom-columns=:.metadata.name); do
         if [ "$namespace" == 'kube-system' ]; then
             continue
         fi
         mkdir -p "$manifest_dir/$namespace"
-        for pod in $(KUBEVIRTCI_VERBOSE=false ${ksh} get pods --namespace "$namespace" --no-headers --output=custom-columns=:.metadata.name); do
-            (KUBEVIRTCI_VERBOSE=false ${ksh} get pod --output=yaml --namespace "$namespace" "$pod") >"$manifest_dir/$namespace/$pod.yaml"
+        for pod in $(${ksh} get pods --namespace "$namespace" --no-headers --output=custom-columns=:.metadata.name); do
+            (${ksh} get pod --output=yaml --namespace "$namespace" "$pod") >"$manifest_dir/$namespace/$pod.yaml"
         done
     done
 
