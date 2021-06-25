@@ -26,6 +26,7 @@ set -ex
 export KUBELET_CGROUP_ARGS="--cgroup-driver=${CGROUP_DRIVER} --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
 export KUBELET_FEATURE_GATES="VolumeSnapshotDataSource=true,IPv6DualStack=true"
 export ISTIO_VERSION=1.10.0
+export ISTIO_BIN_DIR=/opt/istio-$ISTIO_VERSION/bin
 EOF
 source $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 
@@ -86,11 +87,12 @@ dnf -y install lvm2
 dnf install -y tc
 
 # Install istioctl
-export PATH=/opt/istio-$ISTIO_VERSION/bin:$PATH
+export PATH=$ISTIO_BIN_DIR:$PATH
 (
   set -E
-  cd /opt/
-  curl -L https://istio.io/downloadIstio | sh -
+  mkdir -p $ISTIO_BIN_DIR
+  curl https://storage.googleapis.com/kubevirtci-istioctl-mirror/istio-$ISTIO_VERSION/bin/istioctl -o $ISTIO_BIN_DIR/istioctl
+  chmod +x $ISTIO_BIN_DIR/istioctl
 )
 # generate Istio manifests for pre-pulling images
 istioctl manifest generate --set profile=demo --set components.cni.enabled=true | tee /tmp/istio-deployment.yaml
