@@ -18,7 +18,7 @@ images_not_in_list=$(mktemp)
 images_from_manifests=$(mktemp)
 trap 'rm -f $images_not_in_list $images_from_manifests' EXIT SIGINT SIGTERM
 $DIR/${provision_dir}/fetch-images.sh "$DIR/${provision_dir}" >"${images_from_manifests}"
-for image in $(KUBEVIRTCI_VERBOSE=false ${ksh} get pods --all-namespaces -o jsonpath="{..image}" | tr -s '[[:space:]]' '\n' | grep -v 'k8s.gcr.io' | sort | uniq); do
+for image in $(${ksh} get pods --all-namespaces -o jsonpath="{..image}" | tr -s '[[:space:]]' '\n' | grep -v 'k8s.gcr.io' | sort | uniq); do
     set +e
     if ! grep -q "$image" "${pre_pull_image_file}"; then
         if ! grep -q "$image" "${images_from_manifests}"; then
