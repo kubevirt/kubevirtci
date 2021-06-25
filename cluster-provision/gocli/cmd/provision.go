@@ -41,7 +41,6 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
-	provision.Flags().Bool("cgroupv2", false, "set UNIFIED_CGROUP_HIERARCHY environment variable for the provision script")
 	provision.Flags().String("container-suffix", "", "use additional suffix for the provisioned container image")
 	provision.Flags().StringArray("additional-persistent-kernel-arguments", []string{}, "additional persistent kernel arguments applied after provision")
 
@@ -222,15 +221,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	cgroupv2, err := cmd.Flags().GetBool("cgroupv2")
-	if err != nil {
-		return err
-	}
-
 	envVars := fmt.Sprintf("version=%s", version)
-	if cgroupv2 {
-		envVars = fmt.Sprintf("%s UNIFIED_CGROUP_HIERARCHY=1", envVars)
-	}
 
 	err = _cmd(cli, nodeContainer(prefix, nodeName), fmt.Sprintf("ssh.sh sudo %s /bin/bash < /scripts/provision.sh", envVars), "provisioning the node")
 	if err != nil {
@@ -263,9 +254,6 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	additionalKernelArguments, err := cmd.Flags().GetStringArray("additional-persistent-kernel-arguments")
 	if err != nil {
 		return err
-	}
-	if cgroupv2 {
-		additionalKernelArguments = append(additionalKernelArguments, "systemd.unified_cgroup_hierarchy=1")
 	}
 
 	dir, err := ioutil.TempDir("", "gocli")

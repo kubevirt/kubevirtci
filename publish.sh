@@ -21,18 +21,8 @@ for i in ${CLUSTERS}; do
     docker tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
 done
 
-# Provision 1.20-cgroupsv2 cluster
-CGV2_CLUSTER="1.20"
-CGV2_SUFFIX="cgroupsv2"
-CGV2_IMAGE="${CGV2_CLUSTER}-${CGV2_SUFFIX}"
-cluster-provision/gocli/build/cli provision \
-    --cgroupv2=true --container-suffix=${CGV2_SUFFIX} \
-    cluster-provision/k8s/${CGV2_CLUSTER}
-docker tag ${TARGET_REPO}/k8s-${CGV2_IMAGE} \
-    ${TARGET_REPO}/k8s-${CGV2_IMAGE}:${KUBEVIRTCI_TAG}
-
 # Push all images
-IMAGES="${CLUSTERS} ${CGV2_IMAGE}"
+IMAGES="${CLUSTERS}"
 docker push ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
 for i in ${IMAGES}; do
     docker push ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}

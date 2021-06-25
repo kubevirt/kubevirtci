@@ -16,6 +16,25 @@ while ! hostnamectl  |grep Transient ; do
     fi
 done
 
+# Configure cgroup v2 settings
+if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
+    echo "Configuring cgroup v2"
+
+    CRIO_CONF_DIR=/etc/crio/crio.conf.d
+    mkdir -p ${CRIO_CONF_DIR}
+    cat << EOF > ${CRIO_CONF_DIR}/00-cgroupv2.conf
+[crio.runtime]
+conmon_cgroup = "pod"
+cgroup_manager = "cgroupfs"
+EOF
+
+    sed -i 's/--cgroup-driver=systemd/--cgroup-driver=cgroupfs/' /etc/sysconfig/kubelet
+
+    systemctl stop kubelet
+    systemctl restart crio
+    systemctl start kubelet
+fi
+
 version=`kubectl version --short --client | cut -d":" -f2 |sed  's/ //g' | cut -c2- `
 cni_manifest="/provision/cni.yaml"
 

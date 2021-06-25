@@ -12,11 +12,6 @@ cd $DIR
 
 gocli_args=""
 
-if [ "${CGROUPV2}" == "true" ]; then
-    gocli_args="${gocli_args} --cgroupv2=true"
-    CONTAINER_SUFFIX=cgroupsv2
-fi
-
 if [ -n "${CONTAINER_SUFFIX}" ]; then
     gocli_args="${gocli_args} --container-suffix=${CONTAINER_SUFFIX}"
 fi
