@@ -1,5 +1,5 @@
---- a/cluster-provision/k8s/1.19/manifests/cni.do-not-change.yaml
-+++ b/cluster-provision/k8s/1.19/manifests/cni.do-not-change.yaml
+--- a/cluster-provision/k8s/1.20/manifests/cni.do-not-change.yaml
++++ b/cluster-provision/k8s/1.20/manifests/cni.do-not-change.yaml
 @@ -32,7 +32,12 @@ data:
            "nodename": "__KUBERNETES_NODE_NAME__",
            "mtu": __CNI_MTU__,
