@@ -14,6 +14,18 @@
            },
            "policy": {
                "type": "k8s"
+@@ -3642,6 +3642,11 @@ spec:
+             # Auto-detect the BGP IP address.
+             - name: IP
+               value: "autodetect"
++            # Use IP/IPv6 addresses on ifaces eth0, eth1, eth2, etc.
++            - name: IP_AUTODETECTION_METHOD
++              value: "interface=eth.*"
++            - name: IP6_AUTODETECTION_METHOD
++              value: "interface=eth.*"
+             # Enable IPIP
+             - name: CALICO_IPV4POOL_IPIP
+               value: "Always"
 @@ -3671,6 +3676,8 @@ spec:
              # no effect. This should fall within `--cluster-cidr`.
              # - name: CALICO_IPV4POOL_CIDR
