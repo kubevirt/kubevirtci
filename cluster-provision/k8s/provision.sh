@@ -10,13 +10,9 @@ export base
 
 cd $DIR
 
-gocli_args=""
-
-if [ -n "${CONTAINER_SUFFIX}" ]; then
-    gocli_args="${gocli_args} --container-suffix=${CONTAINER_SUFFIX}"
-fi
+export KUBEVIRT_CGROUPV2="${CGROUPV2}"
 
 (cd ../${base} && ./build.sh)
 make -C ../gocli cli
-../gocli/build/cli provision ${gocli_args} ${provision_dir}
-CONTAINER_SUFFIX=${CONTAINER_SUFFIX} ./check-cluster-up.sh ${provision_dir}
+../gocli/build/cli provision ${provision_dir}
+./check-cluster-up.sh ${provision_dir}

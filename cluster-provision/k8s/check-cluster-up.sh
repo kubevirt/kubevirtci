@@ -11,11 +11,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 RUN_KUBEVIRT_CONFORMANCE=${RUN_KUBEVIRT_CONFORMANCE:-"true"}
 
 provision_dir="$1"
-
 provider="${provision_dir}"
-if [ -n "${CONTAINER_SUFFIX}" ]; then
-    provider="${provision_dir}-${CONTAINER_SUFFIX}"
-fi
 
 function cleanup {
   cd "$DIR" && cd ../..
