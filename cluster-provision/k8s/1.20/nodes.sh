@@ -18,6 +18,26 @@ while ! hostnamectl  |grep Transient ; do
     fi
 done
 
+# Configure cgroup v2 settings
+if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
+    echo "Configuring cgroup v2"
+
+    CRIO_CONF_DIR=/etc/crio/crio.conf.d
+    mkdir -p ${CRIO_CONF_DIR}
+    cat << EOF > ${CRIO_CONF_DIR}/00-cgroupv2.conf
+[crio.runtime]
+conmon_cgroup = "pod"
+cgroup_manager = "cgroupfs"
+EOF
+
+    sed -i 's/--cgroup-driver=systemd/--cgroup-driver=cgroupfs/' /var/lib/kubevirtci/shared_vars.sh
+    source /var/lib/kubevirtci/shared_vars.sh
+
+    # kubelet will be started later on
+    systemctl stop kubelet
+    systemctl restart crio
+fi
+
 # Wait for crio, else network might not be ready yet
 while [[ `systemctl status crio | grep active | wc -l` -eq 0 ]]
 do

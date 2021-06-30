@@ -2,19 +2,12 @@
 
 set -ex
 
-# Configure cgroup version
-if [ "${UNIFIED_CGROUP_HIERARCHY}" == "1" ]; then
-    CGROUP_DRIVER="cgroupfs"
-else
-    CGROUP_DRIVER="systemd"
-fi
-
 KUBEVIRTCI_SHARED_DIR=/var/lib/kubevirtci
 mkdir -p $KUBEVIRTCI_SHARED_DIR
 cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 #!/bin/bash
 set -ex
-export KUBELET_CGROUP_ARGS="--cgroup-driver=${CGROUP_DRIVER} --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
+export KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
 export KUBELET_FEATURE_GATES="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
 export ISTIO_VERSION=1.10.0
 EOF
@@ -105,16 +98,6 @@ enabled=1
 EOF
 dnf install -y cri-o
 
-if [ "${UNIFIED_CGROUP_HIERARCHY}" == "1" ]; then
-    CRIO_CONF_DIR=/etc/crio/crio.conf.d
-    mkdir -p ${CRIO_CONF_DIR}
-    cat << EOF > ${CRIO_CONF_DIR}/00-cgroupv2.conf
-[crio.runtime]
-conmon_cgroup = "pod"
-cgroup_manager = "cgroupfs"
-EOF
-fi
-
 # install podman for functionality missing in crictl (tag, etc)
 dnf install -y podman
 
@@ -154,7 +137,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=${CGROUP_DRIVER} --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="BlockVolume=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true,IPv6DualStack=true"
 EOT
 
 # Needed for kubernetes service routing and dns
