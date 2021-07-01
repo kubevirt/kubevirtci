@@ -18,7 +18,7 @@ write_files:
       content: |
         igb
 runcmd:
-  - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent
+  - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress
   - sudo dnf clean all
   - sudo hostnamectl set-hostname ""
   - sudo hostnamectl set-hostname "" --transient
