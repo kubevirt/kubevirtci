@@ -3,7 +3,7 @@ set -xe
 
 source /var/lib/kubevirtci/shared_vars.sh
 
-export PATH=/opt/istio-$ISTIO_VERSION/bin:$PATH
+export PATH=$ISTIO_BIN_DIR:$PATH
 
 kubectl --kubeconfig /etc/kubernetes/admin.conf create ns istio-system
 istioctl --kubeconfig /etc/kubernetes/admin.conf operator init
