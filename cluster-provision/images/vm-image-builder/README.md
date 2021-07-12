@@ -17,9 +17,11 @@ Use cases:
 The following RPM packages need to be present on your machine:
 - cloud-utils
 - docker-ce
-- libvirt
 - libguestfs
+- libguestfs-tools-c
+- libvirt
 - qemu-img
+- virt-install
 
 ## Quickstart: Build and publish an existing containerdisk
 
