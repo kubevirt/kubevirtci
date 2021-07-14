@@ -109,6 +109,8 @@ if [ -n "${BLOCK_DEV}" ]; then
   block_dev_arg="-drive format=qcow2,file=${BLOCK_DEV},if=virtio,cache=unsafe"
 fi
 
+MONITOR_SOCKET=/var/run/mon.sock
+
 exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=unsafe ${block_dev_arg} \
   -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
   -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
@@ -119,4 +121,5 @@ exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,c
   -vnc :${n} -cpu host,migratable=no,+invtsc -m ${MEMORY} -smp ${CPU} \
   -serial pty -M q35,accel=kvm,kernel_irqchip=split \
   -device intel-iommu,intremap=on,caching-mode=on -soundhw hda \
+  -monitor unix:${MONITOR_SOCKET},server,nowait \
   ${QEMU_ARGS}
