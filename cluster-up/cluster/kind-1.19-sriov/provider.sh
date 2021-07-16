@@ -37,16 +37,9 @@ function up() {
 
     ${KUBEVIRTCI_PATH}/cluster/$KUBEVIRT_PROVIDER/config_sriov_cluster.sh
 
-    # In order to support live migration on containerized cluster we need to workaround
-    # Libvirt uuid check for source and target nodes.
-    # To do that we create PodPreset that mounts fake random product_uuid to virt-launcher pods,
-    # and kubevirt SRIOV tests namespace for the PodPrest beforhand.
-    podpreset::expose_unique_product_uuid_per_node "$CLUSTER_NAME" "$SRIOV_TESTS_NS"
-
     echo "$KUBEVIRT_PROVIDER cluster '$CLUSTER_NAME' is ready"
 }
 
 set_kind_params
 
 source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
-source ${KUBEVIRTCI_PATH}/cluster/kind/podpreset.sh
