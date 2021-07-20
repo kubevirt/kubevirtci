@@ -28,4 +28,6 @@ The `kubevirt-prometheus-metrics` service can then be discovered by the ServiceM
 KubeVirt’s virt-operator, by default, checks the existence of the MonitorNamespace and MonitorServiceAccount, and automatically creates a ServiceMonitor resource in the MonitorNamespace. Additionally, KubeVirt also appropriate role and rolebinding in KubeVirt’s namespace.
 
 ## Upgrading
-All the files are based on the `release-0.8` of the repository [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus), the only change applied was decreasing the Prometheus and Alertmanager replicas from 2 to 1.
+All the files are based on the `release-0.8` of the repository [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus), the change applied was decreasing the Prometheus and Alertmanager replicas from 2 to 1.
+
+Additionally, we included a new Grafana dashboard `kubevirt-control-plane.json` in [cluster-provision/k8s/1.21/manifests/prometheus/grafana/grafana-dashboardDefinitions.yaml](https://github.com/kubevirt/kubevirtci/cluster-provision/k8s/1.21/manifests/prometheus/grafana/grafana-dashboardDefinitions.yaml).
