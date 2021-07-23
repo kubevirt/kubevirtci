@@ -10,3 +10,7 @@ sonobuoy*
 
 # Bazel directories
 cluster-provision/gocli/bazel-*
+
+# image builder
+*.qcow2
+cluster-provision/images/vm-image-builder/*_build
