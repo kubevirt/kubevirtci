@@ -43,5 +43,5 @@ runcmd:
   - sudo hostnamectl set-hostname ""
   - sudo hostnamectl set-hostname "" --transient
   - sudo sed -i /users-groups/d /etc/cloud/cloud.cfg
-  - sudo sed -i /etc/selinux/config 's/SELINUX=.*/SELINUX=permissive/'
+  - sudo sed -i 's/^SELINUX=.*/SELINUX=permissive/' /etc/selinux/config
   - sudo shutdown
