@@ -13,8 +13,8 @@ echo "KUBEVIRTCI_PATH: " ${KUBEVIRTCI_PATH}
 source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
 echo "_kubectl: " ${_kubectl}
 
-worker_nodes=($(_kubectl get nodes -o custom-columns=:.metadata.name --no-headers))
-node::remount_sysfs "${worker_nodes[*]}"
+nodes=($(_kubectl get nodes -o custom-columns=:.metadata.name --no-headers))
+node::remount_sysfs "${nodes[*]}"
 node::discover_host_gpus
 
 _kubectl get nodes

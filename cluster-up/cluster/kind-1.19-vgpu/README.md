@@ -1,13 +1,15 @@
 # K8S 1.19.0 with mdev support in a Kind cluster
 
-Provides a pre-deployed k8s cluster with version 1.19.0 that runs using [kind](https://github.com/kubernetes-sigs/kind) The cluster is completely ephemeral and is recreated on every cluster restart. 
+Provides a pre-deployed k8s cluster with version 1.19.11 that runs using [kind](https://github.com/kubernetes-sigs/kind) The cluster is completely ephemeral and is recreated on every cluster restart. 
 The KubeVirt containers are built on the local machine and are then pushed to a registry which is exposed at
 `localhost:5000`.
 
 ## Bringing the cluster up
 
+The following needs to be executed as root.
+
 ```bash
-export KUBEVIRT_PROVIDER=kind-1.19.0-vgpu
+export KUBEVIRT_PROVIDER=kind-1.19-vgpu
 make cluster-up
 ```
 
@@ -16,7 +18,7 @@ The cluster can be accessed as usual:
 ```bash
 $ cluster-up/kubectl.sh get nodes
 NAME                  STATUS   ROLES    AGE     VERSION
-vgpu-control-plane   Ready    master   6m14s   v1.17.0
+vgpu-control-plane   Ready    master   6m14s   v1.19.0
 ```
 
 ## Bringing the cluster down
