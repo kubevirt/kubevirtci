@@ -23,6 +23,19 @@ function set_kind_params() {
     export KUBECTL_PATH="${KUBECTL_PATH:-/bin/kubectl}"
 }
 
+function print_sriov_data() {
+    nodes=$(_kubectl get nodes -o=custom-columns=:.metadata.name | awk NF)
+    for node in $nodes; do
+        if [[ ! "$node" =~ .*"control-plane".* ]]; then
+            echo "Node: $node"
+            echo "VFs:"
+            docker exec $node bash -c "ls -l /sys/class/net/*/device/virtfn*"
+            echo "PFs PCI Addresses:"
+            docker exec $node bash -c "grep PCI_SLOT_NAME /sys/class/net/*/device/uevent"
+        fi
+    done
+}
+
 function up() {
     # print hardware info for easier debugging based on logs
     echo 'Available NICs'
@@ -43,6 +56,7 @@ function up() {
     # and kubevirt SRIOV tests namespace for the PodPrest beforhand.
     podpreset::expose_unique_product_uuid_per_node "$CLUSTER_NAME" "$SRIOV_TESTS_NS"
 
+    print_sriov_data
     echo "$KUBEVIRT_PROVIDER cluster '$CLUSTER_NAME' is ready"
 }
 
