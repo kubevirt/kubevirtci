@@ -16,6 +16,7 @@ ip -6 addr add fd00::1/64 dev br0
 for snet in $(seq 1 ${NUM_SECONDARY_NICS}); do
   ip link add br${snet} type bridge
   ip link set dev br${snet} up
+  ip addr add dev br${snet} 192.168.$((66 + $snet)).2/24
 done
 
 for i in $(seq 1 ${NUM_NODES}); do
@@ -32,6 +33,13 @@ for i in $(seq 1 ${NUM_NODES}); do
   done
 done
 
+INTERFACES=br0
+IPV4_RANGES=--dhcp-range=br0,192.168.66.10,192.168.66.200,infinite
+for s in $(seq 1 ${NUM_SECONDARY_NICS}); do
+    INTERFACES="${INTERFACES},br${s}"
+    IPV4_RANGES="${IPV4_RANGES} --dhcp-range=br${s},192.168.$((66 + $s)).10,192.168.$((66 + $s)).200,infinite"
+done
+
 # Make sure that all VMs can reach the internet
 iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
@@ -40,4 +48,4 @@ ip6tables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 ip6tables -A FORWARD -i br0 -o eth0 -j ACCEPT
 
-exec dnsmasq --interface=br0 --enable-ra -d ${DHCP_HOSTS} --dhcp-range=192.168.66.10,192.168.66.200,infinite --dhcp-range=::10,::200,constructor:br0,static
+exec dnsmasq --interface=${INTERFACES} --enable-ra -d ${DHCP_HOSTS} ${IPV4_RANGES} --dhcp-range=::10,::200,constructor:br0,static

@@ -432,7 +432,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	wg := sync.WaitGroup{}
 	wg.Add(int(nodes))
 	// start one vm after each other
-	macCounter := 0
+	macCounter := 1
 	for x := 0; x < int(nodes); x++ {
 
 		nodeQemuArgs := qemuArgs
