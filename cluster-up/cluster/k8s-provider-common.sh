@@ -50,6 +50,11 @@ function up() {
             $kubectl create -f /opt/cnao/network-addons-config-example.cr.yaml
             $kubectl wait networkaddonsconfig cluster --for condition=Available --timeout=200s
         fi
+
+        # When CNAO is enabled, start the CNI dhcp daemon on every node by default
+        for node in $( seq -w 1 99 | head -n $KUBEVIRT_NUM_NODES ); do
+            ${_cli} --prefix $provider_prefix ssh node$node -- sudo systemctl enable --now cni-dhcp
+        done
     fi
 
     if [ "$KUBEVIRT_DEPLOY_ISTIO" == "true" ] && [[ $KUBEVIRT_PROVIDER =~ k8s-1\.1.* ]]; then

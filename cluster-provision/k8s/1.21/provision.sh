@@ -322,6 +322,39 @@ echo "tmpfs /var/provision/kubevirt.io/tests tmpfs rw,context=system_u:object_r:
 
 dnf install -y NetworkManager-config-server
 
+# Add CNI DHCP daemon service and socket, disabled by default
+# TODO: remove after switching from kubernetes-cni.rpm to containernetworking-plugins,
+#   as containernetworking-plugins provides these 2 files
+cat > /etc/systemd/system/cni-dhcp.service <<EOF
+[Unit]
+Description=CNI DHCP service
+Documentation=https://github.com/containernetworking/plugins/tree/master/plugins/ipam/dhcp
+After=network.target cni-dhcp.socket
+Requires=cni-dhcp.socket
+
+[Service]
+ExecStart=/opt/cni/bin/dhcp daemon
+
+[Install]
+WantedBy=multi-user.target
+EOF
+cat > /etc/systemd/system/cni-dhcp.socket <<EOF
+[Unit]
+Description=CNI DHCP service socket
+Documentation=https://github.com/containernetworking/plugins/tree/master/plugins/ipam/dhcp
+PartOf=cni-dhcp.service
+
+[Socket]
+ListenStream=/run/cni/dhcp.sock
+SocketMode=0660
+SocketUser=root
+SocketGroup=root
+RemoveOnStop=true
+
+[Install]
+WantedBy=sockets.target
+EOF
+
 # Cleanup the existing NetworkManager profiles so the VM instances will come
 # up with the default profiles. (Base VM image includes non default settings)
 rm -f /etc/sysconfig/network-scripts/ifcfg-*
