@@ -24,6 +24,9 @@ function set_kind_params() {
 }
 
 function up() {
+    # load the vfio_mdev module
+    /usr/sbin/modprobe vfio_mdev
+    
     # print hardware info for easier debugging based on logs
     echo 'Available cards'
     docker run --rm --cap-add=SYS_RAWIO quay.io/phoracek/lspci@sha256:0f3cacf7098202ef284308c64e3fc0ba441871a846022bb87d65ff130c79adb1 sh -c "lspci -k | grep -EA2 'VGA|3D'"
