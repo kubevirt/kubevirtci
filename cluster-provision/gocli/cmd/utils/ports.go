@@ -30,6 +30,8 @@ const (
 	PortPrometheus = 30007
 	//PortGrafana contains Grafana server port
 	PortGrafana = 30008
+	//PortUploadProxy contains CDI UploadProxy port
+	PortUploadProxy = 31001
 
 	// PortNameSSH contains master node SSH port name
 	PortNameSSH = "ssh"
@@ -54,6 +56,8 @@ const (
 	PortNamePrometheus = "prometheus"
 	// PortNameGrafana contains Grafana server port
 	PortNameGrafana = "grafana"
+	// PortNameUploadProxy contains CDI UploadProxy port
+	PortNameUploadProxy = "uploadproxy"
 )
 
 // GetPublicPort returns public port by private port
