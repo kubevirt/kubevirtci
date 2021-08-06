@@ -2,13 +2,46 @@
 password: fedora
 chpasswd: { expire: False }
 ssh_pwauth: yes
+write_files:
+    - path: /etc/modules-load.d/mlx5.conf
+      content: |
+        mlx5_core
+        mlx5_ib
+    - path: /etc/modules-load.d/mlx4.conf
+      content: |
+        mlx4_core
+        mlx4_ib
+    - path: /etc/modules-load.d/i40e.conf
+      content: |
+        i40e
+    - path: /etc/modules-load.d/igb.conf
+      content: |
+        igb
+    - path: /etc/systemd/system/wait-for-cloud-init.service
+      owner: root:root
+      permissions: '0755'
+      content: |
+          [Unit]
+          Description=Wait for cloud-init to complete
+          Before=qemu-guest-agent.service
+          After=cloud-final.service
+
+          [Service]
+          Type=oneshot
+          ExecStartPre=cloud-init status --wait
+          ExecStart=/usr/bin/true
+          RemainAfterExit=true
+
+          [Install]
+          WantedBy=cloud-init.service
 runcmd:
-  - sudo dnf install -y qemu-guest-agent stress dmidecode virt-what vm-dump-metrics
+  - sudo systemctl daemon-reload
+  - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress-ng dmidecode virt-what vm-dump-metrics
   - sudo dnf clean all
+  - sudo systemctl enable wait-for-cloud-init
+  - sudo systemctl enable qemu-guest-agent.service
   - sudo hostnamectl set-hostname ""
   - sudo hostnamectl set-hostname "" --transient
-  - sudo systemctl stop qemu-guest-agent
-  - sudo systemctl disable qemu-guest-agent
-  - sudo mv /lib/systemd/system/qemu-guest-agent.service /home/fedora/
-  - sudo systemctl daemon-reload
+  - sudo sed -i /users-groups/d /etc/cloud/cloud.cfg
+  - sudo sed -i 's/^SELINUX=.*/SELINUX=permissive/' /etc/selinux/config
   - sudo shutdown
