@@ -61,9 +61,11 @@ iptables -t nat -A POSTROUTING ! -s 192.168.66.0/16 --out-interface br0 -j MASQU
 iptables -A FORWARD --in-interface eth0 -j ACCEPT
 iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport 22${n} -j DNAT --to-destination 192.168.66.1${n}:22
 
-# Route x->x from the container to the VM for first node
+# Route ports from container to VM for first node
 if [ "$n" = "01" ] ; then
-  iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp -j DNAT --to-destination 192.168.66.1${n}
+  for port in 6443 8443 80 443 30007 30008 31001; do
+    iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport ${port} -j DNAT --to-destination 192.168.66.1${n}:${port}
+  done
 fi
 
 # For backward compatibility, so that we can just copy over the newer files
