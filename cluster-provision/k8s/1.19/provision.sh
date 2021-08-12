@@ -309,6 +309,9 @@ for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml | grep value | awk '{print 
 # Pre pull local-volume-provisioner
 for i in $(grep -A 2 "IMAGE" /provision/local-volume.yaml | grep value | awk -F\" '{print $2}'); do docker_pull_retry $i; done
 
+# Pre pull cdi images
+for i in $(grep "quay.io" /tmp/cdi.do-not-change.yaml | awk '{print $2}'); do docker_pull_retry $i; done
+
 # Create a properly labelled tmp directory for testing
 mkdir -p /var/provision/kubevirt.io/tests
 chcon -t container_file_t /var/provision/kubevirt.io/tests
