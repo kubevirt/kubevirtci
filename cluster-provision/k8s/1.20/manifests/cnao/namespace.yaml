@@ -5,3 +5,4 @@ metadata:
   name: cluster-network-addons
   labels:
     name: cluster-network-addons
+    openshift.io/cluster-monitoring: "true"
