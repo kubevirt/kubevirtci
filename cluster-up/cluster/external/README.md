@@ -11,6 +11,7 @@ The build machine should be a client of the cluster.
 export KUBEVIRT_PROVIDER=external
 export DOCKER_PREFIX=myregistry:5000/kubevirt
 export KUBECONFIG=mycluster.conf
+export KUBEVERSION=v1.19.7
 export IMAGE_PULL_POLICY=Always
 make cluster-up
 ```
