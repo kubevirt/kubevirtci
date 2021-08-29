@@ -13,12 +13,13 @@ make cluster-up
 ```                                                                                   
                                                                                       
 Stop k8s cluster                                                                      
-```                                                                                   
+```
 make cluster-down                                                                     
 ```
 
 Use provider's kubectl client with kubectl.sh wrapper script               
-```                                                                        
+```
+export KUBEVIRTCI_TAG=`curl -L -Ss https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirtci/latest`
 cluster-up/kubectl.sh get nodes                                            
 cluster-up/kubectl.sh get pods --all-namespaces                            
 ```                                                                        
