@@ -60,6 +60,10 @@ dnf -y install yum-utils \
     device-mapper-persistent-data \
     lvm2
 
+# Convince ceph our storage is fast (not a rotational disk)
+echo 'ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="vd[a-z]", ATTR{queue/rotational}="0"' \
+	> /etc/udev/rules.d/60-force-ssd-rotational.rules
+
 # Add Docker repository.
 dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
 

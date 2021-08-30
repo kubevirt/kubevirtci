@@ -66,6 +66,9 @@ yum -y install iscsi-initiator-utils
 
 # for rook ceph
 dnf -y install lvm2
+# Convince ceph our storage is fast (not a rotational disk)
+echo 'ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="vd[a-z]", ATTR{queue/rotational}="0"' \
+	> /etc/udev/rules.d/60-force-ssd-rotational.rules
 
 # To prevent preflight issue related to tc not found
 dnf install -y tc
