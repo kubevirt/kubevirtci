@@ -310,6 +310,11 @@ docker_pull_retry k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1
 cp -rf /tmp/cnao/ /opt/
 for i in $(grep -A 2 "IMAGE" /opt/cnao/operator.yaml | grep value | awk '{print $2}'); do docker_pull_retry $i; done
 
+# Pre pull whereabouts and store manifests
+# so we can use them at cluster-up
+cp -rf /tmp/whereabouts/ /opt/
+for i in $(grep --no-filename "image:" /opt/whereabouts/*.yaml | awk '{print $2}' | sort --unique); do docker_pull_retry $i; done
+
 # Pre pull local-volume-provisioner
 for i in $(grep -A 2 "IMAGE" /provision/local-volume.yaml | grep value | awk -F\" '{print $2}'); do docker_pull_retry $i; done
 
