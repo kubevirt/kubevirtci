@@ -40,7 +40,7 @@ EOT
 function podpreset::create_virt_launcher_fake_product_uuid_podpreset() {
     local -r namespace=$1
 
-    if ! _kubectl get ns "$namespace" &>2; then
+    if ! _kubectl get ns "$namespace" >&2; then
         _kubectl create ns "$namespace"
     fi
 
