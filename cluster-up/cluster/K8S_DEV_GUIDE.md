@@ -1,15 +1,17 @@
 ﻿# kubevirtci K8s provider dev guide.
 
+## Creating or updating a provider
+
 The purpose of kubevirtci is to create pre-provisioned K8s clusters as container images,
 allowing people to easily run a K8s cluster.
 
 The target audience is developers of kubevirtci, who want to create a new provider, or to update an existing one.
 
-Please refer first to the following documents on how to run k8s-1.21:\
-[k8s-1.21 cluster-up](https://github.com/kubevirt/kubevirtci/blob/master/cluster-up/cluster/k8s-1.21/README.md)
+Please refer first to the following documents on how to run k8s-1.x:\
+[k8s-1.x cluster-up](./K8S.md)
 
-In this doc, we will go on what kubevirtci provider image consist of, what its inner architecture,
-flow of start a pre-provisioned cluster, flow of creating a new provider, and how to create a new provider.
+In this doc, we will go on what kubevirtci provider image consists of, what its inner architecture is,
+flow of starting a pre-provisioned cluster, flow of creating a new provider, and how to create a new provider.
 
 A provider includes all the images (K8s base image, nodes OS image) and the scripts that allows it to start a
 cluster offline, without downloading / installing / compiling new resources.
@@ -140,9 +142,13 @@ custom_manifest="/tmp/custom_manifest.yaml"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$custom_manifest"
 ```
 * Run ./cluster-provision/k8s/1.21.0/provision.sh, it will create a new provision and test it.
-* Run ./cluster-provision/k8s/1.21.0/publish.sh, it will publish the new created image to docker.io
-* Update k8s-1.21.0 image line at cluster-up/cluster/images.sh, to point on the newly published image.
+
+# Manual steps for publishing a new provider
+
+The steps to create, test and integrate a new KubeVirtCI provider are [mostly automated](./K8S_AUTOMATION.md), but just in case you need to do it manually:
+
+* Run `./cluster-provision/k8s/1.21.0/publish.sh`, it will publish the new created image to quay.io
 * Create a PR with the following files:
     * The new manifest.
-    * Updated cluster-provision/k8s/scripts/provision.sh
-    * Updated cluster-up/cluster/images.sh.
+    * Updated `cluster-provision/k8s/scripts/provision.sh`
+    * Updated `cluster-up/cluster/images.sh`.
