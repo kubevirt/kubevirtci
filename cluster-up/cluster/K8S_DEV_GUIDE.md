@@ -33,7 +33,7 @@ It gives us isolation advantage and state freezing of the needed components, all
 # K8s Deployment
 Running `make cluster-up` will deploy a pre-provisioned cluster.
 Upon finishing deployment of a K8s deploy, we will have 3 containers:
-* k8s-1.21 vm container - a container that runs a qemu VM, which is the K8s node, in which the pods will run.
+* k8s-${KUBEVIRT_PROVIDER_VERSION} vm container - a container that runs a qemu VM, which is the K8s node, in which the pods will run.
 * Registry container - a shared image registry.
 * k8s-${KUBEVIRT_PROVIDER_VERSION} dnsmasq container - a container that run dnsmasq, which gives dns and dhcp services.
 
@@ -100,7 +100,7 @@ From within the container we can see there is a process of qemu which runs the n
 root         1     0 36 13:39 ?        00:05:22 qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=/var/run/disk/disk.qcow2,if=virtio,cache=unsafe -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:01 -netdev tap,id=network0,ifname=tap01,script=no,downscript=no -device virtio-rng-pci -vnc :01 -cpu host -m 5120M -smp 5 -serial pty
 ```
 
-# Flow of K8s provisioning (1.21 for example)
+# Flow of K8s provisioning ${KUBEVIRT_PROVIDER_VERSION}
 `cluster-provision/k8s/${KUBEVIRT_PROVIDER_VERSION}/provision.sh`
 * Runs the common cluster-provision/k8s/provision.sh.
     * Runs cluster-provision/cli/cli (bash script).
@@ -117,7 +117,7 @@ root         1     0 36 13:39 ?        00:05:22 qemu-system-x86_64 -enable-kvm -
                 * Create local volume directories.
             * Shutdown the vm and commit its container.
 
-# Flow of K8s cluster-up (1.21 for example)
+# Flow of K8s cluster-up ${KUBEVIRT_PROVIDER_VERSION}
 Run
 ```
 export KUBEVIRT_PROVIDER=k8s-${KUBEVIRT_PROVIDER_VERSION}
