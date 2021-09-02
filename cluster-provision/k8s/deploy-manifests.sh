@@ -3,7 +3,7 @@
 
 set -exuo pipefail
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ksh="$(cd "$DIR/../.." && pwd)/cluster-up/kubectl.sh"
 provision_dir="$1"
 export KUBEVIRT_PROVIDER="k8s-${provision_dir}"
@@ -21,6 +21,7 @@ find "$DIR/${provision_dir}/manifests/" -type f -name '*.yaml' \
     -not -name 'logging.yaml' \
     -not -name 'local-volume.yaml' \
     -not -name 'cni*.yaml' \
+    -not -name 'cdi*-cr.yaml' \
     -print -exec ${ksh} create -f {} \;
 
 # wait for pods to get ready (we do this repeatedly to give the pods created by the operators time to come up)
