@@ -185,16 +185,18 @@ func scp(cmd *cobra.Command, args []string) error {
 		_, err = io.CopyN(target, stdout, int64(l))
 		errChan <- err
 	}()
+	wrPipe, err := session.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("failed to open pipe: %v", err)
+	}
 
-	go func() {
-		wrPipe, _ := session.StdinPipe()
+	go func(wrPipe io.WriteCloser) {
 		defer wrPipe.Close()
-
 		fmt.Fprintf(wrPipe, "\x00")
 		fmt.Fprintf(wrPipe, "\x00")
 		fmt.Fprintf(wrPipe, "\x00")
 		fmt.Fprintf(wrPipe, "\x00")
-	}()
+	}(wrPipe)
 
 	err = session.Run("sudo -i /usr/bin/scp -qf " + src)
 
