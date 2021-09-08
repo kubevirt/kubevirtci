@@ -41,6 +41,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=false
     export KUBEVIRT_DEPLOY_GRAFANA=false
   fi
+  export KUBEVIRT_DEPLOY_CDI=true
   trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
   bash -x ./cluster-up/up.sh
   timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s --all; do sleep 1; done"

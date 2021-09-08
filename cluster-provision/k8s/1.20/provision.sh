@@ -19,14 +19,14 @@ function pull_container_retry() {
     maxRetries=5
     retryAfterSeconds=3
     until [ ${retry} -ge ${maxRetries} ]; do
-        podman pull $@ && break
+        podman pull "$@" && break
         retry=$((${retry} + 1))
-        echo "Retrying ${FUNCNAME} [${retry}/${maxRetries}] in ${retryAfterSeconds}(s)"
+        echo "Retrying ${FUNCNAME[0]} [${retry}/${maxRetries}] in ${retryAfterSeconds}(s)"
         sleep ${retryAfterSeconds}
     done
 
     if [ ${retry} -ge ${maxRetries} ]; then
-        echo "${FUNCNAME} Failed after ${maxRetries} attempts!"
+        echo "${FUNCNAME[0]} Failed after ${maxRetries} attempts!"
         exit 1
     fi
 }
@@ -327,7 +327,10 @@ for i in $(grep -A 2 "IMAGE" /provision/local-volume.yaml | grep value | awk -F\
 for i in $(grep "image:" /tmp/istio-deployment.yaml | grep -v "{{" | awk '{print $2}' | tr -d '"' | sort -u) ; do pull_container_retry $i ; done
 
 # Pre pull cdi images
-for i in $(grep "quay.io" /tmp/cdi.do-not-change.yaml | awk '{print $2}'); do pull_container_retry $i; done
+for i in $(grep "quay.io" /tmp/cdi-*-operator.yaml | awk '{print $2}'); do pull_container_retry $i; done
+
+# copy cdi manifests
+cp -rf /tmp/cdi*.yaml /opt/
 
 # Create a properly labelled tmp directory for testing
 mkdir -p /var/provision/kubevirt.io/tests
