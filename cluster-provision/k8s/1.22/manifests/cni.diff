@@ -1,0 +1,51 @@
+--- a/cluster-provision/k8s/1.19/manifests/cni.do-not-change.yaml
++++ b/cluster-provision/k8s/1.19/manifests/cni.do-not-change.yaml
+@@ -32,7 +32,12 @@ data:
+           "nodename": "__KUBERNETES_NODE_NAME__",
+           "mtu": __CNI_MTU__,
+           "ipam": {
+-              "type": "calico-ipam"
++              "type": "calico-ipam",
++              "assign_ipv4": "true",
++              "assign_ipv6": "true"
++          },
++          "container_settings": {
++              "allow_ip_forwarding": true
+           },
+           "policy": {
+               "type": "k8s"
+@@ -3671,6 +3676,8 @@ spec:
+             # no effect. This should fall within `--cluster-cidr`.
+             # - name: CALICO_IPV4POOL_CIDR
+             #   value: "192.168.0.0/16"
++            - name: IP6
++              value: "autodetect"
+             # Disable file logging so `kubectl logs` works.
+             - name: CALICO_DISABLE_FILE_LOGGING
+               value: "true"
+@@ -3679,12 +3686,14 @@ spec:
+               value: "ACCEPT"
+             # Disable IPv6 on Kubernetes.
+             - name: FELIX_IPV6SUPPORT
+-              value: "false"
++              value: "true"
+             # Set Felix logging to "info"
+             - name: FELIX_LOGSEVERITYSCREEN
+               value: "info"
+             - name: FELIX_HEALTHENABLED
+               value: "true"
++            - name: CALICO_IPV6POOL_NAT_OUTGOING
++              value: "true"
+           securityContext:
+             privileged: true
+           resources:
+@@ -3820,6 +3829,9 @@ spec:
+           effect: NoSchedule
+       serviceAccountName: calico-kube-controllers
+       priorityClassName: system-cluster-critical
++      securityContext:
++        seLinuxOptions:
++          type: spc_t
+       containers:
+         - name: calico-kube-controllers
+           image: docker.io/calico/kube-controllers:v3.18.0
