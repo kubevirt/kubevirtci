@@ -20,6 +20,7 @@ while true; do
     -n | --next-disk ) NEXT_DISK="$2"; shift 2 ;;
     -b | --block-device ) BLOCK_DEV="$2"; shift 2 ;;
     -s | --block-device-size ) BLOCK_DEV_SIZE="$2"; shift 2 ;;
+    -n | --nvme-device-size ) NVME_DISK_SIZES+="$2 "; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -107,6 +108,14 @@ if [ -n "${BLOCK_DEV}" ]; then
   qemu-img create -f qcow2 ${BLOCK_DEV} ${block_device_size}
   block_dev_arg="-drive format=qcow2,file=${BLOCK_DEV},if=virtio,cache=unsafe"
 fi
+
+disk_num=0
+for size in ${NVME_DISK_SIZES[@]}; do
+  echo "Creating disk "$size" for NVMe disk emulation"
+  disk="/nvme-"${disk_num}".img"
+  qemu-img create -f raw $disk $size
+  let "disk_num+=1"
+done
 
 exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=unsafe ${block_dev_arg} \
   -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
