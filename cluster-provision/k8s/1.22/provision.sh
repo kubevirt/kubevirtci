@@ -319,6 +319,10 @@ done
 # so we can use them at cluster-up
 cp -rf /tmp/cnao/ /opt/
 
+# copy whereabouts manifests
+# so we can use them at cluster-up
+cp -rf /tmp/whereabouts/ /opt/
+
 # Create a properly labelled tmp directory for testing
 mkdir -p /var/provision/kubevirt.io/tests
 chcon -t container_file_t /var/provision/kubevirt.io/tests
