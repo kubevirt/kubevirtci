@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -33,8 +34,9 @@ import (
 	"github.com/alessio/shellescape"
 )
 
-const soundcardPCIID = "8086:2668"
-const proxySettings = `
+const (
+	soundcardPCIID = "8086:2668"
+	proxySettings  = `
 mkdir -p /etc/systemd/system/docker.service.d/
 
 cat <<EOT  >/etc/systemd/system/docker.service.d/proxy.conf
@@ -48,8 +50,11 @@ systemctl daemon-reload
 systemctl restart docker
 EOF
 `
-const etcdDataDir = "/var/lib/etcd"
-const nvmeDiskImagePrefix = "/nvme"
+	etcdDataDir         = "/var/lib/etcd"
+	nvmeDiskImagePrefix = "/nvme"
+
+	hugepagesSize2M = "2M"
+)
 
 var cli *client.Client
 var nvmeDisks []string
@@ -101,7 +106,9 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().StringArrayVar(&nvmeDisks, "nvme", []string{}, "size of the emulate NVMe disk to pass to the node")
 	run.Flags().Bool("run-etcd-on-memory", false, "configure etcd to run on RAM memory, etcd data will not be persistent")
 	run.Flags().String("etcd-capacity", "512M", "set etcd data mount size.\nthis flag takes affect only when 'run-etcd-on-memory' is specified")
-
+	run.Flags().Uint("hugepages-count", 64, "number of hugepages to allocate")
+	run.Flags().Bool("hugepages-2m", true, "use 2M size for hugepages")
+	run.Flags().Bool("enable-realtime-scheduler", false, "configures the kernel to allow unlimited runtime for processes that require realtime scheduling")
 	return run
 }
 
@@ -245,6 +252,20 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	resource.MustParse(etcdDataMountSize)
+
+	hugepagesCount, err := cmd.Flags().GetUint("hugepages-count")
+	if err != nil {
+		return err
+	}
+
+	hugepages2M, err := cmd.Flags().GetBool("hugepages-2m")
+	if err != nil {
+		return err
+	}
+	realtimeSchedulingEnabled, err := cmd.Flags().GetBool("enable-realtime-scheduler")
+	if err != nil {
+		return err
+	}
 
 	cli, err = client.NewEnvClient()
 	if err != nil {
@@ -499,8 +520,13 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		if len(nodeQemuArgs) > 0 {
 			additionalArgs = append(additionalArgs, "--qemu-args", shellescape.Quote(nodeQemuArgs))
 		}
-		if len(kernelArgs) > 0 {
-			additionalArgs = append(additionalArgs, "--additional-kernel-args", shellescape.Quote(kernelArgs))
+
+		if hugepages2M && hugepagesCount > 0 {
+			args := fmt.Sprintf("hugepagesz=%s hugepages=%d", hugepagesSize2M, hugepagesCount)
+			if len(kernelArgs) > 0 {
+				args = fmt.Sprintf("%s %s", args, kernelArgs)
+			}
+			additionalArgs = append(additionalArgs, "--additional-kernel-args", shellescape.Quote(args))
 		}
 
 		blockDev := ""
@@ -706,6 +732,20 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 	}
 
+	if realtimeSchedulingEnabled {
+		nodeName := nodeNameFromIndex(1)
+		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+			"/bin/bash",
+			"-c",
+			"ssh.sh sudo /bin/bash < /scripts/realtime.sh",
+		}, os.Stdout)
+		if err != nil {
+			return err
+		}
+		if !success {
+			return errors.New("provisioning kernel to allow unlimited runtime realtime scheduler failed")
+		}
+	}
 	// If background flag was specified, we don't want to clean up if we reach that state
 	if !background {
 		wg.Wait()
