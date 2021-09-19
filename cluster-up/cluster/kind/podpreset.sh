@@ -1,10 +1,10 @@
  #!/usr/bin/env bash
 
-set -e
+set -ex
 
 source ${KUBEVIRTCI_PATH}/cluster/kind/common.sh
 
-VALIDATE_PODPRESET_TIMEOUT="60"
+VALIDATE_PODPRESET_TIMEOUT="3m"
 
 function podpreset::enable_admission_plugin() {
     local -r cluster_name=$1
@@ -20,7 +20,7 @@ function podpreset::validate_admission_plugin_is_enabled() {
     local -r wait_time=$2
     local -r control_plane_container="$cluster_name-control-plane"
 
-    if ! timeout "${wait_time}s" bash <<EOT
+    if ! timeout "${wait_time}" bash <<EOT
 function is_admission_plugin_enabled() {
     docker top $control_plane_container |
         grep -Po "kube-apiserver.*--enable-admission-plugins=.*\KPodPreset"
