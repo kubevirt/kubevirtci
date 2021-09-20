@@ -52,8 +52,6 @@ EOF
 `
 	etcdDataDir         = "/var/lib/etcd"
 	nvmeDiskImagePrefix = "/nvme"
-
-	hugepagesSize2M = "2M"
 )
 
 var cli *client.Client
@@ -106,8 +104,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().StringArrayVar(&nvmeDisks, "nvme", []string{}, "size of the emulate NVMe disk to pass to the node")
 	run.Flags().Bool("run-etcd-on-memory", false, "configure etcd to run on RAM memory, etcd data will not be persistent")
 	run.Flags().String("etcd-capacity", "512M", "set etcd data mount size.\nthis flag takes affect only when 'run-etcd-on-memory' is specified")
-	run.Flags().Uint("hugepages-count", 64, "number of hugepages to allocate")
-	run.Flags().Bool("hugepages-2m", true, "use 2M size for hugepages")
+	run.Flags().Uint("hugepages-2m", 64, "number of hugepages of size 2M to allocate")
 	run.Flags().Bool("enable-realtime-scheduler", false, "configures the kernel to allow unlimited runtime for processes that require realtime scheduling")
 	return run
 }
@@ -253,12 +250,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 	resource.MustParse(etcdDataMountSize)
 
-	hugepagesCount, err := cmd.Flags().GetUint("hugepages-count")
-	if err != nil {
-		return err
-	}
-
-	hugepages2M, err := cmd.Flags().GetBool("hugepages-2m")
+	hugepages2Mcount, err := cmd.Flags().GetUint("hugepages-2m")
 	if err != nil {
 		return err
 	}
@@ -521,8 +513,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			additionalArgs = append(additionalArgs, "--qemu-args", shellescape.Quote(nodeQemuArgs))
 		}
 
-		if hugepages2M && hugepagesCount > 0 {
-			args := fmt.Sprintf("hugepagesz=%s hugepages=%d", hugepagesSize2M, hugepagesCount)
+		if hugepages2Mcount > 0 {
+			args := fmt.Sprintf("hugepagesz=2M hugepages=%d", hugepages2Mcount)
 			if len(kernelArgs) > 0 {
 				args = fmt.Sprintf("%s %s", args, kernelArgs)
 			}
