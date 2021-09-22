@@ -2,6 +2,20 @@
 
 set -euo pipefail
 
+function usage() {
+    cat <<EOF
+usage: $0 [-f] [<provision_dir>]
+
+        Downloads the latest containerized-data-importer manifests from the github release page and stores them into the manifests directory of the provision_dir.
+
+        If the provision_dir is omitted, it is assumed that the latest provision_dir should be the target
+
+options:
+    -f
+        forces the download of the manifests, existing manifests are deleted beforehand
+EOF
+}
+
 force=
 while getopts ":f" opt; do
     case "${opt}" in
