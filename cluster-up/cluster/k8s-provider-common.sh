@@ -91,6 +91,6 @@ function up() {
             $kubectl get pods --namespace cdi
             sleep 10
         done
-        until $kubectl wait --for=condition=Ready pod --timeout=60s --all --namespace cdi; do sleep 10; done
+        $kubectl wait --for=condition=Ready pod --timeout=60s --all --namespace cdi
     fi
 }
