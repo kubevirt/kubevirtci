@@ -323,6 +323,9 @@ cp -rf /tmp/cnao/ /opt/
 # so we can use them at cluster-up
 cp -rf /tmp/whereabouts/ /opt/
 
+# copy cdi manifests
+cp -rf /tmp/cdi*.yaml /opt/
+
 # Create a properly labelled tmp directory for testing
 mkdir -p /var/provision/kubevirt.io/tests
 chcon -t container_file_t /var/provision/kubevirt.io/tests

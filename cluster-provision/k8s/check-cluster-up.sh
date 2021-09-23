@@ -41,8 +41,11 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=false
     export KUBEVIRT_DEPLOY_GRAFANA=false
   fi
+  export KUBEVIRT_DEPLOY_CDI=true
   trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
   bash -x ./cluster-up/up.sh
+  # This is required so that all the completed pods from ip-reconciler are getting removed directly
+  ${ksh} patch cronjob ip-reconciler --type merge -p '{ "spec": { "jobTemplate": { "spec": { "ttlSecondsAfterFinished": 0 } } } }'
   timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s --all; do sleep 1; done"
   timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s -n kube-system --all; do sleep 1; done"
   ${ksh} get nodes
