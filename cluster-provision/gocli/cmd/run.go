@@ -610,6 +610,20 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			}
 		}
 
+		if realtimeSchedulingEnabled {
+			success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+				"/bin/bash",
+				"-c",
+				"ssh.sh sudo /bin/bash < /scripts/realtime.sh",
+			}, os.Stdout)
+			if err != nil {
+				return err
+			}
+			if !success {
+				return errors.New("provisioning kernel to allow unlimited runtime realtime scheduler failed")
+			}
+		}
+
 		//check if we have a special provision script
 		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("test -f /scripts/%s.sh", nodeName)}, os.Stdout)
 		if err != nil {
@@ -724,20 +738,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 	}
 
-	if realtimeSchedulingEnabled {
-		nodeName := nodeNameFromIndex(1)
-		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
-			"/bin/bash",
-			"-c",
-			"ssh.sh sudo /bin/bash < /scripts/realtime.sh",
-		}, os.Stdout)
-		if err != nil {
-			return err
-		}
-		if !success {
-			return errors.New("provisioning kernel to allow unlimited runtime realtime scheduler failed")
-		}
-	}
 	// If background flag was specified, we don't want to clean up if we reach that state
 	if !background {
 		wg.Wait()
