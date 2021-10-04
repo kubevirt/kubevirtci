@@ -11,6 +11,27 @@ function cleanup() {
   virsh undefine "${DOMAIN_NAME}" || true
 }
 
+VIRT_INSTALL_WAIT_INTERVAL=${VIRT_INSTALL_WAIT_INTERVAL:-5}
+VIRT_INSTALL_TIMEOUT=${VIRT_INSTALL_TIMEOUT:-"$((100*$VIRT_INSTALL_WAIT_INTERVAL))"}
+
+function wait_for_install_to_complete() {
+  local -r timeout_seconds=$1
+  local -r interval_seconds=$2
+  local count=0
+  local -r retries=$((timeout_seconds/interval_seconds))
+  until [[ $(virsh list --state-running --name | grep $DOMAIN_NAME) == "" || $count -gt $retries ]]; do
+    sleep $interval_seconds
+    count=$((count + 1))
+  done
+  if [[ $count -gt $retries ]]; then
+    echo "VM '$DOMAIN_NAME' is still in "$(virsh list --all |grep $DOMAIN_NAME |awk '{print $3}')" state after waiting for "$(expr $count \* $retries) "seconds"
+    return 1
+  else
+    echo "done"
+  fi
+}
+
+
 SOURCE_IMAGE_PATH=$1
 OS_VARIANT=$2
 CUSTOMIZE_IMAGE_PATH=$3
@@ -39,6 +60,8 @@ virt-install \
   --graphics none \
   --network default \
   --import
+
+wait_for_install_to_complete $VIRT_INSTALL_TIMEOUT $VIRT_INSTALL_WAIT_INTERVAL
 
 # Stop VM
 virsh destroy $DOMAIN_NAME || true
