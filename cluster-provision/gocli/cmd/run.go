@@ -52,10 +52,12 @@ EOF
 `
 	etcdDataDir         = "/var/lib/etcd"
 	nvmeDiskImagePrefix = "/nvme"
+	scsiDiskImagePrefix = "/scsi"
 )
 
 var cli *client.Client
 var nvmeDisks []string
+var scsiDisks []string
 
 type dockerSetting struct {
 	Proxy string
@@ -102,6 +104,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("container-suffix", "", "Override container suffix stored at the cli binary")
 	run.Flags().String("gpu", "", "pci address of a GPU to assign to a node")
 	run.Flags().StringArrayVar(&nvmeDisks, "nvme", []string{}, "size of the emulate NVMe disk to pass to the node")
+	run.Flags().StringArrayVar(&scsiDisks, "scsi", []string{}, "size of the emulate SCSI disk to pass to the node")
 	run.Flags().Bool("run-etcd-on-memory", false, "configure etcd to run on RAM memory, etcd data will not be persistent")
 	run.Flags().String("etcd-capacity", "512M", "set etcd data mount size.\nthis flag takes affect only when 'run-etcd-on-memory' is specified")
 	run.Flags().Uint("hugepages-2m", 64, "number of hugepages of size 2M to allocate")
@@ -507,6 +510,16 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 				vmArgsNvmeDisks = append(vmArgsNvmeDisks, fmt.Sprintf("--nvme-device-size %s", size))
 			}
 		}
+		var vmArgsSCSIDisks []string
+		if len(scsiDisks) > 0 {
+			nodeQemuArgs = fmt.Sprintf("%s -device virtio-scsi-pci,id=scsi0", nodeQemuArgs)
+			for i, size := range scsiDisks {
+				resource.MustParse(size)
+				disk := fmt.Sprintf("%s-%d.img", scsiDiskImagePrefix, i)
+				nodeQemuArgs = fmt.Sprintf("%s -drive file=%s,if=none,id=drive%d -device scsi-hd,drive=drive%d,bus=scsi0.0,channel=0,scsi-id=0,lun=%d", nodeQemuArgs, disk, i, i, i)
+				vmArgsSCSIDisks = append(vmArgsSCSIDisks, fmt.Sprintf("--scsi-device-size %s", size))
+			}
+		}
 
 		additionalArgs := []string{}
 		if len(nodeQemuArgs) > 0 {
@@ -531,7 +544,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
 			},
-			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s %s %s", memory, strconv.Itoa(int(cpu)), blockDev, strings.Join(vmArgsNvmeDisks, " "), strings.Join(additionalArgs, " "))},
+			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s %s %s %s", memory, strconv.Itoa(int(cpu)), blockDev, strings.Join(vmArgsSCSIDisks, " "), strings.Join(vmArgsNvmeDisks, " "), strings.Join(additionalArgs, " "))},
 		}
 
 		if cephEnabled {
