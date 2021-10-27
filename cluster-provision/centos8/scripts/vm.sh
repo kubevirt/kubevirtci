@@ -21,6 +21,7 @@ while true; do
     -b | --block-device ) BLOCK_DEV="$2"; shift 2 ;;
     -s | --block-device-size ) BLOCK_DEV_SIZE="$2"; shift 2 ;;
     -n | --nvme-device-size ) NVME_DISK_SIZES+="$2 "; shift 2 ;;
+    -t | --scsi-device-size ) SCSI_DISK_SIZES+="$2 "; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -113,6 +114,14 @@ disk_num=0
 for size in ${NVME_DISK_SIZES[@]}; do
   echo "Creating disk "$size" for NVMe disk emulation"
   disk="/nvme-"${disk_num}".img"
+  qemu-img create -f raw $disk $size
+  let "disk_num+=1"
+done
+
+disk_num=0
+for size in ${SCSI_DISK_SIZES[@]}; do
+  echo "Creating disk "$size" for SCSI disk emulation"
+  disk="/scsi-"${disk_num}".img"
   qemu-img create -f raw $disk $size
   let "disk_num+=1"
 done
