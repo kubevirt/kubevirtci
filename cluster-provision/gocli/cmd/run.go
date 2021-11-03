@@ -271,7 +271,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	ctx, cancel := context.WithCancel(b)
 
 	stop := make(chan error, 10)
-	containers, volumes, done := docker.NewCleanupHandler(cli, stop, cmd.OutOrStderr(), false)
+	containers, _, done := docker.NewCleanupHandler(cli, stop, cmd.OutOrStderr(), false)
 
 	defer func() {
 		stop <- retErr
@@ -470,14 +470,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodeNum = fmt.Sprintf("%02d", (int(nodes) - x))
 		}
 
-		vol, err := cli.VolumeCreate(ctx, volume.VolumeCreateBody{
-			Name: fmt.Sprintf("%s-%s", prefix, nodeName),
-		})
-		if err != nil {
-			return err
-		}
-		volumes <- vol.Name
-
 		// assign a GPU to one node
 		var deviceMappings []container.DeviceMapping
 		if gpuAddress != "" && x == int(nodes)-1 {
@@ -554,13 +546,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 
 		node, err := cli.ContainerCreate(ctx, vmContainerConfig, &container.HostConfig{
-			Mounts: []mount.Mount{
-				{
-					Type:   "volume",
-					Source: vol.Name,
-					Target: "/var/run/disk",
-				},
-			},
 			Privileged:  true,
 			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
 			Resources: container.Resources{
