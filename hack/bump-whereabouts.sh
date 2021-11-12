@@ -38,7 +38,7 @@ else
     url="${WHEREABOUTS_BASE}/${whereabouts_version}.tar.gz"
 fi
 
-tmp_dir=`mktemp -d`
+tmp_dir=$(mktemp -d)
 cd $tmp_dir
 wget -O ${tmp_dir}/whereabouts.tar.gz "$url"
 tar xzf whereabouts.tar.gz
@@ -48,11 +48,12 @@ cd -
 
 manifests_dir=doc
 [[ -d ${tmp_dir}/whereabouts/doc/crds ]] && manifests_dir=doc/crds
+cp hack/kustomization/whereabouts/*.yaml ${tmp_dir}/whereabouts/${manifests_dir}/
 
 target_dir="cluster-provision/k8s/${provider}/manifests/whereabouts"
 mkdir -p ${target_dir}
-rm -rf ${target_dir}/*
-cp ${tmp_dir}/whereabouts/${manifests_dir}/*.yaml ${target_dir}/
+rm -rf ${target_dir:?}/*
+kubectl kustomize ${tmp_dir}/whereabouts/${manifests_dir}/ >${target_dir}/whereabouts-${whereabouts_version}.yaml
 
 rm -rf $tmp_dir
 
