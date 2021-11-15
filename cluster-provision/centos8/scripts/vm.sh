@@ -2,12 +2,10 @@
 
 set -ex
 
-PROVISION=false
 MEMORY=3096M
 CPU=2
 QEMU_ARGS=""
 KERNEL_ARGS=""
-NEXT_DISK=""
 BLOCK_DEV=""
 BLOCK_DEV_SIZE=""
 
@@ -27,10 +25,6 @@ while true; do
         ;;
     -k | --additional-kernel-args)
         KERNEL_ARGS="${2}"
-        shift 2
-        ;;
-    -n | --next-disk)
-        NEXT_DISK="$2"
         shift 2
         ;;
     -b | --block-device)
@@ -62,7 +56,6 @@ function calc_next_disk() {
     last="${last:-00}"
     next=$((last + 1))
     next=$(printf "/disk%02d.qcow2" $next)
-    if [ -n "$NEXT_DISK" ]; then next=${NEXT_DISK}; fi
     if [ "$last" = "00" ]; then
         last="box.qcow2"
     else
@@ -125,7 +118,7 @@ echo "VM hostname will be node${n}"
 
 # Try to create /dev/kvm if it does not exist
 if [ ! -e /dev/kvm ]; then
-    mknod /dev/kvm c 10 $(grep '\<kvm\>' /proc/misc | cut -f 1 -d' ')
+    mknod /dev/kvm c 10 "$(grep '\<kvm\>' /proc/misc | cut -f 1 -d' ')"
 fi
 
 # Prevent the emulated soundcard from messing with host sound
@@ -141,17 +134,17 @@ if [ -n "${BLOCK_DEV}" ]; then
 fi
 
 disk_num=0
-for size in ${NVME_DISK_SIZES[@]}; do
-    echo "Creating disk "$size" for NVMe disk emulation"
-    disk="/nvme-"${disk_num}".img"
+for size in "${NVME_DISK_SIZES[@]}"; do
+    echo "Creating disk $size for NVMe disk emulation"
+    disk="/nvme-${disk_num}.img"
     qemu-img create -f raw $disk $size
     let "disk_num+=1"
 done
 
 disk_num=0
-for size in ${SCSI_DISK_SIZES[@]}; do
-    echo "Creating disk "$size" for SCSI disk emulation"
-    disk="/scsi-"${disk_num}".img"
+for size in "${SCSI_DISK_SIZES[@]}"; do
+    echo "Creating disk $size for SCSI disk emulation"
+    disk="/scsi-${disk_num}.img"
     qemu-img create -f raw $disk $size
     let "disk_num+=1"
 done
@@ -166,5 +159,5 @@ exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,c
     -vnc :${n} -cpu host,migratable=no,+invtsc -m ${MEMORY} -smp ${CPU} \
     -serial pty -M q35,accel=kvm,kernel_irqchip=split \
     -device intel-iommu,intremap=on,caching-mode=on -soundhw hda \
-    -uuid $(cat /proc/sys/kernel/random/uuid) \
+    -uuid "$(cat /proc/sys/kernel/random/uuid)" \
     ${QEMU_ARGS}
