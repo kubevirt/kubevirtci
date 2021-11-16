@@ -50,6 +50,10 @@ fi
 # The device should now be using the vfio-pci driver
 new_driver=$(get_device_driver)
 if [[ $new_driver != "vfio-pci" ]]; then
-    echo "Error: Failed to bind to vfio-pci driver" 1>&2
-    exit 1
+    sleep 10
+    new_driver=$(get_device_driver)
+    if [[ $new_driver != "vfio-pci" ]]; then
+        echo "Error: Failed to bind to vfio-pci driver" 1>&2
+        exit 1
+    fi
 fi
