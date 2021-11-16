@@ -22,7 +22,9 @@ find "$DIR/${provision_dir}/manifests/" -type f -name '*.yaml' \
     -not -name 'local-volume.yaml' \
     -not -name 'cni*.yaml' \
     -not -name 'cdi*-cr.yaml' \
+    -not -name 'cdi*-operator.yaml' \
+    -not -name 'whereabouts-*.yaml' \
     -print -exec ${ksh} create -f {} \;
 
 # wait for pods to get ready (we do this repeatedly to give the pods created by the operators time to come up)
-timeout 300s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=60s --all --all-namespaces; do ${ksh} get pods --all-namespaces; sleep 10; done"
+timeout 300s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=60s --all --all-namespaces -l app!=whereabouts; do ${ksh} get pods --all-namespaces; sleep 10; done"
