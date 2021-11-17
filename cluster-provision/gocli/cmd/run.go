@@ -19,7 +19,6 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/strslice"
-	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
@@ -81,7 +80,6 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().BoolP("background", "b", false, "go to background after nodes are up")
 	run.Flags().BoolP("reverse", "r", false, "revert node startup order")
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
-	run.Flags().String("registry-volume", "", "cache docker registry content in the specified volume")
 	run.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	run.Flags().Uint("http-port", 0, "port on localhost for http")
 	run.Flags().Uint("https-port", 0, "port on localhost for https")
@@ -167,11 +165,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	secondaryNics, err := cmd.Flags().GetUint("secondary-nics")
-	if err != nil {
-		return err
-	}
-
-	registryVol, err := cmd.Flags().GetString("registry-volume")
 	if err != nil {
 		return err
 	}
@@ -331,30 +324,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		panic(err)
 	}
 
-	// Create registry volume
-	var registryMounts []mount.Mount
-	if registryVol != "" {
-
-		vol, err := cli.VolumeCreate(ctx, volume.VolumeCreateBody{
-			Name: fmt.Sprintf("%s-%s", prefix, "registry"),
-		})
-		if err != nil {
-			return err
-		}
-		registryMounts = []mount.Mount{
-			{
-				Type:   mount.TypeVolume,
-				Source: vol.Name,
-				Target: "/var/lib/registry",
-			},
-		}
-	}
-
 	// Start registry
 	registry, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: utils.DockerRegistryImage,
 	}, &container.HostConfig{
-		Mounts:      registryMounts,
 		Privileged:  true, // fixme we just need proper selinux volume labeling
 		NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
 	}, nil, nil, prefix+"-registry")
