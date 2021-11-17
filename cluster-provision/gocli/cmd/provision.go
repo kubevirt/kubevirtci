@@ -151,6 +151,13 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	volumes <- vol.Name
+	registryVol, err := cli.VolumeCreate(ctx, volume.VolumeCreateBody{
+		Name: fmt.Sprintf("%s-%s", prefix, "registry"),
+	})
+	if err != nil {
+		return err
+	}
+
 	if len(qemuArgs) > 0 {
 		qemuArgs = "--qemu-args " + qemuArgs
 	}
@@ -160,7 +167,8 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 			fmt.Sprintf("NODE_NUM=%s", nodeNum),
 		},
 		Volumes: map[string]struct{}{
-			"/var/run/disk/": {},
+			"/var/run/disk/":    {},
+			"/var/lib/registry": {},
 		},
 		Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), qemuArgs)},
 	}, &container.HostConfig{
@@ -169,6 +177,11 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 				Type:   "volume",
 				Source: vol.Name,
 				Target: "/var/run/disk",
+			},
+			{
+				Type:   "volume",
+				Source: registryVol.Name,
+				Target: "/var/lib/registry",
 			},
 		},
 		Privileged:  true,
