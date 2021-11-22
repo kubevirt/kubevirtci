@@ -1,0 +1,76 @@
+#cloud-config
+password: fedora
+chpasswd: { expire: False }
+ssh_pwauth: yes
+write_files:
+    - path: /etc/systemd/system/wait-for-cloud-init.service
+      owner: root:root
+      permissions: '0755'
+      content: |
+          [Unit]
+          Description=Wait for cloud-init to complete
+          Before=qemu-guest-agent.service
+          After=cloud-final.service
+
+          [Service]
+          Type=oneshot
+          ExecStartPre=cloud-init status --wait
+          ExecStart=/usr/bin/true
+          RemainAfterExit=true
+
+          [Install]
+          WantedBy=cloud-init.service
+    - path: /root/bootstrap.sh
+      owner: root:root
+      permissions: '0755'
+      content: |
+          #!/bin/bash
+
+          sudo modprobe overlay && sudo modprobe br_netfilter
+          sudo cat > /etc/sysctl.d/99-k8s-cri.conf <<EOF
+          net.bridge.bridge-nf-call-iptables=1
+          net.ipv4.ip_forward=1
+          net.bridge.bridge-nf-call-ip6tables=1
+          EOF
+
+          sudo echo -e overlay\\nbr_netfilter > /etc/modules-load.d/k8s.conf
+
+          sudo touch /etc/systemd/zram-generator.conf
+          sudo sysctl --system
+
+          sudo swapoff -a
+          sudo systemctl daemon-reload
+          sudo systemctl stop firewalld
+          sudo systemctl disable firewalld
+          sudo dnf -y remove firewalld
+          sudo dnf module -y install cri-o:1.21/default
+          sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent kubernetes-kubeadm kubernetes-node kubernetes-client cri-tools iproute-tc container-selinux ebtables ethtool iptables
+          sudo dnf clean all
+
+          sudo sed -i 's|^# KUBELET_PORT|KUBELET_PORT|g' /etc/kubernetes/kubelet
+          sudo sed -i 's|^KUBELET_HOSTNAME|#KUBELET_HOSTNAME|g' /etc/kubernetes/kubelet
+          sudo sed -i 's|127.0.0.1|0.0.0.0|g' /etc/kubernetes/kubelet
+          sudo sed -i 's|cgroup-driver=systemd|cgroup-driver=systemd --container-runtime=remote --container-runtime-endpoint=unix:///var/run/crio/crio.sock|g' /etc/systemd/system/kubelet.service.d/kubeadm.conf
+          sudo systemctl enable wait-for-cloud-init
+          sudo systemctl enable qemu-guest-agent.service
+          sudo hostnamectl set-hostname ""
+          sudo hostnamectl set-hostname "" --transient
+
+          sudo sed -i 's/^SELINUX=.*/SELINUX=permissive/' /etc/selinux/config
+          sudo update-crypto-policies --set LEGACY
+
+          sudo systemctl enable --now cri-o
+          sudo systemctl enable --now kubelet
+
+runcmd:
+  - sudo /root/bootstrap.sh
+  - sudo shutdown
+
+users:
+  - name: capk
+    gecos: CAPK User
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    plain_text_passwd: 'capk'
+    lock_passwd: False
+    groups: users, admin
+
