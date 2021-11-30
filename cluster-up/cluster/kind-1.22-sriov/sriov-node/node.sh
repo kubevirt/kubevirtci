@@ -63,7 +63,7 @@ function node::configure_sriov_pfs_and_vfs() {
 
     ls_node_dev_vfio="${node_exec} ls -la -Z /dev/vfio"
     $ls_node_dev_vfio
-    $node_exec chmod 666 /dev/vfio/vfio
+    $node_exec chmod 0666 /dev/vfio/vfio
     $ls_node_dev_vfio
 
     # Create and configure SRIOV Virtual Functions on SRIOV node
