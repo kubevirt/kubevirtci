@@ -51,7 +51,7 @@ func NewSCPCommand() *cobra.Command {
 
 	ssh := &cobra.Command{
 		Use:   "scp SRC DST",
-		Short: "scp copies files from master node to the local host",
+		Short: "scp copies files from control-plane node to the local host",
 		RunE:  scp,
 		Args:  cobra.MinimumNArgs(2),
 	}

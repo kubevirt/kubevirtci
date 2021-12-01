@@ -57,7 +57,7 @@ export KUBEVIRT_DEPLOY_GRAFANA=true
 
 After making changes to a kubevirtci provider, it's recommended to test it locally including kubevirt e2e tests before publishing it.
 
-With the changes in place you can execute locally [`make functest`](https://github.com/kubevirt/kubevirt/blob/master/docs/getting-started.md#testing) against a cluster with kubevirt that was provisioned using `kubevirtci`.
+With the changes in place you can execute locally [`make functest`](https://github.com/kubevirt/kubevirt/blob/main/docs/getting-started.md#testing) against a cluster with kubevirt that was provisioned using `kubevirtci`.
 
 `$KUBEVIRT_DIR` is assumed to be your kubevirt path.
 
