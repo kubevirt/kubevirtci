@@ -34,6 +34,13 @@ write_files:
 
           [Install]
           WantedBy=cloud-init.service
+    # Note: bash and libreadline in Fedora 35 come with 'bracketed-paste' mode
+    # enabled by default. This results in extra escape sequences in the
+    # console output. The mode is explicitly disabled here to make the existing
+    # tests compatible.
+    - path: /etc/profile.d/disable-bracketed-paste.sh
+      content: |
+        bind 'set enable-bracketed-paste off'
 runcmd:
   - sudo systemctl daemon-reload
   - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress-ng dmidecode virt-what vm-dump-metrics tpm2-tools
@@ -44,4 +51,8 @@ runcmd:
   - sudo hostnamectl set-hostname "" --transient
   - sudo sed -i /users-groups/d /etc/cloud/cloud.cfg
   - sudo sed -i 's/^SELINUX=.*/SELINUX=permissive/' /etc/selinux/config
+  # Adjust /etc/nsswitch.conf to mitigate the bug with nss-myhostame which
+  # breaks FQDN: https://bugzilla.redhat.com/show_bug.cgi?id=2038634
+  - |
+    sudo sed -i 's/hosts:      files myhostname resolve \[\!UNAVAIL=return\] dns/hosts:      resolve \[\!UNAVAIL=return\] files myhostname dns/' /etc/nsswitch.conf
   - sudo shutdown
