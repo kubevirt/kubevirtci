@@ -60,9 +60,7 @@ patch $cni_manifest /tmp/cni.diff
 
 cp /tmp/local-volume.yaml /provision/local-volume.yaml
 
-# Disable swap
-swapoff -a
-sed -i '/ swap / s/^/#/' /etc/fstab
+
 
 systemctl stop firewalld || :
 systemctl disable firewalld || :
@@ -152,7 +150,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="IPv6DualStack=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --fail-swap-on=false --kubelet-cgroups=/systemd/system.slice --feature-gates="IPv6DualStack=true,NodeSwap=true"
 EOT
 
 # Needed for kubernetes service routing and dns
@@ -263,7 +261,8 @@ EOF
 
 kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
 envsubst < /tmp/kubeadm.conf > $kubeadm_manifest
-kubeadm init --config $kubeadm_manifest --experimental-patches /provision/kubeadm-patches/
+
+kubeadm init --config $kubeadm_manifest  --ignore-preflight-errors=SWAP --experimental-patches /provision/kubeadm-patches/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
