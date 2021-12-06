@@ -29,7 +29,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRT_NUM_NODES=2
     export KUBEVIRT_NUM_SECONDARY_NICS=2
     export KUBEVIRT_WITH_CNAO=true
-    export KUBEVIRT_DEPLOY_ISTIO=true
+    #export KUBEVIRT_DEPLOY_ISTIO=true
     if [[ $KUBEVIRT_PROVIDER =~ k8s-1\.1.* ]]; then
         export KUBEVIRT_DEPLOY_ISTIO=false
     fi
