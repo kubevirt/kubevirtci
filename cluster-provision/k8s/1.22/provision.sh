@@ -17,7 +17,6 @@ cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 #!/bin/bash
 set -ex
 export KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
-export KUBELET_FEATURE_GATES="IPv6DualStack=true"
 export ISTIO_VERSION=1.10.0
 export ISTIO_BIN_DIR=/opt/istio-$ISTIO_VERSION/bin
 EOF
@@ -152,7 +151,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="IPv6DualStack=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice
 EOT
 
 # Needed for kubernetes service routing and dns
@@ -263,6 +262,33 @@ EOF
 
 kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
 envsubst < /tmp/kubeadm.conf > $kubeadm_manifest
+
+cat <<EOT > /etc/cni/net.d/10-bridge-v6.conf
+{
+  "cniVersion": "0.3.0",
+  "name": "mynet",
+  "type": "bridge",
+  "bridge": "cbr0",
+  "isDefaultGateway": true,
+  "ipMasq": true,
+  "hairpinMode": true,
+  "ipam": {
+    "type": "host-local",
+    "ranges": [
+      [
+        {
+          "subnet": "fd00:101::/64",
+          "gateway": "fd00:101::1"
+        }
+      ]
+    ]
+  }
+}
+EOT
+
+echo "waiting for ip"
+until ip address | grep fd00::101/128; do sleep 1; done
+
 kubeadm init --config $kubeadm_manifest --experimental-patches /provision/kubeadm-patches/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
