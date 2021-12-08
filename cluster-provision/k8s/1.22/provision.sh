@@ -17,6 +17,7 @@ cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 #!/bin/bash
 set -ex
 export KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
+export KUBELET_FEATURE_GATES="IPv6DualStack=false"
 export ISTIO_VERSION=1.10.0
 export ISTIO_BIN_DIR=/opt/istio-$ISTIO_VERSION/bin
 EOF
@@ -151,7 +152,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="IPv6DualStack=false"
 EOT
 
 # Needed for kubernetes service routing and dns
@@ -263,6 +264,9 @@ EOF
 kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
 envsubst < /tmp/kubeadm.conf > $kubeadm_manifest
 
+echo "waiting for ip"
+until ip address | grep fd00::101/128; do sleep 1; done
+
 cat <<EOT > /etc/cni/net.d/10-bridge-v6.conf
 {
   "cniVersion": "0.3.0",
@@ -286,10 +290,7 @@ cat <<EOT > /etc/cni/net.d/10-bridge-v6.conf
 }
 EOT
 
-echo "waiting for ip"
-until ip address | grep fd00::101/128; do sleep 1; done
-
-kubeadm init --config $kubeadm_manifest --experimental-patches /provision/kubeadm-patches/
+kubeadm init --config $kubeadm_manifest --experimental-patches /provision/kubeadm-patches/ -v7
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"

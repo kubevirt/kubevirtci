@@ -43,7 +43,7 @@ done
 
 until ip address | grep fd00::101/128; do sleep 1; done
 
-kubeadm init --config /etc/kubernetes/kubeadm.conf --experimental-patches /provision/kubeadm-patches/
+kubeadm init --config /etc/kubernetes/kubeadm.conf --experimental-patches /provision/kubeadm-patches/ -v7
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /provision/kubeadm-patches/add-security-context-deployment-patch.yaml)"
 # cni manifest is already configured at provision stage.

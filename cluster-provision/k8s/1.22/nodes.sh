@@ -44,11 +44,11 @@ done
 if [ -f /etc/sysconfig/kubelet ]; then
     # TODO use config file! this is deprecated
     cat <<EOT >>/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --node-ip=:: --feature-gates=CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m
+KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --node-ip=:: --feature-gates=${KUBELET_FEATURE_GATES},CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m
 EOT
 else
     cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
-Environment="KUBELET_CPUMANAGER_ARGS=--feature-gates=CPUManager=true --node-ip=:: --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m"
+Environment="KUBELET_CPUMANAGER_ARGS=--feature-gates=CPUManager=true,IPv6DualStack=false --node-ip=:: --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m"
 EOT
 sed -i 's/$KUBELET_EXTRA_ARGS/$KUBELET_EXTRA_ARGS $KUBELET_CPUMANAGER_ARGS/' /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 fi
@@ -63,6 +63,28 @@ fi
 
 # TODO make generic
 until ip address | grep fd00::102/128; do sleep 1; done
+cat <<EOT > /etc/cni/net.d/10-bridge-v6.conf
+{
+  "cniVersion": "0.3.0",
+  "name": "mynet",
+  "type": "bridge",
+  "bridge": "cbr0",
+  "isDefaultGateway": true,
+  "ipMasq": true,
+  "hairpinMode": true,
+  "ipam": {
+    "type": "host-local",
+    "ranges": [
+      [
+        {
+          "subnet": "fd00:102::/64",
+          "gateway": "fd00:102::1"
+        }
+      ]
+    ]
+  }
+}
+EOT
 
 kubeadm join --token abcdef.1234567890123456 [fd00::101]:6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true
 

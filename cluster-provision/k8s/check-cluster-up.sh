@@ -29,7 +29,11 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRT_NUM_NODES=2
     export KUBEVIRT_NUM_SECONDARY_NICS=2
     export KUBEVIRT_WITH_CNAO=true
+
+    # limitations for ipv6 single cluster
     #export KUBEVIRT_DEPLOY_ISTIO=true
+    RUN_KUBEVIRT_CONFORMANCE=false
+
     if [[ $KUBEVIRT_PROVIDER =~ k8s-1\.1.* ]]; then
         export KUBEVIRT_DEPLOY_ISTIO=false
     fi
