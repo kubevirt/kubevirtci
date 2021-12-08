@@ -44,11 +44,11 @@ done
 if [ -f /etc/sysconfig/kubelet ]; then
     # TODO use config file! this is deprecated
     cat <<EOT >>/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --feature-gates=${KUBELET_FEATURE_GATES},CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m
+KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --node-ip=:: --feature-gates=${KUBELET_FEATURE_GATES},CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m
 EOT
 else
     cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
-Environment="KUBELET_CPUMANAGER_ARGS=--feature-gates=CPUManager=true,IPv6DualStack=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m"
+Environment="KUBELET_CPUMANAGER_ARGS=--feature-gates=CPUManager=true,IPv6DualStack=false --node-ip=:: --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m"
 EOT
 sed -i 's/$KUBELET_EXTRA_ARGS/$KUBELET_EXTRA_ARGS $KUBELET_CPUMANAGER_ARGS/' /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 fi
@@ -61,7 +61,9 @@ if [[ $kubelet_rc -ne 0 ]]; then
     service kubelet restart
 fi
 
-kubeadm join --token abcdef.1234567890123456 192.168.66.101:6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true
+until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
+
+kubeadm join --token abcdef.1234567890123456 [fd00::101]:6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true
 
 # ceph mon permission
 mkdir -p /var/lib/rook

@@ -17,7 +17,7 @@ cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 #!/bin/bash
 set -ex
 export KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
-export KUBELET_FEATURE_GATES="IPv6DualStack=true"
+export KUBELET_FEATURE_GATES="IPv6DualStack=false"
 export ISTIO_VERSION=1.10.0
 export ISTIO_BIN_DIR=/opt/istio-$ISTIO_VERSION/bin
 EOF
@@ -152,7 +152,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="IPv6DualStack=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="IPv6DualStack=false"
 EOT
 
 # Needed for kubernetes service routing and dns
@@ -172,6 +172,13 @@ sysctl --system
 echo bridge >> /etc/modules-load.d/k8s.conf
 echo br_netfilter >> /etc/modules-load.d/k8s.conf
 echo overlay >> /etc/modules-load.d/k8s.conf
+
+# Delete conf files created by crio install before starting crio
+# so calico will create the interfaces by its own according the right configuration.
+# See https://github.com/cri-o/cri-o/issues/2411#issuecomment-540006558
+# It should happen before crio start, see https://github.com/cri-o/cri-o/issues/4276
+rm -f /etc/cni/net.d/100-crio-bridge.conf
+rm -f /etc/cni/net.d/200-loopback.conf
 
 systemctl daemon-reload
 systemctl enable crio && systemctl start crio
@@ -263,7 +270,10 @@ EOF
 
 kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
 envsubst < /tmp/kubeadm.conf > $kubeadm_manifest
-kubeadm init --config $kubeadm_manifest --experimental-patches /provision/kubeadm-patches/
+
+until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
+
+kubeadm init --config $kubeadm_manifest --experimental-patches /provision/kubeadm-patches/ -v5
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
