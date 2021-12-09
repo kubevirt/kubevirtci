@@ -41,7 +41,10 @@ do
     sleep 2
 done
 
-kubeadm init --config /etc/kubernetes/kubeadm.conf --experimental-patches /provision/kubeadm-patches/
+# Disable swap
+sudo swapoff -a
+
+kubeadm init --config /etc/kubernetes/kubeadm.conf --ignore-preflight-errors=SWAP --experimental-patches /provision/kubeadm-patches/
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /provision/kubeadm-patches/add-security-context-deployment-patch.yaml)"
 # cni manifest is already configured at provision stage.
