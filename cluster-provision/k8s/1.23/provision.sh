@@ -43,7 +43,7 @@ function pull_container_retry() {
 kubeadmn_patches_path="/provision/kubeadm-patches"
 
 # Install modules of the initrd kernel
-dnf install -y kernel-modules-$(uname -r)
+dnf install -y "kernel-modules-$(uname -r)"
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
@@ -263,7 +263,8 @@ EOF
 
 kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
 envsubst < /tmp/kubeadm.conf > $kubeadm_manifest
-kubeadm init --config $kubeadm_manifest --experimental-patches /provision/kubeadm-patches/
+# 1.23 has deprecated --experimental-patches /provision/kubeadm-patches/, we now mention the patch directory in kubeadm.conf
+kubeadm init --config $kubeadm_manifest
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
