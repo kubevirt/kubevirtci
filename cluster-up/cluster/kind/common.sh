@@ -39,7 +39,12 @@ ETCD_IN_MEMORY_DATA_DIR="/tmp/kind-cluster-etcd"
 
 function _wait_kind_up {
     echo "Waiting for kind to be ready ..."
-    while [ -z "$(docker exec --privileged ${CLUSTER_NAME}-control-plane kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --selector=node-role.kubernetes.io/control-plane -o=jsonpath='{.items..status.conditions[-1:].status}' | grep True)" ]; do
+    if [[ $KUBEVIRT_PROVIDER =~ kind-.*1\.1.* ]]; then
+        selector="master"
+    else
+        selector="control-plane"
+    fi
+    while [ -z "$(docker exec --privileged ${CLUSTER_NAME}-control-plane kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --selector=node-role.kubernetes.io/${selector} -o=jsonpath='{.items..status.conditions[-1:].status}' | grep True)" ]; do
         echo "Waiting for kind to be ready ..."
         sleep 10
     done
