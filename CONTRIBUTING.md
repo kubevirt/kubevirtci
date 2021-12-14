@@ -2,7 +2,7 @@
 
 Welcome! As stated in the [README](README.md) this repository contains code for the virtualized clusters used in testing KubeVirt.
 
-See [the KubeVirt contribution guide](https://github.com/kubevirt/kubevirt/blob/master/CONTRIBUTING.md) for general information about how to contribute.
+See [the KubeVirt contribution guide](https://github.com/kubevirt/kubevirt/blob/main/CONTRIBUTING.md) for general information about how to contribute.
 
 ## Getting started with gocli
 

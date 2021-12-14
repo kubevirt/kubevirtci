@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	// PortSSH contains SSH port for the master node
+	// PortSSH contains SSH port for the control-plane node
 	PortSSH = 2201
 	// PortSSHWorker contains SSH port for the worker node
 	PortSSHWorker = 2202
@@ -33,7 +33,7 @@ const (
 	//PortUploadProxy contains CDI UploadProxy port
 	PortUploadProxy = 31001
 
-	// PortNameSSH contains master node SSH port name
+	// PortNameSSH contains control-plane node SSH port name
 	PortNameSSH = "ssh"
 	// PortNameSSHWorker contains worker node SSH port name
 	PortNameSSHWorker = "ssh-worker"

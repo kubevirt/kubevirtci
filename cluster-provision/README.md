@@ -15,7 +15,7 @@ gocli help
 
 ### Start the cluster
 
-Start a k8s cluster which contains of one master and two nodes:
+Start a k8s cluster which contains of one control-plane and two nodes:
 
 ```bash
 gocli run --random-ports --nodes 3 --background kubevirtci/k8s-1.13.3
