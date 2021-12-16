@@ -228,6 +228,7 @@ function _add_worker_extra_mounts() {
   extraMounts:
   - containerPath: /var/log/audit
     hostPath: /var/log/audit
+    readOnly: true
 EOF
 
     if [[ "$KUBEVIRT_PROVIDER" =~ sriov.* || "$KUBEVIRT_PROVIDER" =~ vgpu.* ]]; then
