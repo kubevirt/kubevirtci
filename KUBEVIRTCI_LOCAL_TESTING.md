@@ -48,7 +48,7 @@ Prometheus operator is only supported for providers >= 1.21. To enable prometheu
 ```bash
 export KUBEVIRT_PROVIDER=k8s-1.21
 export KUBEVIRT_DEPLOY_PROMETHEUS=true
-export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=false
+export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
 export KUBEVIRT_DEPLOY_GRAFANA=true
 ```
 

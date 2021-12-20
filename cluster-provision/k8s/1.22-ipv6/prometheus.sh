@@ -97,7 +97,7 @@ kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/node-e
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/node-exporter/node-exporter-service.yaml
 
 # Deploy alertmanager
-if [[ ($ALERTMANAGER != "true") &&  ($ALERTMANAGER != "TRUE") ]]; then
+if [[ ($ALERTMANAGER != "false") &&  ($ALERTMANAGER != "FALSE") ]]; then
     kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/alertmanager/alertmanager-secret.yaml
     kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/alertmanager/alertmanager-serviceAccount.yaml
     kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/alertmanager/alertmanager-serviceMonitor.yaml
