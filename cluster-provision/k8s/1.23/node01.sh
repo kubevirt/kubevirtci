@@ -41,6 +41,9 @@ do
     sleep 2
 done
 
+# Disable swap
+sudo swapoff -a
+
 # 1.23 has deprecated --experimental-patches /provision/kubeadm-patches/, we now mention the patch directory in kubeadm.conf
 kubeadm init --config /etc/kubernetes/kubeadm.conf
 

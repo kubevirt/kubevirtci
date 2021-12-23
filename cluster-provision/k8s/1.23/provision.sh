@@ -60,9 +60,6 @@ patch $cni_manifest /tmp/cni.diff
 
 cp /tmp/local-volume.yaml /provision/local-volume.yaml
 
-# Disable swap
-swapoff -a
-sed -i '/ swap / s/^/#/' /etc/fstab
 
 systemctl stop firewalld || :
 systemctl disable firewalld || :
@@ -152,7 +149,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates="IPv6DualStack=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice  --fail-swap-on=false --kubelet-cgroups=/systemd/system.slice --feature-gates="IPv6DualStack=true"
 EOT
 
 # Needed for kubernetes service routing and dns
