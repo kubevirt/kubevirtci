@@ -48,4 +48,4 @@ while IFS= read -r -d '' provider_dir; do
     else
         echo "Updated cdi manifests for $provider_dir"
     fi
-done < <(find ./cluster-provision/k8s -mindepth 1 -maxdepth 1 -type d -regex '^.*[0-9]\.[0-9]+$' -regextype 'posix-extended' -print0)
+done < <(find ./cluster-provision/k8s -mindepth 1 -maxdepth 1 -type d -regex '^.*[0-9]\.[0-9]+.*$' -regextype 'posix-extended' -print0)
