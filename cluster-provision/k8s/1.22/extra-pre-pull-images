@@ -1,4 +1,3 @@
-fluent/fluentd:v1.2-debian
 docker.io/grafana/grafana:7.5.4
 docker.io/istio/install-cni:1.10.0
 docker.io/istio/operator:1.10.0

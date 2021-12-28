@@ -18,7 +18,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
@@ -90,7 +89,6 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("prometheus-port", 0, "port on localhost for prometheus server")
 	run.Flags().Uint("grafana-port", 0, "port on localhost for grafana server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
-	run.Flags().String("log-to-dir", "", "enables aggregated cluster logging to the folder")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().Bool("enable-istio", false, "deploys Istio service mesh")
 	run.Flags().Bool("enable-prometheus", false, "deploys Prometheus operator")
@@ -170,11 +168,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	nfsData, err := cmd.Flags().GetString("nfs-data")
-	if err != nil {
-		return err
-	}
-
-	logDir, err := cmd.Flags().GetString("log-to-dir")
 	if err != nil {
 		return err
 	}
@@ -369,50 +362,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 		containers <- nfsServer.ID
 		if err := cli.ContainerStart(ctx, nfsServer.ID, types.ContainerStartOptions{}); err != nil {
-			return err
-		}
-	}
-
-	if logDir != "" {
-		logDir, err := filepath.Abs(logDir)
-		if err != nil {
-			return err
-		}
-
-		if _, err = os.Stat(logDir); os.IsNotExist(err) {
-			os.Mkdir(logDir, 0755)
-		}
-
-		// Pull the fluent image
-		err = docker.ImagePull(cli, ctx, utils.FluentdImage, types.ImagePullOptions{})
-		if err != nil {
-			panic(err)
-		}
-
-		// Start the fluent image
-		fluentd, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: utils.FluentdImage,
-			Cmd: strslice.StrSlice{
-				"exec fluentd",
-				"-i \"<system>\n log_level debug\n</system>\n<source>\n@type  forward\n@log_level error\nport  24224\n</source>\n<match **>\n@type file\npath /fluentd/log/collected\n</match>\"",
-				"-p /fluentd/plugins $FLUENTD_OPT -v",
-			},
-		}, &container.HostConfig{
-			Mounts: []mount.Mount{
-				{
-					Type:   mount.TypeBind,
-					Source: logDir,
-					Target: "/fluentd/log/collected",
-				},
-			},
-			Privileged:  true,
-			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
-		}, nil, nil, prefix+"-fluentd")
-		if err != nil {
-			return err
-		}
-		containers <- fluentd.ID
-		if err := cli.ContainerStart(ctx, fluentd.ID, types.ContainerStartOptions{}); err != nil {
 			return err
 		}
 	}
@@ -690,22 +639,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 		if !success {
 			return fmt.Errorf("deploying Prometheus operator failed")
-		}
-	}
-
-	// If logging is enabled, deploy the default fluent logging
-	if logDir != "" {
-		nodeName := nodeNameFromIndex(1)
-		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
-			"/bin/bash",
-			"-c",
-			"ssh.sh sudo /bin/bash < /scripts/logging.sh",
-		}, os.Stdout)
-		if err != nil {
-			return err
-		}
-		if !success {
-			return fmt.Errorf("provisioning logging failed")
 		}
 	}
 
