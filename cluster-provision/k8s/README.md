@@ -13,10 +13,10 @@ During cluster-up check error:
 ```bash
 ...
 Images found in cluster that are not in list!
-fluent/fluentd:v1.2-debian
+quay.io/calico/cni:v3.18.0
 ```
 
-After adding the above image to the file `fluent/fluentd:v1.2-debian` and reprovisioning the error should go away.
+After adding the above image to the file `quay.io/calico/cni:v3.18.0` and reprovisioning the error should go away.
 
 Checking pull policies
 ----------------------
