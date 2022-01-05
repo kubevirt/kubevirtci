@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
 set -exuo pipefail
 
+ARCH=${ARCH:-"x86_64"}
+CONSOLE=${CONSOLE:-"yes"}
+
 function cleanup() {
   if [ $? -ne 0 ]; then
     rm -f "${CUSTOMIZE_IMAGE_PATH}"
   fi
 
-  rm -rf "${CLOUD_INIT_ISO}"
   virsh destroy "${DOMAIN_NAME}" || true
-  virsh undefine "${DOMAIN_NAME}" || true
+  undefine_vm "${DOMAIN_NAME}"
+  rm -rf "${CLOUD_INIT_ISO}"
+}
+
+function undefine_vm() {
+    local -r domain=$1
+    virsh undefine --nvram "${domain}" || true
 }
 
 SOURCE_IMAGE_PATH=$1
@@ -27,6 +35,22 @@ cloud-localds "${CLOUD_INIT_ISO}" "${CLOUD_CONFIG_PATH}"
 echo "Customize image by booting a VM with
  the image and cloud-init disk
  press ctrl+] to exit"
+
+# Check if it is native build, if true use kvm
+# otherwise use emulation
+if [[ ${ARCH} = $(uname -m) ]]; then
+  buildconfig="--virt-type kvm"
+else
+  buildconfig="--arch ${ARCH}"
+fi
+
+
+if [[ ${CONSOLE} = "no" ]]; then
+  consoleconfig="--noautoconsole --wait 120"
+else
+  consoleconfig=""
+fi
+
 virt-install \
   --memory 2048 \
   --vcpus 2 \
@@ -35,10 +59,11 @@ virt-install \
   --disk "${CLOUD_INIT_ISO}",device=cdrom \
   --os-type Linux \
   --os-variant "${OS_VARIANT}" \
-  --virt-type kvm \
   --graphics none \
   --network default \
-  --import
+  --import \
+  ${buildconfig} \
+  ${consoleconfig}
 
 # Stop VM
 virsh destroy $DOMAIN_NAME || true
@@ -47,7 +72,7 @@ virsh destroy $DOMAIN_NAME || true
 virt-sysprep -d $DOMAIN_NAME --operations machine-id,bash-history,logfiles,tmp-files,net-hostname,net-hwaddr
 
 # Remove VM
-virsh undefine $DOMAIN_NAME
+undefine_vm "${DOMAIN_NAME}"
 
 # Convert image
 qemu-img convert -c -O qcow2 "${SOURCE_IMAGE_PATH}" "${CUSTOMIZE_IMAGE_PATH}"

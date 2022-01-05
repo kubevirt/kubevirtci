@@ -40,6 +40,19 @@ then publish it to a registry. In this case a local registry:
 publish-containerdisk.sh example localhost:1234/myimage:mytag
 ```
 
+To build for aarch64(arm64), you need to set the following environment
+variable.
+```
+export ARCHITECTURE=aarch64
+```
+
+To build the Virtual Machine without console output, only need to set the
+environment variable `CONSOLE`. This is useful when the build script is
+run in a CICD pipeline.
+```
+export CONSOLE=no
+```
+Then follow the previous step.
 ## Create a new containerdisk
 
 Every directory contains build instructions for virt-customize. The build
@@ -47,9 +60,10 @@ instructions are distributed between the following three files:
 
 ```
 $ ls -1 example/
-cloud-config #cloud-init configuration for virt-customize
-image-url    #download URL of the base image
-os-variant   #operating system variant (for example fedora32)
+cloud-config		#cloud-init configuration for virt-customize
+image-url		#download URL of the base image
+image-url-aarch64	#download URL of the base image for aarch64
+os-variant		#operating system variant (for example fedora32)
 ```
 
 To create a completely new containerdisk, best copy the `example` folder and
@@ -58,7 +72,7 @@ customize the three files.
 ## Push the new image to local cluster registry:
 ```bash
 # From kubevirtci / kubevirt directory
-$ ./build-containerdisk.sh example
+$ ./create-containerdisk.sh example
 $ ./publish-containerdisk.sh example "localhost:$(./cluster-up/cli.sh ports registry | tr -d '\r')"
 ```
 
