@@ -366,7 +366,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 	}
 
-	// Add serial pty so we can do stuff like 'socat - /dev/pts0' to access
+	// Add serial pty so we can do stuff like 'screen /dev/pts0' to access
 	// the VM console from the container without ssh
 	qemuArgs += " -serial pty"
 

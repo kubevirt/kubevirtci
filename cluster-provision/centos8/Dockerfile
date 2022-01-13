@@ -4,7 +4,7 @@ FROM fedora@sha256:8fa60b88e2a7eac8460b9c0104b877f1aa0cea7fbc03c701b7e545dacccfb
 
 ARG centos_version
 
-RUN dnf -y update nettle && dnf -y install jq iptables iproute dnsmasq qemu openssh-clients socat && dnf clean all
+RUN dnf -y update nettle && dnf -y install jq iptables iproute dnsmasq qemu openssh-clients screen && dnf clean all
 
 WORKDIR /
 
