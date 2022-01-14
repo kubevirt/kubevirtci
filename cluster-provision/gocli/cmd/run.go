@@ -33,8 +33,7 @@ import (
 )
 
 const (
-	soundcardPCIID = "8086:2668"
-	proxySettings  = `
+	proxySettings = `
 mkdir -p /etc/systemd/system/docker.service.d/
 
 cat <<EOT  >/etc/systemd/system/docker.service.d/proxy.conf
@@ -53,6 +52,7 @@ EOF
 	scsiDiskImagePrefix = "/scsi"
 )
 
+var soundcardPCIIDs = []string{"8086:2668", "8086:2415"}
 var cli *client.Client
 var nvmeDisks []string
 var scsiDisks []string
@@ -550,19 +550,17 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return fmt.Errorf("checking for matching provision script for node %s failed", nodeName)
 		}
 
-		if success {
-			// move the VM sound card to a vfio-pci driver to prepare for assignment
-			err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), soundcardPCIID, "")
+		for _, s := range soundcardPCIIDs {
+			// move the VM sound cards to a vfio-pci driver to prepare for assignment
+			err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), s, "")
 			if err != nil {
 				return err
 			}
+		}
+
+		if success {
 			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName)}, os.Stdout)
 		} else {
-			// move the VM sound card to a vfio-pci driver to prepare for assignment
-			err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), soundcardPCIID, "")
-			if err != nil {
-				return err
-			}
 			if gpuAddress != "" {
 				// move the assigned PCI device to a vfio-pci driver to prepare for assignment
 				err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), "", gpuAddress)

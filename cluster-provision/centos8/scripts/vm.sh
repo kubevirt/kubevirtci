@@ -135,6 +135,6 @@ exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,c
   -append "$(cat /kernel.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}" \
   -vnc :${n} -cpu host,migratable=no,+invtsc -m ${MEMORY} -smp ${CPU} \
   -serial pty -M q35,accel=kvm,kernel_irqchip=split \
-  -device intel-iommu,intremap=on,caching-mode=on -soundhw hda \
+  -device intel-iommu,intremap=on,caching-mode=on -soundhw hda -soundhw ac97 \
   -uuid $(cat /proc/sys/kernel/random/uuid) \
   ${QEMU_ARGS}
