@@ -94,7 +94,7 @@ export PATH=$ISTIO_BIN_DIR:$PATH
 # generate Istio manifests for pre-pulling images
 istioctl manifest generate --set profile=demo --set components.cni.enabled=true | tee /tmp/istio-deployment.yaml
 
-export CRIO_VERSION=1.20
+export CRIO_VERSION=1.21
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable.repo
 [devel_kubic_libcontainers_stable]
 name=Stable Releases of Upstream github.com/containers packages (CentOS_8_Stream)
