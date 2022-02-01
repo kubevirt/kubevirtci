@@ -42,6 +42,12 @@ _cli="${_cri_bin} run --privileged --net=host --rm ${USE_TTY} -v ${_docker_socke
 if [ -d /lib/modules ]; then
     _cli="${_cli} -v /lib/modules/:/lib/modules/"
 fi
+
+# Workaround https://github.com/containers/conmon/issues/315 by not dumping file content to stdout
+if [ ${_cri_bin} == "podman" ]; then
+    _cli="${_cli} -v ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER:/kubevirtci_config"
+fi
+
 _cli="${_cli} ${_cli_container}"
 
 function _main_ip() {
