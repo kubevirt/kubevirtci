@@ -191,6 +191,9 @@ nmcli connection modify "System eth0" \
    ipv6.addr-gen-mode eui64
 nmcli connection up "System eth0"
 
+dnf install -y centos-release-nfv-openvswitch
+dnf install -y openvswitch2.16
+
 mkdir -p $kubeadmn_patches_path
 
 cat >$kubeadmn_patches_path/kube-apiserver.yaml <<EOF
