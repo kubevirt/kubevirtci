@@ -8,7 +8,7 @@ function cleanup() {
 
   rm -rf "${CLOUD_INIT_ISO}"
   virsh destroy "${DOMAIN_NAME}" || true
-  virsh undefine "${DOMAIN_NAME}" || true
+  virsh undefine "${DOMAIN_NAME}" --nvram --remove-all-storage || true
 }
 
 SOURCE_IMAGE_PATH=$1
@@ -47,7 +47,7 @@ virsh destroy $DOMAIN_NAME || true
 virt-sysprep -d $DOMAIN_NAME --operations machine-id,bash-history,logfiles,tmp-files,net-hostname,net-hwaddr
 
 # Remove VM
-virsh undefine $DOMAIN_NAME
+virsh undefine $DOMAIN_NAME --nvram
 
 # Convert image
 qemu-img convert -c -O qcow2 "${SOURCE_IMAGE_PATH}" "${CUSTOMIZE_IMAGE_PATH}"

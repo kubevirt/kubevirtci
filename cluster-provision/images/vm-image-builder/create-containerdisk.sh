@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -exuo pipefail
 
+# dnf -y install bridge-utils libvirt virt-install qemu-kvm cloud-utils guestfs-tools
 
 if [ "$#" -ne 1 ]; then
-    echo "Usage: create-containerdisk.sh image-directory"
-    echo "Run `create-continerdisk.sh example` to build the `example` image in the `example` folder"
+    echo 'Usage: create-containerdisk.sh image-directory'
+    echo 'Run `create-continerdisk.sh example` to build the `example` image in the `example` folder'
+    exit 1
 fi
 
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
