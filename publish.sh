@@ -2,7 +2,8 @@
 
 set -ex
 
-export KUBEVIRTCI_TAG=$(date +"%y%m%d%H%M")-$(git rev-parse --short HEAD)
+KUBEVIRTCI_TAG=$(date +"%y%m%d%H%M")-$(git rev-parse --short HEAD)
+export KUBEVIRTCI_TAG
 
 TARGET_REPO="quay.io/kubevirtci"
 TARGET_GIT_REMOTE="https://kubevirt-bot@github.com/kubevirt/kubevirtci.git"
@@ -22,10 +23,18 @@ for i in ${CLUSTERS}; do
 done
 
 # Push all images
+
+# until "unknown blob" issue is fixed use skopeo to push image
+# see https://github.com/moby/moby/issues/43234
+
 IMAGES="${CLUSTERS}"
-docker push ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
+TARGET_IMAGE="${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}"
+skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
+#docker push ${TARGET_IMAGE}
 for i in ${IMAGES}; do
-    docker push ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
+    TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
+    skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
+    #docker push ${TARGET_IMAGE}
 done
 
 git config user.name "kubevirt-bot"
