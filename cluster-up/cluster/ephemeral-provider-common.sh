@@ -16,16 +16,16 @@ fi
 
 if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
     _cri_bin=podman
-    _docker_socket="${HOME}/podman.sock"
+    _docker_socket="${XDG_RUNTIME_DIR}/podman.sock"
 elif [ "${KUBEVIRTCI_RUNTIME}" = "docker" ]; then
     _cri_bin=docker
     _docker_socket="/var/run/docker.sock"
 else
-    if curl --unix-socket /${HOME}/podman.sock http://d/v3.0.0/libpod/info >/dev/null 2>&1; then
+    if curl --unix-socket "${XDG_RUNTIME_DIR}/podman/podman.sock" http://d/v3.0.0/libpod/info >/dev/null 2>&1; then
         _cri_bin=podman
-        _docker_socket="${HOME}/podman.sock"
+        _docker_socket="${XDG_RUNTIME_DIR}/podman/podman.sock"
         >&2 echo "selecting podman as container runtime"
-    elif docker ps >/dev/null; then
+    elif docker ps >/dev/null 2>&1; then
         _cri_bin=docker
         _docker_socket="/var/run/docker.sock"
         >&2 echo "selecting docker as container runtime"
