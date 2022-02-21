@@ -26,6 +26,7 @@ spec:
     global:
       jwtPolicy: first-party-jwt
     cni:
+      privileged: true
       chained: \$ISTIO_CNI_CHAINED
       cniBinDir: /opt/cni/bin
       cniConfDir: \$ISTIO_CNI_CONF_DIR
