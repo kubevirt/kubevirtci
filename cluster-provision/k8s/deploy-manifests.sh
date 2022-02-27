@@ -18,6 +18,7 @@ find "$DIR/${provision_dir}/manifests/" -type f -name '*.yaml' \
     -not -path '**/cnao/**' \
     -not -path '**/prometheus/**' \
     -not -path '**/ceph/**' \
+    -not -path '**/nfs-csi/**' \
     -not -name 'local-volume.yaml' \
     -not -name 'cni*.yaml' \
     -not -name 'cdi*-cr.yaml' \

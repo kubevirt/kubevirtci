@@ -91,6 +91,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().Bool("enable-istio", false, "deploys Istio service mesh")
+	run.Flags().Bool("enable-nfs-csi", false, "deploys nfs csi dynamic storage")
 	run.Flags().Bool("enable-prometheus", false, "deploys Prometheus operator")
 	run.Flags().Bool("enable-prometheus-alertmanager", false, "deploys Prometheus alertmanager")
 	run.Flags().Bool("enable-grafana", false, "deploys Grafana")
@@ -178,6 +179,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	cephEnabled, err := cmd.Flags().GetBool("enable-ceph")
+	if err != nil {
+		return err
+	}
+
+	nfsCsiEnabled, err := cmd.Flags().GetBool("enable-nfs-csi")
 	if err != nil {
 		return err
 	}
@@ -597,6 +603,21 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 		if !success {
 			return fmt.Errorf("provisioning Ceph CSI failed")
+		}
+	}
+
+	if nfsCsiEnabled {
+		nodeName := nodeNameFromIndex(1)
+		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+			"/bin/bash",
+			"-c",
+			"ssh.sh sudo /bin/bash < /scripts/nfs-csi.sh",
+		}, os.Stdout)
+		if err != nil {
+			return err
+		}
+		if !success {
+			return fmt.Errorf("deploying NFS CSI storage failed")
 		}
 	}
 
