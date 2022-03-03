@@ -58,15 +58,30 @@ until ip link show tap${n}; do
   sleep 0.1
 done
 
+ROOTLESS=0
+if [ -f /run/.containerenv ]; then
+  ROOTLESS=$(sed -n 's/^rootless=//p' /run/.containerenv)
+fi
+
 # Route SSH
 iptables -t nat -A POSTROUTING ! -s 192.168.66.0/16 --out-interface br0 -j MASQUERADE
-iptables -A FORWARD --in-interface eth0 -j ACCEPT
-iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport 22${n} -j DNAT --to-destination 192.168.66.1${n}:22
+if [ "$ROOTLESS" -ne 1 ]; then
+  iptables -A FORWARD --in-interface eth0 -j ACCEPT
+  iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport 22${n} -j DNAT --to-destination 192.168.66.1${n}:22
+else
+  # Add DNAT rule for rootless podman (traffic originating from loopback adapter)
+  iptables -t nat -A OUTPUT -p tcp --dport 22${n} -j DNAT --to-destination 192.168.66.1${n}:22
+fi
 
 # Route ports from container to VM for first node
 if [ "$n" = "01" ] ; then
   for port in 6443 8443 80 443 30007 30008 31001; do
-    iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport ${port} -j DNAT --to-destination 192.168.66.1${n}:${port}
+    if [ "$ROOTLESS" -ne 1 ]; then
+      iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport ${port} -j DNAT --to-destination 192.168.66.1${n}:${port}
+    else
+      # Add DNAT rule for rootless podman (traffic originating from loopback adapter)
+      iptables -t nat -A OUTPUT -p tcp --dport ${port} -j DNAT --to-destination 192.168.66.1${n}:${port}
+    fi
   done
 fi
 
