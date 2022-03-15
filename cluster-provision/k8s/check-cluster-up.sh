@@ -34,10 +34,6 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         export KUBEVIRT_DEPLOY_ISTIO=false
     fi
 
-    if [[ $KUBEVIRT_PROVIDER =~ k8s-.*-ipv6 ]]; then
-        RUN_KUBEVIRT_CONFORMANCE=false
-    fi
-
     export KUBEVIRT_DEPLOY_PROMETHEUS=true
     export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
     export KUBEVIRT_DEPLOY_GRAFANA=true
