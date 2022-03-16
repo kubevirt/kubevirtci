@@ -77,6 +77,27 @@ rsync -av $KUBEVIRTCI_DIR/cluster-up/ $KUBEVIRT_DIR/cluster-up
 cd $KUBEVIRT_DIR
 ```
 
+### kubevirtci phased provision mode
+
+Kubevirtci supports phased provision mode in order to save time while developing.  
+There are two phases:  
+`linux` phase which updates the VM kernel, install required packages such as cri-o,
+pre pull images and config the OS.  
+`k8s` phase which install network parts and create the cluster.
+
+The default mode is to do them both in the same flow and then to run cluster check.
+Sometimes we need to repeat only the `k8s` phase, and then to test it locally once we stabilize it.
+
+For that we have phased mode.
+Export the required mode, i.e `export PHASES=linux` or `export PHASES=k8s`
+and then run the provision. the full flow will be:
+
+`export PHASES=linux; (cd cluster-provision/k8s/1.21; ../provision.sh)`  
+`export PHASES=k8s; (cd cluster-provision/k8s/1.21; ../provision.sh)`  
+Run the `k8s` steps as much as needed, using the intermediate image that was created
+by the `linux` phase, and when you are comfortable, either check the cluster manually, or use:  
+`export PHASES=k8s; export CHECK_CLUSTER=true; (cd cluster-provision/k8s/1.21; ../provision.sh)`
+
 ### run kubevirt tests
 
 ```bash
