@@ -241,10 +241,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh sudo shutdown -h", "shutting down the node")
-	if err != nil {
-		return err
-	}
+	_cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh sudo shutdown now -h", "shutting down the node")
 	err = _cmd(cli, nodeContainer(prefix, nodeName), "rm /usr/local/bin/ssh.sh", "removing the ssh.sh script")
 	if err != nil {
 		return err
