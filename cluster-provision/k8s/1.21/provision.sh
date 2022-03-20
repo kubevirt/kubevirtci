@@ -115,6 +115,7 @@ dnf install -y cri-o
 
 # install podman for functionality missing in crictl (tag, etc)
 dnf install -y podman
+dnf install -y libseccomp-devel
 
 # link docker to podman as we need docker in test repos to pre-pull images
 # don't break them by doing a symlink
