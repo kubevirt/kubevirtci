@@ -42,6 +42,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	provision.Flags().String("container-suffix", "", "use additional suffix for the provisioned container image")
+	provision.Flags().String("phases", "linux,k8s", "phases to run, possible values: linux,k8s linux k8s")
 	provision.Flags().StringArray("additional-persistent-kernel-arguments", []string{}, "additional persistent kernel arguments applied after provision")
 
 	return provision
@@ -71,6 +72,17 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	prefix := fmt.Sprintf("k8s-%s-provision", name)
 	target := fmt.Sprintf("quay.io/kubevirtci/k8s-%s", name)
 	scripts := filepath.Join(packagePath)
+
+	phases, err := cmd.Flags().GetString("phases")
+	if err != nil {
+		return err
+	}
+
+	if phases == "k8s" {
+		base += "-dev"
+	} else if phases == "linux" {
+		target = base + "-dev"
+	}
 
 	memory, err := cmd.Flags().GetString("memory")
 	if err != nil {
@@ -233,18 +245,27 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	if err != nil {
 		return err
 	}
+	//check if we have a special k8s provision script
+	err = _cmd(cli, nodeContainer(prefix, nodeName), "test -f /scripts/k8s_provision.sh", "checking for k8s provision script")
+	if err != nil {
+		return err
+	}
 
 	envVars := fmt.Sprintf("version=%s", version)
-
-	err = _cmd(cli, nodeContainer(prefix, nodeName), fmt.Sprintf("ssh.sh sudo %s /bin/bash < /scripts/provision.sh", envVars), "provisioning the node")
-	if err != nil {
-		return err
+	if strings.Contains(phases, "linux") {
+		err = performPhase(cli, nodeContainer(prefix, nodeName), "/scripts/provision.sh", envVars)
+		if err != nil {
+			return err
+		}
+	}
+	if strings.Contains(phases, "k8s") {
+		err = performPhase(cli, nodeContainer(prefix, nodeName), "/scripts/k8s_provision.sh", envVars)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh sudo shutdown -h", "shutting down the node")
-	if err != nil {
-		return err
-	}
+	_cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh sudo shutdown now -h", "shutting down the node")
 	err = _cmd(cli, nodeContainer(prefix, nodeName), "rm /usr/local/bin/ssh.sh", "removing the ssh.sh script")
 	if err != nil {
 		return err
@@ -333,4 +354,10 @@ func _cmd(cli *client.Client, container string, cmd string, description string) 
 		return fmt.Errorf("%s failed", cmd)
 	}
 	return nil
+}
+
+func performPhase(cli *client.Client, container string, script string, envVars string) error {
+	return _cmd(cli, container,
+		fmt.Sprintf("ssh.sh sudo %s /bin/bash < %s", envVars, script),
+		fmt.Sprintf("provisioning the node (%s)", script))
 }
