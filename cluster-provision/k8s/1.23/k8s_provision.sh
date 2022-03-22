@@ -46,7 +46,7 @@ systemctl daemon-reload
 systemctl enable crio && systemctl start crio
 systemctl enable kubelet && systemctl start kubelet
 
-dnf install -y NetworkManager
+dnf install -y NetworkManager NetworkManager-ovs
 
 # configure additional settings for cni plugin
 cat <<EOF >/etc/NetworkManager/conf.d/001-calico.conf
