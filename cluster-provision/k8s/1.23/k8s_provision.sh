@@ -35,6 +35,13 @@ echo bridge >> /etc/modules-load.d/k8s.conf
 echo br_netfilter >> /etc/modules-load.d/k8s.conf
 echo overlay >> /etc/modules-load.d/k8s.conf
 
+# Delete conf files created by crio / podman
+# so calico will create the interfaces by its own according the right configuration.
+# See https://github.com/cri-o/cri-o/issues/2411#issuecomment-540006558
+# It should happen before crio start, see https://github.com/cri-o/cri-o/issues/4276
+# About podman see https://github.com/kubernetes/kubernetes/issues/107687
+rm -f /etc/cni/net.d/*
+
 systemctl daemon-reload
 systemctl enable crio && systemctl start crio
 systemctl enable kubelet && systemctl start kubelet
