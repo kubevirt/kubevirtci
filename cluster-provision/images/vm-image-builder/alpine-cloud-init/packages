@@ -1,0 +1,10 @@
+chrony
+less
+logrotate
+openssh
+ssmtp
+sudo
+cloud-init
+qemu-guest-agent
+e2fsprogs-extra
+util-linux

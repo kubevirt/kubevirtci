@@ -38,34 +38,58 @@ function cleanup() {
 }
 
 export IMAGE_NAME=$1
-export TAG=devel
-export OS_VARIANT="$(cat ${SCRIPT_PATH}/${IMAGE_NAME}/os-variant)"
-export CLOUD_CONFIG_PATH="${SCRIPT_PATH}/${IMAGE_NAME}/cloud-config"
-export VM_IMAGE_URL="$(cat ${SCRIPT_PATH}/${IMAGE_NAME}/image-url)"
 
-readonly VM_IMAGE="source-image.qcow2"
-readonly build_directory="${IMAGE_NAME}_build"
-readonly new_vm_image_name="provisioned-image.qcow2"
+if [ -f "${SCRIPT_PATH}/${IMAGE_NAME}/create-image.sh" ]; then
+    export TAG="devel"
+    readonly VM_IMAGE="provisioned-image.qcow2"
+    readonly build_directory="${SCRIPT_PATH}/${IMAGE_NAME}/build"
+    
+    trap 'cleanup' EXIT SIGINT
+    
+    mkdir "${build_directory}"
 
-trap 'cleanup' EXIT SIGINT
+    pushd "${SCRIPT_PATH}/${IMAGE_NAME}"
+      cleanup
+      echo "Creating the image"
+      ./create-image.sh "${build_directory}/${VM_IMAGE}" 
 
-pushd "${SCRIPT_PATH}"
-  cleanup
-  echo "Downloading the base image ..."
+      echo "Creating the containerdisk ..."
+      docker build . -t ${IMAGE_NAME}:${TAG} -f - <<END
+FROM scratch
+ADD --chown=107:107 build/${VM_IMAGE} /disk/
+END
+    popd
 
-   if ! [ -e "${VM_IMAGE}" ]; then
-    # Download base VM image
-    curl -L "${VM_IMAGE_URL}" -o "${VM_IMAGE}"
-  fi
+else 
+    export TAG=devel
+    export OS_VARIANT="$(cat ${SCRIPT_PATH}/${IMAGE_NAME}/os-variant)"
+    export CLOUD_CONFIG_PATH="${SCRIPT_PATH}/${IMAGE_NAME}/cloud-config"
+    export VM_IMAGE_URL="$(cat ${SCRIPT_PATH}/${IMAGE_NAME}/image-url)"
 
-  mkdir "${build_directory}"
+    readonly VM_IMAGE="source-image.qcow2"
+    readonly build_directory="${IMAGE_NAME}_build"
+    readonly new_vm_image_name="provisioned-image.qcow2"
 
-  echo "Running the image customization ..."
-  customize_image "${VM_IMAGE}" "${OS_VARIANT}" "${build_directory}/${new_vm_image_name}" "${CLOUD_CONFIG_PATH}"
+    trap 'cleanup' EXIT SIGINT
 
-  echo "Creating the containerdisk ..."
-  docker build . -t ${IMAGE_NAME}:${TAG} -f - <<END
+    pushd "${SCRIPT_PATH}"
+      cleanup
+      echo "Downloading the base image ..."
+
+       if ! [ -e "${VM_IMAGE}" ]; then
+        # Download base VM image
+        curl -L "${VM_IMAGE_URL}" -o "${VM_IMAGE}"
+      fi
+
+      mkdir "${build_directory}"
+
+      echo "Running the image customization ..."
+      customize_image "${VM_IMAGE}" "${OS_VARIANT}" "${build_directory}/${new_vm_image_name}" "${CLOUD_CONFIG_PATH}"
+
+      echo "Creating the containerdisk ..."
+      docker build . -t ${IMAGE_NAME}:${TAG} -f - <<END
 FROM scratch
 ADD --chown=107:107 ${build_directory}/${new_vm_image_name} /disk/
 END
-popd
+    popd
+fi
