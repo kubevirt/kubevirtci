@@ -16,7 +16,7 @@ docker run --platform=$PLATFORM --privileged -v $(pwd):$(pwd):z alpine ash -c "c
 ./alpine-make-vm-image \
 	--image-format qcow2 \
 	--image-size 5G \
-	--repositories-file repositories \
+    --branch v3.15 \
 	--packages \"$(cat packages)\" \
 	--serial-console \
 	--script-chroot \
