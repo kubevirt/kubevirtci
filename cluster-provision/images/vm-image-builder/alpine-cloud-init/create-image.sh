@@ -12,10 +12,10 @@ if [ ! -f alpine-make-vm-image ]; then
     chmod 755 alpine-make-vm-image
 fi
 
-docker run --platform=$PLATFORM --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
+docker run --rm --platform=$PLATFORM -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
 ./alpine-make-vm-image \
 	--image-format qcow2 \
-	--image-size 5G \
+	--image-size 144M \
     --branch v3.15 \
 	--packages \"$(cat packages)\" \
 	--serial-console \
