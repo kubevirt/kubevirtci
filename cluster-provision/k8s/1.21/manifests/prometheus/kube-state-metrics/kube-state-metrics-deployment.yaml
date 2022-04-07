@@ -31,6 +31,7 @@ spec:
         - --port=8081
         - --telemetry-host=127.0.0.1
         - --telemetry-port=8082
+        - --metric-labels-allowlist=pods=[*],nodes=[*],namespaces=[*],persistentvolumes=[*],persistentvolumeclaims=[*],poddisruptionbudgets=[*],poddisruptionbudget=[*]
         image: k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.1.0
         name: kube-state-metrics
         resources:
