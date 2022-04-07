@@ -34,21 +34,21 @@ function download_base_image() {
 }
 
 function customize_image() {
-  local source_image=$1
-  local os_variant=$2
-  local customized_image=$3
-  local cloud_config=$4
+    local source_image=$1
+    local os_variant=$2
+    local customized_image=$3
+    local cloud_config=$4
 
-  # Backup the VM image and pass copy of the original image
-  # in case customizing script fail.
-  vm_image_copy="$(dirname "${customized_image}")/copy-${source_image}"
-  cp "${source_image}" "${vm_image_copy}"
+    # Backup the VM image and pass copy of the original image
+    # in case customizing script fail.
+    vm_image_copy="$(dirname "${customized_image}")/copy-${source_image}"
+    cp "${source_image}" "${vm_image_copy}"
 
-  # TODO: convert this script and its dependencies to container
-  ${CUSTOMIZE_IMAGE_SCRIPT} "${vm_image_copy}" "${os_variant}" "${customized_image}" "${cloud_config}"
+    # TODO: convert this script and its dependencies to container
+    ${CUSTOMIZE_IMAGE_SCRIPT} "${vm_image_copy}" "${os_variant}" "${customized_image}" "${cloud_config}"
 
-  # Backup no longer needed.
-  rm -f "${vm_image_copy}"
+    # Backup no longer needed.
+    rm -f "${vm_image_copy}"
 }
 
 function build_container() {
@@ -70,11 +70,11 @@ END
 }
 
 function cleanup() {
-  if [ $? -ne 0 ]; then
-    rm -rf "${build_directory}"
-  fi
+    if [ $? -ne 0 ]; then
+        rm -rf "${build_directory}"
+    fi
 
-  rm -f "copy-${customized_image}"
+    rm -f "copy-${customized_image}"
 }
 
 trap 'cleanup' EXIT SIGINT
