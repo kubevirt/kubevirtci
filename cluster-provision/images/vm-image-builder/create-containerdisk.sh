@@ -46,7 +46,7 @@ if [ -f "${SCRIPT_PATH}/${IMAGE_NAME}/create-image.sh" ]; then
     
     trap 'cleanup' EXIT SIGINT
     
-    mkdir "${build_directory}"
+    mkdir -p "${build_directory}"
 
     pushd "${SCRIPT_PATH}/${IMAGE_NAME}"
       cleanup
