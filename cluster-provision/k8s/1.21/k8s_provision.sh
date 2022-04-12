@@ -4,11 +4,7 @@ set -ex
 
 source /var/lib/kubevirtci/shared_vars.sh
 
-mkdir -p /provision
-
 cni_manifest="/provision/cni.yaml"
-mv /tmp/cni.do-not-change.yaml $cni_manifest
-patch $cni_manifest /tmp/cni.diff
 
 cp /tmp/local-volume.yaml /provision/local-volume.yaml
 
