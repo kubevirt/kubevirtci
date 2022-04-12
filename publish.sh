@@ -22,6 +22,10 @@ for i in ${CLUSTERS}; do
     docker tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
 done
 
+# Provision alpine container disk and tag it
+(cd cluster-provision/images/vm-image-builder && ./create-containerdisk.sh alpine-cloud-init)
+docker tag  alpine-cloud-init:devel ${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}
+
 # Push all images
 
 # until "unknown blob" issue is fixed use skopeo to push image
@@ -36,6 +40,10 @@ for i in ${IMAGES}; do
     skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
     #docker push ${TARGET_IMAGE}
 done
+
+TARGET_IMAGE="${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}"
+skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
+#docker push ${TARGET_IMAGE}
 
 git config user.name "kubevirt-bot"
 git config user.email "rmohr+kubebot@redhat.com"
