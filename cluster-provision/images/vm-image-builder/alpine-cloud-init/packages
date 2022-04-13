@@ -1,3 +1,4 @@
+qemu-guest-agent
 cloud-init
 e2fsprogs-extra
 util-linux

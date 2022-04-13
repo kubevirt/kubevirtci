@@ -6,6 +6,12 @@ step() {
 	printf '\n\033[1;36m%d) %s\033[0m\n' $_step_counter "$@" >&2  # bold cyan
 }
 
+step 'Set up qemu-guest-agent'
+cat > /etc/conf.d/qemu-guest-agent <<-EOF
+GA_METHOD="virtio-serial"
+GA_PATH="/dev/vport1p1"
+EOF
+
 step 'Adjust rc.conf'
 sed -Ei \
 	-e 's/^[# ](rc_depend_strict)=.*/\1=NO/' \
@@ -14,4 +20,5 @@ sed -Ei \
 	/etc/rc.conf
 
 step 'Enable services'
+rc-update add qemu-guest-agent default
 rc-update add cloud-init default
