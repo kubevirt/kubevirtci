@@ -1,6 +1,7 @@
 filters:
   ".*":
     reviewers:
+      - awels
       - davidvossel
       - rmohr
       - vladikr
@@ -11,9 +12,9 @@ filters:
       - ormergi
       - stu-gott
       - jean-edouard
-      - fgimenez
       - enp0s3
     approvers:
+      - awels
       - davidvossel
       - rmohr
       - vladikr
@@ -22,9 +23,9 @@ filters:
       - phoracek
       - stu-gott
       - jean-edouard
-      - fgimenez
       - enp0s3
     emeritus_approvers:
       - cynepco3hahue
       - danielBelenky
+      - fgimenez
       - slintes
