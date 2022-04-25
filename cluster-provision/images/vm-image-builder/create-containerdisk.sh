@@ -39,6 +39,8 @@ function cleanup() {
 
 export IMAGE_NAME=$1
 
+export ARCHITECTURE=${ARCHITECTURE:-x86_64}
+
 if [ -f "${SCRIPT_PATH}/${IMAGE_NAME}/create-image.sh" ]; then
     export TAG="devel"
     readonly VM_IMAGE="provisioned-image.qcow2"
@@ -54,7 +56,11 @@ if [ -f "${SCRIPT_PATH}/${IMAGE_NAME}/create-image.sh" ]; then
       ./create-image.sh "${build_directory}/${VM_IMAGE}" 
 
       echo "Creating the containerdisk ..."
-      docker build . -t ${IMAGE_NAME}:${TAG} -f - <<END
+      PLATFORM=linux/$ARCHITECTURE
+      if [ "$ARCHITECTURE" = "aarch64" ]; then
+          PLATFORM=linux/arm64
+      fi
+      docker buildx build --load --platform $PLATFORM . -t ${IMAGE_NAME}:${TAG} -f - <<END
 FROM scratch
 ADD --chown=107:107 build/${VM_IMAGE} /disk/
 END

@@ -1,23 +1,48 @@
-#!/bin/sh
-set -ex
+#!/bin/bash -xe
 
-if [ "${ARCHITECTURE}" != ""  ]; then
-    PLATFORM=linux/$ARCHITECTURE
+domain=alpine-v3.15-$ARCHITECTURE
+
+virsh destroy $domain || true
+virsh undefine --nvram $domain || true
+
+mkisofs -o setup.iso  setup/
+
+qemu-img create -f qcow2 $domain.qcow2 500M
+
+if [ "${ARCHITECTURE}" == "x86_64" ]; then
+    virt_extra_args="--virt-type kvm"
+else
+    virt_extra_args="--arch=$ARCHITECTURE"
 fi
 
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+virt-install \
+    --noautoconsole \
+    --name=$domain \
+    --vcpus=2 \
+    --memory=4096 \
+    --os-type=linux \
+    --os-variant=alpinelinux3.15 \
+    --disk path=./alpine-virt-3.15.4-${ARCHITECTURE}.iso,device=cdrom \
+    --disk path=./setup.iso,device=cdrom \
+    --disk path=./$domain.qcow2,device=disk \
+    --graphics none \
+    --network default \
+    --import \
+    $virt_extra_args
 
-if [ ! -f alpine-make-vm-image ]; then
-    curl  https://raw.githubusercontent.com/alpinelinux/alpine-make-vm-image/master/alpine-make-vm-image -o alpine-make-vm-image
-    chmod 755 alpine-make-vm-image
+DOMAIN=$domain go run setup.go
+
+virsh destroy $domain || true
+
+# Prepare VM image
+virt-sysprep -d $domain --operations machine-id,bash-history,logfiles,tmp-files,net-hostname,net-hwaddr
+
+# Remove VM
+if [ ${ARCHITECTURE} == "x86_64" ]; then
+    virsh undefine $domain
+else
+    virsh undefine --nvram $domain
 fi
 
-docker run --rm --platform=$PLATFORM -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
-./alpine-make-vm-image \
-	--image-format qcow2 \
-	--image-size 144M \
-    --branch v3.15 \
-	--packages \"$(cat packages)\" \
-	--serial-console \
-	--script-chroot \
-	$1 -- configure.sh"
+# Convert image
+qemu-img convert -c -O qcow2 $domain.qcow2 $1
