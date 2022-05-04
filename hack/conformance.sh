@@ -24,6 +24,8 @@ export KUBECONFIG
 teardown() {
     rv=$?
 
+    cp -r /tmp/results/k8s-reporter "${ARTIFACTS}"
+
     ./sonobuoy status --json
     ./sonobuoy logs > "${ARTIFACTS}/sonobuoy.log"
 
