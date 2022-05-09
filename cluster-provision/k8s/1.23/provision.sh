@@ -80,7 +80,8 @@ export PATH=$ISTIO_BIN_DIR:$PATH
 # generate Istio manifests for pre-pulling images
 istioctl manifest generate --set profile=demo --set components.cni.enabled=true | tee /tmp/istio-deployment.yaml
 
-export CRIO_VERSION=1.22
+# Specify minor version and use cri-o repo until https://github.com/cri-o/cri-o/issues/5841 is resolved
+export CRIO_VERSION=1.22_1.22.2
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable.repo
 [devel_kubic_libcontainers_stable]
 name=Stable Releases of Upstream github.com/containers packages (CentOS_8_Stream)
@@ -97,6 +98,7 @@ baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcon
 gpgcheck=0
 enabled=1
 EOF
+
 dnf install -y cri-o
 
 # install podman for functionality missing in crictl (tag, etc)
