@@ -1,10 +1,9 @@
 
-#FROM fedora:31
-FROM fedora@sha256:8fa60b88e2a7eac8460b9c0104b877f1aa0cea7fbc03c701b7e545dacccfb433
+FROM quay.io/fedora/fedora@sha256:38813cf0913241b7f13c7057e122f7c3cfa2e7c427dca3194f933d94612e280b
 
 ARG centos_version
 
-RUN dnf -y update nettle && dnf -y install jq iptables iproute dnsmasq qemu openssh-clients screen && dnf clean all
+RUN dnf -y install jq iptables iproute dnsmasq qemu openssh-clients screen && dnf clean all
 
 WORKDIR /
 
@@ -12,7 +11,7 @@ COPY vagrant.key /vagrant.key
 
 RUN chmod 700 vagrant.key
 
-ENV DOCKERIZE_VERSION v0.3.0
+ENV DOCKERIZE_VERSION v0.6.1
 
 RUN curl -LO https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
   && tar -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
