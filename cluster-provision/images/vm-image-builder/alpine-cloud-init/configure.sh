@@ -9,7 +9,7 @@ step() {
 step 'Set up qemu-guest-agent'
 cat > /etc/conf.d/qemu-guest-agent <<-EOF
 GA_METHOD="virtio-serial"
-GA_PATH="/dev/vport1p1"
+GA_PATH="/dev/virtio-ports/org.qemu.guest_agent.0"
 EOF
 
 step 'Adjust rc.conf'
