@@ -55,8 +55,9 @@ cat <<EOF >/etc/NetworkManager/conf.d/002-dhclient.conf
 dhcp=dhclient
 EOF
 
-sysctl -w net.netfilter.nf_conntrack_max=1000000
 echo "net.netfilter.nf_conntrack_max=1000000" >> /etc/sysctl.conf
+
+sysctl --system
 
 systemctl restart NetworkManager
 
