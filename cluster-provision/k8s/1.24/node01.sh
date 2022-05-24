@@ -52,6 +52,7 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/master:NoSchedule-
+kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/control-plane:NoSchedule-
 
 # Wait for api server to be up.
 kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --no-headers

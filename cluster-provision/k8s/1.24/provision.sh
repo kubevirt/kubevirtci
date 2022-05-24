@@ -99,6 +99,8 @@ enabled=1
 EOF
 dnf install -y cri-o
 
+systemctl enable --now crio
+
 # install podman for functionality missing in crictl (tag, etc)
 dnf install -y podman
 dnf install -y libseccomp-devel
