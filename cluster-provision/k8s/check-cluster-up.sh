@@ -27,6 +27,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRTCI_PROVISION_CHECK=1
     export KUBEVIRT_PROVIDER="k8s-${provider}"
     export KUBEVIRT_NUM_NODES=2
+    export KUBEVIRT_MEMORY_SIZE=5520M
     export KUBEVIRT_NUM_SECONDARY_NICS=2
     export KUBEVIRT_WITH_CNAO=true
     export KUBEVIRT_DEPLOY_ISTIO=true
