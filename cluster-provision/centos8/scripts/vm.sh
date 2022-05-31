@@ -99,7 +99,7 @@ if [ $disk_size -lt $default_disk_size ]; then
 fi
 
 echo "Creating disk \"${next} backed by ${last} with size ${disk_size}\"."
-qemu-img create -f qcow2 -o backing_file=${last} ${next} ${disk_size}
+qemu-img create -f qcow2 -o backing_file=${last} -F qcow2 ${next} ${disk_size}
 
 echo ""
 echo "SSH will be available on container port 22${n}."
