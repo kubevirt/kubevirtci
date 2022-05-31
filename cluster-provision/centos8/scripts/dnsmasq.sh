@@ -6,8 +6,8 @@ NUM_NODES=${NUM_NODES-1}
 NUM_SECONDARY_NICS=${NUM_SECONDARY_NICS:-0}
 
 ip link add br0 type bridge
-echo 0 > /proc/sys/net/ipv6/conf/br0/disable_ipv6
-echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+echo 0 > /proc/sys/net/ipv6/conf/br0/disable_ipv6 || true
+echo 1 > /proc/sys/net/ipv6/conf/all/forwarding || true
 ip link set dev br0 up
 ip addr add dev br0 192.168.66.02/24
 ip -6 addr add fd00::1/64 dev br0
