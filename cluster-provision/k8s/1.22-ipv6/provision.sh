@@ -11,15 +11,23 @@ if [ ! -f "/tmp/fetch-images.sh" ]; then
     exit 1
 fi
 
+cni_diff="/tmp/cni.diff"
+ipv6_dualstack=true
+if [[ ${networkstack} == ipv6 ]]; then
+    cni_diff="/tmp/cni_ipv6.diff"
+    ipv6_dualstack=false
+fi
+
 KUBEVIRTCI_SHARED_DIR=/var/lib/kubevirtci
 mkdir -p $KUBEVIRTCI_SHARED_DIR
 cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 #!/bin/bash
 set -ex
 export KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
-export KUBELET_FEATURE_GATES="IPv6DualStack=false"
+export KUBELET_FEATURE_GATES="IPv6DualStack=$ipv6_dualstack"
 export ISTIO_VERSION=1.10.0
 export ISTIO_BIN_DIR=/opt/istio-$ISTIO_VERSION/bin
+export KUBEVIRTCI_DUALSTACK=$ipv6_dualstack
 EOF
 source $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 
@@ -50,10 +58,6 @@ if growpart /dev/vda 1; then
 fi
 
 dnf install -y patch
-
-# Disable swap
-swapoff -a
-sed -i '/ swap / s/^/#/' /etc/fstab
 
 systemctl stop firewalld || :
 systemctl disable firewalld || :
@@ -149,7 +153,7 @@ dnf install -y openvswitch2.16
 mkdir -p /provision
 cni_manifest="/provision/cni.yaml"
 mv /tmp/cni.do-not-change.yaml $cni_manifest
-patch $cni_manifest /tmp/cni.diff
+patch $cni_manifest $cni_diff
 
 # Pre pull all images from the manifests
 for image in $(/tmp/fetch-images.sh /tmp); do
