@@ -43,6 +43,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	provision.Flags().String("container-suffix", "", "use additional suffix for the provisioned container image")
 	provision.Flags().String("phases", "linux,k8s", "phases to run, possible values: linux,k8s linux k8s")
+	provision.Flags().String("network-stack", "dualstack", "cluster network stack, possible values: dualstack ipv6")
 	provision.Flags().StringArray("additional-persistent-kernel-arguments", []string{}, "additional persistent kernel arguments applied after provision")
 
 	return provision
@@ -82,6 +83,11 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		base += "-dev"
 	} else if phases == "linux" {
 		target = base + "-dev"
+	}
+
+	networkStack, err := cmd.Flags().GetString("network-stack")
+	if err != nil {
+		return err
 	}
 
 	memory, err := cmd.Flags().GetString("memory")
@@ -251,7 +257,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	envVars := fmt.Sprintf("version=%s", version)
+	envVars := fmt.Sprintf("version=%s networkstack=%s", version, networkStack)
 	if strings.Contains(phases, "linux") {
 		err = performPhase(cli, nodeContainer(prefix, nodeName), "/scripts/provision.sh", envVars)
 		if err != nil {

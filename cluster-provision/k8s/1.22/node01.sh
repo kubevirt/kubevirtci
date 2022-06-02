@@ -44,7 +44,9 @@ done
 # Disable swap
 sudo swapoff -a
 
-kubeadm init --config /etc/kubernetes/kubeadm.conf --ignore-preflight-errors=SWAP --experimental-patches /provision/kubeadm-patches/
+until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
+
+kubeadm init --config /etc/kubernetes/kubeadm.conf --ignore-preflight-errors=SWAP --experimental-patches /provision/kubeadm-patches/ -v5
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /provision/kubeadm-patches/add-security-context-deployment-patch.yaml)"
 # cni manifest is already configured at provision stage.
