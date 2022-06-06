@@ -44,8 +44,10 @@ done
 # Disable swap
 sudo swapoff -a
 
+until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
+
 # 1.23 has deprecated --experimental-patches /provision/kubeadm-patches/, we now mention the patch directory in kubeadm.conf
-kubeadm init --config /etc/kubernetes/kubeadm.conf
+kubeadm init --config /etc/kubernetes/kubeadm.conf -v5
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /provision/kubeadm-patches/add-security-context-deployment-patch.yaml)"
 # cni manifest is already configured at provision stage.

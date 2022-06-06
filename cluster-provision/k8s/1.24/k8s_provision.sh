@@ -8,9 +8,14 @@ cni_manifest="/provision/cni.yaml"
 
 cp /tmp/local-volume.yaml /provision/local-volume.yaml
 
+kubeadm_raw=/tmp/kubeadm.conf
+if [[ ${KUBEVIRTCI_DUALSTACK} == false ]]; then
+    kubeadm_raw=/tmp/kubeadm_ipv6.conf
+fi
+
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice  --fail-swap-on=false --kubelet-cgroups=/systemd/system.slice --feature-gates="IPv6DualStack=true"
+KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice  --fail-swap-on=false --kubelet-cgroups=/systemd/system.slice
 EOT
 
 # Needed for kubernetes service routing and dns
@@ -127,9 +132,12 @@ rules:
 EOF
 
 kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
-envsubst < /tmp/kubeadm.conf > $kubeadm_manifest
+envsubst < $kubeadm_raw > $kubeadm_manifest
+
+until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
+
 # 1.23 has deprecated --experimental-patches /provision/kubeadm-patches/, we now mention the patch directory in kubeadm.conf
-kubeadm init --config $kubeadm_manifest
+kubeadm init --config $kubeadm_manifest -v5
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
