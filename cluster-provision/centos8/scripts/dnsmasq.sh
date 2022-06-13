@@ -6,8 +6,17 @@ NUM_NODES=${NUM_NODES-1}
 NUM_SECONDARY_NICS=${NUM_SECONDARY_NICS:-0}
 
 ip link add br0 type bridge
-echo 0 > /proc/sys/net/ipv6/conf/br0/disable_ipv6 || true
-echo 1 > /proc/sys/net/ipv6/conf/all/forwarding || true
+if [ ! -d /proc/sys/net/ipv6 ]; then
+  if [ -z $ALLOW_MISSING_IPV6 ]; then
+    echo "Error: IPV6 is disabled on this machine and ALLOW_MISSING_IPV6 is not set." >&2
+    exit 1
+  else
+    echo "Warning: proceeding without IPV6, this configuration is not supported" >&2
+  fi
+else
+  echo 0 > /proc/sys/net/ipv6/conf/br0/disable_ipv6
+  echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+fi
 ip link set dev br0 up
 ip addr add dev br0 192.168.66.02/24
 ip -6 addr add fd00::1/64 dev br0
