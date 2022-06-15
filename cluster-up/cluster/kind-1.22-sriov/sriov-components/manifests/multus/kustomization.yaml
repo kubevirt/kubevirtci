@@ -5,3 +5,10 @@ resources:
 images:
 - name: nfvpe/multus
   newName: quay.io/kubevirtci/multus
+patchesJson6902:
+- path: patch-args.yaml
+  target:
+    group: apps
+    version: v1
+    kind: DaemonSet
+    name: kube-multus-ds-amd64
