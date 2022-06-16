@@ -54,7 +54,7 @@ PFS_IN_USE=""
 node::configure_sriov_pfs "${worker_nodes[*]}" "${pfs_names[*]}" "$PF_COUNT_PER_NODE" "PFS_IN_USE"
 
 ## Create VFs and configure their drivers on each SR-IOV node
-node::configure_sriov_vfs "${worker_nodes[*]}"
+node::configure_sriov_vfs "${worker_nodes[*]}" "$VFS_DRIVER" "$VFS_DRIVER_KMODULE"
 
 ## Deploy Multus and SRIOV components
 sriov_components::deploy_multus
