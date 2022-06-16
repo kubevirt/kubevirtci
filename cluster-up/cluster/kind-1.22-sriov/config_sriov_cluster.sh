@@ -22,6 +22,7 @@ SRIOVDP_RESOURCE_PREFIX="kubevirt.io"
 SRIOVDP_RESOURCE_NAME="sriov_net"
 VFS_DRIVER="vfio-pci"
 VFS_DRIVER_KMODULE="vfio_pci"
+VFS_COUNT="6"
 
 function validate_nodes_sriov_allocatable_resource() {
   local -r resource_name="$SRIOVDP_RESOURCE_PREFIX/$SRIOVDP_RESOURCE_NAME"
@@ -54,7 +55,7 @@ PFS_IN_USE=""
 node::configure_sriov_pfs "${worker_nodes[*]}" "${pfs_names[*]}" "$PF_COUNT_PER_NODE" "PFS_IN_USE"
 
 ## Create VFs and configure their drivers on each SR-IOV node
-node::configure_sriov_vfs "${worker_nodes[*]}" "$VFS_DRIVER" "$VFS_DRIVER_KMODULE"
+node::configure_sriov_vfs "${worker_nodes[*]}" "$VFS_DRIVER" "$VFS_DRIVER_KMODULE" "$VFS_COUNT"
 
 ## Deploy Multus and SRIOV components
 sriov_components::deploy_multus

@@ -76,12 +76,13 @@ function node::configure_sriov_vfs() {
     local -r nodes_array=($1)
     local -r driver=$2
     local -r driver_kmodule=$3
+    local -r vfs_count=$4
 
     local -r config_vf_script=$(basename "$CONFIGURE_VFS_SCRIPT_PATH")
 
     for node in "${nodes_array[@]}"; do
       docker cp "$CONFIGURE_VFS_SCRIPT_PATH" "$node:/"
-      docker exec "$node" bash -c "DRIVER=$driver DRIVER_KMODULE=$driver_kmodule ./$config_vf_script"
+      docker exec "$node" bash -c "DRIVER=$driver DRIVER_KMODULE=$driver_kmodule VFS_COUNT=$vfs_count ./$config_vf_script"
       docker exec "$node" ls -la -Z /dev/vfio
     done
 }
