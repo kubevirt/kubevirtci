@@ -3,3 +3,4 @@ cloud-init
 e2fsprogs-extra
 util-linux
 iputils
+openssh
