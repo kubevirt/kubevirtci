@@ -33,7 +33,7 @@ function create_vfs() {
   local -r pf_net_device=$1
   local -r vfs_count=$2
 
-  local -r pf_name=$(basename $pf_net_device)
+  local -r pf_name=$(dirname $(basename $pf_net_device))
   local -r pf_sys_device=$(readlink -e $pf_net_device)
 
   local -r sriov_totalvfs_content=$(cat $pf_sys_device/sriov_totalvfs)
@@ -42,8 +42,12 @@ function create_vfs() {
 
   echo "Creating $vfs_count VFs on PF $pf_name "
   echo 0 >> "$pf_sys_device/sriov_numvfs"
+  echo "waiting for VFs to delete..."
+  timeout 10s sh -c "until ! ip link show $pf_name | grep -q \"vf\"; do sleep 1; done"
+
   echo "$vfs_count" >> "$pf_sys_device/sriov_numvfs"
-  sleep 3
+  echo "waiting for VFs to create..."
+  timeout 10s sh -c "until ip link show $pf_name | tail -1 | grep -q -P \"vf\s$((vfs_count-1))\"; do sleep 1; done"
 
   return 0
 }
