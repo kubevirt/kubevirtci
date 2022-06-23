@@ -19,14 +19,6 @@ sed -Ei \
 	-e 's/^[# ](unicode)=.*/\1=YES/' \
 	/etc/rc.conf
 
-step 'Boot without wait'
-sed -Ei \
-	-e "s|^[# ]*(timeout)=.*|\1=0|" \
-	/etc/update-extlinux.conf
-
-update-extlinux --warn-only 2>&1 \
-    | grep -Fv 'extlinux: cannot open device /dev' >&2
-
 step 'Enable services'
 rc-update add qemu-guest-agent default
 rc-update add cloud-init default
