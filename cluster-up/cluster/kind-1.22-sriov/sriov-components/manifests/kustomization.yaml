@@ -6,10 +6,6 @@ resources:
 - sriov-cni-daemonset.yaml
 - sriovdp-daemonset.yaml
 - sriovdp-config.yaml
-images:
-  - name: nfvpe/sriov-cni
-    newName: quay.io/kubevirtci/sriov-cni
-    newTag: v2.6
 patchesJson6902:
 - target:
     group: apps
