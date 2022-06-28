@@ -14,16 +14,24 @@ if [ -n "${KUBEVIRTCI_TAG}" ] && [ -n "${KUBEVIRTCI_GOCLI_CONTAINER}" ]; then
     >&2 echo "WARNING: KUBEVIRTCI_GOCLI_CONTAINER is set and will take precedence over the also set KUBEVIRTCI_TAG"
 fi
 
+detect_podman_socket() {
+    if curl --unix-socket "/run/podman/podman.sock" http://d/v3.0.0/libpod/info >/dev/null 2>&1; then
+        echo "/run/podman/podman.sock"
+    elif curl --unix-socket "${XDG_RUNTIME_DIR}/podman/podman.sock" http://d/v3.0.0/libpod/info >/dev/null 2>&1; then
+        echo "${XDG_RUNTIME_DIR}/podman/podman.sock"
+    fi
+}
+
 if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
-    _cri_bin="podman --remote --url=unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
-    _docker_socket="${XDG_RUNTIME_DIR}/podman/podman.sock"
+    _docker_socket=$(detect_podman_socket)
+    _cri_bin="podman --remote --url=unix://$_docker_socket"
 elif [ "${KUBEVIRTCI_RUNTIME}" = "docker" ]; then
     _cri_bin=docker
     _docker_socket="/var/run/docker.sock"
 else
-    if curl --unix-socket "${XDG_RUNTIME_DIR}/podman/podman.sock" http://d/v3.0.0/libpod/info >/dev/null 2>&1; then
-        _cri_bin="podman --remote --url=unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
-        _docker_socket="${XDG_RUNTIME_DIR}/podman/podman.sock"
+    _docker_socket=$(detect_podman_socket)
+    if [ -n "$_docker_socket" ]; then
+        _cri_bin="podman --remote --url=unix://$_docker_socket"
         >&2 echo "selecting podman as container runtime"
     elif docker ps >/dev/null 2>&1; then
         _cri_bin=docker
