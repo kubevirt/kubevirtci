@@ -4,3 +4,4 @@ e2fsprogs-extra
 util-linux
 iputils
 openssh
+curl
