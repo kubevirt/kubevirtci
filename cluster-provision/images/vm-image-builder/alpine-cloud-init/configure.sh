@@ -22,3 +22,4 @@ sed -Ei \
 step 'Enable services'
 rc-update add qemu-guest-agent default
 rc-update add cloud-init default
+rc-update add sshd
