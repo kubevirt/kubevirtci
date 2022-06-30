@@ -179,10 +179,6 @@ function _fix_node_labels() {
     done
 }
 
-function _get_cri_bridge_mtu() {
-  docker network inspect -f '{{index .Options "com.docker.network.driver.mtu"}}' bridge
-}
-
 function setup_kind() {
     $KIND --loglevel debug create cluster --retain --name=${CLUSTER_NAME} --config=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml --image=$KIND_NODE_IMAGE
     $KIND get kubeconfig --name=${CLUSTER_NAME} > ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
