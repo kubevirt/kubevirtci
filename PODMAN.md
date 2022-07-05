@@ -23,16 +23,33 @@ satisfactory, consider running podman as root to use plain `overlayfs2`:
 
 ## Rootful podman
 
+In order to use rootful podman by a non root user, we will need to bind podman
+to a socket, accessible by the user (as docker does).
+
+Assuming the user is in `wheel` group please do the following (one time):
+
+As root, create a Drop-In file `/etc/systemd/system/podman.socket.d/10-socketgroup.conf`
+with the following content:
 ```
-mkdir -p $XDG_RUNTIME_DIR/podman
-sudo podman system service -t 0 unix:///$XDG_RUNTIME_DIR/podman/podman.sock
-sudo chown $USER $XDG_RUNTIME_DIR/podman/podman.sock
+[Socket]
+SocketGroup=wheel
+ExecStartPost=/usr/bin/chmod 755 /run/podman
 ```
 
-After this command, you can use kubevirtci with the typical `make cluster-*`
-commands.
+The 1st line is needed in order to create the socket accessible by the `wheel` group.
+2nd line because systemd-tmpfiles recreates the folder as root:root without group reading rights.
 
-Note that `podman system service` will keep running in the foreground so the
-current terminal must be kept open and the last command must be executed in a
-new terminal.
+Stop `podman.socket` if it is running,
+reload the daemon `systemctl daemon-reload` since we changed the systemd settings
+and restart it again `systemctl enable --now podman.socket`
 
+As the user add the following to your ~/.bashrc
+```
+alias podman="podman --remote"
+export CONTAINER_HOST=unix:///run/podman/podman.sock
+```
+
+Validate it by running `podman run hello-world` as the non root user
+and see that as root `podman ps -a` shows the same exited container (or vice versa).
+
+Tested on fedora 35.
