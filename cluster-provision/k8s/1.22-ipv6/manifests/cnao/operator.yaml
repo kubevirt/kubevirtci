@@ -115,7 +115,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    networkaddonsoperator.network.kubevirt.io/version: 0.76.0
+    networkaddonsoperator.network.kubevirt.io/version: 0.77.0
   labels:
     prometheus.cnao.io: "true"
   name: cluster-network-addons-operator
@@ -145,9 +145,9 @@ spec:
         - name: LINUX_BRIDGE_MARKER_IMAGE
           value: quay.io/kubevirt/bridge-marker@sha256:6536d684834f1301941108fd4123a55df39c74234e442fad60a584b69cfe6069
         - name: OVS_CNI_IMAGE
-          value: quay.io/kubevirt/ovs-cni-plugin@sha256:cf669ca4967cd26c6629efa93b7426c8e1c65fa17d5ce59deaab1237a854d81b
+          value: quay.io/kubevirt/ovs-cni-plugin@sha256:8512de2a79fbbd55fdbd4ff794da708b596309e9aa8b76d4d6daf38f4527f0e3
         - name: OVS_MARKER_IMAGE
-          value: quay.io/kubevirt/ovs-cni-marker@sha256:c09f882c64ee6449e13ff8b0a249d1dc4653d7d94a97f5ebee61de2d3ce9d5e8
+          value: quay.io/kubevirt/ovs-cni-marker@sha256:45413d8092592130147b2408d585abdc5c8b36d68844992d50072b05334bf5a8
         - name: KUBEMACPOOL_IMAGE
           value: quay.io/kubevirt/kubemacpool@sha256:47c6de03c9527b760bb26bd2db77a6caa14fcb822553c030b6ee595a92395977
         - name: MACVTAP_CNI_IMAGE
@@ -155,11 +155,11 @@ spec:
         - name: KUBE_RBAC_PROXY_IMAGE
           value: quay.io/openshift/origin-kube-rbac-proxy@sha256:baedb268ac66456018fb30af395bb3d69af5fff3252ff5d549f0231b1ebb6901
         - name: OPERATOR_IMAGE
-          value: quay.io/kubevirt/cluster-network-addons-operator:v0.76.0
+          value: quay.io/kubevirt/cluster-network-addons-operator:v0.77.0
         - name: OPERATOR_NAME
           value: cluster-network-addons-operator
         - name: OPERATOR_VERSION
-          value: 0.76.0
+          value: 0.77.0
         - name: OPERATOR_NAMESPACE
           valueFrom:
             fieldRef:
@@ -177,7 +177,7 @@ spec:
           value: openshift-monitoring
         - name: MONITORING_SERVICE_ACCOUNT
           value: prometheus-k8s
-        image: quay.io/kubevirt/cluster-network-addons-operator:v0.76.0
+        image: quay.io/kubevirt/cluster-network-addons-operator:v0.77.0
         imagePullPolicy: Always
         name: cluster-network-addons-operator
         resources:
