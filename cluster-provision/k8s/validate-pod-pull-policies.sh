@@ -35,7 +35,7 @@ function main() {
     echo "Checking $manifest_dir"
     # TODO: for now we disable (via --dry-run) the non zero exit code in case of failure here to give the teams some time to fix the policies
     docker run --rm -v "$manifest_dir:/manifests:Z" \
-        kubevirtci/check-image-pull-policies@sha256:118c4828afa52e58fc07663f400a357764cc1e7432ab56c439bb5c0b4b11b4dc \
+      docker.io/kubevirtci/check-image-pull-policies@sha256:118c4828afa52e58fc07663f400a357764cc1e7432ab56c439bb5c0b4b11b4dc \
         --manifest-source=/manifests \
         --dry-run=true \
         --verbose=false
