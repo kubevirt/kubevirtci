@@ -19,7 +19,11 @@ docker tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
 # Provision all clusters
 CLUSTERS="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n')"
 for i in ${CLUSTERS}; do
-    cluster-provision/gocli/build/cli provision cluster-provision/k8s/$i
+    NETWORK_STACK="dualstack"
+    if [[ $i =~ ipv6 ]]; then
+        NETWORK_STACK="ipv6"
+    fi
+    cluster-provision/gocli/build/cli provision cluster-provision/k8s/$i --network-stack ${NETWORK_STACK}
     docker tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
 done
 
