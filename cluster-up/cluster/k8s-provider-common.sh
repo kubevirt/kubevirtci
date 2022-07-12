@@ -58,11 +58,7 @@ function wait_for_cnao_ready() {
 }
 
 function deploy_istio() {
-    if [ "$KUBEVIRT_DEPLOY_ISTIO" == "true" ] && [[ $KUBEVIRT_PROVIDER =~ k8s-1\.1.* ]]; then
-        echo "ERROR: Istio is not supported on kubevirtci version < 1.20"
-        exit 1
-
-    elif [ "$KUBEVIRT_DEPLOY_ISTIO" == "true" ]; then
+    if [ "$KUBEVIRT_DEPLOY_ISTIO" == "true" ]; then
         if [ "$KUBEVIRT_WITH_CNAO" == "true" ]; then
             $kubectl create -f /opt/istio/istio-operator-with-cnao.cr.yaml
         else
