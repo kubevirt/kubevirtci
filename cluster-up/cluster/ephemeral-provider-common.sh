@@ -148,6 +148,10 @@ function _add_common_params() {
     if [ -n "$KUBEVIRT_REALTIME_SCHEDULER" ]; then
         params=" --enable-realtime-scheduler $params"
     fi
+
+    if [ "$KUBEVIRT_PORT_FORWARD" != "" ]; then
+        params=" --port-forward $KUBEVIRT_PORT_FORWARD $params"
+    fi
     echo $params
 }
 

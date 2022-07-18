@@ -2,7 +2,9 @@ package containers
 
 import (
 	"fmt"
+	"net"
 	"os"
+	"strings"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -12,12 +14,20 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 )
 
+type forwardDestination struct {
+	Port string
+	Host string
+}
+
+type portForward map[string]forwardDestination
+
 type DNSMasqOptions struct {
 	ClusterImage       string
 	NodeCount          uint
 	SecondaryNicsCount uint
 	RandomPorts        bool
 	PortMap            nat.PortMap
+	PortForward        []string
 	Prefix             string
 }
 
@@ -38,26 +48,28 @@ func DNSMasq(cli *client.Client, ctx context.Context, options *DNSMasqOptions) (
 	}
 
 	// Start dnsmasq
-	dnsmasq, err := cli.ContainerCreate(ctx, &container.Config{
+	config := &container.Config{
 		Image: options.ClusterImage,
 		Env: []string{
 			fmt.Sprintf("NUM_NODES=%d", options.NodeCount),
 			fmt.Sprintf("NUM_SECONDARY_NICS=%d", options.SecondaryNicsCount),
+			fmt.Sprintf("PORT_FORWARD=%s", options.PortForward),
 		},
 		Cmd: []string{"/bin/bash", "-c", "/dnsmasq.sh"},
 		ExposedPorts: nat.PortSet{
-			utils.TCPPortOrDie(utils.PortSSH):         {},
-			utils.TCPPortOrDie(utils.PortRegistry):    {},
-			utils.TCPPortOrDie(utils.PortOCP):         {},
-			utils.TCPPortOrDie(utils.PortAPI):         {},
-			utils.TCPPortOrDie(utils.PortVNC):         {},
-			utils.TCPPortOrDie(utils.PortHTTP):        {},
-			utils.TCPPortOrDie(utils.PortHTTPS):       {},
-			utils.TCPPortOrDie(utils.PortPrometheus):  {},
-			utils.TCPPortOrDie(utils.PortGrafana):     {},
-			utils.TCPPortOrDie(utils.PortUploadProxy): {},
+			utils.TCPPortOrDie(utils.PortSSH):        {},
+			utils.TCPPortOrDie(utils.PortRegistry):   {},
+			utils.TCPPortOrDie(utils.PortOCP):        {},
+			utils.TCPPortOrDie(utils.PortAPI):        {},
+			utils.TCPPortOrDie(utils.PortVNC):        {},
+			utils.TCPPortOrDie(utils.PortHTTP):       {},
+			utils.TCPPortOrDie(utils.PortHTTPS):      {},
+			utils.TCPPortOrDie(utils.PortPrometheus): {},
+			utils.TCPPortOrDie(utils.PortGrafana):    {}, utils.TCPPortOrDie(utils.PortUploadProxy): {},
 		},
-	}, &container.HostConfig{
+	}
+
+	hostConfig := &container.HostConfig{
 		Privileged:      true,
 		PublishAllPorts: options.RandomPorts,
 		PortBindings:    options.PortMap,
@@ -67,9 +79,53 @@ func DNSMasq(cli *client.Client, ctx context.Context, options *DNSMasqOptions) (
 			"ceph:192.168.66.2",
 		},
 		Mounts: dnsmasqMounts,
-	}, nil, nil, options.Prefix+"-dnsmasq")
+	}
+
+	portForward, err := parsePortForward(options.PortForward)
+	if err != nil {
+		return nil, err
+	}
+
+	for p, d := range portForward {
+		exposedPort, err := nat.NewPort("tcp", p)
+		if err != nil {
+			return nil, err
+		}
+		config.ExposedPorts[exposedPort] = struct{}{}
+		hostConfig.PortBindings[exposedPort] = []nat.PortBinding{
+			{
+				HostIP:   "127.0.0.1",
+				HostPort: d.Port,
+			},
+		}
+
+	}
+	dnsmasq, err := cli.ContainerCreate(ctx, config, hostConfig, nil, nil, options.Prefix+"-dnsmasq")
 	if err != nil {
 		return nil, err
 	}
 	return &dnsmasq, nil
+}
+
+func parsePortForward(portForwardSerialized []string) (portForward, error) {
+	pf := portForward{}
+	for _, pfs := range portForwardSerialized {
+		splitted := strings.SplitN(pfs, ":", 2)
+		if len(splitted) != 2 {
+			continue
+		}
+		fmt.Println(splitted)
+		containerPort := splitted[0]
+		destinationHostPort := splitted[1]
+		fmt.Println(destinationHostPort)
+		host, port, err := net.SplitHostPort(destinationHostPort)
+		if err != nil {
+			return pf, fmt.Errorf("failed parsing port forward: %v", err)
+		}
+		pf[containerPort] = forwardDestination{
+			Port: port,
+			Host: host,
+		}
+	}
+	return pf, nil
 }

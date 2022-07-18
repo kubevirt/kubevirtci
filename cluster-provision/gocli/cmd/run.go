@@ -88,6 +88,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	run.Flags().Uint("prometheus-port", 0, "port on localhost for prometheus server")
 	run.Flags().Uint("grafana-port", 0, "port on localhost for grafana server")
+	run.Flags().String("port-forward", "", "expose multiple destination ip and port from from the cluster, ej. 3090:192.66.0.201:80")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().Bool("enable-istio", false, "deploys Istio service mesh")
@@ -133,6 +134,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	randomPorts, err := cmd.Flags().GetBool("random-ports")
+	if err != nil {
+		return err
+	}
+
+	portForward, err := cmd.Flags().GetString("port-forward")
 	if err != nil {
 		return err
 	}
@@ -305,6 +311,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		SecondaryNicsCount: secondaryNics,
 		RandomPorts:        randomPorts,
 		PortMap:            portMap,
+		PortForward:        strings.Split(portForward, ","),
 		Prefix:             prefix,
 		NodeCount:          nodes,
 	})

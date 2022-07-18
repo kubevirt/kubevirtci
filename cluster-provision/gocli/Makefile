@@ -2,6 +2,7 @@ SHELL := /bin/bash
 
 IMAGES_FILE ?= images.json
 KUBEVIRTCI_IMAGE_REPO ?= quay.io/kubevirtci
+KUBEVIRTCI_TAG ?= $(shell curl -L -Ss https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirtci/latest)
 
 export GO111MODULE=on
 export GOPROXY=direct
