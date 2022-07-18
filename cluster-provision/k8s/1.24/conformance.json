@@ -1,7 +1,7 @@
 {
   "Description": "DEFAULT",
   "UUID": "424db535-cd5d-4968-9667-0b11c6fd380c",
-  "Version": "v0.50.0",
+  "Version": "v0.56.8",
   "ResultsDir": "/tmp/sonobuoy",
   "Resources": [
     "apiservices",
@@ -81,7 +81,7 @@
     "~/sonobuoy/plugins.d"
   ],
   "Namespace": "sonobuoy",
-  "WorkerImage": "sonobuoy/sonobuoy:v0.50.0",
+  "WorkerImage": "sonobuoy/sonobuoy:v0.56.8",
   "ImagePullPolicy": "IfNotPresent",
   "ImagePullSecrets": "",
   "ProgressUpdatesPort": "8099"
