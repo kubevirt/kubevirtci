@@ -161,6 +161,24 @@ rules:
   - pods
   verbs:
   - list
+  - watch
+- apiGroups:
+  - k8s.cni.cncf.io
+  resources:
+  - network-attachment-definitions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -184,8 +202,10 @@ metadata:
   name: ip-reconciler
   namespace: kube-system
 spec:
+  concurrencyPolicy: Forbid
   jobTemplate:
     spec:
+      backoffLimit: 0
       template:
         metadata:
           labels:
@@ -211,7 +231,9 @@ spec:
           - hostPath:
               path: /etc/cni/net.d
             name: cni-net-dir
+      ttlSecondsAfterFinished: 300
   schedule: '*/5 * * * *'
+  successfulJobsHistoryLimit: 0
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -233,7 +255,13 @@ spec:
         tier: node
     spec:
       containers:
-      - env:
+      - args:
+        - -c
+        - |
+          SLEEP=false /install-cni.sh && /ip-control-loop -log-level debug
+        command:
+        - /bin/sh
+        env:
         - name: WHEREABOUTS_NAMESPACE
           valueFrom:
             fieldRef:
