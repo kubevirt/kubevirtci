@@ -3,7 +3,7 @@
 set -e
 
 function detect_cri() {
-    if podman ps >/dev/null 2>&1; then echo podman; elif docker ps >/dev/null 2>&1; then echo docker; fi
+    if docker ps >/dev/null 2>&1; then echo docker; elif podman ps >/dev/null 2>&1; then echo podman; fi
 }
 
 export CRI_BIN=${CRI_BIN:-$(detect_cri)}
