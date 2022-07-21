@@ -46,7 +46,9 @@ rm -f /etc/cni/net.d/*
 systemctl daemon-reload
 systemctl enable crio kubelet --now
 
-dnf install -y NetworkManager NetworkManager-ovs
+# Version 1.39.7-x cause the VM to hang on random places
+NETWORK_MANAGER_VERSION=1.39.5-1
+dnf install -y NetworkManager-${NETWORK_MANAGER_VERSION}.el8.x86_64 NetworkManager-ovs-${NETWORK_MANAGER_VERSION}.el8.x86_64
 
 # configure additional settings for cni plugin
 cat <<EOF >/etc/NetworkManager/conf.d/001-calico.conf
@@ -195,7 +197,7 @@ mkdir -p /var/provision/kubevirt.io/tests
 chcon -t container_file_t /var/provision/kubevirt.io/tests
 echo "tmpfs /var/provision/kubevirt.io/tests tmpfs rw,context=system_u:object_r:container_file_t:s0 0 1" >> /etc/fstab
 
-dnf install -y NetworkManager-config-server
+dnf install -y NetworkManager-config-server-${NETWORK_MANAGER_VERSION}.el8.noarch
 
 # Cleanup the existing NetworkManager profiles so the VM instances will come
 # up with the default profiles. (Base VM image includes non default settings)
