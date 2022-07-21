@@ -42,3 +42,10 @@ Attach to node console with screen and pty
 # Attach to node01 console                           
 docker exec -it ${KUBEVIRT_PROVIDER}-node01 screen /dev/pts/0
 ```                                                 
+Use `vagrant:vagrant` to login.  
+Note: it is sometimes `/dev/pts/1` or `/dev/pts/2`, try them in case you don't get a prompt.
+
+Make sure you don't leave open screens, else the next screen will be messed up.  
+`screen -ls` shows the open screens.  
+`screen -XS <ID> quit` closes an open session.  
+Close all zombies and shutdown screen gracefully if you plan to open a new one instead.
