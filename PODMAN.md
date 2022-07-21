@@ -52,4 +52,8 @@ export CONTAINER_HOST=unix:///run/podman/podman.sock
 Validate it by running `podman run hello-world` as the non root user
 and see that as root `podman ps -a` shows the same exited container (or vice versa).
 
+In case you wish to use a custom socket path, change the values of `CONTAINER_HOST`
+and `KUBEVIRTCI_PODMAN_SOCKET` accordingly,
+i.e `export KUBEVIRTCI_PODMAN_SOCKET="${XDG_RUNTIME_DIR}/podman/podman.sock"`
+
 Tested on fedora 35.
