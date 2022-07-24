@@ -41,7 +41,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s --all -l app!=whereabouts; do sleep 1; done"
     timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s -n kube-system --all -l app!=whereabouts; do sleep 1; done"
     ${ksh} get nodes
-    ${ksh} get pods -A
+    ${ksh} get pods -A -owide
 
     # Run some checks for KUBEVIRT_NUM_NODES
     # and KUBEVIRT_NUM_SECONDARY_NICS
