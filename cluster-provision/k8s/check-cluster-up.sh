@@ -18,6 +18,24 @@ function cleanup() {
     make cluster-down
 }
 
+function validate_single_stack_ipv6() {
+    local kube_ns="kube-system"
+    local pod_label="calico-kube-controllers"
+
+    local pod=$(${ksh} get pods -n ${kube_ns} -lk8s-app=${pod_label} -o=custom-columns=NAME:.metadata.name --no-headers)
+    local primary_ip=$(${ksh} get pod -n ${kube_ns} ${pod} -ojsonpath="{ @.status.podIP }")
+
+    if [[ ! ${primary_ip} =~ fd00 ]]; then
+        echo "error: single stack primary ip is not IPv6 as expected"
+        exit 1
+    fi
+
+    if ${ksh} get pod -n ${kube_ns} ${pod} -ojsonpath="{ @.status.podIPs[1] }" > /dev/null 2>&1; then
+        echo "error: single stack cluster expected"
+        exit 1
+    fi
+}
+
 export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 # check cluster-up
 (
@@ -41,7 +59,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s --all -l app!=whereabouts; do sleep 1; done"
     timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s -n kube-system --all -l app!=whereabouts; do sleep 1; done"
     ${ksh} get nodes
-    ${ksh} get pods -A
+    ${ksh} get pods -A -owide
 
     # Run some checks for KUBEVIRT_NUM_NODES
     # and KUBEVIRT_NUM_SECONDARY_NICS
@@ -51,6 +69,10 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     ${ssh} node01 -- ip l show eth2
     ${ssh} node02 -- ip l show eth1
     ${ssh} node02 -- ip l show eth2
+
+    if [[ $KUBEVIRT_PROVIDER =~ ipv6 ]]; then
+        validate_single_stack_ipv6
+    fi
 
     pre_pull_image_file="$DIR/${provision_dir}/extra-pre-pull-images"
     if [ -f "${pre_pull_image_file}" ]; then
