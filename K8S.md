@@ -37,7 +37,7 @@ SSH into a node
 cluster-up/ssh.sh node01                                                   
 ```                                                                        
                                                                            
-Attach to node console with screen and pty
+## Attach to node console with screen and pty
 ```                                                  
 # Attach to node01 console                           
 docker exec -it ${KUBEVIRT_PROVIDER}-node01 screen /dev/pts/0
@@ -49,3 +49,9 @@ Make sure you don't leave open screens, else the next screen will be messed up.
 `screen -ls` shows the open screens.  
 `screen -XS <ID> quit` closes an open session.  
 Close all zombies and shutdown screen gracefully if you plan to open a new one instead.
+
+## Container image cache
+In order to have a local cache of container images:
+1. Run your proxy (see for example https://github.com/rpardini/docker-registry-proxy)
+2. Get the IP:PORT of the proxy and run `export KUBEVIRTCI_PROXY=http://<IP>:<PORT>`
+3. Run `cluster-up` flow as usual

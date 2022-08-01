@@ -34,17 +34,19 @@ import (
 
 const (
 	proxySettings = `
-mkdir -p /etc/systemd/system/docker.service.d/
+curl {{.Proxy}}/ca.crt > /etc/pki/ca-trust/source/anchors/docker_registry_proxy.crt
+update-ca-trust
 
-cat <<EOT  >/etc/systemd/system/docker.service.d/proxy.conf
+mkdir -p /etc/systemd/system/crio.service.d
+cat <<EOT >/etc/systemd/system/crio.service.d/override.conf
 [Service]
 Environment="HTTP_PROXY={{.Proxy}}"
 Environment="HTTPS_PROXY={{.Proxy}}"
-Environment="NO_PROXY=localhost,127.0.0.1"
+Environment="NO_PROXY=localhost,127.0.0.1,registry,10.96.0.0/12,10.244.0.0/16,192.168.0.0/16,fd00:10:96::/112,fd00:10:244::/112,fd00::/64"
 EOT
 
 systemctl daemon-reload
-systemctl restart docker
+systemctl restart crio.service
 EOF
 `
 	etcdDataDir         = "/var/lib/etcd"
