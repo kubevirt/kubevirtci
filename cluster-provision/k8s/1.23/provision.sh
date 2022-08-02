@@ -77,8 +77,6 @@ export PATH=$ISTIO_BIN_DIR:$PATH
   curl https://storage.googleapis.com/kubevirtci-istioctl-mirror/istio-$ISTIO_VERSION/bin/istioctl -o $ISTIO_BIN_DIR/istioctl
   chmod +x $ISTIO_BIN_DIR/istioctl
 )
-# generate Istio manifests for pre-pulling images
-istioctl manifest generate --set profile=demo --set components.cni.enabled=true | tee /tmp/istio-deployment.yaml
 
 export CRIO_VERSION=1.22
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable.repo

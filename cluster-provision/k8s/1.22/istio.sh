@@ -6,7 +6,7 @@ source /var/lib/kubevirtci/shared_vars.sh
 export PATH=$ISTIO_BIN_DIR:$PATH
 
 kubectl --kubeconfig /etc/kubernetes/admin.conf create ns istio-system
-istioctl --kubeconfig /etc/kubernetes/admin.conf operator init
+istioctl --kubeconfig /etc/kubernetes/admin.conf --hub quay.io/kubevirtci operator init
 
 istio_manifests_dir=/opt/istio
 mkdir -p /opt/istio
@@ -18,6 +18,7 @@ metadata:
   name: istio-operator
 spec:
   profile: demo
+  hub: quay.io/kubevirtci
   components:
     cni:
       enabled: true
