@@ -99,6 +99,12 @@ by the `linux` phase.
 Once you are done, either check the cluster manually, or use:  
 `export PHASES=k8s; export CHECK_CLUSTER=true; (cd cluster-provision/k8s/1.21; ../provision.sh)`
 
+### provision without pre-pulling images
+
+In order to develop faster, you can skip pre-pulling the optional images,
+such as CDI, CNAO, Prometheus, Istio and so on.  
+Run `export SLIM=true` before provisioning, to create such provider.
+
 ### run kubevirt tests
 
 ```bash

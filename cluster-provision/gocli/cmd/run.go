@@ -79,6 +79,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().BoolP("background", "b", false, "go to background after nodes are up")
 	run.Flags().BoolP("reverse", "r", false, "revert node startup order")
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
+	run.Flags().Bool("slim", false, "use the slim flavor")
 	run.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	run.Flags().Uint("http-port", 0, "port on localhost for http")
 	run.Flags().Uint("https-port", 0, "port on localhost for https")
@@ -133,6 +134,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	randomPorts, err := cmd.Flags().GetBool("random-ports")
+	if err != nil {
+		return err
+	}
+
+	slim, err := cmd.Flags().GetBool("slim")
 	if err != nil {
 		return err
 	}
@@ -289,6 +295,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		clusterImage = fmt.Sprintf("%s/%s%s", containerOrg, cluster, containerSuffix)
 	} else {
 		clusterImage = path.Join(containerOrg, cluster)
+	}
+
+	if slim {
+		clusterImage += "-slim"
 	}
 
 	if len(containerRegistry) > 0 {
