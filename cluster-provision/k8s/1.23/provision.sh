@@ -145,6 +145,9 @@ cni_manifest="/provision/cni.yaml"
 mv /tmp/cni.do-not-change.yaml $cni_manifest
 patch $cni_manifest /tmp/cni.diff
 
+kubectl kustomize /tmp/prometheus/grafana > /tmp/grafana-deployment.yaml.tmp
+mv -f /tmp/grafana-deployment.yaml.tmp /tmp/prometheus/grafana/grafana-deployment.yaml
+
 if [[ ${slim} == false ]]; then
     # Pre pull all images from the manifests
     for image in $(/tmp/fetch-images.sh /tmp); do
