@@ -251,25 +251,14 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	// Copy scripts to the VM
-	err = _cmd(cli, nodeContainer(prefix, nodeName), "scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/manifests/* vagrant@192.168.66.101:/tmp", "copying scripts to the VM")
-	if err != nil {
-		return err
-	}
-
-	//check if we have a special provision script
-	err = _cmd(cli, nodeContainer(prefix, nodeName), "test -f /scripts/provision.sh", "checking for provision script")
-	if err != nil {
-		return err
-	}
-	//check if we have a special k8s provision script
-	err = _cmd(cli, nodeContainer(prefix, nodeName), "test -f /scripts/k8s_provision.sh", "checking for k8s provision script")
-	if err != nil {
-		return err
-	}
-
 	envVars := fmt.Sprintf("version=%s networkstack=%s slim=%t", version, networkStack, slim)
 	if strings.Contains(phases, "linux") {
+		// Copy manifests to the VM
+		err = _cmd(cli, nodeContainer(prefix, nodeName), "scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/manifests/* vagrant@192.168.66.101:/tmp", "copying manifests to the VM")
+		if err != nil {
+			return err
+		}
+
 		err = performPhase(cli, nodeContainer(prefix, nodeName), "/scripts/provision.sh", envVars)
 		if err != nil {
 			return err
@@ -374,6 +363,11 @@ func _cmd(cli *client.Client, container string, cmd string, description string) 
 }
 
 func performPhase(cli *client.Client, container string, script string, envVars string) error {
+	err := _cmd(cli, container, fmt.Sprintf("test -f %s", script), "checking provision scripts")
+	if err != nil {
+		return err
+	}
+
 	return _cmd(cli, container,
 		fmt.Sprintf("ssh.sh sudo %s /bin/bash < %s", envVars, script),
 		fmt.Sprintf("provisioning the node (%s)", script))
