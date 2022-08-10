@@ -65,9 +65,6 @@ while [[ $retry_counter -lt 20 && $kubectl_rc -ne 0 ]]; do
     retry_counter=$((retry_counter + 1))
 done
 
-local_volume_manifest="/provision/local-volume.yaml"
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$local_volume_manifest"
-
 # ceph mon permission
 mkdir -p /var/lib/rook
 chcon -t container_file_t /var/lib/rook
