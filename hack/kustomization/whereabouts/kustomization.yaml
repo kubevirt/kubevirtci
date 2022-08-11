@@ -7,5 +7,6 @@ resources:
 - ./whereabouts.cni.cncf.io_ippools.yaml
 - ./whereabouts.cni.cncf.io_overlappingrangeipreservations.yaml
 
-transformers:
-  - patch-ip-reconciler-job.yaml
+images:
+  - name: ghcr.io/k8snetworkplumbingwg/whereabouts
+    newTag: ##VERSION##-amd64

@@ -49,6 +49,7 @@ cd -
 manifests_dir=doc
 [[ -d ${tmp_dir}/whereabouts/doc/crds ]] && manifests_dir=doc/crds
 cp hack/kustomization/whereabouts/*.yaml ${tmp_dir}/whereabouts/${manifests_dir}/
+sed -i "s/##VERSION##/${whereabouts_version}/" ${tmp_dir}/whereabouts/${manifests_dir}/kustomization.yaml
 
 target_dir="cluster-provision/k8s/${provider}/manifests/whereabouts"
 mkdir -p ${target_dir}
