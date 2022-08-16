@@ -13,9 +13,6 @@ kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/common.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/crds.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/operator.yaml
 
-# Deploy Rook toolbox
-kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/toolbox.yaml
-
 # Create cluster
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/cluster-test.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/pool-test.yaml
