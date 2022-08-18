@@ -26,8 +26,6 @@ until kubectl --kubeconfig /etc/kubernetes/admin.conf get cephblockpools -n rook
     sleep 5
 done
 
-kubectl --kubeconfig /etc/kubernetes/admin.conf wait --for=condition=available deployment/rook-ceph-tools -n rook-ceph
-
 # k8s resources
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/storageclass-test.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/snapshotclass.yaml
