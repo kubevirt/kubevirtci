@@ -39,6 +39,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
 	provision.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	provision.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
+	provision.Flags().Bool("slim", false, "create slim provider (uncached images)")
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	provision.Flags().String("container-suffix", "", "use additional suffix for the provisioned container image")
@@ -96,6 +97,11 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	randomPorts, err := cmd.Flags().GetBool("random-ports")
+	if err != nil {
+		return err
+	}
+
+	slim, err := cmd.Flags().GetBool("slim")
 	if err != nil {
 		return err
 	}
@@ -262,7 +268,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	envVars := fmt.Sprintf("version=%s networkstack=%s", version, networkStack)
+	envVars := fmt.Sprintf("version=%s networkstack=%s slim=%t", version, networkStack, slim)
 	if strings.Contains(phases, "linux") {
 		err = performPhase(cli, nodeContainer(prefix, nodeName), "/scripts/provision.sh", envVars)
 		if err != nil {

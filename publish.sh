@@ -23,8 +23,12 @@ for i in ${CLUSTERS}; do
     if [[ $i =~ ipv6 ]]; then
         NETWORK_STACK="ipv6"
     fi
+
     cluster-provision/gocli/build/cli provision cluster-provision/k8s/$i --network-stack ${NETWORK_STACK}
     docker tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
+
+    cluster-provision/gocli/build/cli provision cluster-provision/k8s/$i --network-stack ${NETWORK_STACK} --slim
+    docker tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim
 done
 
 # Provision alpine container disk and tag it
@@ -45,6 +49,9 @@ for i in ${IMAGES}; do
     TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
     skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
     #docker push ${TARGET_IMAGE}
+
+    TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
+    skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
 done
 
 TARGET_IMAGE="${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}"

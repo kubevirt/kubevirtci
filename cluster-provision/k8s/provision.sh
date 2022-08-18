@@ -7,6 +7,7 @@ PHASES_DEFAULT="linux,k8s"
 PHASES="${PHASES:-$PHASES_DEFAULT}"
 NETWORK_STACK="dualstack"
 CHECK_CLUSTER="${CHECK_CLUSTER:-false}"
+export SLIM="${SLIM:-false}"
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 provision_dir="$(basename "$(pwd)")"
@@ -25,8 +26,13 @@ if [[ $PHASES =~ linux.* ]]; then
   (cd ../${base} && ./build.sh)
 fi
 
+SLIM_MODE=""
+if ${SLIM}; then
+  SLIM_MODE="--slim"
+fi
+
 make -C ../gocli cli
-../gocli/build/cli provision ${provision_dir} --phases ${PHASES} --network-stack ${NETWORK_STACK}
+../gocli/build/cli provision ${provision_dir} --phases ${PHASES} --network-stack ${NETWORK_STACK} ${SLIM_MODE}
 
 if [[ $PHASES == $PHASES_DEFAULT ]] || [[ $CHECK_CLUSTER == true ]]; then
    if [[ $PHASES == "linux" ]]; then

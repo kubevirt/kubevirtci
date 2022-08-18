@@ -7,7 +7,7 @@ make -C ../gocli container
 
 CI=${CI:-"false"}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
+SLIM=${SLIM:-false}
 RUN_KUBEVIRT_CONFORMANCE=${RUN_KUBEVIRT_CONFORMANCE:-"true"}
 
 provision_dir="$1"
@@ -77,8 +77,10 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     pre_pull_image_file="$DIR/${provision_dir}/extra-pre-pull-images"
     if [ -f "${pre_pull_image_file}" ]; then
         bash -x "$DIR/deploy-manifests.sh" "${provision_dir}"
-        bash -x "$DIR/check-pod-images.sh" "${provision_dir}"
         bash -x "$DIR/validate-pod-pull-policies.sh"
+        if [[ ${SLIM} == false ]]; then
+            bash -x "$DIR/check-pod-images.sh" "${provision_dir}"
+        fi
     fi
 
     # Run conformance test only at CI and if the provider has them activated
