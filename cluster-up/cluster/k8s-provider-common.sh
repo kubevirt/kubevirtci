@@ -98,6 +98,11 @@ function deploy_cdi() {
 function deploy_local_storage() {
     if [ "$KUBEVIRT_DEPLOY_LOCAL_STORAGE" == "true" ]; then
         $kubectl create -f /provision/local-volume.yaml
+
+        default_storage_class=$($kubectl get storageclass -o jsonpath='{\.items[?\(@\.metadata\.annotations\.storageclass\\.kubernetes\\.io/is-default-class==\"true\"\)].metadata.name}')
+        if [ -z $default_storage_class ]; then
+            $kubectl patch storageclass/local -p \'{\"metadata\": {\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"true\"}}}\'
+        fi
     fi
 }
 

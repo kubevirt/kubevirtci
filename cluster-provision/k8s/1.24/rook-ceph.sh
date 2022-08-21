@@ -33,5 +33,4 @@ kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/storageclass
 kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/ceph/snapshotclass.yaml
 
 # set default storageclass
-kubectl --kubeconfig /etc/kubernetes/admin.conf patch storageclass local -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
 kubectl --kubeconfig /etc/kubernetes/admin.conf patch storageclass rook-ceph-block -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
