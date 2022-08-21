@@ -95,12 +95,6 @@ function deploy_cdi() {
     fi
 }
 
-function deploy_local_storage() {
-    if [ "$KUBEVIRT_DEPLOY_LOCAL_STORAGE" == "true" ]; then
-        $kubectl create -f /provision/local-volume.yaml
-    fi
-}
-
 function wait_for_cdi_ready() {
     if [ "$KUBEVIRT_DEPLOY_CDI" == "true" ]; then
         while [ "$($kubectl get pods --namespace cdi | grep -c 'cdi-')" -lt 4 ]; do
@@ -155,7 +149,6 @@ function up() {
     deploy_cnao
     deploy_istio
     deploy_cdi
-    deploy_local_storage
 
     until wait_for_cnao_ready && wait_for_istio_ready && wait_for_cdi_ready; do
         echo "Waiting for cluster components..."
