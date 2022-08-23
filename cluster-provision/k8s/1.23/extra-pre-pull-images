@@ -1,4 +1,4 @@
-docker.io/grafana/grafana:7.5.4
+quay.io/kubevirtci/grafana-grafana:7.5.4
 quay.io/kubevirtci/install-cni:1.10.0
 quay.io/kubevirtci/operator:1.10.0
 quay.io/kubevirtci/pilot:1.10.0
