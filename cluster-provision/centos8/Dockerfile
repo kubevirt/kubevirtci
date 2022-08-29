@@ -3,7 +3,7 @@ FROM quay.io/kubevirtci/fedora@sha256:486fd5578f93fbc57a519e34ad4b7cac927c3f8a95
 
 ARG centos_version
 
-RUN dnf -y install jq iptables iproute dnsmasq qemu openssh-clients screen && dnf clean all
+RUN dnf -y install jq iptables iproute dnsmasq qemu openssh-clients screen bind-utils tcpdump iputils && dnf clean all
 
 WORKDIR /
 
