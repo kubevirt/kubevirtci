@@ -91,6 +91,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
 	run.Flags().Uint("prometheus-port", 0, "port on localhost for prometheus server")
 	run.Flags().Uint("grafana-port", 0, "port on localhost for grafana server")
+	run.Flags().Uint("dns-port", 0, "port on localhost for dns server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().Bool("enable-istio", false, "deploys Istio service mesh")
@@ -147,15 +148,16 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 	portMap := nat.PortMap{}
 
-	utils.AppendIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
-	utils.AppendIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
-	utils.AppendIfExplicit(portMap, utils.PortHTTP, cmd.Flags(), "http-port")
-	utils.AppendIfExplicit(portMap, utils.PortHTTPS, cmd.Flags(), "https-port")
-	utils.AppendIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port")
-	utils.AppendIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port")
-	utils.AppendIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port")
-	utils.AppendIfExplicit(portMap, utils.PortPrometheus, cmd.Flags(), "prometheus-port")
-	utils.AppendIfExplicit(portMap, utils.PortGrafana, cmd.Flags(), "grafana-port")
+	utils.AppendTCPIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
+	utils.AppendTCPIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
+	utils.AppendTCPIfExplicit(portMap, utils.PortHTTP, cmd.Flags(), "http-port")
+	utils.AppendTCPIfExplicit(portMap, utils.PortHTTPS, cmd.Flags(), "https-port")
+	utils.AppendTCPIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port")
+	utils.AppendTCPIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port")
+	utils.AppendTCPIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port")
+	utils.AppendTCPIfExplicit(portMap, utils.PortPrometheus, cmd.Flags(), "prometheus-port")
+	utils.AppendTCPIfExplicit(portMap, utils.PortGrafana, cmd.Flags(), "grafana-port")
+	utils.AppendUDPIfExplicit(portMap, utils.PortDNS, cmd.Flags(), "dns-port")
 
 	qemuArgs, err := cmd.Flags().GetString("qemu-args")
 	if err != nil {

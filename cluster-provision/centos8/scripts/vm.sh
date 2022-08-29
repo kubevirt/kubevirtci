@@ -73,16 +73,28 @@ else
   iptables -t nat -A OUTPUT -p tcp --dport 22${n} -j DNAT --to-destination 192.168.66.1${n}:22
 fi
 
+function create_ip_rules {
+  protocol=$1
+  shift
+  if [ "$ROOTLESS" -ne 1 ]; then
+    for port in "$@"; do
+      iptables -t nat -A PREROUTING -p ${protocol} -i eth0 -m ${protocol} --dport ${port} -j DNAT --to-destination 192.168.66.101:${port}
+    done
+  else
+    for port in "$@"; do
+      # Add DNAT rule for rootless podman (traffic originating from loopback adapter)
+      iptables -t nat -A OUTPUT -p ${protocol} --dport ${port} -j DNAT --to-destination 192.168.66.101:${port}
+    done
+  fi
+}
+
 # Route ports from container to VM for first node
 if [ "$n" = "01" ] ; then
-  for port in 6443 8443 80 443 30007 30008 31001; do
-    if [ "$ROOTLESS" -ne 1 ]; then
-      iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport ${port} -j DNAT --to-destination 192.168.66.1${n}:${port}
-    else
-      # Add DNAT rule for rootless podman (traffic originating from loopback adapter)
-      iptables -t nat -A OUTPUT -p tcp --dport ${port} -j DNAT --to-destination 192.168.66.1${n}:${port}
-    fi
-  done
+  tcp_ports=( 6443 8443 80 443 30007 30008 31001 )
+  create_ip_rules "tcp" "${tcp_ports[@]}"
+
+  udp_ports=( 31111 )
+  create_ip_rules "udp" "${udp_ports[@]}"
 fi
 
 # For backward compatibility, so that we can just copy over the newer files
