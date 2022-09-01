@@ -3,7 +3,7 @@
 ## Using gocli
 
 `gocli` is a tiny go binary which helps managing the containerized clusters. It
-can be used from a docker images, so no need to install it. You can for instance
+can be used from a docker image, so no need to install it. You can for instance
 use a bash alias:
 
 ```bash
@@ -15,7 +15,7 @@ gocli help
 
 ### Start the cluster
 
-Start a k8s cluster which contains of one control-plane and two nodes:
+Start a k8s cluster which consists of one control-plane and two nodes:
 
 ```bash
 gocli run --random-ports --nodes 3 --background kubevirtci/k8s-1.13.3
@@ -74,7 +74,7 @@ $ gocli rm
 ### Accessing the webconsole
 
 Make sure that `node01` resolves to `127.0.0.1` and that you added `--ocp-port
-8443` when creatin the cluster. If you did that, you can simply access the
+8443` when creating the cluster. If you did that, you can simply access the
 webconsole at `https://127.0.0.1:8443`. The login credentials are
 `admin:admin`.
 
