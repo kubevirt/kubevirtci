@@ -103,7 +103,9 @@ baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcon
 gpgcheck=0
 enabled=1
 EOF
-dnf install -y cri-o
+# TODO: Remove the package pinning once cri-o support the new 'keyPaths' key
+dnf install -y cri-o containers-common-1-23.module_el8.7.0+1106+45480ee0.x86_64
+echo "" >> /etc/containers/policy.json
 
 # install podman for functionality missing in crictl (tag, etc)
 dnf install -y podman
