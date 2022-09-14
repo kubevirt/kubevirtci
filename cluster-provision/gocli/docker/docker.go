@@ -207,6 +207,8 @@ func NewCleanupHandler(cli *client.Client, cleanupChan chan error, errWriter io.
 	go func() {
 		createdContainers := []string{}
 		createdVolumes := []string{}
+		containersFailedToRemove := []string{}
+
 		defer close(done)
 
 		for {
@@ -229,6 +231,13 @@ func NewCleanupHandler(cli *client.Client, cleanupChan chan error, errWriter io.
 								io.Copy(os.Stderr, reader)
 							}
 						}
+						err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
+						if err != nil {
+							fmt.Fprintf(errWriter, "%v\n", err)
+							containersFailedToRemove = append(containersFailedToRemove, c)
+						}
+					}
+					for _, c := range containersFailedToRemove {
 						err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
 						if err != nil {
 							fmt.Fprintf(errWriter, "%v\n", err)
