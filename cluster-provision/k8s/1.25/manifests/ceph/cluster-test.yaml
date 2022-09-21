@@ -26,7 +26,7 @@ metadata:
 spec:
   dataDirHostPath: /var/lib/rook
   cephVersion:
-    image: quay.io/ceph/ceph:v16.2.7
+    image: quay.io/ceph/ceph:v17
     allowUnsupported: true
   mon:
     count: 1
@@ -44,3 +44,7 @@ spec:
       mon:
         interval: 45s
         timeout: 600s
+  priorityClassNames:
+    all: system-node-critical
+  disruptionManagement:
+    managePodBudgets: true
