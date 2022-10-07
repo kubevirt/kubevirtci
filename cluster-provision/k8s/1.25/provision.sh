@@ -24,7 +24,7 @@ cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 #!/bin/bash
 set -ex
 export KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
-export ISTIO_VERSION=1.10.0
+export ISTIO_VERSION=1.15.0
 export ISTIO_BIN_DIR=/opt/istio-$ISTIO_VERSION/bin
 export KUBEVIRTCI_DUALSTACK=$ipv6_dualstack
 EOF
