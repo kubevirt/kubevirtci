@@ -7,10 +7,10 @@ SCRIPT_PATH=$(dirname "$(realpath "$0")")
 ARTIFACTS=${ARTIFACTS:-${PWD}}
 
 config_file=${1:-}
-sonobuoy_version=0.50.0
+sonobuoy_version=0.56.9
 [[ -f "$config_file" ]] && sonobuoy_version=$(jq -r '.Version' "$config_file" | grep -oE '[0-9\.]+')
 
-conformance_image_config_file="$SCRIPT_PATH/confromance-image-config.yaml"
+conformance_image_config_file="$SCRIPT_PATH/conformance-image-config.yaml"
 ! [[ -f "$conformance_image_config_file" ]] && echo "FATAL: Conformance image config file does not exists" 1>&2 && exit 1
 
 if [[ -z "$KUBEVIRT_PROVIDER" ]]; then
