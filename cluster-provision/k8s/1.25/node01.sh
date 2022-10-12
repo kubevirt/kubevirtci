@@ -73,3 +73,13 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$local_volume_manifes
 # ceph mon permission
 mkdir -p /var/lib/rook
 chcon -t container_file_t /var/lib/rook
+
+mkdir -p /var/run/istio-cni
+chcon -t container_file_t /var/run/istio-cni
+
+mkdir -p /etc/cni/net.d
+chcon -t container_file_t /etc/cni/net.d
+
+
+mkdir -p /opt/cni/bin
+chcon -t container_file_t /opt/cni/bin
