@@ -30,6 +30,7 @@ spec:
       chained: \$ISTIO_CNI_CHAINED
       cniBinDir: /opt/cni/bin
       cniConfDir: \$ISTIO_CNI_CONF_DIR
+      privileged: true
       excludeNamespaces:
        - istio-system
        - kube-system
