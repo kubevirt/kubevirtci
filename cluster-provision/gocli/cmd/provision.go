@@ -108,8 +108,8 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 
 	portMap := nat.PortMap{}
 
-	utils.AppendIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
-	utils.AppendIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
+	utils.AppendTCPIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
+	utils.AppendTCPIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
 
 	qemuArgs, err := cmd.Flags().GetString("qemu-args")
 	if err != nil {

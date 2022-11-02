@@ -7,15 +7,24 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// AppendIfExplicit append port to the portMap if the port flag exists
-func AppendIfExplicit(ports nat.PortMap, exposedPort int, flagSet *pflag.FlagSet, flagName string) error {
+// AppendTCPIfExplicit append TCP port to the portMap if the port flag exists
+func AppendTCPIfExplicit(ports nat.PortMap, exposedPort int, flagSet *pflag.FlagSet, flagName string) error {
+	return appendIfExplicit(ports, exposedPort, flagSet, flagName, TCPPortOrDie)
+}
+
+// AppendUDPIfExplicit append UDP port to the portMap if the port flag exists
+func AppendUDPIfExplicit(ports nat.PortMap, exposedPort int, flagSet *pflag.FlagSet, flagName string) error {
+	return appendIfExplicit(ports, exposedPort, flagSet, flagName, UDPPortOrDie)
+}
+
+func appendIfExplicit(ports nat.PortMap, exposedPort int, flagSet *pflag.FlagSet, flagName string, portFn func(port int) nat.Port) error {
 	flag := flagSet.Lookup(flagName)
 	if flag != nil && flag.Changed {
 		publicPort, err := flagSet.GetUint(flagName)
 		if err != nil {
 			return err
 		}
-		port := TCPPortOrDie(exposedPort)
+		port := portFn(exposedPort)
 		ports[port] = []nat.PortBinding{
 			{
 				HostIP:   "127.0.0.1",
