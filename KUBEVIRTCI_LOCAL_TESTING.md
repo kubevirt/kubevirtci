@@ -16,7 +16,7 @@ cd $KUBEVIRTCI_DIR
 
 ```bash
 # Build a provider. This includes starting it with cluster-up for verification and shutting it down for cleanup.
-(cd cluster-provision/k8s/1.22; ../provision.sh)
+(cd cluster-provision/k8s/1.25; ../provision.sh)
 ```
 
 ### prepare for using the new provisioned cluster
@@ -35,7 +35,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 ### start cluster
 
 ```bash
-export KUBEVIRT_PROVIDER=k8s-1.22
+export KUBEVIRT_PROVIDER=k8s-1.25
 export KUBECONFIG=$(./cluster-up/kubeconfig.sh)
 export KUBEVIRT_NUM_NODES=2
 
@@ -46,7 +46,7 @@ make cluster-up
 #### start cluster with prometheus, alertmanager and grafana
 To enable prometheus, please also export the following variables before running `make cluster-up`:
 ```bash
-export KUBEVIRT_PROVIDER=k8s-1.22
+export KUBEVIRT_PROVIDER=k8s-1.25
 export KUBEVIRT_DEPLOY_PROMETHEUS=true
 export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
 export KUBEVIRT_DEPLOY_GRAFANA=true
