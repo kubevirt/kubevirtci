@@ -11,6 +11,15 @@ if [ ! -f "/tmp/fetch-images.sh" ]; then
     exit 1
 fi
 
+if grep -q "CentOS Stream 9" /etc/os-release; then
+  release="centos9"
+elif grep -q "CentOS Stream 8" /etc/os-release; then
+  release="centos8"
+else
+  echo "ERROR: Could not recognize guest OS"
+  exit 1
+fi
+
 cni_diff="/tmp/cni.diff"
 ipv6_dualstack=true
 if [[ ${networkstack} == ipv6 ]]; then
@@ -53,7 +62,11 @@ dnf install -y "kernel-modules-$(uname -r)"
 # Resize root partition
 dnf install -y cloud-utils-growpart
 if growpart /dev/vda 1; then
-    xfs_growfs -d /
+    if [[ "$release" == "centos8" ]]; then
+      xfs_growfs -d /
+    elif [[ "$release" == "centos9" ]]; then
+      resize2fs /dev/vda1
+    fi
 fi
 
 dnf install -y patch
@@ -74,8 +87,7 @@ echo 'ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="vd[a-z]", ATTR{queue/ro
 	> /etc/udev/rules.d/60-force-ssd-rotational.rules
 
 # To prevent preflight issue related to tc not found
-dnf install -y tc
-
+dnf install -y iproute-tc
 # Install istioctl
 export PATH=$ISTIO_BIN_DIR:$PATH
 (
@@ -102,7 +114,12 @@ baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcon
 gpgcheck=0
 enabled=1
 EOF
-dnf install -y cri-o containers-common-1-23.module_el8.7.0+1106+45480ee0.x86_64
+if [[ "$release" == "centos8" ]]; then
+    dnf install -y cri-o containers-common-1-23.module_el8.7.0+1106+45480ee0.x86_64
+elif [[ "$release" == "centos9" ]]; then
+    dnf install -y cri-o
+fi
+
 echo "" >> /etc/containers/policy.json
 
 systemctl enable --now crio
