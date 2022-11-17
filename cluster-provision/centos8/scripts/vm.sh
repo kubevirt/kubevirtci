@@ -22,6 +22,8 @@ while true; do
     -s | --block-device-size ) BLOCK_DEV_SIZE="$2"; shift 2 ;;
     -n | --nvme-device-size ) NVME_DISK_SIZES+="$2 "; shift 2 ;;
     -t | --scsi-device-size ) SCSI_DISK_SIZES+="$2 "; shift 2 ;;
+    --numa ) NUMA_NODES+="$2 "; shift 2 ;;
+    --object ) OBJECTS+="$2 "; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -153,6 +155,16 @@ for size in ${SCSI_DISK_SIZES[@]}; do
   let "disk_num+=1"
 done
 
+NUMA_ARGS=""
+for node in ${NUMA_NODES[@]}; do
+  NUMA_ARGS="-numa $node $NUMA_ARGS"
+done
+
+OBJECTS_ARGS=""
+for object in ${OBJECTS[@]}; do
+  OBJECTS_ARGS="-object $object $OBJECTS_ARGS"
+done
+
 exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=unsafe ${block_dev_arg} \
   -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
   -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
@@ -160,7 +172,7 @@ exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,c
   -initrd /initrd.img \
   -kernel /vmlinuz \
   -append "$(cat /kernel.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}" \
-  -vnc :${n} -cpu host,migratable=no,+invtsc -m ${MEMORY} -smp ${CPU} \
+  -vnc :${n} -cpu host,migratable=no,+invtsc -m ${MEMORY} -smp ${CPU} ${NUMA_ARGS} ${OBJECTS_ARGS} \
   -serial pty -M q35,accel=kvm,kernel_irqchip=split \
   -device intel-iommu,intremap=on,caching-mode=on -device intel-hda -device hda-duplex -device AC97 \
   -uuid $(cat /proc/sys/kernel/random/uuid) \

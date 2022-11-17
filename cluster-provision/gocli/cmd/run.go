@@ -54,10 +54,12 @@ EOF
 	scsiDiskImagePrefix = "/scsi"
 )
 
-var soundcardPCIIDs = []string{"8086:2668", "8086:2415"}
-var cli *client.Client
-var nvmeDisks []string
-var scsiDisks []string
+var (
+	soundcardPCIIDs = []string{"8086:2668", "8086:2415"}
+	cli             *client.Client
+	nvmeDisks       []string
+	scsiDisks       []string
+)
 
 type dockerSetting struct {
 	Proxy string
@@ -65,7 +67,6 @@ type dockerSetting struct {
 
 // NewRunCommand returns command that runs given cluster
 func NewRunCommand() *cobra.Command {
-
 	run := &cobra.Command{
 		Use:   "run",
 		Short: "run starts a given cluster",
@@ -75,6 +76,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().UintP("nodes", "n", 1, "number of cluster nodes to start")
 	run.Flags().StringP("memory", "m", "3096M", "amount of ram per node")
 	run.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
+	run.Flags().Uint("numa-nodes", 1, "number of numa nodes")
 	run.Flags().UintP("secondary-nics", "", 0, "number of secondary nics to add")
 	run.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	run.Flags().String("kernel-args", "", "additional kernel args to pass through to the nodes")
@@ -116,7 +118,6 @@ func NewRunCommand() *cobra.Command {
 }
 
 func run(cmd *cobra.Command, args []string) (retErr error) {
-
 	prefix, err := cmd.Flags().GetString("prefix")
 	if err != nil {
 		return err
@@ -276,6 +277,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	cli, err = client.NewEnvClient()
+	if err != nil {
+		return err
+	}
+
+	numaCount, err := cmd.Flags().GetUint("numa-nodes")
 	if err != nil {
 		return err
 	}
@@ -489,6 +495,30 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			additionalArgs = append(additionalArgs, "--additional-kernel-args", shellescape.Quote(kernelArgs))
 		}
 
+		// add numa args only when numa-nodes is greater than 1
+		if numaCount > 1 {
+			size, unit, err := getMemorySizeAndUnit(memory)
+			if err != nil {
+				return err
+			}
+
+			if size%uint64(numaCount) != 0 {
+				return fmt.Errorf("memory size: %d can't be divided by numa count: %d", size, numaCount)
+			}
+
+			if cpu%numaCount != 0 {
+				return fmt.Errorf("cpus: %d can't be divided by numa count: %d", size, numaCount)
+			}
+
+			cpus := getCpusRanges(cpu, numaCount)
+
+			for i := 0; i < int(numaCount); i++ {
+				numaCpus := cpus[i]
+				numaSize := size / uint64(numaCount)
+				additionalArgs = append(additionalArgs, fmt.Sprintf("--numa node,cpus=%s,nodeid=%d,memdev=m%d --object memory-backend-ram,size=%d%s,id=m%d", numaCpus, i, i, numaSize, unit, i))
+			}
+		}
+
 		vmContainerConfig := &container.Config{
 			Image: clusterImage,
 			Env: []string{
@@ -499,7 +529,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 		if cephEnabled {
 			vmContainerConfig.Volumes = map[string]struct{}{
-				"/var/lib/rook": struct{}{},
+				"/var/lib/rook": {},
 			}
 		}
 
@@ -550,7 +580,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 
 		if dockerProxy != "" {
-			//if dockerProxy has value, generate a shell script`/script/docker-proxy.sh` which can be applied to set proxy settings
+			// if dockerProxy has value, generate a shell script`/script/docker-proxy.sh` which can be applied to set proxy settings
 			proxyConfig, err := getDockerProxyConfig(dockerProxy)
 			if err != nil {
 				return fmt.Errorf("parsing proxy settings for node %s failed", nodeName)
@@ -587,7 +617,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			}
 		}
 
-		//check if we have a special provision script
+		// check if we have a special provision script
 		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("test -f /scripts/%s.sh", nodeName)}, os.Stdout)
 		if err != nil {
 			return fmt.Errorf("checking for matching provision script for node %s failed", nodeName)
@@ -836,4 +866,47 @@ func prepareEtcdDataMount(node string, etcdDataDir string, mountSize string) err
 	}
 
 	return nil
+}
+
+func getMemorySizeAndUnit(memory string) (uint64, string, error) {
+	var (
+		validUnit    bool
+		size         uint64
+		unit         string
+		err          error
+		allowedUnits = []string{"K", "M", "G"}
+	)
+
+	for _, u := range allowedUnits {
+		if strings.HasSuffix(memory, u) {
+			validUnit = true
+		}
+	}
+
+	// unit should be last char of string
+	unit = memory[len(memory)-1:]
+
+	if !validUnit {
+		return 0, "", fmt.Errorf("expected memory unit to be one of K,M or G not: %s", unit)
+	}
+
+	size, err = strconv.ParseUint(memory[:len(memory)-1], 10, 64)
+	if err != nil {
+		return 0, "", fmt.Errorf("cannot convert memory size %s to integer: %v", memory, err)
+	}
+
+	return size, unit, nil
+}
+
+func getCpusRanges(cpu uint, numaCount uint) []string {
+	var start uint = 0
+	// we are checking if this division works before executing this function
+	width := cpu / numaCount
+	ranges := []string{}
+	for start < cpu-1 {
+		ranges = append(ranges, fmt.Sprintf("%d-%d", start, start+width-1))
+		start += width
+	}
+
+	return ranges
 }
