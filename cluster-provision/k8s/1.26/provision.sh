@@ -2,6 +2,34 @@
 
 set -ex
 
+function getKubernetesClosestStableVersion() {
+  kubernetes_version=$version
+  packages_version=$kubernetes_version
+  if [[ $kubernetes_version == *"alpha"* ]] || [[ $kubernetes_version == *"beta"* ]] || [[ $kubernetes_version == *"rc"* ]]; then
+    kubernetes_minor_version=$(echo $kubernetes_version | cut -d. -f2)
+    packages_major_version=$(echo $kubernetes_version | cut -d. -f1)
+    packages_minor_version=$((kubernetes_minor_version-1))
+    packages_patch_version=0
+    packages_version="$packages_major_version.$packages_minor_version.$packages_patch_version"
+  fi
+  echo $packages_version
+}
+
+function replaceKubeadmBinary() {
+  dnf install -y which
+  rm -f `which kubeadm`
+
+  DOWNLOAD_DIR="/usr/bin"
+  mkdir -p "$DOWNLOAD_DIR"
+  RELEASE="v$version"
+
+  ARCH="amd64"
+  cd $DOWNLOAD_DIR
+  curl -L --remote-name-all https://dl.k8s.io/release/${RELEASE}/bin/linux/${ARCH}/kubeadm
+  chmod +x kubeadm
+  cd -
+}
+
 if [ ! -f "/tmp/extra-pre-pull-images" ]; then
     echo "ERROR: extra-pre-pull-images list missing"
     exit 1
@@ -155,12 +183,22 @@ repo_gpgcheck=0
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
 
+packages_version=$(getKubernetesClosestStableVersion)
+
 # Install Kubernetes packages.
 dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
-    kubeadm-${version} \
-    kubelet-${version} \
-    kubectl-${version} \
+    kubeadm-$packages_version \
+    kubelet-$packages_version \
+    kubectl-$packages_version \
     kubernetes-cni
+
+#In case the version is unstable the package manager recognize only the closest stable version
+#But it's unsafe using older kubeadm version than kubernetes version according to:
+# https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#kubeadm-s-skew-against-the-kubernetes-version
+#The reason we install kubeadm using dnf is for the dependencies packages.
+if [[ $version != $packages_version ]]; then
+   replaceKubeadmBinary
+fi
 
 kubeadm config images pull --kubernetes-version ${version}
 
