@@ -9,5 +9,4 @@ spec:
   linuxBridge: {}
   macvtap: {}
   multus: {}
-  multusDynamicNetworks: {}
   ovs: {}
