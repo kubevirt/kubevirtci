@@ -15,6 +15,7 @@ docker tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
 
 # Provision all base images
 (cd cluster-provision/centos8 && ./build.sh)
+(cd cluster-provision/centos9 && ./build.sh)
 
 # Provision all clusters
 CLUSTERS="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n')"
