@@ -67,6 +67,10 @@ while [[ $retry_counter -lt 20 && $kubectl_rc -ne 0 ]]; do
     retry_counter=$((retry_counter + 1))
 done
 
+echo "Printing kuberenetes version"
+kubectl --kubeconfig=/etc/kubernetes/admin.conf version --short
+
+
 local_volume_manifest="/provision/local-volume.yaml"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$local_volume_manifest"
 
