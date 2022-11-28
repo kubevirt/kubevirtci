@@ -1,12 +1,12 @@
---- a/cluster-provision/k8s/1.25-ipv6/manifests/cni.do-not-change.yaml
-+++ b/cluster-provision/k8s/1.25-ipv6/manifests/cni.do-not-change.yaml
-@@ -32,7 +32,12 @@
+--- a/cluster-provision/k8s/1.19/manifests/cni.do-not-change.yaml
++++ b/cluster-provision/k8s/1.19/manifests/cni.do-not-change.yaml
+@@ -32,7 +32,12 @@ data:
            "nodename": "__KUBERNETES_NODE_NAME__",
            "mtu": __CNI_MTU__,
            "ipam": {
 -              "type": "calico-ipam"
 +              "type": "calico-ipam",
-+              "assign_ipv4": "false",
++              "assign_ipv4": "true",
 +              "assign_ipv6": "true"
 +          },
 +          "container_settings": {
@@ -14,7 +14,7 @@
            },
            "policy": {
                "type": "k8s"
-@@ -3533,7 +3538,7 @@
+@@ -3533,7 +3538,7 @@ spec:
          # It can be deleted if this is a fresh installation, or if you have already
          # upgraded to use calico-ipam.
          - name: upgrade-ipam
@@ -23,7 +23,7 @@
            command: ["/opt/cni/bin/calico-ipam", "-upgrade"]
            envFrom:
            - configMapRef:
-@@ -3560,7 +3565,7 @@
+@@ -3560,7 +3565,7 @@ spec:
          # This container installs the CNI binaries
          # and CNI network config file on each node.
          - name: install-cni
@@ -32,7 +32,7 @@
            command: ["/opt/cni/bin/install"]
            envFrom:
            - configMapRef:
-@@ -3601,7 +3606,7 @@
+@@ -3601,7 +3606,7 @@ spec:
          # Adds a Flex Volume Driver that creates a per-pod Unix Domain Socket to allow Dikastes
          # to communicate with Felix over the Policy Sync API.
          - name: flexvol-driver
@@ -41,7 +41,7 @@
            volumeMounts:
            - name: flexvol-driver-host
              mountPath: /host/driver
-@@ -3612,7 +3617,7 @@
+@@ -3612,7 +3617,7 @@ spec:
          # container programs network policy and routes on each
          # host.
          - name: calico-node
@@ -50,20 +50,7 @@
            envFrom:
            - configMapRef:
                # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
-@@ -3641,10 +3646,10 @@
-               value: "k8s,bgp"
-             # Auto-detect the BGP IP address.
-             - name: IP
--              value: "autodetect"
-+              value: "none"
-             # Enable IPIP
-             - name: CALICO_IPV4POOL_IPIP
--              value: "Always"
-+              value: "Never"
-             # Enable or Disable VXLAN on the default IP pool.
-             - name: CALICO_IPV4POOL_VXLAN
-               value: "Never"
-@@ -3671,6 +3676,8 @@
+@@ -3671,6 +3676,8 @@ spec:
              # no effect. This should fall within `--cluster-cidr`.
              # - name: CALICO_IPV4POOL_CIDR
              #   value: "192.168.0.0/16"
@@ -72,7 +59,7 @@
              # Disable file logging so `kubectl logs` works.
              - name: CALICO_DISABLE_FILE_LOGGING
                value: "true"
-@@ -3679,12 +3686,16 @@
+@@ -3679,12 +3686,14 @@ spec:
                value: "ACCEPT"
              # Disable IPv6 on Kubernetes.
              - name: FELIX_IPV6SUPPORT
@@ -85,17 +72,20 @@
                value: "true"
 +            - name: CALICO_IPV6POOL_NAT_OUTGOING
 +              value: "true"
-+            - name: CALICO_ROUTER_ID
-+              value: "hash"
            securityContext:
              privileged: true
            resources:
-@@ -3818,11 +3829,16 @@
+@@ -3818,6 +3818,8 @@ spec:
            operator: Exists
          - key: node-role.kubernetes.io/master
            effect: NoSchedule
 +        - key: node-role.kubernetes.io/control-plane
 +          effect: NoSchedule
+       serviceAccountName: calico-kube-controllers
+       priorityClassName: system-cluster-critical
+       containers:
+@@ -3820,9 +3829,12 @@ spec:
+           effect: NoSchedule
        serviceAccountName: calico-kube-controllers
        priorityClassName: system-cluster-critical
 +      securityContext:
@@ -108,10 +98,10 @@
            env:
              # Choose which controllers to run.
              - name: ENABLED_CONTROLLERS
-@@ -3847,7 +3863,7 @@
- 
+@@ -3847,7 +3859,7 @@
+
  # This manifest creates a Pod Disruption Budget for Controller to allow K8s Cluster Autoscaler to evict
- 
+
 -apiVersion: policy/v1beta1
 +apiVersion: policy/v1
  kind: PodDisruptionBudget
