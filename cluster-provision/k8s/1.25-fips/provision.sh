@@ -167,6 +167,8 @@ kubeadm config images pull --kubernetes-version ${version}
 dnf install -y centos-release-nfv-openvswitch
 dnf install -y openvswitch2.16
 
+fips-mode-setup --enable
+
 mkdir -p /provision
 cni_manifest="/provision/cni.yaml"
 mv /tmp/cni.do-not-change.yaml $cni_manifest
