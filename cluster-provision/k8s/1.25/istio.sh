@@ -38,7 +38,7 @@ spec:
 EOF
 
 # generate istio-operator for usage with cnao enabled
-ISTIO_CNI_CHAINED=false ISTIO_CNI_CONF_DIR=/etc/cni/multus/net.d envsubst < $istio_manifests_dir/istio-operator.tpl.yaml > $istio_manifests_dir/istio-operator-with-cnao.cr.yaml
+ISTIO_CNI_CHAINED=true ISTIO_CNI_CONF_DIR=/etc/cni/net.d envsubst < $istio_manifests_dir/istio-operator.tpl.yaml > $istio_manifests_dir/istio-operator-with-cnao.cr.yaml
 cat <<EOF >>$istio_manifests_dir/istio-operator-with-cnao.yaml
       cniConfFileName: "istio-cni.conf"
     sidecarInjectorWebhook:
