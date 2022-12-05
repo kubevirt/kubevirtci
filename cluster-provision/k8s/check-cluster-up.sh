@@ -94,7 +94,12 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 
             ${ksh} wait -n kubevirt kv kubevirt --for condition=Available --timeout 15m
 
-            export SONOBUOY_EXTRA_ARGS="--plugin https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/conformance.yaml"
+            args="--plugin https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/conformance.yaml"
+            # pass KUBEVIRT_DEPLOY_ISTIO into kubevirt conformance plugin container env to make the tests suite realize Istio is deployed
+            args="${args} --plugin-env kubevirt-conformance.KUBEVIRT_DEPLOY_ISTIO=${KUBEVIRT_DEPLOY_ISTIO}"
+            # runs kubevirt conformance tests and Istio tests
+            args="${args} --plugin-env kubevirt-conformance.E2E_FOCUS=\\[Conformance\\]|istio"
+            export SONOBUOY_EXTRA_ARGS="${args}"
             hack/conformance.sh $conformance_config
         fi
 
