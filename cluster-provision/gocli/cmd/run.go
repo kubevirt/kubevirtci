@@ -110,6 +110,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().String("etcd-capacity", "512M", "set etcd data mount size.\nthis flag takes affect only when 'run-etcd-on-memory' is specified")
 	run.Flags().Uint("hugepages-2m", 64, "number of hugepages of size 2M to allocate")
 	run.Flags().Bool("enable-realtime-scheduler", false, "configures the kernel to allow unlimited runtime for processes that require realtime scheduling")
+	run.Flags().Bool("enable-fips", false, "enables FIPS")
 	return run
 }
 
@@ -264,6 +265,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
+	fipsEnabled, err := cmd.Flags().GetBool("enable-fips")
+	if err != nil {
+		return err
+	}
+
 	cli, err = client.NewEnvClient()
 	if err != nil {
 		return err
@@ -291,7 +297,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	clusterImage := cluster
 
 	// Check if cluster container suffix has not being override
-	// in that case use the default preffix stored at the binary
+	// in that case use the default prefix stored at the binary
 	if containerSuffix == "" {
 		containerSuffix = images.SUFFIX
 	}
@@ -461,16 +467,21 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 
 		if hugepages2Mcount > 0 {
-			args := fmt.Sprintf("hugepagesz=2M hugepages=%d", hugepages2Mcount)
-			if len(kernelArgs) > 0 {
-				args = fmt.Sprintf("%s %s", args, kernelArgs)
-			}
-			additionalArgs = append(additionalArgs, "--additional-kernel-args", shellescape.Quote(args))
+			kernelArgs += fmt.Sprintf(" hugepagesz=2M hugepages=%d", hugepages2Mcount)
+		}
+
+		if fipsEnabled {
+			kernelArgs += " fips=1"
 		}
 
 		blockDev := ""
 		if cephEnabled {
 			blockDev = "--block-device /var/run/disk/blockdev.qcow2 --block-device-size 32212254720"
+		}
+
+		kernelArgs = strings.TrimSpace(kernelArgs)
+		if kernelArgs != "" {
+			additionalArgs = append(additionalArgs, "--additional-kernel-args", shellescape.Quote(kernelArgs))
 		}
 
 		vmContainerConfig := &container.Config{
@@ -512,22 +523,29 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return fmt.Errorf("checking for ssh.sh script for node %s failed", nodeName)
 		}
 
-		// Wait for the VM to be up
-		for x := 0; x < 10; x++ {
-			err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh echo VM is up", "waiting for node to come up")
-			if err == nil {
-				break
-			}
-			logrus.WithError(err).Warningf("Could not establish a ssh connection to the VM, retrying ...")
-			time.Sleep(1 * time.Second)
+		err = waitForVMToBeUp(prefix, nodeName)
+		if err != nil {
+			return err
 		}
 
-		if err != nil {
-			return fmt.Errorf("could not establish a connection to the node after a generous timeout: %v", err)
+		if fipsEnabled {
+			success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
+				"/bin/bash", "-c", "ssh.sh sudo fips-mode-setup --enable && ( ssh.sh sudo reboot || true )",
+			}, os.Stdout)
+			if err != nil {
+				return err
+			}
+			if !success {
+				return errors.New("failed to enable FIPS and/or reboot")
+			}
+			err = waitForVMToBeUp(prefix, nodeName)
+			if err != nil {
+				return err
+			}
 		}
 
 		if dockerProxy != "" {
-			//if dockerProxy has value, genterate a shell script`/script/docker-proxy.sh` which can be applied to set proxy settings
+			//if dockerProxy has value, generate a shell script`/script/docker-proxy.sh` which can be applied to set proxy settings
 			proxyConfig, err := getDockerProxyConfig(dockerProxy)
 			if err != nil {
 				return fmt.Errorf("parsing proxy settings for node %s failed", nodeName)
@@ -679,6 +697,25 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	if !background {
 		wg.Wait()
 		stop <- fmt.Errorf("Done. please clean up")
+	}
+
+	return nil
+}
+
+func waitForVMToBeUp(prefix string, nodeName string) error {
+	var err error
+	// Wait for the VM to be up
+	for x := 0; x < 10; x++ {
+		err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh echo VM is up", "waiting for node to come up")
+		if err == nil {
+			break
+		}
+		logrus.WithError(err).Warningf("Could not establish a ssh connection to the VM, retrying ...")
+		time.Sleep(1 * time.Second)
+	}
+
+	if err != nil {
+		return fmt.Errorf("could not establish a connection to the node after a generous timeout: %v", err)
 	}
 
 	return nil
