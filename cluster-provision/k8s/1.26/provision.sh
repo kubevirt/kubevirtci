@@ -9,8 +9,7 @@ function getKubernetesClosestStableVersion() {
     kubernetes_minor_version=$(echo $kubernetes_version | cut -d. -f2)
     packages_major_version=$(echo $kubernetes_version | cut -d. -f1)
     packages_minor_version=$((kubernetes_minor_version-1))
-    packages_patch_version=0
-    packages_version="$packages_major_version.$packages_minor_version.$packages_patch_version"
+    packages_version="$(curl --fail -L "https://storage.googleapis.com/kubernetes-release/release/stable-${packages_major_version}.${packages_minor_version}.txt" | sed 's/^v//')"
   fi
   echo $packages_version
 }
@@ -57,12 +56,13 @@ fi
 
 KUBEVIRTCI_SHARED_DIR=/var/lib/kubevirtci
 mkdir -p $KUBEVIRTCI_SHARED_DIR
+export ISTIO_VERSION=1.15.0
 cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 #!/bin/bash
 set -ex
 export KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
-export ISTIO_VERSION=1.15.0
-export ISTIO_BIN_DIR=/opt/istio-$ISTIO_VERSION/bin
+export ISTIO_VERSION=${ISTIO_VERSION}
+export ISTIO_BIN_DIR="/opt/istio-${ISTIO_VERSION}/bin"
 export KUBEVIRTCI_DUALSTACK=$ipv6_dualstack
 EOF
 source $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
@@ -117,12 +117,12 @@ echo 'ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="vd[a-z]", ATTR{queue/ro
 # To prevent preflight issue related to tc not found
 dnf install -y iproute-tc
 # Install istioctl
-export PATH=$ISTIO_BIN_DIR:$PATH
+export PATH="$ISTIO_BIN_DIR:$PATH"
 (
   set -E
-  mkdir -p $ISTIO_BIN_DIR
-  curl https://storage.googleapis.com/kubevirtci-istioctl-mirror/istio-$ISTIO_VERSION/bin/istioctl -o $ISTIO_BIN_DIR/istioctl
-  chmod +x $ISTIO_BIN_DIR/istioctl
+  mkdir -p "$ISTIO_BIN_DIR"
+  curl "https://storage.googleapis.com/kubevirtci-istioctl-mirror/istio-${ISTIO_VERSION}/bin/istioctl" -o "$ISTIO_BIN_DIR/istioctl"
+  chmod +x "$ISTIO_BIN_DIR/istioctl"
 )
 
 export CRIO_VERSION=1.24
@@ -171,31 +171,32 @@ registries = ['registry:5000']
 registries = []
 EOF
 
-#TODO: el8 repo
-# Add Kubernetes repository.
-cat <<EOF >/etc/yum.repos.d/kubernetes.repo
-[kubernetes]
-name=Kubernetes
-baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
-enabled=1
-gpgcheck=1
-repo_gpgcheck=0
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOF
-
 packages_version=$(getKubernetesClosestStableVersion)
 
-# Install Kubernetes packages.
+# Add Kubernetes release repository.
+# use repodata from GCS bucket, since the release repo might not have it right after the release
+# we deduce the https path from the gcs path gs://kubernetes-release/release/${version}/rpm/x86_64/
+# see https://github.com/kubernetes/kubeadm/blob/main/docs/testing-pre-releases.md#availability-of-pre-compiled-release-artifacts
+cat <<EOF >/etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes Release
+baseurl=https://storage.googleapis.com/kubernetes-release/release/v${packages_version}/rpm/x86_64/
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+EOF
+
+# Install Kubernetes CNI.
 dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
-    kubeadm-$packages_version \
-    kubelet-$packages_version \
-    kubectl-$packages_version \
+    kubectl-${packages_version} \
+    kubeadm-${packages_version} \
+    kubelet-${packages_version} \
     kubernetes-cni
 
-#In case the version is unstable the package manager recognize only the closest stable version
-#But it's unsafe using older kubeadm version than kubernetes version according to:
+# In case the version is unstable the package manager recognizes only the closest stable version
+# But it's unsafe using older kubeadm version than kubernetes version according to:
 # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#kubeadm-s-skew-against-the-kubernetes-version
-#The reason we install kubeadm using dnf is for the dependencies packages.
+# The reason we install kubeadm using dnf is for the dependencies packages.
 if [[ $version != $packages_version ]]; then
    replaceKubeadmBinary
 fi
