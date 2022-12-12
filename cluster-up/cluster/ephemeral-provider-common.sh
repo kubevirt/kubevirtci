@@ -147,6 +147,10 @@ function _add_common_params() {
         params=" --enable-realtime-scheduler $params"
     fi
 
+    if [ -n "$KUBEVIRT_FIPS" ]; then
+        params=" --enable-fips $params"
+    fi
+
     if [ -n "$KUBEVIRTCI_PROXY" ]; then
         params=" --docker-proxy=$KUBEVIRTCI_PROXY $params"
     fi
