@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -exuo pipefail
 
+function detect_cri() {
+    if podman ps >/dev/null 2>&1; then echo "podman"; elif docker ps >/dev/null 2>&1; then echo "docker"; fi
+}
+
+export CRI_BIN=${CRI_BIN:-$(detect_cri)}
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: create-containerdisk.sh image-directory"
@@ -54,7 +59,7 @@ if [ -f "${SCRIPT_PATH}/${IMAGE_NAME}/create-image.sh" ]; then
       ./create-image.sh "${build_directory}/${VM_IMAGE}" 
 
       echo "Creating the containerdisk ..."
-      docker build . -t ${IMAGE_NAME}:${TAG} -f - <<END
+      ${CRI_BIN} build . -t ${IMAGE_NAME}:${TAG} -f - <<END
 FROM scratch
 ADD --chown=107:107 build/${VM_IMAGE} /disk/
 END
@@ -87,7 +92,7 @@ else
       customize_image "${VM_IMAGE}" "${OS_VARIANT}" "${build_directory}/${new_vm_image_name}" "${CLOUD_CONFIG_PATH}"
 
       echo "Creating the containerdisk ..."
-      docker build . -t ${IMAGE_NAME}:${TAG} -f - <<END
+      ${CRI_BIN} build . -t ${IMAGE_NAME}:${TAG} -f - <<END
 FROM scratch
 ADD --chown=107:107 ${build_directory}/${new_vm_image_name} /disk/
 END

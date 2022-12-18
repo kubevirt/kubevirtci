@@ -5,18 +5,18 @@ would like to create KubeVirt VM's with customized container-disk,
 without the hassle of installing and customizing the OS manually.
 
 Use cases:
-- VM's for Demos
+- VMs for Demos
 - Pre-configured Kubevirt VM image for tests, for example:
     - Image with qemu-guest-agent installed and configured.
-    - Image with sriov drivers for sriov-lane images.
-    - Image with DPDK package for testing DPDK applications on KubeVirt.
+    - Image with SR-IOV drivers.
+    - Image with DPDK dependencies for testing DPDK applications on KubeVirt.
 
 
 ## Prerequisites
 
 The following RPM packages need to be present on your machine:
+- podman/docker-ce
 - cloud-utils
-- docker-ce
 - libguestfs
 - libguestfs-tools-c
 - libvirt
@@ -47,9 +47,9 @@ instructions are distributed between the following three files:
 
 ```
 $ ls -1 example/
-cloud-config #cloud-init configuration for virt-customize
-image-url    #download URL of the base image
-os-variant   #operating system variant (for example fedora32)
+cloud-config # cloud-init configuration for virt-customize
+image-url    # download URL of the base image
+os-variant   # operating system variant (for example fedora32)
 ```
 
 To create a completely new containerdisk, best copy the `example` folder and
@@ -62,7 +62,7 @@ $ ./build-containerdisk.sh example
 $ ./publish-containerdisk.sh example "localhost:$(./cluster-up/cli.sh ports registry | tr -d '\r')"
 ```
 
-### Create Kubevirt VM's with the new image
+### Create Kubevirt VM with the new image
 
 In the VMI / VM yaml file, change `spec.volumes[].containerDisk.image` to the new image path.
 
@@ -72,4 +72,13 @@ It is possible to use an image from local cluster registry.
 $ kubectl apply -f <VMI yaml file>
 $ kubectl wait --for=condition=AgentConnected vmi $VMI_NAME --timeout 5m
 $ virtctl console testvm1
+```
+
+### Using podman
+CRI_BIN environment variable controls which container runtime to use
+```bash
+$ export CRI_BIN=podman
+$ ./build-containerdisk.sh example
+$ ...
+$ ./publish-containerdisk.sh example quay.io/example/example-containerdisk:latest
 ```
