@@ -52,6 +52,20 @@ export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
 export KUBEVIRT_DEPLOY_GRAFANA=true
 ```
 
+#### start cluster with swap enabled
+To enable swap, please also export the following variables before running `make cluster-up`:
+```bash
+# to tune swap:
+# KUBEVIRT_SWAP_SIZE_IN_GB - Change the swap file size 
+# the default size is 2GB
+# KUBEVIRT_KSM_PAGES_TO_SCAN - The swappiness parameter determines how aggressively 
+# the kernel will swap out memory pages.
+# values are between 0-100 if the value is higher than the kernel will more aggressive
+# the default value is 30
+# KUBEVIRT_UNLIMITEDSWAP - Kubernetes workloads can use as much swap memory as they 
+# request, up to the system limit (without consideration to the pod's memory limit)
+export KUBEVIRT_SWAP_ON=true
+```
 
 ## kubevirt: testing kubevirt locally with a freshly provisioned cluster
 
