@@ -173,6 +173,10 @@ EOF
 
 packages_version=$(getKubernetesClosestStableVersion)
 
+# Add an SELinux rule missing from pre-v2.193.0 container-selinux, see kubevirt/kubevirt docs
+echo '(allow container_t tmpfs_t (filesystem (mount)))' >/tmp/passt.cil
+semodule -i /tmp/passt.cil
+
 # Add Kubernetes release repository.
 # use repodata from GCS bucket, since the release repo might not have it right after the release
 # we deduce the https path from the gcs path gs://kubernetes-release/release/${version}/rpm/x86_64/

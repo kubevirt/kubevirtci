@@ -118,6 +118,10 @@ registries = ['registry:5000']
 registries = []
 EOF
 
+# Add an SELinux rule missing from pre-v2.193.0 container-selinux, see kubevirt/kubevirt docs
+echo '(allow container_t tmpfs_t (filesystem (mount)))' >/tmp/passt.cil
+semodule -i /tmp/passt.cil
+
 #TODO: el8 repo
 # Add Kubernetes repository.
 cat <<EOF >/etc/yum.repos.d/kubernetes.repo
