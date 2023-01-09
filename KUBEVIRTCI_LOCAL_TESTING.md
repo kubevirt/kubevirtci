@@ -67,6 +67,21 @@ To enable swap, please also export the following variables before running `make 
 export KUBEVIRT_SWAP_ON=true
 ```
 
+#### start cluster with ksm enabled
+To enable KSM (Kernel Samepage Merging), please also export the following variables before running `make cluster-up`:
+```bash
+# to tune ksm:
+# KUBEVIRT_KSM_SLEEP_BETWEEN_SCANS_MS - This parameter controls
+# how long KSM should sleep in millisecond between scans.
+# the Default value is 20
+# KUBEVIRT_KSM_PAGES_TO_SCAN - This parameter controls how many
+# pages KSM should scan in each pass.
+# The default value for pages_to_scan is 100, which means each 
+# scan run only inspects about half a megabyte of RAM.
+export KUBEVIRT_KSM_ON=true
+```
+For more details see pages_to_scan and sleep_millisecs in: https://www.kernel.org/doc/Documentation/vm/ksm.txt
+
 ## kubevirt: testing kubevirt locally with a freshly provisioned cluster
 
 After making changes to a kubevirtci provider, it's recommended to test it locally including kubevirt e2e tests before publishing it.
