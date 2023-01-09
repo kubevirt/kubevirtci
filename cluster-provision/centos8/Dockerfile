@@ -1,5 +1,5 @@
 
-FROM quay.io/kubevirtci/fedora@sha256:486fd5578f93fbc57a519e34ad4b7cac927c3f8a95409baedf0c19e9f287c207
+FROM quay.io/kubevirtci/fedora@sha256:9b8e2b468d0d0523529bde44e8a0f17aad93dcedcf876c111183ffd4ea40d724
 
 ARG centos_version
 
