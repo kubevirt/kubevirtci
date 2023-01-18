@@ -131,6 +131,30 @@ rules:
   - Panic
 EOF
 
+# psa configuration
+cat > /etc/kubernetes/psa.yaml <<EOF
+apiVersion: apiserver.config.k8s.io/v1
+kind: AdmissionConfiguration
+plugins:
+- name: PodSecurity
+  configuration:
+    apiVersion: pod-security.admission.config.k8s.io/v1
+    kind: PodSecurityConfiguration
+    defaults:
+      enforce: "privileged"
+      enforce-version: "latest"
+      audit: "restricted"
+      audit-version: "latest"
+      warn: "restricted"
+      warn-version: "latest"
+    exemptions:
+      usernames: []
+      runtimeClasses: []
+      # Hopefuly this will not be needed in future. Add your favorite namespace to be ignored and your operator not broken
+      # You also need to modify psa.sh
+      namespaces: ["kube-system", "default", "istio-operator" ,"istio-system", "nfs-csi", "monitoring", "rook-ceph", "cluster-network-addons", "sonobuoy"]
+EOF
+
 kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
 envsubst < $kubeadm_raw > $kubeadm_manifest
 
