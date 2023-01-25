@@ -36,7 +36,13 @@ SSH into a node
 ```                                                                        
 cluster-up/ssh.sh node01                                                   
 ```                                                                        
-                                                                           
+
+Start single stack IPv6 cluster
+```
+export KUBEVIRT_SINGLE_STACK=true KUBEVIRT_PROVIDER=k8s-1.25
+make cluster-up
+```
+
 ## Attach to node console with screen and pty
 ```                                                  
 # Attach to node01 console                           
