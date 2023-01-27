@@ -160,6 +160,10 @@ envsubst < $kubeadm_raw > $kubeadm_manifest
 
 until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
 
+
+# prepull coredns:v1.8.6 and retag to expected tag
+podman pull registry.k8s.io/coredns/coredns:v1.8.6 && podman tag registry.k8s.io/coredns/coredns:v1.8.6 k8s.gcr.io/coredns:v1.8.6
+
 # 1.23 has deprecated --experimental-patches /provision/kubeadm-patches/, we now mention the patch directory in kubeadm.conf
 kubeadm init --config $kubeadm_manifest -v5
 
