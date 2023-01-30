@@ -8,3 +8,4 @@ quay.io/calico/cni:v3.18.0
 quay.io/calico/kube-controllers:v3.18.0
 quay.io/calico/node:v3.18.0
 quay.io/calico/pod2daemon-flexvol:v3.18.0
+registry.k8s.io/coredns/coredns:v1.8.6
