@@ -15,7 +15,6 @@ function getKubernetesClosestStableVersion() {
 }
 
 function replaceKubeadmBinary() {
-  dnf install -y which
   rm -f `which kubeadm`
 
   DOWNLOAD_DIR="/usr/bin"
@@ -76,47 +75,6 @@ function pull_container_retry() {
     fi
 }
 
-# Install modules of the initrd kernel
-dnf install -y "kernel-modules-$(uname -r)"
-
-# Resize root partition
-dnf install -y cloud-utils-growpart
-if growpart /dev/vda 1; then
-    if [[ "$release" == "centos8" ]]; then
-      xfs_growfs -d /
-    elif [[ "$release" == "centos9" ]]; then
-      resize2fs /dev/vda1
-    fi
-fi
-
-dnf install -y patch
-
-systemctl stop firewalld || :
-systemctl disable firewalld || :
-# Make sure the firewall is never enabled again
-# Enabling the firewall destroys the iptable rules
-yum -y remove firewalld
-
-# Required for iscsi demo to work.
-yum -y install iscsi-initiator-utils
-
-# for rook ceph
-dnf -y install lvm2
-# Convince ceph our storage is fast (not a rotational disk)
-echo 'ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="vd[a-z]", ATTR{queue/rotational}="0"' \
-	> /etc/udev/rules.d/60-force-ssd-rotational.rules
-
-# To prevent preflight issue related to tc not found
-dnf install -y iproute-tc
-# Install istioctl
-export PATH="$ISTIO_BIN_DIR:$PATH"
-(
-  set -E
-  mkdir -p "$ISTIO_BIN_DIR"
-  curl "https://storage.googleapis.com/kubevirtci-istioctl-mirror/istio-${ISTIO_VERSION}/bin/istioctl" -o "$ISTIO_BIN_DIR/istioctl"
-  chmod +x "$ISTIO_BIN_DIR/istioctl"
-)
-
 export CRIO_VERSION=1.26
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable.repo
 [devel_kubic_libcontainers_stable]
@@ -134,19 +92,56 @@ baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcon
 gpgcheck=0
 enabled=1
 EOF
-if [[ "$release" == "centos8" ]]; then
-    dnf install -y cri-o containers-common-1-23.module_el8.7.0+1106+45480ee0.x86_64
-elif [[ "$release" == "centos9" ]]; then
-    dnf install -y cri-o
+
+packages_version=$(getKubernetesClosestStableVersion)
+# Add Kubernetes release repository.
+# use repodata from GCS bucket, since the release repo might not have it right after the release
+# we deduce the https path from the gcs path gs://kubernetes-release/release/${version}/rpm/x86_64/
+# see https://github.com/kubernetes/kubeadm/blob/main/docs/testing-pre-releases.md#availability-of-pre-compiled-release-artifacts
+cat <<EOF >/etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes Release
+baseurl=https://storage.googleapis.com/kubernetes-release/release/v${packages_version}/rpm/x86_64/
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+EOF
+
+dnf install -y centos-release-nfv-openvswitch
+
+dnf install --disableexcludes=kubernetes -y "kernel-modules-$(uname -r)" cloud-utils-growpart patch lvm2 iscsi-initiator-utils iproute-tc cri-o podman libseccomp-devel openvswitch2.16 kubectl-${packages_version} kubeadm-${packages_version} kubelet-${packages_version} kubernetes-cni
+
+# Resize root partition
+if growpart /dev/vda 1; then
+    if [[ "$release" == "centos8" ]]; then
+      xfs_growfs -d /
+    elif [[ "$release" == "centos9" ]]; then
+      resize2fs /dev/vda1
+    fi
 fi
 
-echo "" >> /etc/containers/policy.json
+
+systemctl stop firewalld || :
+systemctl disable firewalld || :
+# Make sure the firewall is never enabled again
+# Enabling the firewall destroys the iptable rules
+dnf -y remove firewalld
+
+# Convince ceph our storage is fast (not a rotational disk)
+echo 'ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="vd[a-z]", ATTR{queue/rotational}="0"' \
+	> /etc/udev/rules.d/60-force-ssd-rotational.rules
+
+# Install istioctl
+export PATH="$ISTIO_BIN_DIR:$PATH"
+(
+  set -E
+  mkdir -p "$ISTIO_BIN_DIR"
+  curl "https://storage.googleapis.com/kubevirtci-istioctl-mirror/istio-${ISTIO_VERSION}/bin/istioctl" -o "$ISTIO_BIN_DIR/istioctl"
+  chmod +x "$ISTIO_BIN_DIR/istioctl"
+)
+
 
 systemctl enable --now crio
-
-# install podman for functionality missing in crictl (tag, etc)
-dnf install -y podman
-dnf install -y libseccomp-devel
 
 # link docker to podman as we need docker in test repos to pre-pull images
 # don't break them by doing a symlink
@@ -163,28 +158,6 @@ registries = ['registry:5000']
 registries = []
 EOF
 
-packages_version=$(getKubernetesClosestStableVersion)
-
-# Add Kubernetes release repository.
-# use repodata from GCS bucket, since the release repo might not have it right after the release
-# we deduce the https path from the gcs path gs://kubernetes-release/release/${version}/rpm/x86_64/
-# see https://github.com/kubernetes/kubeadm/blob/main/docs/testing-pre-releases.md#availability-of-pre-compiled-release-artifacts
-cat <<EOF >/etc/yum.repos.d/kubernetes.repo
-[kubernetes]
-name=Kubernetes Release
-baseurl=https://storage.googleapis.com/kubernetes-release/release/v${packages_version}/rpm/x86_64/
-enabled=1
-gpgcheck=0
-repo_gpgcheck=0
-EOF
-
-# Install Kubernetes CNI.
-dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
-    kubectl-${packages_version} \
-    kubeadm-${packages_version} \
-    kubelet-${packages_version} \
-    kubernetes-cni
-
 # In case the version is unstable the package manager recognizes only the closest stable version
 # But it's unsafe using older kubeadm version than kubernetes version according to:
 # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#kubeadm-s-skew-against-the-kubernetes-version
@@ -194,9 +167,6 @@ if [[ $version != $packages_version ]]; then
 fi
 
 kubeadm config images pull --kubernetes-version ${version}
-
-dnf install -y centos-release-nfv-openvswitch
-dnf install -y openvswitch2.16
 
 mkdir -p /provision
 
