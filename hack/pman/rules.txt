@@ -1,0 +1,44 @@
+# section: all
+# note: if a folder ends with *, it means it is recursive, else it include only the files
+cluster-provision/gocli/* - all
+hack/kustomization/* - all
+cluster-provision/k8s - all
+cluster-provision - all
+cluster-up - all
+cluster-up/cluster - all
+cluster-up/hack - all
+hack - all
+publish.sh - all
+hack/pman/force - all
+
+# section: none
+hack/pman/* - none
+cluster-provision/images/* - none
+cluster-provision/tools/* - none
+cluster-up/cluster/external - none
+cluster-up/cluster/local - none
+LICENSE - none
+Makefile - none
+OWNERS - none
+.gitignore - none
+
+# section: regex
+# notes:
+#   regex is always recursive, will create a specific rule for each folder
+#     example: cluster-provision/k8s/[0-9].[0-9][0-9]*
+#     only last dir can be a regex
+#     must contain at least one /
+#   regex_none will expand the list and assign rule none
+#     key should be a directory ending with /*
+#     i.e cluster-up/cluster/kind*
+cluster-provision/k8s/[0-9].[0-9][0-9]* - regex
+cluster-up/cluster/k8s-[0-9].[0-9][0-9]* - regex
+cluster-up/cluster/kind* - regex_none
+
+# section: base image
+# note: !x means all but x (format x.yz*, i.e: 1.26-centos9), exclude operator supports only one value
+# value as is supports only one value as well
+cluster-provision/centos8/* - !1.26-centos9
+cluster-provision/centos9/* - 1.26-centos9
+
+# file must end with either this comment or an empty line
