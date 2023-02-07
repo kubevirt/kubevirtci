@@ -9,6 +9,11 @@ Steps:
 
 ### kubevirtci: provision cluster locally
 
+Install the following CLI tools before running the script:
+* `docker` or `podman`
+* `go`
+* `kubectl`
+
 ```bash
 # switch to kubevirtci directory
 cd $KUBEVIRTCI_DIR
