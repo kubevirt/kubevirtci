@@ -8,11 +8,6 @@ cni_manifest="/provision/cni.yaml"
 
 cp /tmp/local-volume.yaml /provision/local-volume.yaml
 
-kubeadm_raw=/tmp/kubeadm.conf
-if [[ ${KUBEVIRTCI_DUALSTACK} == false ]]; then
-    kubeadm_raw=/tmp/kubeadm_ipv6.conf
-fi
-
 # TODO use config file! this is deprecated
 cat <<EOT >/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice  --fail-swap-on=false --kubelet-cgroups=/systemd/system.slice
@@ -155,8 +150,13 @@ plugins:
       namespaces: ["kube-system", "default", "istio-operator" ,"istio-system", "nfs-csi", "monitoring", "rook-ceph", "cluster-network-addons", "sonobuoy"]
 EOF
 
+kubeadm_raw=/tmp/kubeadm.conf
+kubeadm_raw_ipv6=/tmp/kubeadm_ipv6.conf
 kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
+kubeadm_manifest_ipv6="/etc/kubernetes/kubeadm_ipv6.conf"
+
 envsubst < $kubeadm_raw > $kubeadm_manifest
+envsubst < $kubeadm_raw_ipv6 > $kubeadm_manifest_ipv6
 
 until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
 

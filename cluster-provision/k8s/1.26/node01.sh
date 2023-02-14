@@ -2,6 +2,13 @@
 
 set -ex
 
+kubeadm_conf="/etc/kubernetes/kubeadm.conf"
+cni_manifest="/provision/cni.yaml"
+if [ -f /home/vagrant/single_stack ]; then
+    kubeadm_conf="/etc/kubernetes/kubeadm_ipv6.conf"
+    cni_manifest="/provision/cni_ipv6.yaml"
+fi
+
 timeout=30
 interval=5
 while ! hostnamectl  |grep Transient ; do
@@ -33,7 +40,6 @@ EOF
 fi
 
 version=`kubectl version --short --client | cut -d":" -f2 |sed  's/ //g' | cut -c2- `
-cni_manifest="/provision/cni.yaml"
 
 # Wait for crio, else network might not be ready yet
 while [[ `systemctl status crio | grep active | wc -l` -eq 0 ]]
@@ -47,7 +53,7 @@ sudo swapoff -a
 until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
 
 # 1.23 has deprecated --experimental-patches /provision/kubeadm-patches/, we now mention the patch directory in kubeadm.conf
-kubeadm init --config /etc/kubernetes/kubeadm.conf -v5
+kubeadm init --config "$kubeadm_conf" -v5
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /provision/kubeadm-patches/add-security-context-deployment-patch.yaml)"
 # cni manifest is already configured at provision stage.
