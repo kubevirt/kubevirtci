@@ -6,7 +6,7 @@ source /var/lib/kubevirtci/shared_vars.sh
 
 nodeip=
 control_ip=192.168.66.101
-if [[ ${KUBEVIRTCI_DUALSTACK} == false ]]; then
+if [ -f /home/vagrant/single_stack ]; then
     nodeip="--node-ip=::"
     control_ip=[fd00::101]
 fi
