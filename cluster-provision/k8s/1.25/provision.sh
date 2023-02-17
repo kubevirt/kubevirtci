@@ -20,13 +20,6 @@ else
   exit 1
 fi
 
-cni_diff="/tmp/cni.diff"
-ipv6_dualstack=true
-if [[ ${networkstack} == ipv6 ]]; then
-    cni_diff="/tmp/cni_ipv6.diff"
-    ipv6_dualstack=false
-fi
-
 KUBEVIRTCI_SHARED_DIR=/var/lib/kubevirtci
 mkdir -p $KUBEVIRTCI_SHARED_DIR
 cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
@@ -35,7 +28,6 @@ set -ex
 export KUBELET_CGROUP_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice"
 export ISTIO_VERSION=1.15.0
 export ISTIO_BIN_DIR=/opt/istio-$ISTIO_VERSION/bin
-export KUBEVIRTCI_DUALSTACK=$ipv6_dualstack
 EOF
 source $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 
@@ -168,9 +160,16 @@ dnf install -y centos-release-nfv-openvswitch
 dnf install -y openvswitch2.16
 
 mkdir -p /provision
+
 cni_manifest="/provision/cni.yaml"
-mv /tmp/cni.do-not-change.yaml $cni_manifest
+cni_diff="/tmp/cni.diff"
+cni_manifest_ipv6="/provision/cni_ipv6.yaml"
+cni_ipv6_diff="/tmp/cni_ipv6.diff"
+
+cp /tmp/cni.do-not-change.yaml $cni_manifest
+mv /tmp/cni.do-not-change.yaml $cni_manifest_ipv6
 patch $cni_manifest $cni_diff
+patch $cni_manifest_ipv6 $cni_ipv6_diff
 
 kubectl kustomize /tmp/prometheus/grafana > /tmp/grafana-deployment.yaml.tmp
 mv -f /tmp/grafana-deployment.yaml.tmp /tmp/prometheus/grafana/grafana-deployment.yaml

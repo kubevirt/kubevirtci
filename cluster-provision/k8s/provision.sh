@@ -5,7 +5,6 @@ set -ex
 
 PHASES_DEFAULT="linux,k8s"
 PHASES="${PHASES:-$PHASES_DEFAULT}"
-NETWORK_STACK="dualstack"
 CHECK_CLUSTER="${CHECK_CLUSTER:-false}"
 export SLIM="${SLIM:-false}"
 
@@ -13,10 +12,6 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 provision_dir="$(basename "$(pwd)")"
 base="$(cat base | tr -d '\n')"
 export base
-
-if [[ $provision_dir =~ ipv6 ]]; then
-  NETWORK_STACK="ipv6"
-fi
 
 cd $DIR
 
@@ -32,7 +27,7 @@ if ${SLIM}; then
 fi
 
 make -C ../gocli cli
-../gocli/build/cli provision ${provision_dir} --phases ${PHASES} --network-stack ${NETWORK_STACK} ${SLIM_MODE}
+../gocli/build/cli provision ${provision_dir} --phases ${PHASES} ${SLIM_MODE}
 
 if [[ $PHASES == $PHASES_DEFAULT ]] || [[ $CHECK_CLUSTER == true ]]; then
    if [[ $PHASES == "linux" ]]; then
