@@ -147,6 +147,9 @@ repo_gpgcheck=0
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
 
+# Set the SELinux boolean that allows containers to use char devices like /dev/null
+semanage boolean --modify --on container_use_devices
+
 # Install Kubernetes packages.
 dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
     kubeadm-${version} \

@@ -175,6 +175,9 @@ gpgcheck=0
 repo_gpgcheck=0
 EOF
 
+# Set the SELinux boolean that allows containers to use char devices like /dev/null
+semanage boolean --modify --on container_use_devices
+
 # Install Kubernetes CNI.
 dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
     kubectl-${packages_version} \
