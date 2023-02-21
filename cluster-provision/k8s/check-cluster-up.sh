@@ -18,8 +18,6 @@ function cleanup() {
     make cluster-down
 }
 
-SINGLE_STACK_PROVIDER=${SINGLE_STACK_PROVIDER:-$(find ../../cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | grep -v "-" | tail -1)}
-
 export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 # check cluster-up
 (
@@ -88,7 +86,8 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         hack/conformance.sh $conformance_config
     fi
 
-    if [ $SINGLE_STACK_PROVIDER == $KUBEVIRT_PROVIDER ]; then
+    # KUBEVIRT_SINGLE_STACK is supported by k8s-1.25+
+    if [ $KUBEVIRT_PROVIDER != "k8s-1.24" ]; then
         echo "Sanity check cluster-up of single stack cluster"
         make cluster-down
         export KUBEVIRT_SINGLE_STACK=true
