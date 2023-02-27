@@ -1,6 +1,6 @@
 # KubeVirt organization images
 
-This folder containes different base images for the projects under KubeVirt organization.
+This folder contains different base images for the projects under KubeVirt organization.
 
 * `kubevirt-testing` - base image, that contains all needed RPM's packages for tests under the KubeVirt repository
 

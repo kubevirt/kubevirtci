@@ -13,7 +13,7 @@ Components included in this package:
 * [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics)
 * [Grafana](https://grafana.com/) (optional)
 
-We provide a stack for cluster monitoring with pre-configured yamls to collect metrics from Kubernetes components, alogn with a set of grafana dashboards and prometheus alerting rules.
+We provide a stack for cluster monitoring with pre-configured yamls to collect metrics from Kubernetes components, along with a set of grafana dashboards and prometheus alerting rules.
 
 
 ## Integrating KubeVirt with the prometheus-operator
