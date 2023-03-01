@@ -1,101 +1,100 @@
-# K8S 1.23.13 with SR-IOV in a Kind cluster
+# K8s 1.25.x with SR-IOV in a K3d cluster
 
-Provides a pre-deployed containerized k8s cluster with version 1.23.13 that runs
-using [KinD](https://github.com/kubernetes-sigs/kind)
+Provides a pre-deployed containerized k8s cluster with version 1.25.x that runs
+using [K3d](https://github.com/k3d-io/k3d)
 The cluster is completely ephemeral and is recreated on every cluster restart. The KubeVirt containers are built on the
 local machine and are then pushed to a registry which is exposed at
-`localhost:5000`.
+`127.0.0.1:5000`.
 
-This version also expects to have SR-IOV enabled nics (SR-IOV Physical Function) on the current host, and will move
-physical interfaces into the `KinD`'s cluster worker node(s) so that they can be used through multus and SR-IOV
+This version requires to have SR-IOV enabled nics (SR-IOV Physical Function) on the current host, and will move
+physical interfaces into the `K3d`'s cluster agent node(s) (agent node is a worker node on k3d terminology)
+so that they can be used through multus and SR-IOV
 components.
 
-This providers also deploys [multus](https://github.com/k8snetworkplumbingwg/multus-cni)
+This provider also deploys [multus](https://github.com/k8snetworkplumbingwg/multus-cni)
 , [sriov-cni](https://github.com/k8snetworkplumbingwg/sriov-cni)
 and [sriov-device-plugin](https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin).
 
 ## Bringing the cluster up
 
 ```bash
-export KUBEVIRT_PROVIDER=kind-1.23-sriov
-export KUBEVIRT_NUM_NODES=3
+export KUBEVIRT_PROVIDER=k3d-1.25-sriov
+export KUBECONFIG=$(realpath _ci-configs/k3d-1.25-sriov/.kubeconfig)
 make cluster-up
+```
+```
+$ kubectl get nodes
+NAME                 STATUS   ROLES                  AGE   VERSION
+k3d-sriov-server-0   Ready    control-plane,master   67m   v1.25.6+k3s1
+k3d-sriov-agent-0    Ready    worker                 67m   v1.25.6+k3s1
+k3d-sriov-agent-1    Ready    worker                 67m   v1.25.6+k3s1
 
-$ cluster-up/kubectl.sh get nodes
-NAME                  STATUS   ROLES                  AGE   VERSION
-sriov-control-plane   Ready    control-plane,master   20h   v1.23.13
-sriov-worker          Ready    worker                 20h   v1.23.13
-sriov-worker2         Ready    worker                 20h   v1.23.13
+$ kubectl get pods -n kube-system -l app=multus
+NAME                   READY   STATUS    RESTARTS   AGE
+kube-multus-ds-z9hvs   1/1     Running   0          66m
+kube-multus-ds-7shgv   1/1     Running   0          66m
+kube-multus-ds-l49xj   1/1     Running   0          66m
 
-$ cluster-up/kubectl.sh get pods -n kube-system -l app=multus
-NAME                         READY   STATUS    RESTARTS   AGE
-kube-multus-ds-amd64-d45n4   1/1     Running   0          20h
-kube-multus-ds-amd64-g26xh   1/1     Running   0          20h
-kube-multus-ds-amd64-mfh7c   1/1     Running   0          20h
-
-$ cluster-up/kubectl.sh get pods -n sriov -l app=sriov-cni
+$ kubectl get pods -n sriov -l app=sriov-cni
 NAME                            READY   STATUS    RESTARTS   AGE
-kube-sriov-cni-ds-amd64-fv5cr   1/1     Running   0          20h
-kube-sriov-cni-ds-amd64-q95q9   1/1     Running   0          20h
+kube-sriov-cni-ds-amd64-4pndd   1/1     Running   0          66m
+kube-sriov-cni-ds-amd64-68nhh   1/1     Running   0          65m
 
-$ cluster-up/kubectl.sh get pods -n sriov -l app=sriovdp
+$ kubectl get pods -n sriov -l app=sriovdp
 NAME                                   READY   STATUS    RESTARTS   AGE
-kube-sriov-device-plugin-amd64-h7h84   1/1     Running   0          20h
-kube-sriov-device-plugin-amd64-xrr5z   1/1     Running   0          20h
+kube-sriov-device-plugin-amd64-qk66v   1/1     Running   0          66m
+kube-sriov-device-plugin-amd64-d5r5b   1/1     Running   0          65m
+```
+
+### Conneting to a node
+```bash
+export KUBEVIRT_PROVIDER=k3d-1.25-sriov
+./cluster-up/ssh.sh <node_name> /bin/sh
 ```
 
 ## Bringing the cluster down
 
 ```bash
-export KUBEVIRT_PROVIDER=kind-1.23-sriov
+export KUBEVIRT_PROVIDER=k3d-1.25-sriov
 make cluster-down
 ```
 
-This destroys the whole cluster, and moves the SR-IOV nics to the root network namespace.
+This destroys the whole cluster, and gracefully moves the SR-IOV nics to the root network namespace.
 
-## Setting a custom kind version
+Note: killing the containers / cluster without gracefully moving the nics to the root ns before it,
+might result in unreachable nics for few minutes.
+`find /sys/class/net/*/device/sriov_numvfs` can be used to see when the nics are reachable again.
 
-In order to use a custom kind image / kind version, export `KIND_NODE_IMAGE`, `KIND_VERSION`, `KUBECTL_PATH` before
-running cluster-up. For example in order to use kind 0.9.0 (which is based on k8s-1.19.1) use:
+## Using podman
+Podman v4 is required.
 
+Run:
 ```bash
-export KIND_NODE_IMAGE="kindest/node:v1.19.1@sha256:98cf5288864662e37115e362b23e4369c8c4a408f99cbc06e58ac30ddc721600"
-export KIND_VERSION="0.9.0"
-export KUBECTL_PATH="/usr/bin/kubectl"
+systemctl enable --now podman.socket
+ln -s /run/podman/podman.sock /var/run/docker.sock
 ```
+The rest is as usual.
+For more info see https://k3d.io/v5.4.1/usage/advanced/podman.
 
-This allows users to test or use custom images / different kind versions before making them official.
-See https://github.com/kubernetes-sigs/kind/releases for details about node images according to the kind version.
+## Updating the provider
 
-## Running multi SR-IOV clusters locally
+### Bumping K3D
+Update `K3D_TAG` (see `cluster-up/cluster/k3d/common.sh` for more info)
 
-Kubevirtci SR-IOV provider supports running two clusters side by side with few known limitations.
+### Bumping CNI
+Update `CNI_VERSION` (see `cluster-up/cluster/k3d/common.sh` for more info)
 
-General considerations:
+### Bumping Multus
+Download the newer manifest `https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/deployments/multus-daemonset-crio.yml`
+replace this file `cluster-up/cluster/$KUBEVIRT_PROVIDER/sriov-components/manifests/multus/multus.yaml`
+and update the kustomization file `cluster-up/cluster/$KUBEVIRT_PROVIDER/sriov-components/manifests/multus/kustomization.yaml`
+according needs.
 
-- A SR-IOV PF must be available for each cluster. In order to achieve that, there are two options:
+### Bumping calico
+1. Fetch new calico yaml (https://docs.tigera.io/calico/3.25/getting-started/kubernetes/k3s/quickstart)
+   Enable `allow_ip_forwarding` (See https://k3d.io/v5.4.7/usage/advanced/calico)
+   Or use the one that is suggested here https://k3d.io/v5.4.7/usage/advanced/calico whenever it is updated.
+2. Prefix the images in the yaml with `quay.io/` unless they have it already.
+3. Update `cluster-up/cluster/k3d/manifests/calico.yaml` (see `CALICO` at `cluster-up/cluster/k3d/common.sh` for more info)
 
-1. Assign just one PF for each worker node of each cluster by using `export PF_COUNT_PER_NODE=1` (this is the default
-   value).
-2. Optional method: `export PF_BLACKLIST=<PF names>` the non used PFs, in order to prevent them from being allocated to
-   the current cluster. The user can list the PFs that should not be allocated to the current cluster, keeping in mind
-   that at least one (or 2 in case of migration), should not be listed, so they would be allocated for the current
-   cluster. Note: another reason to blacklist a PF, is in case its has a defect or should be kept for other operations (
-   for example sniffing).
-
-- Clusters should be created one by another and not in parallel (to avoid races over SR-IOV PF's).
-- The cluster names must be different. This can be achieved by setting `export CLUSTER_NAME=sriov2` on the 2nd cluster.
-  The default `CLUSTER_NAME` is `sriov`. The 2nd cluster registry would be exposed at `localhost:5001` automatically,
-  once the `CLUSTER_NAME`
-  is set to a non default value.
-- Each cluster should be created on its own git clone folder, i.e:
-  `/root/project/kubevirtci1`
-  `/root/project/kubevirtci2`
-  In order to switch between them, change dir to that folder and set the env variables `KUBECONFIG`
-  and `KUBEVIRT_PROVIDER`.
-- In case only one PF exists, for example if running on prow which will assign only one PF per job in its own DinD,
-  Kubevirtci is agnostic and nothing needs to be done, since all conditions above are met.
-- Upper limit of the number of clusters that can be run on the same time equals number of PFs / number of PFs per
-  cluster, therefore, in case there is only one PF, only one cluster can be created. Locally the actual limit currently
-  supported is two clusters.
-- In order to use `make cluster-down` please make sure the right `CLUSTER_NAME` is exported.
+Note: Make sure to follow the latest verions on the links above.

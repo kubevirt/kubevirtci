@@ -55,8 +55,8 @@ function node::configure_sriov_pfs() {
     pfs_array_offset=$((pfs_array_offset + pf_count_per_node))
     pfs_in_use+=( $pf_name )
 
-    # KIND mounts sysfs as read-only by default, remount as R/W"
     node_exec="${CRI_BIN} exec $node"
+    # /sys is already rw on k3d but nice to have anyhow
     $node_exec mount -o remount,rw /sys
 
     ls_node_dev_vfio="${node_exec} ls -la -Z /dev/vfio"
@@ -82,7 +82,7 @@ function node::configure_sriov_vfs() {
 
     for node in "${nodes_array[@]}"; do
       ${CRI_BIN} cp "$CONFIGURE_VFS_SCRIPT_PATH" "$node:/"
-      ${CRI_BIN} exec "$node" bash -c "DRIVER=$driver DRIVER_KMODULE=$driver_kmodule VFS_COUNT=$vfs_count ./$config_vf_script"
+      ${CRI_BIN} exec "$node" /bin/sh -c "DRIVER=$driver DRIVER_KMODULE=$driver_kmodule VFS_COUNT=$vfs_count ./$config_vf_script"
       ${CRI_BIN} exec "$node" ls -la -Z /dev/vfio
     done
 }

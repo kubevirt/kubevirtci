@@ -18,10 +18,10 @@ PATCH_NODE_SELECTOR_TEMPLATE="${MANIFESTS_DIR}/patch-node-selector.yaml.in"
 PATCH_NODE_SELECTOR="${CUSTOM_MANIFESTS}/patch-node-selector.yaml"
 
 KUBECONFIG="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
-KUBECTL="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl --kubeconfig=${KUBECONFIG}"
 
 function _kubectl() {
-    ${KUBECTL} "$@"
+    export KUBECONFIG=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+    ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl --kubeconfig=$KUBECONFIG "$@"
 }
 
 function _retry() {
@@ -63,7 +63,7 @@ function _check_all_pods_ready() {
 # not using kubectl wait since with the sriov operator the pods get restarted a couple of times and this is
 # more reliable
 function sriov_components::wait_pods_ready() {
-  local -r tries=30
+  local -r tries=60
   local -r wait_time=10
 
   local -r wait_message="Waiting for all pods to become ready.."
@@ -126,7 +126,7 @@ function sriov_components::deploy() {
   local -r label_key=$5
   local -r label_value=$6
 
-  _create_custom_manifests_dir 
+  _create_custom_manifests_dir
   _prepare_node_selector_patch "$label_key" "$label_value"
   _prepare_sriovdp_resource_prefix_patch "$resource_prefix"
   _prepare_device_plugin_config \

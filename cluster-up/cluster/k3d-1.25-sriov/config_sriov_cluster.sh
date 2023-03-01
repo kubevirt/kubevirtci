@@ -4,8 +4,7 @@
 
 set -xe
 
-PF_COUNT_PER_NODE=${PF_COUNT_PER_NODE:-1}
-[ $PF_COUNT_PER_NODE -le 0 ] && echo "FATAL: PF_COUNT_PER_NODE must be a positive integer" >&2 && exit 1
+PF_COUNT_PER_NODE=1
 
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
 

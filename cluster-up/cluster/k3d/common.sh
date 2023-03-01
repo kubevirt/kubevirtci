@@ -2,312 +2,181 @@
 
 set -e
 
+# See https://github.com/k3d-io/k3d/releases
+K3D_TAG=v5.4.7
+
 function detect_cri() {
     if podman ps >/dev/null 2>&1; then echo podman; elif docker ps >/dev/null 2>&1; then echo docker; fi
 }
 
 export CRI_BIN=${CRI_BIN:-$(detect_cri)}
+KUBEVIRT_NUM_SERVERS=${KUBEVIRT_NUM_SERVERS:-1}
+KUBEVIRT_NUM_AGENTS=${KUBEVIRT_NUM_AGENTS:-2}
 
-# check CPU arch
-PLATFORM=$(uname -m)
-case ${PLATFORM} in
-x86_64* | i?86_64* | amd64*)
-    ARCH="amd64"
-    ;;
-ppc64le)
-    ARCH="ppc64le"
-    ;;
-aarch64* | arm64*)
-    ARCH="arm64"
-    ;;
-*)
-    echo "invalid Arch, only support x86_64, ppc64le, aarch64"
-    exit 1
-    ;;
-esac
-
-NODE_CMD="${CRI_BIN} exec -it -d "
-export KIND_MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/kind/manifests"
-export KIND_NODE_CLI="${CRI_BIN} exec -it "
 export KUBEVIRTCI_PATH
 export KUBEVIRTCI_CONFIG_PATH
-KIND_DEFAULT_NETWORK="kind"
 
-KUBECTL="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl --kubeconfig=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
+REGISTRY_NAME=registry
+REGISTRY_HOST=127.0.0.1
+KUBERNETES_SERVICE_HOST=127.0.0.1
+KUBERNETES_SERVICE_PORT=6443
 
-REGISTRY_NAME=${CLUSTER_NAME}-registry
-
-MASTER_NODES_PATTERN="control-plane"
-WORKER_NODES_PATTERN="worker"
-
-KUBEVIRT_WITH_KIND_ETCD_IN_MEMORY=${KUBEVIRT_WITH_KIND_ETCD_IN_MEMORY:-"true"}
-ETCD_IN_MEMORY_DATA_DIR="/tmp/kind-cluster-etcd"
-
-function _wait_kind_up {
-    echo "Waiting for kind to be ready ..."
-    if [[ $KUBEVIRT_PROVIDER =~ kind-.*1\.1.* ]]; then
-        selector="master"
-    else
-        selector="control-plane"
-    fi
-    while [ -z "$(${CRI_BIN} exec --privileged ${CLUSTER_NAME}-control-plane kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --selector=node-role.kubernetes.io/${selector} -o=jsonpath='{.items..status.conditions[-1:].status}' | grep True)" ]; do
-        echo "Waiting for kind to be ready ..."
-        sleep 10
-    done
-    echo "Waiting for dns to be ready ..."
-    _kubectl wait -n kube-system --timeout=12m --for=condition=Ready -l k8s-app=kube-dns pods
-}
-
-function _wait_containers_ready {
-    echo "Waiting for all containers to become ready ..."
-    _kubectl wait --for=condition=Ready pod --all -n kube-system --timeout 12m
-}
-
-function _fetch_kind() {
-    KIND="${KUBEVIRTCI_CONFIG_PATH}"/"$KUBEVIRT_PROVIDER"/.kind
-    current_kind_version=$($KIND --version |& awk '{print $3}')
-    if [[ $current_kind_version != $KIND_VERSION ]]; then
-        echo "Downloading kind v$KIND_VERSION"
-        curl -LSs https://github.com/kubernetes-sigs/kind/releases/download/v$KIND_VERSION/kind-linux-${ARCH} -o "$KIND"
-        chmod +x "$KIND"
-    fi
-}
-
-function _configure-insecure-registry-and-reload() {
-    local cmd_context="${1}" # context to run command e.g. sudo, docker exec
-    ${cmd_context} "$(_insecure-registry-config-cmd)"
-    ${cmd_context} "$(_reload-containerd-daemon-cmd)"
-}
-
-function _reload-containerd-daemon-cmd() {
-    echo "systemctl restart containerd"
-}
-
-function _insecure-registry-config-cmd() {
-    echo "sed -i '/\[plugins.cri.registry.mirrors\]/a\        [plugins.cri.registry.mirrors.\"registry:5000\"]\n\          endpoint = [\"http://registry:5000\"]' /etc/containerd/config.toml"
-}
-
-# this works since the nodes use the same names as containers
 function _ssh_into_node() {
-    ${CRI_BIN} exec -it "$1" bash
-}
-
-function _run_registry() {
-    local -r network=${1}
-
-    until [ -z "$($CRI_BIN ps -a | grep $REGISTRY_NAME)" ]; do
-        ${CRI_BIN} stop $REGISTRY_NAME || true
-        ${CRI_BIN} rm $REGISTRY_NAME || true
-        sleep 5
-    done
-    ${CRI_BIN} run -d --network=${network} -p $HOST_PORT:5000  --restart=always --name $REGISTRY_NAME quay.io/kubevirtci/library-registry:2.7.1
-
-}
-
-function _configure_registry_on_node() {
-    local -r node=${1}
-    local -r network=${2}
-
-    _configure-insecure-registry-and-reload "${NODE_CMD} ${node} bash -c"
-    ${NODE_CMD} ${node} sh -c "echo $(${CRI_BIN} inspect --format "{{.NetworkSettings.Networks.${network}.IPAddress }}" $REGISTRY_NAME)'\t'registry >> /etc/hosts"
-}
-
-function _install_cnis {
-    _install_cni_plugins
+    ${CRI_BIN} exec -it "$@"
 }
 
 function _install_cni_plugins {
+    echo "STEP: Install cnis"
+    PLATFORM=$(uname -m)
+    case ${PLATFORM} in
+    x86_64* | i?86_64* | amd64*)
+        ARCH="amd64"
+        ;;
+    ppc64le)
+        ARCH="ppc64le"
+        ;;
+    aarch64* | arm64*)
+        ARCH="arm64"
+        ;;
+    *)
+        echo "ERROR: invalid Arch, only support x86_64, ppc64le, aarch64"
+        exit 1
+        ;;
+    esac
+
     local CNI_VERSION="v0.8.5"
     local CNI_ARCHIVE="cni-plugins-linux-${ARCH}-$CNI_VERSION.tgz"
     local CNI_URL="https://github.com/containernetworking/plugins/releases/download/$CNI_VERSION/$CNI_ARCHIVE"
     if [ ! -f ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE ]; then
-        echo "Downloading $CNI_ARCHIVE"
+        echo "STEP: Downloading $CNI_ARCHIVE"
         curl -sSL -o ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE $CNI_URL
     fi
 
-    for node in $(_get_nodes | awk '{print $1}'); do
+    for node in $(_get_nodes); do
         ${CRI_BIN} cp "${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$CNI_ARCHIVE" $node:/
-        ${CRI_BIN} exec $node /bin/sh -c "tar xf $CNI_ARCHIVE -C /opt/cni/bin"
+        ${CRI_BIN} exec $node /bin/sh -c "mkdir -p /opt/cni/bin && tar -xvzf $CNI_ARCHIVE -C /opt/cni/bin" > /dev/null
     done
 }
 
-function prepare_config() {
-    BASE_PATH=${KUBEVIRTCI_CONFIG_PATH:-$PWD}
-    cat >$BASE_PATH/$KUBEVIRT_PROVIDER/config-provider-$KUBEVIRT_PROVIDER.sh <<EOF
-master_ip="127.0.0.1"
-kubeconfig=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
-kubectl=${BASE_PATH}/$KUBEVIRT_PROVIDER/.kubectl
-docker_prefix=localhost:${HOST_PORT}/kubevirt
-manifest_docker_prefix=registry:5000/kubevirt
+function _prepare_provider_config() {
+    echo "STEP: Prepare provider config"
+    cat >$KUBEVIRTCI_CONFIG_PATH/$KUBEVIRT_PROVIDER/config-provider-$KUBEVIRT_PROVIDER.sh <<EOF
+master_ip=${KUBERNETES_SERVICE_HOST}
+kubeconfig=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+kubectl=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+docker_prefix=${REGISTRY_HOST}:${HOST_PORT}/kubevirt
+manifest_docker_prefix=${REGISTRY_NAME}:${HOST_PORT}/kubevirt
 EOF
-}
-
-function _configure_network() {
-    # modprobe is present inside kind container but may be missing in the
-    # environment running this script, so load the module from inside kind
-    ${NODE_CMD} $1 modprobe br_netfilter
-    for knob in arp ip ip6; do
-        ${NODE_CMD} $1 sysctl -w sys.net.bridge.bridge-nf-call-${knob}tables=1
-    done
 }
 
 function _get_nodes() {
-    _kubectl get nodes --no-headers
+    _kubectl get nodes -o=custom-columns=NAME:.metadata.name --no-headers
 }
 
-function _get_pods() {
-    _kubectl get pods --all-namespaces --no-headers
+function _get_agent_nodes() {
+    # can be used only after _label_agents
+    _kubectl get nodes -lnode-role.kubernetes.io/worker=worker -o=custom-columns=NAME:.metadata.name --no-headers
 }
 
-function _fix_node_labels() {
-    # Due to inconsistent labels and taints state in multi-nodes clusters,
-    # it is nessecery to remove taint NoSchedule and set role labels manualy:
-    #   Control-plane nodes might lack 'scheduable=true' label and have NoScheduable taint.
-    #   Worker nodes might lack worker role label.
-    master_nodes=$(_get_nodes | grep -i $MASTER_NODES_PATTERN | awk '{print $1}')
-    for node in ${master_nodes[@]}; do
-        # removing NoSchedule taint if is there
-        if _kubectl taint nodes $node node-role.kubernetes.io/master:NoSchedule-; then
-            _kubectl label node $node kubevirt.io/schedulable=true
+function _prepare_nodes {
+    echo "STEP: Prepare nodes"
+    for node in $(_get_nodes); do
+        ${CRI_BIN} exec $node /bin/sh -c "mount --make-rshared /"
+    done
+}
+
+function _install_k3d() {
+    echo "STEP: Install k3d"
+    curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=$K3D_TAG bash
+}
+
+function _extract_kubeconfig() {
+    echo "STEP: Extract kubeconfig"
+    k3d kubeconfig print $CLUSTER_NAME > ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+}
+
+function _download_kubectl() {
+    echo "STEP: Download kubectl"
+
+    version=$(kubectl get node k3d-$CLUSTER_NAME-server-0 -o=custom-columns=VERSION:.status.nodeInfo.kubeletVersion --no-headers | cut -d + -f 1)
+    curent_version=$(${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl version --short 2>/dev/null | grep Client | awk -F": " '{print $2}')
+
+    if [[ ! -f ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl ]] || [[ $curent_version != $version ]]; then
+        curl -sL https://dl.k8s.io/release/$version/bin/linux/amd64/kubectl -o ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+        chmod +x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+    fi
+}
+
+function _label_agents() {
+    echo "STEP: label agents"
+    for node in $(_get_nodes); do
+        if [[ "$node" =~ .*"agent".* ]]; then
+            _kubectl label node $node node-role.kubernetes.io/worker=worker
         fi
     done
-
-    worker_nodes=$(_get_nodes | grep -i $WORKER_NODES_PATTERN | awk '{print $1}')
-    for node in ${worker_nodes[@]}; do
-        _kubectl label node $node kubevirt.io/schedulable=true
-        _kubectl label node $node node-role.kubernetes.io/worker=""
-    done
 }
 
-function setup_kind() {
-    $KIND --loglevel debug create cluster --retain --name=${CLUSTER_NAME} --config=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml --image=$KIND_NODE_IMAGE
-    $KIND get kubeconfig --name=${CLUSTER_NAME} > ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+function _create_cluser() {
+    echo "STEP: Create cluster"
 
-    ${CRI_BIN} cp ${CLUSTER_NAME}-control-plane:$KUBECTL_PATH ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
-    chmod u+x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+    id1=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/machine-id-1
+    id2=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/machine-id-2
+    id3=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/machine-id-3
+    printf '%.0s1' {1..32} > ${id1}
+    printf '%.0s2' {1..32} > ${id2}
+    printf '%.0s3' {1..32} > ${id3}
 
-    if [ $KUBEVIRT_WITH_KIND_ETCD_IN_MEMORY == "true" ]; then
-        for node in $(_get_nodes | awk '{print $1}' | grep control-plane); do
-            echo "[$node] Checking KIND cluster etcd data is mounted to RAM: $ETCD_IN_MEMORY_DATA_DIR"
-            ${CRI_BIN} exec $node df -h $(dirname $ETCD_IN_MEMORY_DATA_DIR) | grep -P '(tmpfs|ramfs)'
-            [ $(echo $?) != 0 ] && echo "[$node] etcd data directory is not mounted to RAM" && return 1
+    [ $CRI_BIN == podman ] && NETWORK=podman || NETWORK=bridge
 
-            ${CRI_BIN} exec $node du -h $ETCD_IN_MEMORY_DATA_DIR
-            [ $(echo $?) != 0 ] && echo "[$node] Failed to check etcd data directory" && return 1
-        done
-    fi
+    k3d registry create --default-network $NETWORK $REGISTRY_NAME --port $REGISTRY_HOST:$HOST_PORT
+    ${CRI_BIN} rename k3d-$REGISTRY_NAME $REGISTRY_NAME
 
-    _install_cnis
-
-    _wait_kind_up
-    _kubectl cluster-info
-    _fix_node_labels
-
-    until _get_nodes
-    do
-        echo "Waiting for all nodes to become ready ..."
-        sleep 10
-    done
-
-    # wait until k8s pods are running
-    while [ -n "$(_get_pods | grep -v Running)" ]; do
-        echo "Waiting for all pods to enter the Running state ..."
-        _get_pods | >&2 grep -v Running || true
-        sleep 10
-    done
-
-    _wait_containers_ready
-    _run_registry "$KIND_DEFAULT_NETWORK"
-
-    for node in $(_get_nodes | awk '{print $1}'); do
-        _configure_registry_on_node "$node" "$KIND_DEFAULT_NETWORK"
-        _configure_network "$node"
-    done
-    prepare_config
+    CALICO=$(pwd)/cluster-up/cluster/k3d/manifests/calico.yaml
+    k3d cluster create $CLUSTER_NAME --registry-use $REGISTRY_NAME \
+        --api-port $KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT \
+        --servers=$KUBEVIRT_NUM_SERVERS \
+        --agents=$KUBEVIRT_NUM_AGENTS \
+        --k3s-arg "--disable=traefik@server:0" \
+        --no-lb \
+        --k3s-arg "--flannel-backend=none@server:*" \
+        --k3s-arg "--kubelet-arg=cpu-manager-policy=static@agent:*" \
+        --k3s-arg "--kubelet-arg=kube-reserved=cpu=500m@agent:*" \
+        --k3s-arg "--kubelet-arg=system-reserved=cpu=500m@agent:*" \
+        -v "$CALICO:/var/lib/rancher/k3s/server/manifests/calico.yaml@server:0" \
+        -v /dev/vfio:/dev/vfio@agent:* \
+        -v /lib/modules:/lib/modules@agent:* \
+        -v ${id1}:/etc/machine-id@server:0 \
+        -v ${id2}:/etc/machine-id@agent:0 \
+        -v ${id3}:/etc/machine-id@agent:1
 }
 
-function _add_worker_extra_mounts() {
-  cat <<EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
-  extraMounts:
-  - containerPath: /var/log/audit
-    hostPath: /var/log/audit
-    readOnly: true
-EOF
-
-    if [[ "$KUBEVIRT_PROVIDER" =~ sriov.* || "$KUBEVIRT_PROVIDER" =~ vgpu.* ]]; then
-        cat <<EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
-  - containerPath: /dev/vfio/
-    hostPath: /dev/vfio/
-EOF
-  fi
-}
-
-function _add_worker_kubeadm_config_patch() {
-    cat << EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
-  kubeadmConfigPatches:
-  - |-
-    kind: JoinConfiguration
-    nodeRegistration:
-      kubeletExtraArgs:
-        "feature-gates": "CPUManager=true"
-        "cpu-manager-policy": "static"
-        "kube-reserved": "cpu=500m"
-        "system-reserved": "cpu=500m"
-EOF
-}
-
-function _add_workers() {
-    # appending eventual workers to the yaml
-    for ((n=0;n<$(($KUBEVIRT_NUM_NODES-1));n++)); do
-        cat << EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
-- role: worker
-EOF
-    _add_worker_kubeadm_config_patch
-    _add_worker_extra_mounts
-    done
-}
-
-function _add_kubeadm_config_patches() {
-    if [ $KUBEVIRT_WITH_KIND_ETCD_IN_MEMORY == "true" ]; then
-        cat <<EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
-kubeadmConfigPatches:
-- |
-  kind: ClusterConfiguration
-  metadata:
-    name: config
-  etcd:
-    local:
-      dataDir: $ETCD_IN_MEMORY_DATA_DIR
-EOF
-        echo "KIND cluster etcd data will be mounted to RAM on kind nodes: $ETCD_IN_MEMORY_DATA_DIR"
-    fi
-}
-
-function _prepare_kind_config() {
-    _add_workers
-    _add_kubeadm_config_patches
-
-    echo "Final KIND config:"
-    cat ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
-}
-
-function kind_up() {
-    _fetch_kind
-    _prepare_kind_config
-    setup_kind
+function k3d_up() {
+    _install_k3d
+    _create_cluser
+    _extract_kubeconfig
+    _download_kubectl
+    _prepare_nodes
+    _install_cni_plugins
+    _prepare_provider_config
+    _label_agents
 }
 
 function _kubectl() {
-    ${KUBECTL} "$@"
+    export KUBECONFIG=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+    ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl --kubeconfig=$KUBECONFIG "$@"
 }
 
 function down() {
-    _fetch_kind
-    if [ -z "$($KIND get clusters | grep ${CLUSTER_NAME})" ]; then
-        return
-    fi
-    # On CI, avoid failing an entire test run just because of a deletion error
-    $KIND delete cluster --name=${CLUSTER_NAME} || [ "$CI" = "true" ]
-    ${CRI_BIN} rm -f $REGISTRY_NAME >> /dev/null
-    rm -f ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
+    set +e
+    trap "set -e" RETURN
+
+    for agent_node in $(_get_agent_nodes); do
+        if ip netns exec $agent_node ip -details address | grep "vf 0" -B 2 > /dev/null; then
+            iface=$(ip netns exec $agent_node ip -details address | grep "vf 0" -B 2 | grep "UP" | awk -F": " '{print $2}')
+            ip netns exec $agent_node ip link set $iface netns 1 && echo "gracefully detached $iface from $agent_node"
+        fi
+    done
+
+    ${CRI_BIN} rm --force $REGISTRY_NAME > /dev/null && echo "$REGISTRY_NAME deleted"
+    k3d cluster delete $CLUSTER_NAME
 }

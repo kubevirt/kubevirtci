@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Copyright 2021 Red Hat, Inc.
+# Copyright 2023 Red Hat, Inc.
 
 set -exuo pipefail
 
@@ -33,14 +33,14 @@ export CRI_BIN=${CRI_BIN:-$(detect_cri)}
 
 (
   cd $kubevirtci_path
-  kubectl="./cluster-up/kubectl.sh"
+  kubectl="kubectl"
   echo "Wait for pods to be ready.."
   timeout 5m bash -c "until ${kubectl} wait --for=condition=Ready pod --timeout=30s --all  -A; do sleep 1; done"
   timeout 5m bash -c "until ${kubectl} wait --for=condition=Ready pod --timeout=30s -n kube-system --all; do sleep 1; done"
   ${kubectl} get nodes
   ${kubectl} get pods -A
   echo ""
-  
+
   nodes=$(${kubectl} get nodes --no-headers | awk '{print $1}')
   for node in $nodes; do
     node_exec="${CRI_BIN} exec ${node}"
@@ -77,7 +77,7 @@ export CRI_BIN=${CRI_BIN:-$(detect_cri)}
     commit="${commit:0:9}"
     container_tag="--plugin-env kubevirt-conformance.CONTAINER_TAG=${latest}_${commit}"
     SONOBUOY_EXTRA_ARGS="${SONOBUOY_EXTRA_ARGS} ${container_tag}"
-    
+
     hack/conformance.sh ${PROVIDER_PATH}/conformance.json
-  fi 
+  fi
 )
