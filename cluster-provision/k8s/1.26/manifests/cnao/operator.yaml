@@ -23,7 +23,6 @@ rules:
   - get
   - list
   - watch
-  - use
 - apiGroups:
   - operator.openshift.io
   resources:
@@ -116,7 +115,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    networkaddonsoperator.network.kubevirt.io/version: 0.82.0
+    networkaddonsoperator.network.kubevirt.io/version: 0.81.0
   labels:
     prometheus.cnao.io: "true"
   name: cluster-network-addons-operator
@@ -150,17 +149,17 @@ spec:
         - name: OVS_CNI_IMAGE
           value: quay.io/kubevirt/ovs-cni-plugin@sha256:3654b80dd5e459c3e73dd027d732620ed8b488b8a15dfe7922457d16c7e834c3
         - name: KUBEMACPOOL_IMAGE
-          value: quay.io/kubevirt/kubemacpool@sha256:0cc5ad824fc163d6dea5e9bd872467c691eaa9a88944008b5d746495b2a72214
+          value: quay.io/kubevirt/kubemacpool@sha256:fb07b1be9e0990e3846ef628e993694bf0765602af5907abf98f7e218db0cb4a
         - name: MACVTAP_CNI_IMAGE
           value: quay.io/kubevirt/macvtap-cni@sha256:5a288f1f9956c2ea8127fa736b598326852d2aa58a8469fa663a1150c2313b02
         - name: KUBE_RBAC_PROXY_IMAGE
           value: quay.io/openshift/origin-kube-rbac-proxy@sha256:baedb268ac66456018fb30af395bb3d69af5fff3252ff5d549f0231b1ebb6901
         - name: OPERATOR_IMAGE
-          value: quay.io/kubevirt/cluster-network-addons-operator:v0.82.0
+          value: quay.io/kubevirt/cluster-network-addons-operator:v0.81.0
         - name: OPERATOR_NAME
           value: cluster-network-addons-operator
         - name: OPERATOR_VERSION
-          value: 0.82.0
+          value: 0.81.0
         - name: OPERATOR_NAMESPACE
           valueFrom:
             fieldRef:
@@ -178,7 +177,7 @@ spec:
           value: openshift-monitoring
         - name: MONITORING_SERVICE_ACCOUNT
           value: prometheus-k8s
-        image: quay.io/kubevirt/cluster-network-addons-operator:v0.82.0
+        image: quay.io/kubevirt/cluster-network-addons-operator:v0.81.0
         imagePullPolicy: Always
         name: cluster-network-addons-operator
         resources:
