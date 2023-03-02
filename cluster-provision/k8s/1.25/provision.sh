@@ -80,6 +80,11 @@ echo 'ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="vd[a-z]", ATTR{queue/ro
 
 # To prevent preflight issue related to tc not found
 dnf install -y iproute-tc
+
+# The selinux-policy package shipped with the latest Centos stream "release" can be outdated.
+# Example: Centos 8 20220913.0 ships with selinux-policy-3.14.3-108, which misses crucial permissions
+dnf -y update selinux-policy
+
 # Install istioctl
 export PATH=$ISTIO_BIN_DIR:$PATH
 (
