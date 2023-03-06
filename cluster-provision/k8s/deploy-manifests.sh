@@ -16,6 +16,7 @@ fi
 # deploy all manifests (except what is done on cluster-up or implictly already)
 find "$DIR/${provision_dir}/manifests/" -type f -name '*.yaml' \
     -not -path '**/cnao/**' \
+    -not -path '**/multus/**' \
     -not -path '**/prometheus/**' \
     -not -path '**/ceph/**' \
     -not -path '**/nfs-csi/**' \
