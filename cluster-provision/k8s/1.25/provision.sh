@@ -80,6 +80,11 @@ echo 'ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="vd[a-z]", ATTR{queue/ro
 
 # To prevent preflight issue related to tc not found
 dnf install -y iproute-tc
+
+# The selinux-policy package shipped with the latest Centos stream "release" can be outdated.
+# Example: Centos 8 20220913.0 ships with selinux-policy-3.14.3-108, which misses crucial permissions
+dnf -y update selinux-policy
+
 # Install istioctl
 export PATH=$ISTIO_BIN_DIR:$PATH
 (
@@ -146,9 +151,6 @@ gpgcheck=1
 repo_gpgcheck=0
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
-
-# Set the SELinux boolean that allows containers to use char devices like /dev/null
-semanage boolean --modify --on container_use_devices
 
 # Install Kubernetes packages.
 dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
