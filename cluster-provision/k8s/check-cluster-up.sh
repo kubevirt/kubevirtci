@@ -30,6 +30,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRT_MEMORY_SIZE=5520M
     export KUBEVIRT_NUM_SECONDARY_NICS=2
     export KUBEVIRT_WITH_CNAO=true
+    export KUBEVIRT_WITH_MULTUS_V3=true
     export KUBEVIRT_DEPLOY_ISTIO=true
     export KUBEVIRT_DEPLOY_PROMETHEUS=true
     export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
@@ -51,6 +52,14 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     ${ssh} node01 -- ip l show eth2
     ${ssh} node02 -- ip l show eth1
     ${ssh} node02 -- ip l show eth2
+
+    # Verify Multus v3 image is used
+    ${ksh} get ds -n kube-system kube-multus-ds -o yaml | grep multus-cni:v3
+
+    # Sanity check that Multus able to connect secondary networks
+    ${ksh} create -f "$DIR/test-multi-net.yaml"
+    ${ksh} wait pod test-multi-net --for condition=ready=true
+    ${ksh} delete -f "$DIR/test-multi-net.yaml"
 
     pre_pull_image_file="$DIR/${provision_dir}/extra-pre-pull-images"
     if [ -f "${pre_pull_image_file}" ]; then
