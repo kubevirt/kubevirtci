@@ -44,7 +44,7 @@ kube-proxy-vx9t6                 1/1       Running   0          14m
 kube-scheduler-node01            1/1       Running   0          13m
 ```
 
-or to permamently edit kubeconfig:
+or to permanently edit kubeconfig:
 
 ```bash
 $ gocli scp /etc/kubernetes/admin.conf - > ./kubeconfig
