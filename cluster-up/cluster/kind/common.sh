@@ -262,7 +262,7 @@ function _add_workers() {
         cat << EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
 - role: worker
 EOF
-    _add_worker_kubeadm_config_patch
+    #_add_worker_kubeadm_config_patch
     _add_worker_extra_mounts
     done
 }
