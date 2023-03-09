@@ -34,6 +34,7 @@ OWNERS - none
 cluster-provision/k8s/[0-9].[0-9][0-9]* - regex
 cluster-up/cluster/k8s-[0-9].[0-9][0-9]* - regex
 cluster-up/cluster/kind* - regex_none
+cluster-up/cluster/k3d* - regex_none
 
 # section: base image
 # note: !x means all but x (format x.yz*, i.e: 1.26-centos9), exclude operator supports only one value
