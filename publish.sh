@@ -51,21 +51,11 @@ function build_gocli() {
 }
 
 function build_centos8_base_image() {
-  for target in ${IMAGES_TO_BUILD[@]}; do
-    if [[ ! "$target" =~ "centos9" ]]; then
-      (cd cluster-provision/centos8 && ./build.sh)
-      return
-    fi
-  done
+  (cd cluster-provision/centos8 && ./build.sh)
 }
 
 function build_centos9_base_image() {
-  for target in ${IMAGES_TO_BUILD[@]}; do
-    if [[ "$target" =~ "centos9" ]]; then
-      (cd cluster-provision/centos9 && ./build.sh)
-      return
-    fi
-  done
+  (cd cluster-provision/centos9 && ./build.sh)
 }
 
 function build_base_images() {
