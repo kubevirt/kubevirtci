@@ -39,3 +39,5 @@ Example: `docker run --rm -v $(pwd):/workdir:Z quay.io/kubevirtci/gocli provisio
 ## Notes:
 1. If you need to enforce provision of all providers, run and commit this file:
 `curl -sL https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirtci/latest?ignoreCache=1 > hack/pman/force`
+This is helpful in case you want a specific PR to rebuild all providers, without changing the publish job.
+2. In order to bypass provision manager and rebuild all targets, run `BYPASS_PMAN=true ./publish.sh`.
