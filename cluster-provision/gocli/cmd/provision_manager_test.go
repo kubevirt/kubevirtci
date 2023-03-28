@@ -5,32 +5,15 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"gopkg.in/yaml.v3"
 
 	"github.com/spf13/afero"
+	"gopkg.in/yaml.v3"
+
+	fsys "kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/filesystem"
 )
 
-var fsMock afero.Fs
-
-type MockFileSystem struct {
-	fs afero.Fs
-}
-
-func (fs MockFileSystem) Open(name string) (afero.File, error) {
-	return fs.fs.Open(name)
-}
-
-func (fs MockFileSystem) Glob(pattern string) ([]string, error) {
-	return afero.Glob(fs.fs, pattern)
-}
-
-func (fs MockFileSystem) Stat(name string) (os.FileInfo, error) {
-	return fs.fs.Stat(name)
-}
-
 var _ = BeforeSuite(func() {
-	fsMock = afero.NewMemMapFs()
-
+	fsys.SetMockFileSystem()
 	dirs := []string{
 		"cluster-provision/k8s/target1",
 		"cluster-provision/k8s/target2",
@@ -40,15 +23,13 @@ var _ = BeforeSuite(func() {
 	}
 
 	for _, dir := range dirs {
-		err := fsMock.MkdirAll(dir, os.ModePerm)
+		err := fsys.GetFs().MkdirAll(dir, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
 	}
-
-	SetFileSystem(MockFileSystem{fsMock})
 })
 
 var _ = AfterSuite(func() {
-	SetFileSystem(nil)
+	fsys.SetRealFileSystem()
 })
 
 var _ = Describe("Provision Manager functionality", func() {
@@ -121,7 +102,7 @@ var _ = Describe("Provision Manager functionality", func() {
 				data, err := yaml.Marshal(&config)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = afero.WriteFile(fsMock, "rules.yaml", data, 0644)
+				err = afero.WriteFile(fsys.GetFs(), "rules.yaml", data, 0644)
 				Expect(err).ToNot(HaveOccurred())
 
 				rulesDB, err := buildRulesDBfromFile("rules.yaml", targets)
@@ -187,7 +168,7 @@ var _ = Describe("Provision Manager functionality", func() {
 				data, err := yaml.Marshal(&config)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = afero.WriteFile(fsMock, "rules.yaml", data, 0644)
+				err = afero.WriteFile(fsys.GetFs(), "rules.yaml", data, 0644)
 				Expect(err).ToNot(HaveOccurred())
 
 				_, err = buildRulesDBfromFile("rules.yaml", targets)

@@ -74,16 +74,6 @@ type Config struct {
 
 type OutputSplitter struct{}
 
-var fileSystem fsys.FileSystem = fsys.RealFileSystem{}
-
-func SetFileSystem(fs fsys.FileSystem) {
-	if fs == nil {
-		fileSystem = fsys.RealFileSystem{}
-	} else {
-		fileSystem = fs
-	}
-}
-
 // NewProvisionManagerCommand determines which providers should be rebuilt
 func NewProvisionManagerCommand() *cobra.Command {
 	provision := &cobra.Command{
@@ -191,7 +181,7 @@ func (splitter *OutputSplitter) Write(p []byte) (n int, err error) {
 }
 
 func getTargets(path string) ([]string, error) {
-	directories, err := globDirectories("cluster-provision/k8s/*")
+	directories, err := fsys.GlobDirectories("cluster-provision/k8s/*")
 	if err != nil {
 		return nil, err
 	}
@@ -203,26 +193,6 @@ func getTargets(path string) ([]string, error) {
 
 	logrus.Debug("Targets: ", targets)
 	return targets, nil
-}
-
-func globDirectories(path string) ([]string, error) {
-	files, err := fileSystem.Glob(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var directories []string
-	for _, candid := range files {
-		f, err := fileSystem.Stat(candid)
-		if err != nil {
-			return nil, err
-		}
-		if f.IsDir() {
-			directories = append(directories, candid)
-		}
-	}
-
-	return directories, nil
 }
 
 func processGitNameStatusChanges(rulesDB map[string][]string, targets []string, tag string) (map[string]bool, error) {
@@ -362,7 +332,7 @@ func runCommand(command string, args []string) (string, error) {
 }
 
 func buildRulesDBfromFile(rulesFile string, targets []string) (map[string][]string, error) {
-	inFile, err := fileSystem.Open(rulesFile)
+	inFile, err := fsys.GetFileSystem().Open(rulesFile)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +410,7 @@ func addNoneRules(cfgNone []string, rulesDB map[string][]string) error {
 
 func addRegexRules(cfgRegex []string, targets []string, rulesDB map[string][]string) error {
 	for _, path := range cfgRegex {
-		directories, _ := globDirectories(path)
+		directories, _ := fsys.GlobDirectories(path)
 		if len(directories) == 0 {
 			return fmt.Errorf("No valid directories found for Regex rule: " + path)
 		}
@@ -458,7 +428,7 @@ func addRegexRules(cfgRegex []string, targets []string, rulesDB map[string][]str
 
 func addRegexNoneRules(cfgRegexNone []string, rulesDB map[string][]string) error {
 	for _, path := range cfgRegexNone {
-		directories, _ := globDirectories(path)
+		directories, _ := fsys.GlobDirectories(path)
 		if len(directories) == 0 {
 			return fmt.Errorf("No valid directories found for RegexNone rule: " + path)
 		}
