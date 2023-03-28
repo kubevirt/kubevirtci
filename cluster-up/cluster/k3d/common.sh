@@ -126,7 +126,11 @@ function _create_cluser() {
     printf '%.0s2' {1..32} > ${id2}
     printf '%.0s3' {1..32} > ${id3}
 
-    [ $CRI_BIN == podman ] && NETWORK=podman || NETWORK=bridge
+    NETWORK=bridge
+    if [ $CRI_BIN == podman ]; then
+        podman network rm bridge || true
+        podman network create bridge
+    fi
 
     k3d registry create --default-network $NETWORK $REGISTRY_NAME --port $REGISTRY_HOST:$HOST_PORT
     ${CRI_BIN} rename k3d-$REGISTRY_NAME $REGISTRY_NAME
