@@ -5,13 +5,18 @@ set -ex
 export KUBEVIRTCI_TAG=$(date +"%y%m%d%H%M")-$(git rev-parse --short HEAD)
 CLUSTERS="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n')"
 
+function detect_cri() {
+    if podman ps >/dev/null 2>&1; then echo podman; elif docker ps >/dev/null 2>&1; then echo docker; fi
+}
+
 TARGET_REPO="quay.io/kubevirtci"
 TARGET_KUBEVIRT_REPO="quay.io/kubevirt"
 TARGET_GIT_REMOTE="https://kubevirt-bot@github.com/kubevirt/kubevirtci.git"
+export CRI_BIN=${CRI_BIN:-$(detect_cri)}
 
 function build_gocli() {
   (cd cluster-provision/gocli && make container)
-  docker tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
+  ${CRI_BIN} tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
 }
 
 function build_centos8_base_image() {
@@ -30,10 +35,10 @@ function build_base_images() {
 function build_clusters() {
   for i in ${CLUSTERS}; do
     cluster-provision/gocli/build/cli provision cluster-provision/k8s/$i
-    docker tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
+    ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
 
     cluster-provision/gocli/build/cli provision cluster-provision/k8s/$i --slim
-    docker tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim
+    ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim
   done
 }
 
@@ -62,8 +67,8 @@ function publish_clusters() {
 
 function build_alpine_container_disk() {
   (cd cluster-provision/images/vm-image-builder && ./create-containerdisk.sh alpine-cloud-init)
-  docker tag alpine-cloud-init:devel ${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}
-  docker tag alpine-cloud-init:devel ${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel
+  ${CRI_BIN} tag alpine-cloud-init:devel ${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}
+  ${CRI_BIN} tag alpine-cloud-init:devel ${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel
 }
 
 function push_alpine_container_disk() {
