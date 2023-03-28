@@ -128,8 +128,27 @@ function _create_cluser() {
 
     NETWORK=bridge
     if [ $CRI_BIN == podman ]; then
-        podman network rm bridge || true
-        podman network create bridge
+        cat <<EOF > /etc/containers/containers.conf
+[containers]
+netns="host"
+userns="host"
+ipcns="host"
+cgroupns="host"
+cgroups="disabled"
+log_driver = "k8s-file"
+[engine]
+cgroup_manager = "cgroupfs"
+events_logger="file"
+runtime="crun"
+default_network = "bridge"
+network_cmd_options=[
+  "mtu=1450",
+  "enable_ipv6=true"
+]
+[network]
+network_backend="netavark"
+EOF
+        systemctl restart podman
     fi
 
     k3d registry create --default-network $NETWORK $REGISTRY_NAME --port $REGISTRY_HOST:$HOST_PORT
