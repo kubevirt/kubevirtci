@@ -163,15 +163,13 @@ function _get_pods() {
 function _fix_node_labels() {
     # Due to inconsistent labels and taints state in multi-nodes clusters,
     # it is nessecery to remove taint NoSchedule and set role labels manualy:
-    #   Control-plane nodes might lack 'schedulable=true' label and have NoScheduable taint.
-    #	Control-plane nodes which have 'schedulable=true' should have worker role label
+    #   Control-plane nodes might lack 'scheduable=true' label and have NoScheduable taint.
     #   Worker nodes might lack worker role label.
     master_nodes=$(_get_nodes | grep -i $MASTER_NODES_PATTERN | awk '{print $1}')
     for node in ${master_nodes[@]}; do
         # removing NoSchedule taint if is there
         if _kubectl taint nodes $node node-role.kubernetes.io/master:NoSchedule-; then
             _kubectl label node $node kubevirt.io/schedulable=true
-            _kubectl label node $node node-role.kubernetes.io/worker=""
         fi
     done
 
