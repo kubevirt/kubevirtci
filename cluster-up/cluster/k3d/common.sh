@@ -29,6 +29,9 @@ function detect_cri() {
 export CRI_BIN=${CRI_BIN:-$(detect_cri)}
 KUBEVIRT_NUM_SERVERS=${KUBEVIRT_NUM_SERVERS:-1}
 KUBEVIRT_NUM_AGENTS=${KUBEVIRT_NUM_AGENTS:-2}
+DISABLE_DEFAULT_SERVICES=${DISABLE_DEFAULT_SERVICES:-false}
+K3D_CNI=${K3D_CNI:-calico}
+VFIO_ENABLED=${VFIO_ENABLED:-true}
 
 export KUBEVIRTCI_PATH
 export KUBEVIRTCI_CONFIG_PATH
@@ -117,38 +120,67 @@ function _label_agents() {
     done
 }
 
+function _cluster_nodes_args() {
+    args="--servers=$KUBEVIRT_NUM_SERVERS --agents=$KUBEVIRT_NUM_AGENTS "
+    for i in $(seq 0 $((KUBEVIRT_NUM_SERVERS - 1))); do
+        id=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/machine-server-id-$i
+        printf "%.0s$((i + 1))" {1..32} > ${id}
+        args=${args}"-v ${id}:/etc/machine-id@server:${i} "
+    done
+
+    for j in $(seq 0 $((KUBEVIRT_NUM_AGENTS - 1))); do
+        id=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/machine-agent-id-$j
+        printf "%.0s$(($KUBEVIRT_NUM_SERVERS + $j + 1))" {1..32} > ${id}
+        args=${args}"-v ${id}:/etc/machine-id@agent:${j} "
+    done
+    echo "${args}"
+}
+
+function _cni_args() {
+    CALICO=$(pwd)/cluster-up/cluster/k3d/manifests/calico.yaml
+    if [ ${K3D_CNI} == calico ]; then
+       args=" --k3s-arg --flannel-backend=none@server:* \
+-v $CALICO:/var/lib/rancher/k3s/server/manifests/calico.yaml@server:* "
+    fi
+    echo "${args}"
+}
+
+function _device_args() {
+    if [ ${VFIO_ENABLED} == true ]; then
+        args=" -v /dev/vfio:/dev/vfio@agent:* "
+    fi
+    echo "${args}"
+}
+
+function _generate_k3d_args() {
+    args=$(_cluster_nodes_args)$(_cni_args)$(_device_args)
+    if [ ${DISABLE_DEFAULT_SERVICES} == true ] ; then
+        args=${args}" --k3s-arg --disable=traefik,servicelb,metrics-server@server:* "
+    else
+        args=${args}" --k3s-arg --disable=traefik@server:0 "
+    fi
+    args=${args}" --registry-use $REGISTRY_NAME \
+--api-port $KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT \
+--no-lb \
+--k3s-arg "--kubelet-arg=cpu-manager-policy=static@agent:*" \
+--k3s-arg "--kubelet-arg=kube-reserved=cpu=500m@agent:*" \
+--k3s-arg "--kubelet-arg=system-reserved=cpu=500m@agent:*" \
+-v /lib/modules:/lib/modules@agent:* \
+"
+    echo "${args}"
+}
+
+
 function _create_cluser() {
     echo "STEP: Create cluster"
-
-    id1=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/machine-id-1
-    id2=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/machine-id-2
-    id3=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/machine-id-3
-    printf '%.0s1' {1..32} > ${id1}
-    printf '%.0s2' {1..32} > ${id2}
-    printf '%.0s3' {1..32} > ${id3}
 
     [ $CRI_BIN == podman ] && NETWORK=podman || NETWORK=bridge
 
     k3d registry create --default-network $NETWORK $REGISTRY_NAME --port $REGISTRY_HOST:$HOST_PORT
     ${CRI_BIN} rename k3d-$REGISTRY_NAME $REGISTRY_NAME
+    args=$(_generate_k3d_args)
 
-    CALICO=$(pwd)/cluster-up/cluster/k3d/manifests/calico.yaml
-    k3d cluster create $CLUSTER_NAME --registry-use $REGISTRY_NAME \
-        --api-port $KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT \
-        --servers=$KUBEVIRT_NUM_SERVERS \
-        --agents=$KUBEVIRT_NUM_AGENTS \
-        --k3s-arg "--disable=traefik@server:0" \
-        --no-lb \
-        --k3s-arg "--flannel-backend=none@server:*" \
-        --k3s-arg "--kubelet-arg=cpu-manager-policy=static@agent:*" \
-        --k3s-arg "--kubelet-arg=kube-reserved=cpu=500m@agent:*" \
-        --k3s-arg "--kubelet-arg=system-reserved=cpu=500m@agent:*" \
-        -v "$CALICO:/var/lib/rancher/k3s/server/manifests/calico.yaml@server:0" \
-        -v /dev/vfio:/dev/vfio@agent:* \
-        -v /lib/modules:/lib/modules@agent:* \
-        -v ${id1}:/etc/machine-id@server:0 \
-        -v ${id2}:/etc/machine-id@agent:0 \
-        -v ${id3}:/etc/machine-id@agent:1
+    k3d cluster create $CLUSTER_NAME --registry-use $REGISTRY_NAME ${args}
 }
 
 function k3d_up() {
