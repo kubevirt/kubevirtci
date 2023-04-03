@@ -5,6 +5,23 @@ set -e
 # See https://github.com/k3d-io/k3d/releases
 K3D_TAG=v5.4.7
 
+PLATFORM=$(uname -m)
+case ${PLATFORM} in
+x86_64* | i?86_64* | amd64*)
+    ARCH="amd64"
+    ;;
+ppc64le)
+    ARCH="ppc64le"
+    ;;
+aarch64* | arm64*)
+    ARCH="arm64"
+    ;;
+*)
+    echo "ERROR: invalid Arch, only support x86_64, ppc64le, aarch64"
+    exit 1
+    ;;
+esac
+
 function detect_cri() {
     if podman ps >/dev/null 2>&1; then echo podman; elif docker ps >/dev/null 2>&1; then echo docker; fi
 }
@@ -27,22 +44,6 @@ function _ssh_into_node() {
 
 function _install_cni_plugins {
     echo "STEP: Install cnis"
-    PLATFORM=$(uname -m)
-    case ${PLATFORM} in
-    x86_64* | i?86_64* | amd64*)
-        ARCH="amd64"
-        ;;
-    ppc64le)
-        ARCH="ppc64le"
-        ;;
-    aarch64* | arm64*)
-        ARCH="arm64"
-        ;;
-    *)
-        echo "ERROR: invalid Arch, only support x86_64, ppc64le, aarch64"
-        exit 1
-        ;;
-    esac
 
     local CNI_VERSION="v0.8.5"
     local CNI_ARCHIVE="cni-plugins-linux-${ARCH}-$CNI_VERSION.tgz"
@@ -102,7 +103,7 @@ function _download_kubectl() {
     curent_version=$(${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl version --short 2>/dev/null | grep Client | awk -F": " '{print $2}')
 
     if [[ ! -f ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl ]] || [[ $curent_version != $version ]]; then
-        curl -sL https://dl.k8s.io/release/$version/bin/linux/amd64/kubectl -o ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+        curl -sL https://dl.k8s.io/release/$version/bin/linux/${ARCH}/kubectl -o ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
         chmod +x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
     fi
 }
