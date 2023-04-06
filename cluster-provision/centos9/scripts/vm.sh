@@ -22,6 +22,7 @@ while true; do
     -s | --block-device-size ) BLOCK_DEV_SIZE="$2"; shift 2 ;;
     -n | --nvme-device-size ) NVME_DISK_SIZES+="$2 "; shift 2 ;;
     -t | --scsi-device-size ) SCSI_DISK_SIZES+="$2 "; shift 2 ;;
+    -u | --usb-device-size ) USB_SIZES+="$2 "; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -140,6 +141,16 @@ for size in ${SCSI_DISK_SIZES[@]}; do
   qemu-img create -f raw $disk $size
   let "disk_num+=1"
 done
+
+
+disk_num=0
+for size in ${USB_SIZES[@]}; do
+  echo "Creating disk "$size" for USB disk emulation"
+  disk="/usb-"${disk_num}".img"
+  qemu-img create -f raw $disk $size
+  let "disk_num+=1"
+done
+
 
 exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=unsafe ${block_dev_arg} \
   -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \

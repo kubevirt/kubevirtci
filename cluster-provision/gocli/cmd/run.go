@@ -58,6 +58,7 @@ var soundcardPCIIDs = []string{"8086:2668", "8086:2415"}
 var cli *client.Client
 var nvmeDisks []string
 var scsiDisks []string
+var usbDisks []string
 
 type dockerSetting struct {
 	Proxy string
@@ -114,6 +115,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-psa", false, "Pod Security Admission")
 	run.Flags().Bool("single-stack", false, "enable single stack IPv6")
 	run.Flags().Bool("enable-audit", false, "enable k8s audit for all metadata events")
+	run.Flags().StringArrayVar(&usbDisks, "usb", []string{}, "size of the emulate USB disk to pass to the node")
 	return run
 }
 
@@ -475,6 +477,23 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			}
 		}
 
+		var vmArgsUSBDisks []string
+		const bus = " -device qemu-xhci,id=bus%d"
+		const drive = " -drive if=none,id=stick%d,format=raw,file=/usb-%d.img"
+		const dev = " -device usb-storage,bus=bus%d.0,drive=stick%d"
+		const usbSizefmt = " --usb-device-size %s"
+		if len(usbDisks) > 0 {
+			for i, size := range usbDisks {
+				resource.MustParse(size)
+				if i%2 == 0 {
+					nodeQemuArgs += fmt.Sprintf(bus, i/2)
+				}
+				nodeQemuArgs += fmt.Sprintf(drive, i, i)
+				nodeQemuArgs += fmt.Sprintf(dev, i/2, i)
+				vmArgsUSBDisks = append(vmArgsUSBDisks, fmt.Sprintf(usbSizefmt, size))
+			}
+		}
+
 		additionalArgs := []string{}
 		if len(nodeQemuArgs) > 0 {
 			additionalArgs = append(additionalArgs, "--qemu-args", shellescape.Quote(nodeQemuArgs))
@@ -503,7 +522,15 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
 			},
-			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s %s %s %s", memory, strconv.Itoa(int(cpu)), blockDev, strings.Join(vmArgsSCSIDisks, " "), strings.Join(vmArgsNvmeDisks, " "), strings.Join(additionalArgs, " "))},
+			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s %s %s %s %s",
+				memory,
+				strconv.Itoa(int(cpu)),
+				blockDev,
+				strings.Join(vmArgsSCSIDisks, " "),
+				strings.Join(vmArgsNvmeDisks, " "),
+				strings.Join(vmArgsUSBDisks, " "),
+				strings.Join(additionalArgs, " "),
+			)},
 		}
 
 		if cephEnabled {
