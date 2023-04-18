@@ -517,21 +517,21 @@ file {
       number: 1
       label: LABEL_OPTIONAL
       type: TYPE_UINT64
-      json_name: "oomKillDisable"
+      json_name: "oom_kill_disable"
     }
     field {
       name: "under_oom"
       number: 2
       label: LABEL_OPTIONAL
       type: TYPE_UINT64
-      json_name: "underOom"
+      json_name: "under_oom"
     }
     field {
       name: "oom_kill"
       number: 3
       label: LABEL_OPTIONAL
       type: TYPE_UINT64
-      json_name: "oomKill"
+      json_name: "oom_kill"
     }
   }
   message_type {

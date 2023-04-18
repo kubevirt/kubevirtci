@@ -3,10 +3,11 @@ package computestorage
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 
 	"github.com/Microsoft/hcsshim/internal/oc"
 	"github.com/Microsoft/hcsshim/osversion"
-	"github.com/pkg/errors"
 	"go.opencensus.io/trace"
 	"golang.org/x/sys/windows"
 )
@@ -22,7 +23,7 @@ import (
 // `options` are the options applied while processing the layer.
 func SetupBaseOSLayer(ctx context.Context, layerPath string, vhdHandle windows.Handle, options OsLayerOptions) (err error) {
 	title := "hcsshim.SetupBaseOSLayer"
-	ctx, span := trace.StartSpan(ctx, title) //nolint:ineffassign,staticcheck
+	ctx, span := trace.StartSpan(ctx, title)
 	defer span.End()
 	defer func() { oc.SetSpanStatus(span, err) }()
 	span.AddAttributes(
@@ -36,7 +37,7 @@ func SetupBaseOSLayer(ctx context.Context, layerPath string, vhdHandle windows.H
 
 	err = hcsSetupBaseOSLayer(layerPath, vhdHandle, string(bytes))
 	if err != nil {
-		return errors.Wrap(err, "failed to setup base OS layer")
+		return fmt.Errorf("failed to setup base OS layer: %s", err)
 	}
 	return nil
 }
@@ -49,11 +50,11 @@ func SetupBaseOSLayer(ctx context.Context, layerPath string, vhdHandle windows.H
 //
 // `options` are the options applied while processing the layer.
 func SetupBaseOSVolume(ctx context.Context, layerPath, volumePath string, options OsLayerOptions) (err error) {
-	if osversion.Build() < 19645 {
+	if osversion.Get().Build < 19645 {
 		return errors.New("SetupBaseOSVolume is not present on builds older than 19645")
 	}
 	title := "hcsshim.SetupBaseOSVolume"
-	ctx, span := trace.StartSpan(ctx, title) //nolint:ineffassign,staticcheck
+	ctx, span := trace.StartSpan(ctx, title)
 	defer span.End()
 	defer func() { oc.SetSpanStatus(span, err) }()
 	span.AddAttributes(
@@ -68,7 +69,7 @@ func SetupBaseOSVolume(ctx context.Context, layerPath, volumePath string, option
 
 	err = hcsSetupBaseOSVolume(layerPath, volumePath, string(bytes))
 	if err != nil {
-		return errors.Wrap(err, "failed to setup base OS layer")
+		return fmt.Errorf("failed to setup base OS layer: %s", err)
 	}
 	return nil
 }

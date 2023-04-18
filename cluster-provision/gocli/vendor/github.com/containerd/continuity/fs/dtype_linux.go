@@ -1,4 +1,3 @@
-//go:build linux
 // +build linux
 
 /*
@@ -35,7 +34,7 @@ func locateDummyIfEmpty(path string) (string, error) {
 	if len(children) != 0 {
 		return "", nil
 	}
-	dummyFile, err := os.CreateTemp(path, "fsutils-dummy")
+	dummyFile, err := ioutil.TempFile(path, "fsutils-dummy")
 	if err != nil {
 		return "", err
 	}
