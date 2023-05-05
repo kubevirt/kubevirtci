@@ -1,12 +1,11 @@
-// +build windows
-
 package security
 
 import (
-	"fmt"
 	"os"
 	"syscall"
 	"unsafe"
+
+	"github.com/pkg/errors"
 )
 
 type (
@@ -71,7 +70,7 @@ func GrantVmGroupAccess(name string) error {
 	// Stat (to determine if `name` is a directory).
 	s, err := os.Stat(name)
 	if err != nil {
-		return fmt.Errorf("%s os.Stat %s: %w", gvmga, name, err)
+		return errors.Wrapf(err, "%s os.Stat %s", gvmga, name)
 	}
 
 	// Get a handle to the file/directory. Must defer Close on success.
@@ -87,7 +86,7 @@ func GrantVmGroupAccess(name string) error {
 	sd := uintptr(0)
 	origDACL := uintptr(0)
 	if err := getSecurityInfo(fd, uint32(ot), uint32(si), nil, nil, &origDACL, nil, &sd); err != nil {
-		return fmt.Errorf("%s GetSecurityInfo %s: %w", gvmga, name, err)
+		return errors.Wrapf(err, "%s GetSecurityInfo %s", gvmga, name)
 	}
 	defer syscall.LocalFree((syscall.Handle)(unsafe.Pointer(sd)))
 
@@ -101,7 +100,7 @@ func GrantVmGroupAccess(name string) error {
 
 	// And finally use SetSecurityInfo to apply the updated DACL.
 	if err := setSecurityInfo(fd, uint32(ot), uint32(si), uintptr(0), uintptr(0), newDACL, uintptr(0)); err != nil {
-		return fmt.Errorf("%s SetSecurityInfo %s: %w", gvmga, name, err)
+		return errors.Wrapf(err, "%s SetSecurityInfo %s", gvmga, name)
 	}
 
 	return nil
@@ -119,7 +118,7 @@ func createFile(name string, isDir bool) (syscall.Handle, error) {
 	}
 	fd, err := syscall.CreateFile(&namep[0], da, sm, nil, syscall.OPEN_EXISTING, fa, 0)
 	if err != nil {
-		return 0, fmt.Errorf("%s syscall.CreateFile %s: %w", gvmga, name, err)
+		return 0, errors.Wrapf(err, "%s syscall.CreateFile %s", gvmga, name)
 	}
 	return fd, nil
 }
@@ -130,7 +129,7 @@ func generateDACLWithAcesAdded(name string, isDir bool, origDACL uintptr) (uintp
 	// Generate pointers to the SIDs based on the string SIDs
 	sid, err := syscall.StringToSid(sidVmGroup)
 	if err != nil {
-		return 0, fmt.Errorf("%s syscall.StringToSid %s %s: %w", gvmga, name, sidVmGroup, err)
+		return 0, errors.Wrapf(err, "%s syscall.StringToSid %s %s", gvmga, name, sidVmGroup)
 	}
 
 	inheritance := inheritModeNoInheritance
@@ -153,7 +152,7 @@ func generateDACLWithAcesAdded(name string, isDir bool, origDACL uintptr) (uintp
 
 	modifiedDACL := uintptr(0)
 	if err := setEntriesInAcl(uintptr(uint32(1)), uintptr(unsafe.Pointer(&eaArray[0])), origDACL, &modifiedDACL); err != nil {
-		return 0, fmt.Errorf("%s SetEntriesInAcl %s: %w", gvmga, name, err)
+		return 0, errors.Wrapf(err, "%s SetEntriesInAcl %s", gvmga, name)
 	}
 
 	return modifiedDACL, nil

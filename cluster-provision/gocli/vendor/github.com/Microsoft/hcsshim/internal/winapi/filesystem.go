@@ -79,7 +79,7 @@ type IOStatusBlock struct {
 type ObjectAttributes struct {
 	Length             uintptr
 	RootDirectory      uintptr
-	ObjectName         *UnicodeString
+	ObjectName         uintptr
 	Attributes         uintptr
 	SecurityDescriptor uintptr
 	SecurityQoS        uintptr
