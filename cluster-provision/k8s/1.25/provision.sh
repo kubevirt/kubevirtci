@@ -111,13 +111,7 @@ baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcon
 gpgcheck=0
 enabled=1
 EOF
-if [[ "$release" == "centos8" ]]; then
-    dnf install -y cri-o containers-common-1-23.module_el8.7.0+1106+45480ee0.x86_64
-elif [[ "$release" == "centos9" ]]; then
-    dnf install -y cri-o
-fi
-
-echo "" >> /etc/containers/policy.json
+dnf install -y cri-o
 
 systemctl enable --now crio
 

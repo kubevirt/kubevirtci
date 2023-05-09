@@ -106,10 +106,7 @@ baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcon
 gpgcheck=0
 enabled=1
 EOF
-# TODO: Remove the package pinning once cri-o support the new 'keyPaths' key
-#       and we modifying the policy.json file to prevent from the upgrade from replacing it
-dnf install -y cri-o containers-common-1-23.module_el8.7.0+1106+45480ee0.x86_64
-echo "" >> /etc/containers/policy.json
+dnf install -y cri-o
 
 systemctl enable --now crio
 
