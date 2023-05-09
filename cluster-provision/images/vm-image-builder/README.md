@@ -23,6 +23,9 @@ The following RPM packages need to be present on your machine:
 - qemu-img
 - virt-install
 
+To cross build for the Arm64 image on x86_64 machines, the following RPM needs to be installed:
+- qemu-system-aarch64
+
 ## Quickstart: Build and publish an existing containerdisk
 
 Choose one of the configuration directories in this folder which you want to
@@ -86,4 +89,39 @@ It is possible to use an image from local cluster registry.
 $ kubectl apply -f <VMI yaml file>
 $ kubectl wait --for=condition=AgentConnected vmi $VMI_NAME --timeout 5m
 $ virtctl console testvm1
+```
+
+### Build and publish multi-arch images
+The multi-arch publish does not support building alpine-cloud-init because the [alpine-make-vm-image](https://raw.githubusercontent.com/alpinelinux/alpine-make-vm-image/master/alpine-make-vm-image) project does not support building Arm64 images.
+The `publish-multiarch-containerdisk.sh` script now supports building Arm64 and x86_64 images.
+The script primarily performs the following tasks:
+1. Use `create-containerdisk.sh` to build images.
+2. Upload the resulting images to a specific registry.
+3. Upload multi-arch image manifest.
+
+```
+./publish-multiarch-containerdisk.sh -h
+    Usage:
+        ./publish_multiarch_image.sh [OPTIONS] BUILD_TARGET REGISTRY REGISTRY_ORG
+
+    Build and publish multiarch infra images.
+
+    OPTIONS
+        -n  (native build) Only build image for host CPU Arch.
+        -h  Show this help message and exit.
+        -b  Only build the image and exit. Do not publish the built image.
+
+# build and push multi-arch example image
+./ publish-multiarch-containerdisk.sh example myregistry registry_org
+
+# The script will do following things:
+# 1. Build both Arm64 and x86_64 example image.
+# 2. Generate a tag based on the current time.
+# 3. Push the registry_org/myregistry/example:tag-aarch64 and registry_org/myregistry/example:tag-x86_64.
+# 4. Generate a multi-arch manifest for the image, registry_org/myregistry/example:tag.
+```
+
+To use your own tag for the image, you need to set the environment variable `KUBEVIRTCI_TAG`.
+```
+export KUBEVIRTCI_TAG=mytag
 ```
