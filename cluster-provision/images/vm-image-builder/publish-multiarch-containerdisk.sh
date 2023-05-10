@@ -88,7 +88,7 @@ publish_image() {
     local full_image_name="${1:?}"
     for arch in ${archs[*]};do
         docker tag ${build_target}:devel-${arch} ${full_image_name}-${arch}
-        docker push ${full_image_name}-${arch}
+        skopeo copy "docker-daemon:${full_image_name}-${arch}" "docker://${full_image_name}-${arch}"
     done
 }
 
