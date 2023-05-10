@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -exuo pipefail
 
-ARCH=${ARCH:-"x86_64"}
+SCRIPT_PATH=$(dirname "$(realpath "$0")")
+source ${SCRIPT_PATH}/common.sh
+ARCH=${ARCHITECTURE:-"$(go_style_local_arch)"}
 CONSOLE=${CONSOLE:-"yes"}
 
 function cleanup() {
@@ -38,10 +40,10 @@ echo "Customize image by booting a VM with
 
 # Check if it is native build, if true use kvm
 # otherwise use emulation
-if [[ ${ARCH} = $(uname -m) ]]; then
+if [[ ${ARCH} = $(go_style_local_arch) ]]; then
   buildconfig="--virt-type kvm"
 else
-  buildconfig="--arch ${ARCH}"
+  buildconfig="--arch $(linux_style_arch_name ${ARCH})"
 fi
 
 

@@ -2,14 +2,15 @@
 set -exuo pipefail
 
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
-archs=(aarch64 x86_64)
+source ${SCRIPT_PATH}/common.sh
+archs=(amd64 arm64)
 
 main() {
     local build_only=""
     while getopts "nbh" opt; do
         case "$opt" in
             n)
-		archs=("$(uname -m)")
+		archs=("$(go_style_local_arch)")
                 ;;
             b)
                 build_only=true
@@ -87,7 +88,7 @@ build_image() {
 publish_image() {
     local full_image_name="${1:?}"
     for arch in ${archs[*]};do
-        docker tag ${build_target}:devel-${arch} ${full_image_name}-${arch}
+        docker tag ${build_target}:${arch} ${full_image_name}-${arch}
         skopeo copy "docker-daemon:${full_image_name}-${arch}" "docker://${full_image_name}-${arch}"
     done
 }

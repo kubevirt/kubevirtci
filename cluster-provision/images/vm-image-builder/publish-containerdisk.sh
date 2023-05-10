@@ -6,8 +6,8 @@ if [ "$#" -ne 2 ]; then
     echo "Run `publish-continerdisk.sh example quay.io/kubevirtci/example:mytag` to push the local `example:devel` image to `quay.io/kubevirtci/example:mytag`."
 fi
 
-if [[ "${ARCHITECTURE}" = "aarch64" ]]; then
-	export TAG="devel-aarch64"
+if [[ "${ARCHITECTURE}" = "arm64" ]]; then
+	export TAG="devel-arm64"
 else
 	export TAG="devel"
 fi

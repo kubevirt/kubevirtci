@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -exuo pipefail
 
-
 if [ "$#" -ne 1 ]; then
     echo "Usage: create-containerdisk.sh image-directory"
     echo "Run `create-continerdisk.sh example` to build the `example` image in the `example` folder"
 fi
-ARCH="${ARCHITECTURE:-"$(uname -m)"}"
+
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
+source ${SCRIPT_PATH}/common.sh
+ARCH="${ARCHITECTURE:-"$(go_style_local_arch)"}"
 
 export CUSTOMIZE_IMAGE_SCRIPT=${CUSTOMIZE_IMAGE_SCRIPT:-"${SCRIPT_PATH}/customize-image.sh"}
 
@@ -17,7 +18,7 @@ function download_base_image() {
 
     local url
     local file_name
-    if [[ ${ARCH} = "aarch64" ]]; then
+    if [[ ${ARCH} = "arm64" ]]; then
         url="$(cat ${SCRIPT_PATH}/${IMAGE_NAME}/image-url-arm64)"
         file_name="${image_name}-image-arm64.qcow2"
     else
@@ -56,12 +57,11 @@ function build_container() {
     local -r new_vm_image_name=$2
     local -r arch=$3
     local -r image_name=$4
-    local -r tag=$5-$arch
 
-    if [ $arch = "aarch64" ]; then
-        docker_build="docker buildx build --platform "linux/arm64" . -t ${image_name}:${tag}"
+    if [ $arch = "arm64" ]; then
+        docker_build="docker buildx build --platform "linux/arm64" . -t ${image_name}:${arch}"
     else
-        docker_build="docker build . -t ${image_name}:${tag}"
+        docker_build="docker build . -t ${image_name}:${arch}"
     fi
     DOCKER_CLI_EXPERIMENTAL=enabled $docker_build -f - <<END
 FROM scratch
@@ -103,7 +103,6 @@ END
 else
     export OS_VARIANT="$(cat ${SCRIPT_PATH}/${IMAGE_NAME}/os-variant)"
     export CLOUD_CONFIG_PATH="${SCRIPT_PATH}/${IMAGE_NAME}/cloud-config"
-    export TAG=devel
     build_directory="${IMAGE_NAME}_build"
     customized_image="customized-image.qcow2"
 
@@ -117,9 +116,9 @@ else
       mkdir -p "${build_directory}"
 
       echo "Running the image customization ..."
-      ARCH="${ARCH}" customize_image "${base_image}" "${OS_VARIANT}" "${build_directory}/${customized_image}" "${CLOUD_CONFIG_PATH}"
+      ARCHITECTURE="${ARCH}" customize_image "${base_image}" "${OS_VARIANT}" "${build_directory}/${customized_image}" "${CLOUD_CONFIG_PATH}"
 
       echo "Creating the containerdisk ..."
-      build_container "${build_directory}" "${customized_image}" "${ARCH}" "${IMAGE_NAME}" "${TAG}"
+      build_container "${build_directory}" "${customized_image}" "${ARCH}" "${IMAGE_NAME}"
     popd
 fi
