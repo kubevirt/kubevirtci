@@ -48,8 +48,10 @@ function pull_container_retry() {
     fi
 }
 
+# Workaround until https://bugzilla.redhat.com/show_bug.cgi?id=2188249 is fixed
+KERNEL=4.18.0-448.el8
 # Install modules of the initrd kernel
-dnf install -y "kernel-modules-$(uname -r)"
+dnf install -y kernel-$KERNEL kernel-core-$KERNEL kernel-modules-$KERNEL
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
