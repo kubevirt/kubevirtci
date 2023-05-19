@@ -161,8 +161,8 @@ envsubst < $kubeadm_raw_ipv6 > $kubeadm_manifest_ipv6
 until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
 
 # workaround for 1.25 trying to pull coredns: https://github.com/kubernetes/kubernetes/issues/112131#issuecomment-1232279438
-podman pull k8s.gcr.io/coredns/coredns:v1.10.1
-podman image tag k8s.gcr.io/coredns/coredns:v1.10.1 k8s.gcr.io/coredns:v1.10.1
+podman pull registry.k8s.io/coredns/coredns:v1.10.1
+podman image tag registry.k8s.io/coredns/coredns:v1.10.1 registry.k8s.io/coredns:v1.10.1
 
 # 1.23 has deprecated --experimental-patches /provision/kubeadm-patches/, we now mention the patch directory in kubeadm.conf
 kubeadm init --config $kubeadm_manifest -v5
