@@ -23,7 +23,7 @@ The following RPM packages need to be present on your machine:
 - qemu-img
 - virt-install
 
-To cross build for the Arm64 image on x86_64 machines, the following RPM needs to be installed:
+To cross build for the Arm64 image on AMD64 machines, the following RPM needs to be installed:
 - qemu-system-aarch64
 
 ## Quickstart: Build and publish an existing containerdisk
@@ -43,10 +43,10 @@ then publish it to a registry. In this case a local registry:
 publish-containerdisk.sh example localhost:1234/myimage:mytag
 ```
 
-To build for aarch64(arm64), you need to set the following environment
+To build for arm64(aarch64), you need to set the following environment
 variable.
 ```
-export ARCHITECTURE=aarch64
+export ARCHITECTURE=arm64
 ```
 
 To build the Virtual Machine without console output, only need to set the
@@ -62,11 +62,11 @@ Every directory contains build instructions for virt-customize. The build
 instructions are distributed between the following three files:
 
 ```
-$ ls -1 example/
-cloud-config		#cloud-init configuration for virt-customize
-image-url		#download URL of the base image
-image-url-aarch64	#download URL of the base image for aarch64
-os-variant		#operating system variant (for example fedora32)
+$ ls -l example/
+cloud-config    # cloud-init configuration for virt-customize
+image-url       # download URL of the base image
+image-url-arm64 # download URL of the base image for Arm64
+os-variant      # operating system variant (for example fedora32)
 ```
 
 To create a completely new containerdisk, best copy the `example` folder and
@@ -93,7 +93,7 @@ $ virtctl console testvm1
 
 ### Build and publish multi-arch images
 The multi-arch publish does not support building alpine-cloud-init because the [alpine-make-vm-image](https://raw.githubusercontent.com/alpinelinux/alpine-make-vm-image/master/alpine-make-vm-image) project does not support building Arm64 images.
-The `publish-multiarch-containerdisk.sh` script now supports building Arm64 and x86_64 images.
+The `publish-multiarch-containerdisk.sh` script now supports building Arm64 and AMD64 images.
 The script primarily performs the following tasks:
 1. Use `create-containerdisk.sh` to build images.
 2. Upload the resulting images to a specific registry.
@@ -115,9 +115,9 @@ The script primarily performs the following tasks:
 ./ publish-multiarch-containerdisk.sh example myregistry registry_org
 
 # The script will do following things:
-# 1. Build both Arm64 and x86_64 example image.
+# 1. Build both Arm64 and AMD64 example image.
 # 2. Generate a tag based on the current time.
-# 3. Push the registry_org/myregistry/example:tag-aarch64 and registry_org/myregistry/example:tag-x86_64.
+# 3. Push the registry_org/myregistry/example:tag-arm64 and registry_org/myregistry/example:tag-amd64.
 # 4. Generate a multi-arch manifest for the image, registry_org/myregistry/example:tag.
 ```
 
