@@ -18,12 +18,13 @@ function download_base_image() {
 
     local url
     local file_name
-    if [[ ${ARCH} = "arm64" ]]; then
-        url="$(cat ${SCRIPT_PATH}/${IMAGE_NAME}/image-url-arm64)"
-        file_name="${image_name}-image-arm64.qcow2"
-    else
+    if [[ ${ARCH} = "amd64" ]]; then
         url="$(cat ${SCRIPT_PATH}/${IMAGE_NAME}/image-url)"
         file_name="${image_name}-image.qcow2"
+    else
+        image_url_path=${SCRIPT_PATH}/${IMAGE_NAME}/image-url-${ARCH}
+        url="$(cat ${image_url_path})"
+        file_name="${image_name}-image-${ARCH}.qcow2"
     fi
 
     if ! [ -e "${file_name}" ]; then
@@ -58,10 +59,11 @@ function build_container() {
     local -r arch=$3
     local -r image_name=$4
 
-    if [ $arch = "arm64" ]; then
-        docker_build="docker buildx build --platform "linux/arm64" . -t ${image_name}:${arch}"
-    else
+    if [[ $arch = $(go_style_local_arch) ]]; then
         docker_build="docker build . -t ${image_name}:${arch}"
+    else
+        echo "When performing cross builds, make sure 'docker buildx' is installed."
+        docker_build="docker buildx build --platform "linux/${arch}" . -t ${image_name}:${arch}"
     fi
     DOCKER_CLI_EXPERIMENTAL=enabled $docker_build -f - <<END
 FROM scratch
