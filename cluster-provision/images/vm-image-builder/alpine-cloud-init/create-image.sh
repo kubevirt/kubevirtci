@@ -1,6 +1,14 @@
 #!/bin/sh
 set -ex
 
+# Currently, the build tool, alpine-make-vm-image, only support amd64
+# So we disable build for non-x86 architectures
+# https://github.com/alpinelinux/alpine-make-vm-image/issues/10
+if [[ ${ARCHITECTURE} != "" && ${ARCHITECTURE} != "amd64" || $(uname -m) != "x86_64" ]]; then
+   echo "only support native build for amd64 platform"
+   exit 1
+fi
+
 if [ "${ARCHITECTURE}" != ""  ]; then
     PLATFORM=linux/$ARCHITECTURE
 fi
