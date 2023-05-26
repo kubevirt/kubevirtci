@@ -48,26 +48,8 @@ function pull_container_retry() {
     fi
 }
 
-# FIXME: remove after version >= kernel-4.18.0-492.el8
-current_kernel_version=$(uname -r)
-echo "current kernel version is ${current_kernel_version}"
-echo "WARNING: installing previous kernel to mitigate bug"
-
-# download kernel rpm and install it
-kernel_version="4.18.0-448.el8.x86_64"
-(
-    cd /tmp
-    curl --output kernel-${kernel_version}.rpm http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/kernel-${kernel_version}.rpm
-    dnf localinstall -y kernel-${kernel_version}.rpm
-)
-
-grubby --info=ALL | grep ^kernel
-grubby --set-default "/boot/vmlinuz-${kernel_version}"
-echo "downgraded kernel version is ${kernel_version}"
-
 # Install modules of the initrd kernel
-dnf install -y "kernel-modules-${kernel_version}"
-dnf install -y "kernel-modules-${current_kernel_version}"
+dnf install -y "kernel-modules-$(uname -r)"
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
