@@ -9,6 +9,17 @@ if [ -f /home/vagrant/single_stack ]; then
     cni_manifest="/provision/cni_ipv6.yaml"
 fi
 
+if [ -f /home/vagrant/enable_audit ]; then
+    apiVer=$(head -1 /etc/kubernetes/audit/adv-audit.yaml)
+    echo $apiVer > /etc/kubernetes/audit/adv-audit.yaml
+
+    cat <<EOF >> /etc/kubernetes/audit/adv-audit.yaml
+kind: Policy
+rules:
+- level: Metadata
+EOF
+fi
+
 timeout=30
 interval=5
 while ! hostnamectl  |grep Transient ; do
