@@ -126,7 +126,7 @@ function publish_alpine_container_disk() {
 function create_git_tag() {
   if [ "$CI" == "true" ]; then
     git config user.name "kubevirt-bot"
-    git config user.email "rmohr+kubebot@redhat.com"
+    git config user.email "kubevirtbot@redhat.com"
   fi
 
   echo "INFO: push new tag $KUBEVIRTCI_TAG"
