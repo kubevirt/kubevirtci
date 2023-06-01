@@ -113,6 +113,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-fips", false, "enables FIPS")
 	run.Flags().Bool("enable-psa", false, "Pod Security Admission")
 	run.Flags().Bool("single-stack", false, "enable single stack IPv6")
+	run.Flags().Bool("enable-audit", false, "enable k8s audit for all metadata events")
 	return run
 }
 
@@ -271,6 +272,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	singleStack, err := cmd.Flags().GetBool("single-stack")
+	if err != nil {
+		return err
+	}
+	enableAudit, err := cmd.Flags().GetBool("enable-audit")
 	if err != nil {
 		return err
 	}
@@ -614,6 +619,18 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 			if !ok {
 				return fmt.Errorf("provisioning node %s failed (setting singleStack phase)", nodeName)
+			}
+		}
+
+		if enableAudit {
+			ok, err := docker.Exec(cli, nodeContainer(prefix, nodeName),
+				[]string{"/bin/bash", "-c", "ssh.sh touch /home/vagrant/enable_audit"}, os.Stdout)
+			if err != nil {
+				return err
+			}
+
+			if !ok {
+				return fmt.Errorf("provisioning node %s failed (setting enableAudit phase)", nodeName)
 			}
 		}
 
