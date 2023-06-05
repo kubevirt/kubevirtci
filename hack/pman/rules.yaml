@@ -1,0 +1,36 @@
+all:
+  - cluster-provision/gocli/*
+  - hack/kustomization/*
+  - cluster-provision/k8s
+  - cluster-provision
+  - cluster-up
+  - cluster-up/cluster
+  - cluster-up/hack
+  - hack
+  - publish.sh
+  - hack/pman/*
+none:
+  - cluster-provision/images/*
+  - cluster-provision/tools/*
+  - cluster-up/cluster/external
+  - cluster-up/cluster/local
+  - LICENSE
+  - Makefile
+  - OWNERS
+  - .gitignore
+regex:
+  - cluster-provision/k8s/[0-9].[0-9][0-9]*
+  - cluster-up/cluster/k8s-[0-9].[0-9][0-9]*
+regex_none:
+  - cluster-up/cluster/kind*
+  - cluster-up/cluster/k3d*
+exclude:
+  - pattern: cluster-provision/centos8/*
+    exclude:
+      - 1.26-centos9
+      - 1.27
+specific:
+  - pattern: cluster-provision/centos9/*
+    targets:
+      - 1.26-centos9
+      - 1.27

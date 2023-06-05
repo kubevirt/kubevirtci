@@ -13,6 +13,10 @@ GO ?= go
 
 all: container-run
 
+.PHONY: test
+test:
+	$(GO) test -v ./cmd/... -coverprofile cover.out
+
 .PHONY: gocli
 cli:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -ldflags "-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.SUFFIX=:$(KUBEVIRTCI_TAG)'" -o $(BIN_DIR)/cli ./cmd/cli
