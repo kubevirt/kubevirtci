@@ -62,7 +62,7 @@ function build_base_images() {
 }
 
 function build_clusters() {
-  for i in ${IMAGES_TO_BUILD[@]}; do
+  for i in ${IMAGES_TO_BUILD}; do
     echo "INFO: building $i"
     cluster-provision/gocli/build/cli provision cluster-provision/k8s/$i
     ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
@@ -75,7 +75,7 @@ function build_clusters() {
 function push_cluster_images() {
   # until "unknown blob" issue is fixed use skopeo to push image
   # see https://github.com/moby/moby/issues/43234
-  for i in ${IMAGES_TO_BUILD[@]}; do
+  for i in ${IMAGES_TO_BUILD}; do
     echo "INFO: push $i"
     TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
     skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
