@@ -73,7 +73,17 @@ function up() {
     # remove the rancher.io kind default storageClass
     _kubectl delete sc standard
 
-    [ $DEPLOY_SRIOV == true ] && deploy_sriov
+    if [ $DEPLOY_SRIOV == true ]; then
+        deploy_sriov
+    else
+        _kubectl kustomize cluster-up/cluster/kind-1.27-sriov/manifests/multus | _kubectl apply -f -
+
+        _kubectl create -f cluster-up/cluster/kind-1.27-sriov/manifests/namespace.yaml
+        _kubectl create -f cluster-up/cluster/kind-1.27-sriov/manifests/network-addons-config.crd.yaml
+        _kubectl create -f cluster-up/cluster/kind-1.27-sriov/manifests/operator.yaml
+
+        _kubectl create -f cluster-up/cluster/kind-1.27-sriov/manifests/network-addons-config-example.cr.yaml
+    fi
     echo "$KUBEVIRT_PROVIDER cluster '$CLUSTER_NAME' is ready"
 }
 
