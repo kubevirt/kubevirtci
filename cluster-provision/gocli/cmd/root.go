@@ -35,7 +35,6 @@ func NewRootCommand() *cobra.Command {
 		NewRunCommand(),
 		NewSSHCommand(),
 		NewSCPCommand(),
-		NewProvisionManagerCommand(),
 	)
 
 	return root
