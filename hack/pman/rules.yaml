@@ -23,7 +23,6 @@ regex:
   - cluster-up/cluster/k8s-[0-9].[0-9][0-9]*
 regex_none:
   - cluster-up/cluster/kind*
-  - cluster-up/cluster/k3d*
 exclude:
   - pattern: cluster-provision/centos8/*
     exclude:
