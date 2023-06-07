@@ -7,6 +7,7 @@ PHASES_DEFAULT="linux,k8s"
 PHASES="${PHASES:-$PHASES_DEFAULT}"
 CHECK_CLUSTER="${CHECK_CLUSTER:-false}"
 export SLIM="${SLIM:-false}"
+BYPASS_PMAN_CHANGE_CHECK=${BYPASS_PMAN_CHANGE_CHECK:-false}
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 provision_dir="$(basename "$(pwd)")"
@@ -15,8 +16,18 @@ export base
 
 cd $DIR
 
-export KUBEVIRT_CGROUPV2="${CGROUPV2}"
+make -C ../gocli cli
 
+if [[ $BYPASS_PMAN_CHANGE_CHECK == false ]]; then
+  json=$(cd ../.. && cluster-provision/gocli/build/cli provision-manager)
+  result=$(echo $json | jq --arg v "$provision_dir" '.[$v]')
+  if [[ $result == false ]]; then
+    echo "INFO: skipping provision of $provision_dir because according provision-manager it hadn't changed"
+    exit 0
+  fi
+fi
+
+export KUBEVIRT_CGROUPV2="${CGROUPV2}"
 if [[ $PHASES =~ linux.* ]]; then
   (cd ../${base} && ./build.sh)
 fi
@@ -26,7 +37,6 @@ if ${SLIM}; then
   SLIM_MODE="--slim"
 fi
 
-make -C ../gocli cli
 ../gocli/build/cli provision ${provision_dir} --phases ${PHASES} ${SLIM_MODE}
 
 if [[ $PHASES == $PHASES_DEFAULT ]] || [[ $CHECK_CLUSTER == true ]]; then
