@@ -83,6 +83,8 @@ function up() {
         _kubectl create -f cluster-up/cluster/kind-1.27-sriov/manifests/operator.yaml
 
         _kubectl create -f cluster-up/cluster/kind-1.27-sriov/manifests/network-addons-config-example.cr.yaml
+
+        cluster-up/cluster/$KUBEVIRT_PROVIDER/istio.sh
     fi
     echo "$KUBEVIRT_PROVIDER cluster '$CLUSTER_NAME' is ready"
 }
