@@ -76,12 +76,13 @@ function up() {
     if [ $DEPLOY_SRIOV == true ]; then
         deploy_sriov
     else
+        _kubectl patch node kind-control-plane -p '{"spec":{"taints":[]}}'
+
         _kubectl kustomize cluster-up/cluster/kind-1.27-sriov/manifests/multus | _kubectl apply -f -
 
         _kubectl create -f cluster-up/cluster/kind-1.27-sriov/manifests/namespace.yaml
         _kubectl create -f cluster-up/cluster/kind-1.27-sriov/manifests/network-addons-config.crd.yaml
         _kubectl create -f cluster-up/cluster/kind-1.27-sriov/manifests/operator.yaml
-
         _kubectl create -f cluster-up/cluster/kind-1.27-sriov/manifests/network-addons-config-example.cr.yaml
 
         _kubectl create -f cluster-up/cluster/kind-1.27-sriov/manifests/whereabouts-v0.6.1.yaml
