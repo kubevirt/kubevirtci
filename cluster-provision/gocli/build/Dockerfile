@@ -1,6 +1,6 @@
-FROM alpine:3.18.0
+FROM fedora:35
 
-RUN apk add git
+RUN dnf install -y git
 WORKDIR /workdir
 RUN git config --global --add safe.directory /workdir
 
