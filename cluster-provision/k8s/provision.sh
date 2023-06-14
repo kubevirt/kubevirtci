@@ -23,6 +23,7 @@ if [[ $BYPASS_PMAN_CHANGE_CHECK == false ]]; then
   result=$(echo $json | jq --arg v "$provision_dir" '.[$v]')
   if [[ $result == false ]]; then
     echo "INFO: skipping provision of $provision_dir because according provision-manager it hadn't changed"
+    echo "INFO: use 'export BYPASS_PMAN_CHANGE_CHECK=true' to force provision"
     exit 0
   fi
 fi

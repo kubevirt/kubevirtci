@@ -24,6 +24,10 @@ cd $KUBEVIRTCI_DIR
 (cd cluster-provision/k8s/1.25; ../provision.sh)
 ```
 
+Note: 
+If you see "INFO: skipping provision of x.yz because according provision-manager it hadn't changed"
+please use `export BYPASS_PMAN_CHANGE_CHECK=true` to bypass provision-manager changes check and force provision.
+
 ### prepare for using the new provisioned cluster
 
 ```bash
