@@ -18,6 +18,11 @@
 
 set -exuo pipefail
 
+if ! git diff --quiet upstream/main cluster-up/cluster/kind/skip_tests; then
+    echo "INFO: kind skip_tests detected, skipping tests"
+    exit 0
+fi
+
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
 
 kubevirtci_path="$(realpath "${SCRIPT_PATH}/../../..")/"
