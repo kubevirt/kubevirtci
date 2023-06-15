@@ -117,7 +117,7 @@ export PATH="$ISTIO_BIN_DIR:$PATH"
   chmod +x "$ISTIO_BIN_DIR/istioctl"
 )
 
-export CRIO_VERSION=1.26
+export CRIO_VERSION=1.27
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable.repo
 [devel_kubic_libcontainers_stable]
 name=Stable Releases of Upstream github.com/containers packages (CentOS_8_Stream)
