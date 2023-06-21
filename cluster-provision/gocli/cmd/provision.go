@@ -185,7 +185,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 			fmt.Sprintf("NODE_NUM=%s", nodeNum),
 		},
 		Volumes: map[string]struct{}{
-			"/var/run/disk/":    {},
+			"/var/run/disk":     {},
 			"/var/lib/registry": {},
 		},
 		Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), qemuArgs)},
