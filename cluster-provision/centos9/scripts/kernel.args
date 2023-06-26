@@ -1,1 +1,1 @@
-root=/dev/vda1 ro no_timer_check console=tty0 console=ttyS0,115200n8 net.ifnames=0 biosdevname=0 elevator=noop spectre_v2=off nopti intel_iommu=on modprobe.blacklist=nouveau
+root=/dev/vda1 ro no_timer_check console=tty0 console=ttyS0,115200n8 net.ifnames=0 biosdevname=0 spectre_v2=off nopti intel_iommu=on modprobe.blacklist=nouveau
