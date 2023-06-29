@@ -81,12 +81,6 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 
             ${ksh} wait -n kubevirt kv kubevirt --for condition=Available --timeout 15m
 
-            if [ "${KUBEVIRT_PSA:-"false"}" == "true" ]; then
-                # Enable Kubevirt profile
-                ${ksh} patch -n kubevirt kv kubevirt --type='merge' --patch '{"spec": {"configuration": {"developerConfiguration": {"featureGates": ["KubevirtSeccompProfile"]} } }}'
-                ${ksh} patch -n kubevirt kv kubevirt --type='merge' --patch '{"spec": {"configuration": {"seccompConfiguration": {"virtualMachineInstanceProfile": {"customProfile": {"localhostProfile" : "kubevirt/kubevirt.json"} } } } } }'
-            fi
-
             export SONOBUOY_EXTRA_ARGS="--plugin https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/conformance.yaml"
             hack/conformance.sh $conformance_config
         fi
