@@ -5,6 +5,7 @@ SCRIPT_PATH=$(dirname "$(realpath "$0")")
 source ${SCRIPT_PATH}/common.sh
 ARCH=${ARCHITECTURE:-"$(go_style_local_arch)"}
 CONSOLE=${CONSOLE:-"yes"}
+DEBUG=${DEBUG:-"false"}
 
 function cleanup() {
   if [ $? -ne 0 ]; then
@@ -46,6 +47,9 @@ else
   buildconfig="--arch $(linux_style_arch_name ${ARCH})"
 fi
 
+if [[ ${DEBUG} = "true" ]]; then
+  buildconfig="${buildconfig} --debug --serial file,path=/tmp/provision-vm-console.log"
+fi
 
 if [[ ${CONSOLE} = "no" ]]; then
   consoleconfig="--noautoconsole --wait 120"
@@ -66,6 +70,10 @@ virt-install \
   --import \
   ${buildconfig} \
   ${consoleconfig}
+
+if [[ ${DEBUG} = "true" ]]; then
+  cat /tmp/provision-vm-console.log
+fi
 
 # Stop VM
 virsh destroy $DOMAIN_NAME || true
