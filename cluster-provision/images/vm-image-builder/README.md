@@ -53,7 +53,7 @@ To build the Virtual Machine without console output, only need to set the
 environment variable `CONSOLE`. This is useful when the build script is
 run in a CICD pipeline.
 ```
-export CONSOLE=no
+export CONSOLE=false
 ```
 Then follow the previous step.
 ## Create a new containerdisk

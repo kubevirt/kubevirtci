@@ -4,7 +4,7 @@ set -exuo pipefail
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
 source ${SCRIPT_PATH}/common.sh
 ARCH=${ARCHITECTURE:-"$(go_style_local_arch)"}
-CONSOLE=${CONSOLE:-"yes"}
+CONSOLE=${CONSOLE:-"true"}
 DEBUG=${DEBUG:-"false"}
 
 function cleanup() {
@@ -51,7 +51,7 @@ if [[ ${DEBUG} = "true" ]]; then
   buildconfig="${buildconfig} --debug --serial file,path=/tmp/provision-vm-console.log"
 fi
 
-if [[ ${CONSOLE} = "no" ]]; then
+if [[ ${CONSOLE} = "false" ]]; then
   consoleconfig="--noautoconsole --wait 120"
 else
   consoleconfig=""
