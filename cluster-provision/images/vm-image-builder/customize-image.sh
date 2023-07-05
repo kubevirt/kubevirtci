@@ -12,6 +12,10 @@ function cleanup() {
     rm -f "${CUSTOMIZE_IMAGE_PATH}"
   fi
 
+  if [[ ${DEBUG} = "true" ]]; then
+    cat /tmp/provision-vm-console.log
+  fi
+
   virsh destroy "${DOMAIN_NAME}" || true
   undefine_vm "${DOMAIN_NAME}"
   rm -rf "${CLOUD_INIT_ISO}"
