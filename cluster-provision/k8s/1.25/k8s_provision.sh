@@ -136,7 +136,7 @@ plugins:
     apiVersion: pod-security.admission.config.k8s.io/v1beta1
     kind: PodSecurityConfiguration
     defaults:
-      enforce: "privileged"
+      enforce: "restricted"
       enforce-version: "latest"
       audit: "restricted"
       audit-version: "latest"
