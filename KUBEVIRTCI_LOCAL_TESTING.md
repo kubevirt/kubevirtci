@@ -35,6 +35,10 @@ please use `export BYPASS_PMAN_CHANGE_CHECK=true` to bypass provision-manager ch
 export KUBEVIRTCI_PROVISION_CHECK=1
 ```
 
+If `KUBEVIRTCI_PROVISION_CHECK` is not used,
+you can set `KUBEVIRTCI_CONTAINER_REGISTRY` (default: `quay.io`), `KUBEVIRTCI_CONTAINER_ORG` (default: `kubevirtci`) and `KUBEVIRTCI_CONTAINER_SUFFIX` (default: according gocli tag),
+in order to use a custom image.
+
 Note:
 In case you updated gocli and need to test it locally as well, export additionally:
 ```bash
