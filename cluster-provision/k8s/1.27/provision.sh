@@ -182,8 +182,7 @@ EOF
 dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
     kubectl-${packages_version} \
     kubeadm-${packages_version} \
-    kubelet-${packages_version} \
-    kubernetes-cni
+    kubelet-${packages_version}
 
 # In case the version is unstable the package manager recognizes only the closest stable version
 # But it's unsafe using older kubeadm version than kubernetes version according to:

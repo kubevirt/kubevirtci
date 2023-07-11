@@ -156,8 +156,7 @@ EOF
 dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
     kubeadm-${version} \
     kubelet-${version} \
-    kubectl-${version} \
-    kubernetes-cni
+    kubectl-${version}
 
 kubeadm config images pull --kubernetes-version ${version}
 
