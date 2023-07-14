@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alessio/shellescape"
 	"github.com/docker/docker/api/types"
@@ -271,6 +272,11 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	err = _cmd(cli, nodeContainer(prefix, nodeName), "rm /ssh_ready", "removing the ssh_ready mark")
+	if err != nil {
+		return err
+	}
+	timeout := time.Second * 10
+	err = cli.ContainerStop(ctx, nodeContainer(prefix, nodeName), &timeout)
 	if err != nil {
 		return err
 	}
