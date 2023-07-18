@@ -102,15 +102,15 @@ function _add_common_params() {
     if [ -n "${KUBEVIRTCI_PROVISION_CHECK}" ]; then
         params=" --container-registry=quay.io --container-suffix=:latest $params"
     else
-        if [ -n $KUBEVIRTCI_CONTAINER_REGISTRY ]; then
+        if [[ -n ${KUBEVIRTCI_CONTAINER_REGISTRY} ]]; then
             params=" --container-registry=$KUBEVIRTCI_CONTAINER_REGISTRY $params"
         fi
 
-        if [ -n $KUBEVIRTCI_CONTAINER_ORG ]; then
+        if [[ -n ${KUBEVIRTCI_CONTAINER_ORG} ]]; then
             params=" --container-org=$KUBEVIRTCI_CONTAINER_ORG $params"
         fi
 
-        if [ -n $KUBEVIRTCI_CONTAINER_SUFFIX ]; then
+        if [[ -n ${KUBEVIRTCI_CONTAINER_SUFFIX} ]]; then
             params=" --container-suffix=:$KUBEVIRTCI_CONTAINER_SUFFIX $params"
         fi
 
