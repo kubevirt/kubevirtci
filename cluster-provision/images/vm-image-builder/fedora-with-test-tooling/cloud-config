@@ -43,7 +43,7 @@ write_files:
         bind 'set enable-bracketed-paste off'
 runcmd:
   - sudo systemctl daemon-reload
-  - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress-ng dmidecode virt-what vm-dump-metrics tpm2-tools nc sg3_utils
+  - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress-ng dmidecode virt-what vm-dump-metrics tpm2-tools nc sg3_utils iperf3
   - sudo dnf clean all
   - sudo systemctl enable wait-for-cloud-init
   - sudo systemctl enable qemu-guest-agent.service
