@@ -332,7 +332,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		fmt.Printf("Download the image %s\n", clusterImage)
 		err = docker.ImagePull(cli, ctx, clusterImage, types.ImagePullOptions{})
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("Failed to download cluster image %s, %s", clusterImage, err))
 		}
 	}
 
