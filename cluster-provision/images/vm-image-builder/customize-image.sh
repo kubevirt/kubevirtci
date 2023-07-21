@@ -7,13 +7,25 @@ ARCH=${ARCHITECTURE:-"$(go_style_local_arch)"}
 CONSOLE=${CONSOLE:-"true"}
 DEBUG=${DEBUG:-"false"}
 
+function print_debug_log() {
+  local debuglog="/tmp/provision-vm-console.log /var/log/libvirtd.log /var/log/virtlogd.log /var/log/swtpm/libvirt/qemu/provision-vm-swtpm.log"
+  for i in `ls /var/log/libvirt/qemu/`; do
+    debuglog="/var/log/libvirt/qemu/${i} ${debuglog}"
+  done
+  for log in ${debuglog}; do
+    printf "*%.0s" {1..15}
+    echo "print ${log}"
+    [[ -f ${log} ]] && cat ${log}
+  done
+}
+
 function cleanup() {
   if [ $? -ne 0 ]; then
     rm -f "${CUSTOMIZE_IMAGE_PATH}"
   fi
 
   if [[ ${DEBUG} = "true" ]]; then
-    cat /tmp/provision-vm-console.log
+    print_debug_log
   fi
 
   virsh destroy "${DOMAIN_NAME}" || true
@@ -76,7 +88,7 @@ virt-install \
   ${consoleconfig}
 
 if [[ ${DEBUG} = "true" ]]; then
-  cat /tmp/provision-vm-console.log
+  print_debug_log
 fi
 
 # Stop VM
