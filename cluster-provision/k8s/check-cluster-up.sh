@@ -80,6 +80,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
             ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-cr.yaml"
 
             ${ksh} wait -n kubevirt kv kubevirt --for condition=Available --timeout 15m
+            ${ksh} patch -n kubevirt kv kubevirt --type='merge' -p '{"spec": {"configuration": {"seccompConfiguration": {"virtualMachineInstanceProfile": {"customProfile": {"localhostProfile": "kubevirt/kubevirt.json"}}}}}}'
 
             export SONOBUOY_EXTRA_ARGS="--plugin https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/conformance.yaml"
             hack/conformance.sh $conformance_config
