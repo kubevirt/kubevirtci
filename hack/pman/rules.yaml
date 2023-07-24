@@ -28,8 +28,10 @@ exclude:
     exclude:
       - 1.26-centos9
       - 1.27
+      - 1.28
 specific:
   - pattern: cluster-provision/centos9/*
     targets:
       - 1.26-centos9
       - 1.27
+      - 1.28
