@@ -29,7 +29,7 @@ function download_base_image() {
 
     if ! [ -e "${file_name}" ]; then
         # Download base VM image
-        curl -L "${url}" -o "${file_name}"
+        wget -q "${url}" -O "${file_name}"
     fi
 
     echo "${file_name}"
