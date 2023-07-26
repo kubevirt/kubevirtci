@@ -14,19 +14,17 @@ function getKubernetesClosestStableVersion() {
   echo $packages_version
 }
 
-function replaceKubeadmBinary() {
+function replaceKubeBinaries() {
   dnf install -y which
-  rm -f `which kubeadm`
+  rm -f $(which kubeadm kubelet)
 
-  DOWNLOAD_DIR="/usr/bin"
-  mkdir -p "$DOWNLOAD_DIR"
+  BIN_DIR="/usr/bin"
   RELEASE="v$version"
-
   ARCH="amd64"
-  cd $DOWNLOAD_DIR
-  curl -L --remote-name-all https://dl.k8s.io/release/${RELEASE}/bin/linux/${ARCH}/kubeadm
-  chmod +x kubeadm
-  cd -
+
+  curl -L --remote-name-all https://dl.k8s.io/release/${RELEASE}/bin/linux/${ARCH}/kubeadm -o ${BIN_DIR}/kubeadm
+  curl -L --remote-name-all https://dl.k8s.io/release/${RELEASE}/bin/linux/${ARCH}/kubelet -o ${BIN_DIR}/kubelet
+  chmod +x ${BIN_DIR}/kubeadm ${BIN_DIR}/kubelet
 }
 
 if [ ! -f "/tmp/extra-pre-pull-images" ]; then
@@ -190,7 +188,7 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
 # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#kubeadm-s-skew-against-the-kubernetes-version
 # The reason we install kubeadm using dnf is for the dependencies packages.
 if [[ $version != $packages_version ]]; then
-   replaceKubeadmBinary
+   replaceKubeBinaries
 fi
 
 kubeadm config images pull --kubernetes-version ${version}
