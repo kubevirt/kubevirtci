@@ -79,7 +79,6 @@ virt-install \
   --name $DOMAIN_NAME \
   --disk "${SOURCE_IMAGE_PATH}",device=disk \
   --disk "${CLOUD_INIT_ISO}",device=cdrom \
-  --os-type Linux \
   --os-variant "${OS_VARIANT}" \
   --graphics none \
   --network default \
