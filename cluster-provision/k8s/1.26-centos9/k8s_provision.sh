@@ -13,6 +13,10 @@ cat <<EOT >/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice  --fail-swap-on=false --kubelet-cgroups=/systemd/system.slice
 EOT
 
+# Enable userfaultfd for centos9 to support post-copy live migration.
+# For more info: https://github.com/openshift/machine-config-operator/pull/3724
+echo "vm.unprivileged_userfaultfd = 1" > /etc/sysctl.d/enable-userfaultfd.conf
+
 # Needed for kubernetes service routing and dns
 # https://github.com/kubernetes/kubernetes/issues/33798#issuecomment-250962627
 modprobe bridge
