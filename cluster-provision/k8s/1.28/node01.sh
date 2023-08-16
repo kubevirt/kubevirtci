@@ -50,7 +50,6 @@ EOF
     systemctl start kubelet
 fi
 
-version=`kubectl version --short --client | cut -d":" -f2 |sed  's/ //g' | cut -c2- `
 
 # Wait for crio, else network might not be ready yet
 while [[ `systemctl status crio | grep active | wc -l` -eq 0 ]]
@@ -85,7 +84,7 @@ while [[ $retry_counter -lt 20 && $kubectl_rc -ne 0 ]]; do
 done
 
 echo "Printing kuberenetes version"
-kubectl --kubeconfig=/etc/kubernetes/admin.conf version --short
+kubectl --kubeconfig=/etc/kubernetes/admin.conf version
 
 
 local_volume_manifest="/provision/local-volume.yaml"
