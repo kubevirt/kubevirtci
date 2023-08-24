@@ -93,7 +93,7 @@ fi
 
 calc_next_disk
 
-default_disk_size=37580963840 # 35G
+default_disk_size=53687091200 # 50G
 disk_size=$(qemu-img info --output json ${last} | jq '.["virtual-size"]')
 if [ $disk_size -lt $default_disk_size ]; then
     disk_size=$default_disk_size
