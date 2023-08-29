@@ -8,7 +8,7 @@ cd kubevirtci
                                                                                       
 Start multi node k8s cluster with 2 nics                                              
 ```                                                                                   
-export KUBEVIRT_PROVIDER=k8s-1.25 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=1
+export KUBEVIRT_PROVIDER=k8s-1.27 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=1
 make cluster-up                                                                       
 ```                                                                                   
                                                                                       
@@ -39,7 +39,7 @@ cluster-up/ssh.sh node01
 
 Start single stack IPv6 cluster
 ```
-export KUBEVIRT_SINGLE_STACK=true KUBEVIRT_PROVIDER=k8s-1.25
+export KUBEVIRT_SINGLE_STACK=true KUBEVIRT_PROVIDER=k8s-1.27
 make cluster-up
 ```
 

@@ -46,17 +46,12 @@ function build_gocli() {
   ${CRI_BIN} tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
 }
 
-function build_centos8_base_image() {
-  (cd cluster-provision/centos8 && ./build.sh)
-}
-
 function build_centos9_base_image() {
   (cd cluster-provision/centos9 && ./build.sh)
 }
 
 function build_base_images() {
   if [[ ${#IMAGES_TO_BUILD[@]} -gt 0 ]]; then
-    build_centos8_base_image
     build_centos9_base_image
   fi
 }
