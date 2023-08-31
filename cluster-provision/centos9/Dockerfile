@@ -27,8 +27,11 @@ ENV CENTOS_URL https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Str
 
 RUN /download_box.sh ${CENTOS_URL}
 
+# Pin to earlier versions of vmlinuz & initrd.img due to issue with latest
+RUN curl -L -o /initrd.img https://composes.stream.centos.org/production/CentOS-Stream-9-20230821.0/compose/BaseOS/x86_64/os/images/pxeboot/initrd.img
+RUN curl -L -o /vmlinuz https://composes.stream.centos.org/production/CentOS-Stream-9-20230821.0/compose/BaseOS/x86_64/os/images/pxeboot/vmlinuz
 
-RUN curl -L -o /initrd.img http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/images/pxeboot/initrd.img
-RUN curl -L -o /vmlinuz http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/images/pxeboot/vmlinuz
+#RUN curl -L -o /initrd.img http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/images/pxeboot/initrd.img
+#RUN curl -L -o /vmlinuz http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/images/pxeboot/vmlinuz
 
 COPY scripts/* /
