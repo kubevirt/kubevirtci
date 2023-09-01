@@ -3,7 +3,7 @@ package types // import "github.com/docker/docker/api/types"
 import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // configs holds structs used for internal communication between the
@@ -16,7 +16,7 @@ type ContainerCreateConfig struct {
 	Config           *container.Config
 	HostConfig       *container.HostConfig
 	NetworkingConfig *network.NetworkingConfig
-	Platform         *ocispec.Platform
+	Platform         *specs.Platform
 	AdjustCPUShares  bool
 }
 
@@ -33,7 +33,6 @@ type ExecConfig struct {
 	User         string   // User that will run the command
 	Privileged   bool     // Is the container in privileged mode
 	Tty          bool     // Attach standard streams to a tty.
-	ConsoleSize  *[2]uint `json:",omitempty"` // Initial console size [height, width]
 	AttachStdin  bool     // Attach the standard input, makes possible user interaction
 	AttachStderr bool     // Attach the standard error
 	AttachStdout bool     // Attach the standard output

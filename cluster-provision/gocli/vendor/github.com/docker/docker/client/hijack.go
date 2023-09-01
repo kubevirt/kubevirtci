@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/versions"
 	"github.com/docker/go-connections/sockets"
 	"github.com/pkg/errors"
 )
@@ -23,16 +22,20 @@ func (cli *Client) postHijacked(ctx context.Context, path string, query url.Valu
 	if err != nil {
 		return types.HijackedResponse{}, err
 	}
-	req, err := cli.buildRequest(http.MethodPost, cli.getAPIPath(ctx, path, query), bodyEncoded, headers)
+
+	apiPath := cli.getAPIPath(ctx, path, query)
+	req, err := http.NewRequest(http.MethodPost, apiPath, bodyEncoded)
 	if err != nil {
 		return types.HijackedResponse{}, err
 	}
-	conn, mediaType, err := cli.setupHijackConn(ctx, req, "tcp")
+	req = cli.addHeaders(req, headers)
+
+	conn, err := cli.setupHijackConn(ctx, req, "tcp")
 	if err != nil {
 		return types.HijackedResponse{}, err
 	}
 
-	return types.NewHijackedResponse(conn, mediaType), err
+	return types.HijackedResponse{Conn: conn, Reader: bufio.NewReader(conn)}, err
 }
 
 // DialHijack returns a hijacked connection with negotiated protocol proto.
@@ -43,8 +46,7 @@ func (cli *Client) DialHijack(ctx context.Context, url, proto string, meta map[s
 	}
 	req = cli.addHeaders(req, meta)
 
-	conn, _, err := cli.setupHijackConn(ctx, req, proto)
-	return conn, err
+	return cli.setupHijackConn(ctx, req, proto)
 }
 
 // fallbackDial is used when WithDialer() was not called.
@@ -59,14 +61,15 @@ func fallbackDial(proto, addr string, tlsConfig *tls.Config) (net.Conn, error) {
 	return net.Dial(proto, addr)
 }
 
-func (cli *Client) setupHijackConn(ctx context.Context, req *http.Request, proto string) (net.Conn, string, error) {
+func (cli *Client) setupHijackConn(ctx context.Context, req *http.Request, proto string) (net.Conn, error) {
+	req.Host = cli.addr
 	req.Header.Set("Connection", "Upgrade")
 	req.Header.Set("Upgrade", proto)
 
 	dialer := cli.Dialer()
 	conn, err := dialer(ctx)
 	if err != nil {
-		return nil, "", errors.Wrap(err, "cannot connect to the Docker daemon. Is 'docker daemon' running on this host?")
+		return nil, errors.Wrap(err, "cannot connect to the Docker daemon. Is 'docker daemon' running on this host?")
 	}
 
 	// When we set up a TCP connection for hijack, there could be long periods
@@ -75,8 +78,8 @@ func (cli *Client) setupHijackConn(ctx context.Context, req *http.Request, proto
 	// state. Setting TCP KeepAlive on the socket connection will prohibit
 	// ECONNTIMEOUT unless the socket connection truly is broken
 	if tcpConn, ok := conn.(*net.TCPConn); ok {
-		_ = tcpConn.SetKeepAlive(true)
-		_ = tcpConn.SetKeepAlivePeriod(30 * time.Second)
+		tcpConn.SetKeepAlive(true)
+		tcpConn.SetKeepAlivePeriod(30 * time.Second)
 	}
 
 	clientconn := httputil.NewClientConn(conn, nil)
@@ -88,18 +91,18 @@ func (cli *Client) setupHijackConn(ctx context.Context, req *http.Request, proto
 	//nolint:staticcheck // ignore SA1019 for connecting to old (pre go1.8) daemons
 	if err != httputil.ErrPersistEOF {
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		if resp.StatusCode != http.StatusSwitchingProtocols {
-			_ = resp.Body.Close()
-			return nil, "", fmt.Errorf("unable to upgrade to %s, received %d", proto, resp.StatusCode)
+			resp.Body.Close()
+			return nil, fmt.Errorf("unable to upgrade to %s, received %d", proto, resp.StatusCode)
 		}
 	}
 
 	c, br := clientconn.Hijack()
 	if br.Buffered() > 0 {
 		// If there is buffered content, wrap the connection.  We return an
-		// object that implements CloseWrite if the underlying connection
+		// object that implements CloseWrite iff the underlying connection
 		// implements it.
 		if _, ok := c.(types.CloseWriter); ok {
 			c = &hijackedConnCloseWriter{&hijackedConn{c, br}}
@@ -110,13 +113,7 @@ func (cli *Client) setupHijackConn(ctx context.Context, req *http.Request, proto
 		br.Reset(nil)
 	}
 
-	var mediaType string
-	if versions.GreaterThanOrEqualTo(cli.ClientVersion(), "1.42") {
-		// Prior to 1.42, Content-Type is always set to raw-stream and not relevant
-		mediaType = resp.Header.Get("Content-Type")
-	}
-
-	return c, mediaType, nil
+	return c, nil
 }
 
 // hijackedConn wraps a net.Conn and is returned by setupHijackConn in the case

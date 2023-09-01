@@ -162,14 +162,14 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	nodeName := nodeNameFromIndex(1)
 	nodeNum := fmt.Sprintf("%02d", 1)
 
-	vol, err := cli.VolumeCreate(ctx, volume.CreateOptions{
+	vol, err := cli.VolumeCreate(ctx, volume.VolumeCreateBody{
 		Name: fmt.Sprintf("%s-%s", prefix, nodeName),
 	})
 	if err != nil {
 		return err
 	}
 	volumes <- vol.Name
-	registryVol, err := cli.VolumeCreate(ctx, volume.CreateOptions{
+	registryVol, err := cli.VolumeCreate(ctx, volume.VolumeCreateBody{
 		Name: fmt.Sprintf("%s-%s", prefix, "registry"),
 	})
 	if err != nil {

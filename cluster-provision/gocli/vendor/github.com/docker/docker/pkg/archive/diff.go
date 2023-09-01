@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/docker/pkg/pools"
 	"github.com/docker/docker/pkg/system"
 	"github.com/sirupsen/logrus"
@@ -31,6 +32,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 	if options.ExcludePatterns == nil {
 		options.ExcludePatterns = []string{}
 	}
+	idMapping := idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps)
 
 	aufsTempdir := ""
 	aufsHardlinks := make(map[string]*tar.Header)
@@ -72,10 +74,20 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 			}
 		}
 
-		// Ensure that the parent directory exists.
-		err = createImpliedDirectories(dest, hdr, options)
-		if err != nil {
-			return 0, err
+		// Note as these operations are platform specific, so must the slash be.
+		if !strings.HasSuffix(hdr.Name, string(os.PathSeparator)) {
+			// Not the root directory, ensure that the parent directory exists.
+			// This happened in some tests where an image had a tarfile without any
+			// parent directories.
+			parent := filepath.Dir(hdr.Name)
+			parentPath := filepath.Join(dest, parent)
+
+			if _, err := os.Lstat(parentPath); err != nil && os.IsNotExist(err) {
+				err = system.MkdirAll(parentPath, 0600)
+				if err != nil {
+					return 0, err
+				}
+			}
 		}
 
 		// Skip AUFS metadata dirs
@@ -87,7 +99,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				basename := filepath.Base(hdr.Name)
 				aufsHardlinks[basename] = hdr
 				if aufsTempdir == "" {
-					if aufsTempdir, err = os.MkdirTemp(dest, "dockerplnk"); err != nil {
+					if aufsTempdir, err = os.MkdirTemp("", "dockerplnk"); err != nil {
 						return 0, err
 					}
 					defer os.RemoveAll(aufsTempdir)
@@ -101,7 +113,6 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				continue
 			}
 		}
-		//#nosec G305 -- The joined path is guarded against path traversal.
 		path := filepath.Join(dest, hdr.Name)
 		rel, err := filepath.Rel(dest, path)
 		if err != nil {
@@ -121,7 +132,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				if err != nil {
 					return 0, err
 				}
-				err = filepath.WalkDir(dir, func(path string, info os.DirEntry, err error) error {
+				err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 					if err != nil {
 						if os.IsNotExist(err) {
 							err = nil // parent was deleted
@@ -132,7 +143,8 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 						return nil
 					}
 					if _, exists := unpackedPaths[path]; !exists {
-						return os.RemoveAll(path)
+						err := os.RemoveAll(path)
+						return err
 					}
 					return nil
 				})
@@ -179,7 +191,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				srcData = tmpFile
 			}
 
-			if err := remapIDs(options.IDMap, srcHdr); err != nil {
+			if err := remapIDs(idMapping, srcHdr); err != nil {
 				return 0, err
 			}
 
@@ -197,7 +209,6 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 	}
 
 	for _, hdr := range dirs {
-		//#nosec G305 -- The header was checked for path traversal before it was appended to the dirs slice.
 		path := filepath.Join(dest, hdr.Name)
 		if err := system.Chtimes(path, hdr.AccessTime, hdr.ModTime); err != nil {
 			return 0, err
@@ -228,8 +239,13 @@ func applyLayerHandler(dest string, layer io.Reader, options *TarOptions, decomp
 	dest = filepath.Clean(dest)
 
 	// We need to be able to set any perms
-	restore := overrideUmask(0)
-	defer restore()
+	if runtime.GOOS != "windows" {
+		oldmask, err := system.Umask(0)
+		if err != nil {
+			return 0, err
+		}
+		defer system.Umask(oldmask)
+	}
 
 	if decompress {
 		decompLayer, err := DecompressStream(layer)

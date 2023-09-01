@@ -21,7 +21,7 @@ type DNSMasqOptions struct {
 	Prefix             string
 }
 
-func DNSMasq(cli *client.Client, ctx context.Context, options *DNSMasqOptions) (*container.CreateResponse, error) {
+func DNSMasq(cli *client.Client, ctx context.Context, options *DNSMasqOptions) (*container.ContainerCreateCreatedBody, error) {
 	// Mount /lib/modules at dnsmasq if it's there since sometimes
 	// some kernel modules may be mounted
 	dnsmasqMounts := []mount.Mount{}

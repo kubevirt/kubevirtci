@@ -14,7 +14,6 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
@@ -42,15 +41,12 @@ func filterByPrefix(containers []types.Container, prefix string) []types.Contain
 	return prefixedConatiners
 }
 
-func GetPrefixedVolumes(cli *client.Client, prefix string) ([]*volume.Volume, error) {
+func GetPrefixedVolumes(cli *client.Client, prefix string) ([]*types.Volume, error) {
 	args := filters.NewArgs(filters.KeyValuePair{
 		Key:   "name",
 		Value: prefix,
 	})
-	options := volume.ListOptions{
-		Filters: args,
-	}
-	volumes, err := cli.VolumeList(context.Background(), options)
+	volumes, err := cli.VolumeList(context.Background(), args)
 	if err != nil {
 		return nil, err
 	}
