@@ -109,25 +109,17 @@ export PATH="$ISTIO_BIN_DIR:$PATH"
   chmod +x "$ISTIO_BIN_DIR/istioctl"
 )
 
-export CRIO_VERSION=1.27
-cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable.repo
-[devel_kubic_libcontainers_stable]
-name=Stable Releases of Upstream github.com/containers packages (CentOS_9_Stream)
-type=rpm-md
-baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcontainers_stable/
-gpgcheck=0
-enabled=1
-EOF
+export CRIO_VERSION=1.28
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}.repo
-[devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}]
-name=devel:kubic:libcontainers:stable:cri-o:${CRIO_VERSION} (CentOS_9_Stream)
+[isv_kubernetes_addons_cri-o_stable_v${CRIO_VERSION}]
+name=CRI-O v${CRIO_VERSION} (Stable) (rpm)
 type=rpm-md
-baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}
+baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/isv_kubernetes_addons_cri-o_stable_v${CRIO_VERSION}
 gpgcheck=0
 enabled=1
 EOF
 
-dnf install -y cri-o
+dnf install -y cri-o container-selinux
 
 systemctl enable --now crio
 
