@@ -40,8 +40,6 @@ fi
 
 if grep -q "CentOS Stream 9" /etc/os-release; then
   release="centos9"
-elif grep -q "CentOS Stream 8" /etc/os-release; then
-  release="centos8"
 else
   echo "ERROR: Could not recognize guest OS"
   exit 1
@@ -82,11 +80,7 @@ dnf install -y "kernel-modules-$(uname -r)"
 # Resize root partition
 dnf install -y cloud-utils-growpart
 if growpart /dev/vda 1; then
-    if [[ "$release" == "centos8" ]]; then
-      xfs_growfs -d /
-    elif [[ "$release" == "centos9" ]]; then
-      resize2fs /dev/vda1
-    fi
+    resize2fs /dev/vda1
 fi
 
 dnf install -y patch
@@ -120,7 +114,7 @@ export PATH="$ISTIO_BIN_DIR:$PATH"
 export CRIO_VERSION=1.26
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable.repo
 [devel_kubic_libcontainers_stable]
-name=Stable Releases of Upstream github.com/containers packages (CentOS_8_Stream)
+name=Stable Releases of Upstream github.com/containers packages (CentOS_9_Stream)
 type=rpm-md
 baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcontainers_stable/
 gpgcheck=0
@@ -128,17 +122,14 @@ enabled=1
 EOF
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}.repo
 [devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}]
-name=devel:kubic:libcontainers:stable:cri-o:${CRIO_VERSION} (CentOS_8_Stream)
+name=devel:kubic:libcontainers:stable:cri-o:${CRIO_VERSION} (CentOS_9_Stream)
 type=rpm-md
 baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}
 gpgcheck=0
 enabled=1
 EOF
-if [[ "$release" == "centos8" ]]; then
-    dnf install -y cri-o containers-common-1-23.module_el8.7.0+1106+45480ee0.x86_64
-elif [[ "$release" == "centos9" ]]; then
-    dnf install -y cri-o
-fi
+
+dnf install -y cri-o
 
 echo "" >> /etc/containers/policy.json
 
