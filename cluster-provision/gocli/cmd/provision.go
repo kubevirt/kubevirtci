@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/alessio/shellescape"
@@ -176,9 +175,6 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	if len(qemuArgs) > 0 {
-		qemuArgs = "--qemu-args " + qemuArgs
-	}
 	node, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: base,
 		Env: []string{
@@ -188,7 +184,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 			"/var/run/disk":     {},
 			"/var/lib/registry": {},
 		},
-		Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh --memory %s --cpu %s %s", memory, strconv.Itoa(int(cpu)), qemuArgs)},
+		Cmd: []string{"/bin/bash", "-c", fmt.Sprintf(`/vm.sh --memory %s --cpu %d --qemu-args "-no-reboot %s"`, memory, cpu, qemuArgs)},
 	}, &container.HostConfig{
 		Mounts: []mount.Mount{
 			{
