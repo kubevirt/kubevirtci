@@ -1,5 +1,6 @@
 all:
   - cluster-provision/gocli/*
+  - cluster-provision/centos9/*
   - hack/kustomization/*
   - cluster-provision/k8s
   - cluster-provision
@@ -23,15 +24,3 @@ regex:
   - cluster-up/cluster/k8s-[0-9].[0-9][0-9]*
 regex_none:
   - cluster-up/cluster/kind*
-exclude:
-  - pattern: cluster-provision/centos8/*
-    exclude:
-      - 1.26-centos9
-      - 1.27
-      - 1.28
-specific:
-  - pattern: cluster-provision/centos9/*
-    targets:
-      - 1.26-centos9
-      - 1.27
-      - 1.28
