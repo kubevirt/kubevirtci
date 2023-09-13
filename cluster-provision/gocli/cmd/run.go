@@ -112,7 +112,6 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("hugepages-2m", 64, "number of hugepages of size 2M to allocate")
 	run.Flags().Bool("enable-realtime-scheduler", false, "configures the kernel to allow unlimited runtime for processes that require realtime scheduling")
 	run.Flags().Bool("enable-fips", false, "enables FIPS")
-	run.Flags().Bool("enable-psa", false, "Pod Security Admission")
 	run.Flags().Bool("single-stack", false, "enable single stack IPv6")
 	run.Flags().Bool("enable-audit", false, "enable k8s audit for all metadata events")
 	run.Flags().StringArrayVar(&usbDisks, "usb", []string{}, "size of the emulate USB disk to pass to the node")
@@ -266,10 +265,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	realtimeSchedulingEnabled, err := cmd.Flags().GetBool("enable-realtime-scheduler")
-	if err != nil {
-		return err
-	}
-	psaEnabled, err := cmd.Flags().GetBool("enable-psa")
 	if err != nil {
 		return err
 	}
@@ -658,17 +653,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 			if !ok {
 				return fmt.Errorf("provisioning node %s failed (setting enableAudit phase)", nodeName)
-			}
-		}
-
-		if psaEnabled {
-			success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/psa.sh"}, os.Stdout)
-			if err != nil {
-				return err
-			}
-
-			if !success {
-				return fmt.Errorf("provisioning node %s failed", nodeName)
 			}
 		}
 
