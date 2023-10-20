@@ -159,7 +159,7 @@ packages_version=$(getKubernetesClosestStableVersion)
 cat <<EOF >/etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes Release
-baseurl=https://storage.googleapis.com/kubernetes-release/release/v${packages_version}/rpm/x86_64/
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.28/rpm
 enabled=1
 gpgcheck=0
 repo_gpgcheck=0
