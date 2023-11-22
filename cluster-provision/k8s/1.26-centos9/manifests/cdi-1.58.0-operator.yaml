@@ -9,7 +9,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: cdis.cdi.kubevirt.io
 spec:
   group: cdi.kubevirt.io
@@ -177,6 +177,11 @@ spec:
                     items:
                       type: string
                     type: array
+                  logVerbosity:
+                    description: LogVerbosity overrides the default verbosity level
+                      used to initialize loggers
+                    format: int32
+                    type: integer
                   podResourceRequirements:
                     description: ResourceRequirements describes the compute resource
                       requirements.
@@ -2412,6 +2417,11 @@ spec:
                     items:
                       type: string
                     type: array
+                  logVerbosity:
+                    description: LogVerbosity overrides the default verbosity level
+                      used to initialize loggers
+                    format: int32
+                    type: integer
                   podResourceRequirements:
                     description: ResourceRequirements describes the compute resource
                       requirements.
@@ -4507,7 +4517,12 @@ rules:
   - clusterrolebindings
   - clusterroles
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
 - apiGroups:
   - security.openshift.io
   resources:
@@ -4519,22 +4534,17 @@ rules:
   - update
   - create
 - apiGroups:
-  - ""
-  resources:
-  - pods
-  - services
-  verbs:
-  - get
-  - list
-  - watch
-  - delete
-- apiGroups:
   - apiextensions.k8s.io
   resources:
   - customresourcedefinitions
   - customresourcedefinitions/status
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
 - apiGroups:
   - cdi.kubevirt.io
   - upload.cdi.kubevirt.io
@@ -4548,13 +4558,44 @@ rules:
   - validatingwebhookconfigurations
   - mutatingwebhookconfigurations
   verbs:
-  - '*'
+  - create
+  - list
+  - watch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resourceNames:
+  - cdi-api-dataimportcron-validate
+  - cdi-api-populator-validate
+  - cdi-api-datavolume-validate
+  - cdi-api-validate
+  - objecttransfer-api-validate
+  resources:
+  - validatingwebhookconfigurations
+  verbs:
+  - get
+  - update
+  - delete
+- apiGroups:
+  - admissionregistration.k8s.io
+  resourceNames:
+  - cdi-api-datavolume-mutate
+  resources:
+  - mutatingwebhookconfigurations
+  verbs:
+  - get
+  - update
+  - delete
 - apiGroups:
   - apiregistration.k8s.io
   resources:
   - apiservices
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
 - apiGroups:
   - authorization.k8s.io
   resources:
@@ -4599,7 +4640,6 @@ rules:
   resources:
   - datasources
   verbs:
-  - list
   - get
 - apiGroups:
   - cdi.kubevirt.io
@@ -4612,7 +4652,7 @@ rules:
   resources:
   - cdis/finalizers
   verbs:
-  - '*'
+  - update
 - apiGroups:
   - ""
   resources:
@@ -4623,7 +4663,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - persistentvolumes
   - persistentvolumeclaims
   verbs:
   - get
@@ -4634,6 +4673,15 @@ rules:
   - delete
   - deletecollection
   - patch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+  - watch
+  - update
 - apiGroups:
   - ""
   resources:
@@ -4685,9 +4733,22 @@ rules:
 - apiGroups:
   - snapshot.storage.k8s.io
   resources:
-  - '*'
+  - volumesnapshots
+  - volumesnapshotclasses
+  - volumesnapshotcontents
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
+  verbs:
+  - update
+  - deletecollection
 - apiGroups:
   - apiextensions.k8s.io
   resources:
@@ -4718,20 +4779,6 @@ rules:
   - secrets
   verbs:
   - create
-- apiGroups:
-  - batch
-  resources:
-  - cronjobs
-  verbs:
-  - list
-  - watch
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  verbs:
-  - list
-  - watch
 - apiGroups:
   - kubevirt.io
   resources:
@@ -4792,7 +4839,12 @@ rules:
   - rolebindings
   - roles
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
 - apiGroups:
   - ""
   resources:
@@ -4802,21 +4854,36 @@ rules:
   - secrets
   - services
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - apps
   resources:
   - deployments
   - deployments/finalizers
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
 - apiGroups:
   - route.openshift.io
   resources:
   - routes
   - routes/custom-host
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
+  - create
+  - update
 - apiGroups:
   - config.openshift.io
   resources:
@@ -4843,7 +4910,98 @@ rules:
   resources:
   - leases
   verbs:
-  - '*'
+  - get
+  - create
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - list
+  - watch
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - create
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - endpoints
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -4891,25 +5049,25 @@ spec:
         - name: DEPLOY_CLUSTER_RESOURCES
           value: "true"
         - name: OPERATOR_VERSION
-          value: v1.57.0
+          value: v1.58.0
         - name: CONTROLLER_IMAGE
-          value: quay.io/kubevirt/cdi-controller:v1.57.0
+          value: quay.io/kubevirt/cdi-controller:v1.58.0
         - name: IMPORTER_IMAGE
-          value: quay.io/kubevirt/cdi-importer:v1.57.0
+          value: quay.io/kubevirt/cdi-importer:v1.58.0
         - name: CLONER_IMAGE
-          value: quay.io/kubevirt/cdi-cloner:v1.57.0
+          value: quay.io/kubevirt/cdi-cloner:v1.58.0
         - name: APISERVER_IMAGE
-          value: quay.io/kubevirt/cdi-apiserver:v1.57.0
+          value: quay.io/kubevirt/cdi-apiserver:v1.58.0
         - name: UPLOAD_SERVER_IMAGE
-          value: quay.io/kubevirt/cdi-uploadserver:v1.57.0
+          value: quay.io/kubevirt/cdi-uploadserver:v1.58.0
         - name: UPLOAD_PROXY_IMAGE
-          value: quay.io/kubevirt/cdi-uploadproxy:v1.57.0
+          value: quay.io/kubevirt/cdi-uploadproxy:v1.58.0
         - name: VERBOSITY
           value: "1"
         - name: PULL_POLICY
           value: IfNotPresent
         - name: MONITORING_NAMESPACE
-        image: quay.io/kubevirt/cdi-operator:v1.57.0
+        image: quay.io/kubevirt/cdi-operator:v1.58.0
         imagePullPolicy: IfNotPresent
         name: cdi-operator
         ports:
@@ -4918,7 +5076,7 @@ spec:
           protocol: TCP
         resources:
           requests:
-            cpu: 10m
+            cpu: 100m
             memory: 150Mi
         securityContext:
           allowPrivilegeEscalation: false
