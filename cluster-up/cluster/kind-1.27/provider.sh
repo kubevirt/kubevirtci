@@ -14,8 +14,8 @@ else
 fi
 
 function set_kind_params() {
-    export KIND_VERSION="${KIND_VERSION:-0.19.0}"
-    export KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.27.1@sha256:b7d12ed662b873bd8510879c1846e87c7e676a79fefc93e17b2a52989d3ff42b}"
+    export KIND_VERSION="${KIND_VERSION:-0.20.0}"
+    export KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72}"
     export KUBECTL_PATH="${KUBECTL_PATH:-/usr/bin/kubectl}"
 }
 
