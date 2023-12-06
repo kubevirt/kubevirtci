@@ -60,7 +60,7 @@ function pull_container_retry() {
     maxRetries=5
     retryAfterSeconds=3
     until [ ${retry} -ge ${maxRetries} ]; do
-        podman pull "$@" && break
+        crictl pull "$@" && break
         retry=$((${retry} + 1))
         echo "Retrying ${FUNCNAME[0]} [${retry}/${maxRetries}] in ${retryAfterSeconds}(s)"
         sleep ${retryAfterSeconds}
@@ -131,13 +131,7 @@ dnf install -y cri-o
 
 systemctl enable --now crio
 
-# install podman for functionality missing in crictl (tag, etc)
-dnf install -y podman
 dnf install -y libseccomp-devel
-
-# link docker to podman as we need docker in test repos to pre-pull images
-# don't break them by doing a symlink
-ln -s /usr/bin/podman /usr/bin/docker
 
 cat << EOF > /etc/containers/registries.conf
 [registries.search]
