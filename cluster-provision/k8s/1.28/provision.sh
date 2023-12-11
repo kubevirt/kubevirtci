@@ -87,10 +87,13 @@ systemctl stop firewalld || :
 systemctl disable firewalld || :
 # Make sure the firewall is never enabled again
 # Enabling the firewall destroys the iptable rules
-yum -y remove firewalld
+dnf -y remove firewalld
 
 # Required for iscsi demo to work.
-yum -y install iscsi-initiator-utils
+dnf -y install iscsi-initiator-utils
+
+# required for some sig-network tests
+dnf -y install nftables
 
 # for rook ceph
 dnf -y install lvm2
