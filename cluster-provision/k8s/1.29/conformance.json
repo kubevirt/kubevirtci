@@ -1,7 +1,7 @@
 {
   "Description": "DEFAULT",
   "UUID": "",
-  "Version": "v0.56.9",
+  "Version": "v0.57.1",
   "ResultsDir": "/tmp/sonobuoy/results",
   "Resources": null,
   "Filters": {
@@ -37,11 +37,12 @@
     "~/sonobuoy/plugins.d"
   ],
   "Namespace": "sonobuoy",
-  "WorkerImage": "sonobuoy/sonobuoy:v0.56.9",
+  "WorkerImage": "sonobuoy/sonobuoy:v0.57.1",
   "ImagePullPolicy": "IfNotPresent",
   "ImagePullSecrets": "",
   "AggregatorPermissions": "clusterAdmin",
   "ServiceAccountName": "sonobuoy-serviceaccount",
+  "NamespacePSAEnforceLevel": "privileged",
   "ProgressUpdatesPort": "8099",
   "SecurityContextMode": "nonroot"
 }
