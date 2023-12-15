@@ -140,7 +140,7 @@ registries = []
 EOF
 
 packages_version=$(getKubernetesClosestStableVersion)
-
+major_version=$(echo $packages_version | cut -d "." -f 2)
 # Add Kubernetes release repository.
 # use repodata from GCS bucket, since the release repo might not have it right after the release
 # we deduce the https path from the gcs path gs://kubernetes-release/release/${version}/rpm/x86_64/
@@ -148,7 +148,7 @@ packages_version=$(getKubernetesClosestStableVersion)
 cat <<EOF >/etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes Release
-baseurl=https://pkgs.k8s.io/core:/stable:/v1.28/rpm
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.${major_version}/rpm
 enabled=1
 gpgcheck=0
 repo_gpgcheck=0
