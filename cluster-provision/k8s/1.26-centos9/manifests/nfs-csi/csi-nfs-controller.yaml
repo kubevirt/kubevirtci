@@ -3,6 +3,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: csi-nfs-controller
+  namespace: nfs-csi
 spec:
   replicas: 1
   selector:
@@ -14,11 +15,14 @@ spec:
         app: csi-nfs-controller
     spec:
       hostNetwork: true  # controller also needs to mount nfs to create dir
-      dnsPolicy: ClusterFirstWithHostNet
+      dnsPolicy: ClusterFirstWithHostNet  # available values: Default, ClusterFirstWithHostNet, ClusterFirst
       serviceAccountName: csi-nfs-controller-sa
       nodeSelector:
         kubernetes.io/os: linux  # add "kubernetes.io/role: master" to run controller on master node
       priorityClassName: system-cluster-critical
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       tolerations:
         - key: "node-role.kubernetes.io/master"
           operator: "Exists"
@@ -26,13 +30,19 @@ spec:
         - key: "node-role.kubernetes.io/controlplane"
           operator: "Exists"
           effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
       containers:
         - name: csi-provisioner
-          image: registry.k8s.io/sig-storage/csi-provisioner:v3.1.0
+          image: registry.k8s.io/sig-storage/csi-provisioner:v3.6.1
           args:
             - "-v=2"
             - "--csi-address=$(ADDRESS)"
             - "--leader-election"
+            - "--leader-election-namespace=nfs-csi"
+            - "--extra-create-metadata=true"
+            - "--timeout=1200s"
           env:
             - name: ADDRESS
               value: /csi/csi.sock
@@ -45,8 +55,29 @@ spec:
             requests:
               cpu: 10m
               memory: 20Mi
+        - name: csi-snapshotter
+          image: registry.k8s.io/sig-storage/csi-snapshotter:v6.3.1
+          args:
+            - "--v=2"
+            - "--csi-address=$(ADDRESS)"
+            - "--leader-election-namespace=nfs-csi"
+            - "--leader-election"
+            - "--timeout=1200s"
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+          resources:
+            limits:
+              memory: 200Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
         - name: liveness-probe
-          image: registry.k8s.io/sig-storage/livenessprobe:v2.5.0
+          image: registry.k8s.io/sig-storage/livenessprobe:v2.11.0
           args:
             - --csi-address=/csi/csi.sock
             - --probe-timeout=3s
@@ -62,7 +93,7 @@ spec:
               cpu: 10m
               memory: 20Mi
         - name: nfs
-          image: mcr.microsoft.com/k8s/csi/nfs-csi:latest
+          image: registry.k8s.io/sig-storage/nfsplugin:v4.5.0
           securityContext:
             privileged: true
             capabilities:
