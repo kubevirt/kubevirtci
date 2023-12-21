@@ -1,10 +1,9 @@
 ---
-# This YAML file contains driver-registrar & csi driver nodeplugin API objects
-# that are necessary to run CSI nodeplugin for nfs
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: csi-nfs-node
+  namespace: nfs-csi
 spec:
   updateStrategy:
     rollingUpdate:
@@ -19,14 +18,19 @@ spec:
         app: csi-nfs-node
     spec:
       hostNetwork: true  # original nfs connection would be broken without hostNetwork setting
-      dnsPolicy: ClusterFirstWithHostNet
+      dnsPolicy: ClusterFirstWithHostNet  # available values: Default, ClusterFirstWithHostNet, ClusterFirst
+      serviceAccountName: csi-nfs-node-sa
+      priorityClassName: system-node-critical
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       nodeSelector:
         kubernetes.io/os: linux
       tolerations:
         - operator: "Exists"
       containers:
         - name: liveness-probe
-          image: registry.k8s.io/sig-storage/livenessprobe:v2.5.0
+          image: registry.k8s.io/sig-storage/livenessprobe:v2.11.0
           args:
             - --csi-address=/csi/csi.sock
             - --probe-timeout=3s
@@ -42,7 +46,7 @@ spec:
               cpu: 10m
               memory: 20Mi
         - name: node-driver-registrar
-          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.4.0
+          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.9.0
           args:
             - --v=2
             - --csi-address=/csi/csi.sock
@@ -79,7 +83,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: mcr.microsoft.com/k8s/csi/nfs-csi:latest
+          image: registry.k8s.io/sig-storage/nfsplugin:v4.5.0
           args:
             - "-v=5"
             - "--nodeid=$(NODE_ID)"
