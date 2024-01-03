@@ -7,7 +7,7 @@ SCRIPT_PATH=$(dirname "$(realpath "$0")")
 ARTIFACTS=${ARTIFACTS:-${PWD}}
 
 config_file=${1:-}
-sonobuoy_version=0.56.9
+sonobuoy_version=0.57.1
 [[ -f "$config_file" ]] && sonobuoy_version=$(jq -r '.Version' "$config_file" | grep -oE '[0-9\.]+')
 
 conformance_image_config_file="$SCRIPT_PATH/conformance-image-config.yaml"
