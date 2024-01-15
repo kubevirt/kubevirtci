@@ -2,10 +2,10 @@
 
 MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/${KUBEVIRT_PROVIDER}/sriov-components/manifests"
 
-KUSTOMIZE_MULTUS_DIR="${MANIFESTS_DIR}/multus"
-MULTUS_MANIFEST="${CUSTOM_MANIFESTS}/multus.yaml"
+MULTUS_MANIFEST="${MANIFESTS_DIR}/multus/multus.yaml"
 
 CUSTOM_MANIFESTS="${KUBEVIRTCI_CONFIG_PATH}/${KUBEVIRT_PROVIDER}/manifests"
+
 SRIOV_COMPONENTS_MANIFEST="${CUSTOM_MANIFESTS}/sriov-components.yaml"
 
 SRIOV_DEVICE_PLUGIN_CONFIG_TEMPLATE="${MANIFESTS_DIR}/sriovdp-config.yaml.in"
@@ -108,8 +108,6 @@ function sriov_components::wait_allocatable_resource() {
 }
 
 function sriov_components::deploy_multus() {
-  _kubectl kustomize "$KUSTOMIZE_MULTUS_DIR" > "$MULTUS_MANIFEST"
-
   echo "Deploying Multus:"
   cat "$MULTUS_MANIFEST"
 
