@@ -53,8 +53,9 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     ${ssh} node02 -- ip l show eth1
     ${ssh} node02 -- ip l show eth2
 
-    # Verify Multus v3 image is used
-    ${ksh} get ds -n kube-system kube-multus-ds -o yaml | grep multus-cni:v3
+    # Verify Multus works on thin mode
+    ${ksh} get ds -n kube-system kube-multus-ds -o jsonpath='{.spec.template.spec.containers[0].command}' | grep 'thin_entrypoint'
+
 
     # Sanity check that Multus able to connect secondary networks
     ${ksh} create -f "$DIR/test-multi-net.yaml"
