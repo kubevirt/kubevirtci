@@ -93,10 +93,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 
         export SONOBUOY_EXTRA_ARGS="--plugin systemd-logs --plugin e2e"
         hack/conformance.sh $conformance_config
-    fi
 
-    # KUBEVIRT_SINGLE_STACK is supported by k8s-1.25+
-    if [ $KUBEVIRT_PROVIDER != "k8s-1.24" ]; then
         echo "Sanity check cluster-up of single stack cluster"
         make cluster-down
         export KUBEVIRT_SINGLE_STACK=true
