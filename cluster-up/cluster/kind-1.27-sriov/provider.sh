@@ -57,7 +57,19 @@ function deploy_sriov() {
     print_sriov_data
 }
 
+function check_sriov_provider_version() {
+    latest=$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | tail -1 | cut -d'-' -f1)
+    current=$(grep KIND_NODE_IMAGE cluster-up/cluster/kind-1.27-sriov/provider.sh | cut -d':' -f3 | cut -d'@' -f1 | cut -c2- | cut -d'.' -f1,2)
+
+    if ! (( $(echo "$current $latest" | awk '{print ($1 == $2 || $1 + 0.01 == $2)}') )); then
+        echo "ERROR: Max allowed skew between latest vm based provider ($latest) and SR-IOV provider ($current) is 1"
+        exit 1
+    fi
+}
+
 function up() {
+    check_sriov_provider_version
+
     cp $KIND_MANIFESTS_DIR/kind.yaml ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
     export CONFIG_WORKER_CPU_MANAGER=true
     kind_up
