@@ -300,7 +300,7 @@ EOF
 }
 
 function _setup_ipfamily() {
-    if [ $IPFAMILY != "" ]; then
+    if [ "$IPFAMILY" != "" ]; then
         cat <<EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
 networking:
   ipFamily: $IPFAMILY
