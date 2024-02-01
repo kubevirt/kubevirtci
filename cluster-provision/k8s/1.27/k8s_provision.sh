@@ -215,9 +215,6 @@ cp -rf /tmp/cnao/ /opt/
 # so we can use them at cluster-up
 cp -rf /tmp/whereabouts/ /opt/
 
-# copy Multus CNI manifests so we can use them at cluster-up
-cp -rf /tmp/multus /opt/
-
 # copy cdi manifests
 cp -rf /tmp/cdi*.yaml /opt/
 
