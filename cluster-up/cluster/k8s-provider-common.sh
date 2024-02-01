@@ -72,6 +72,11 @@ function create_network_addons_config() {
         $ssh node01 -- "awk '!/multus/' ${nac} | sudo tee ${no_multus_nac}"
         nac=${no_multus_nac}
     fi
+    if [ "$KUBEVIRT_WITH_DYNAMIC_NETWORKS_CONTROLLER" == "false" ]; then
+        local -r no_dyn_net_ctrl_nac="/opt/cnao/no-dyn-net-ctrl-nac.yaml"
+        $ssh node01 -- "awk '!/multusDynamicNetworks/' ${nac} | sudo tee ${no_dyn_net_ctrl_nac}"
+        nac=${no_dyn_net_ctrl_nac}
+    fi
 
      $kubectl apply -f ${nac}
 }
