@@ -50,6 +50,7 @@ func NewProvisionCommand() *cobra.Command {
 }
 
 func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
+	var base string
 	packagePath := args[0]
 	versionBytes, err := ioutil.ReadFile(filepath.Join(packagePath, "version"))
 	if err != nil {
@@ -60,7 +61,21 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	if err != nil {
 		return err
 	}
-	base := fmt.Sprintf("quay.io/kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
+	phases, err := cmd.Flags().GetString("phases")
+	if err != nil {
+		return err
+	}
+
+	if strings.Contains(phases, "linux") {
+		base = fmt.Sprintf("quay.io/kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
+	} else {
+		k8sPath := fmt.Sprintf("%s/../", packagePath)
+		baseImageBytes, err := ioutil.ReadFile(filepath.Join(k8sPath, "base-image"))
+		if err != nil {
+			return err
+		}
+		base = strings.TrimSpace(string(baseImageBytes))
+	}
 
 	containerSuffix, err := cmd.Flags().GetString("container-suffix")
 	if err != nil {
@@ -74,14 +89,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	target := fmt.Sprintf("quay.io/kubevirtci/k8s-%s", name)
 	scripts := filepath.Join(packagePath)
 
-	phases, err := cmd.Flags().GetString("phases")
-	if err != nil {
-		return err
-	}
-
-	if phases == "k8s" {
-		base += "-dev"
-	} else if phases == "linux" {
+	if phases == "linux" {
 		target = base + "-dev"
 	}
 
@@ -231,34 +239,33 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	err = _cmd(cli, nodeContainer(prefix, nodeName), "if [ -f /scripts/extra-pre-pull-images ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/extra-pre-pull-images vagrant@192.168.66.101:/tmp/extra-pre-pull-images; fi", "copying /scripts/extra-pre-pull-images if existing")
-	if err != nil {
-		return err
-	}
-	err = _cmd(cli, nodeContainer(prefix, nodeName), "if [ -f /scripts/fetch-images.sh ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/fetch-images.sh vagrant@192.168.66.101:/tmp/fetch-images.sh; fi", "copying /scripts/fetch-images.sh if existing")
-	if err != nil {
-		return err
-	}
-
-	err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key vagrant@192.168.66.101 'mkdir -p /tmp/ceph /tmp/cnao /tmp/nfs-csi /tmp/nodeports /tmp/prometheus /tmp/whereabouts'", "Create required manifest directories before copy")
-	if err != nil {
-		return err
-	}
-
 	envVars := fmt.Sprintf("version=%s slim=%t", version, slim)
 	if strings.Contains(phases, "linux") {
-		// Copy manifests to the VM
-		err = _cmd(cli, nodeContainer(prefix, nodeName), "scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/manifests/* vagrant@192.168.66.101:/tmp", "copying manifests to the VM")
-		if err != nil {
-			return err
-		}
-
 		err = performPhase(cli, nodeContainer(prefix, nodeName), "/scripts/provision.sh", envVars)
 		if err != nil {
 			return err
 		}
 	}
 	if strings.Contains(phases, "k8s") {
+		err = _cmd(cli, nodeContainer(prefix, nodeName), "if [ -f /scripts/extra-pre-pull-images ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/extra-pre-pull-images vagrant@192.168.66.101:/tmp/extra-pre-pull-images; fi", "copying /scripts/extra-pre-pull-images if existing")
+		if err != nil {
+			return err
+		}
+		err = _cmd(cli, nodeContainer(prefix, nodeName), "if [ -f /scripts/fetch-images.sh ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/fetch-images.sh vagrant@192.168.66.101:/tmp/fetch-images.sh; fi", "copying /scripts/fetch-images.sh if existing")
+		if err != nil {
+			return err
+		}
+
+		err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key vagrant@192.168.66.101 'mkdir -p /tmp/ceph /tmp/cnao /tmp/nfs-csi /tmp/nodeports /tmp/prometheus /tmp/whereabouts'", "Create required manifest directories before copy")
+		if err != nil {
+			return err
+		}
+		// Copy manifests to the VM
+		err = _cmd(cli, nodeContainer(prefix, nodeName), "scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/manifests/* vagrant@192.168.66.101:/tmp", "copying manifests to the VM")
+		if err != nil {
+			return err
+		}
+
 		err = performPhase(cli, nodeContainer(prefix, nodeName), "/scripts/k8s_provision.sh", envVars)
 		if err != nil {
 			return err
