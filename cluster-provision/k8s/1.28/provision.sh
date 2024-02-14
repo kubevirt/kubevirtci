@@ -73,7 +73,13 @@ function pull_container_retry() {
 }
 
 # Install modules of the initrd kernel
-dnf install -y "kernel-modules-$(uname -r)"
+
+curl -L https://composes.stream.centos.org/production/CentOS-Stream-9-20240126.0/compose/BaseOS/x86_64/os/Packages/kernel-modules-5.14.0-411.el9.x86_64.rpm -o ./kernel-modules-5.14.0-411.el9.x86_64.rpm 
+curl -L https://composes.stream.centos.org/production/CentOS-Stream-9-20240126.0/compose/BaseOS/x86_64/os/Packages/kernel-5.14.0-411.el9.x86_64.rpm -o ./kernel-5.14.0-411.el9.x86_64.rpm
+curl -L https://composes.stream.centos.org/production/CentOS-Stream-9-20240126.0/compose/BaseOS/x86_64/os/Packages/kernel-modules-core-5.14.0-411.el9.x86_64.rpm -o ./kernel-modules-core-5.14.0-411.el9.x86_64.rpm
+curl -L https://composes.stream.centos.org/production/CentOS-Stream-9-20240126.0/compose/BaseOS/x86_64/os/Packages/kernel-core-5.14.0-411.el9.x86_64.rpm -o ./kernel-core-5.14.0-411.el9.x86_64.rpm
+
+dnf install -y ./kernel-modules-5.14.0-411.el9.x86_64.rpm ./kernel-modules-core-5.14.0-411.el9.x86_64.rpm ./kernel-5.14.0-411.el9.x86_64.rpm ./kernel-core-5.14.0-411.el9.x86_64.rpm 
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
