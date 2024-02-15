@@ -5,6 +5,7 @@ set -e
 export KUBEVIRTCI_TAG=$(date +"%y%m%d%H%M")-$(git rev-parse --short HEAD)
 PREV_KUBEVIRTCI_TAG=$(curl -sL https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirtci/latest?ignoreCache=1)
 BYPASS_PMAN=${BYPASS_PMAN:-false}
+PHASES=${PHASES:-k8s}
 
 function detect_cri() {
     if podman ps >/dev/null 2>&1; then echo podman; elif docker ps >/dev/null 2>&1; then echo docker; fi
@@ -50,21 +51,32 @@ function build_centos9_base_image() {
   (cd cluster-provision/centos9 && ./build.sh)
 }
 
+function build_centos9_base_image_with_deps() {
+  IMAGE_TO_BUILD="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | head -1)"
+  (cd cluster-provision/k8s/${IMAGE_TO_BUILD} && ../provision.sh)
+}
+
 function build_base_images() {
-  if [[ ${#IMAGES_TO_BUILD[@]} -gt 0 ]]; then
     build_centos9_base_image
-  fi
+    build_centos9_base_image_with_deps
 }
 
 function build_clusters() {
   for i in ${IMAGES_TO_BUILD[@]}; do
     echo "INFO: building $i"
-    cluster-provision/gocli/build/cli provision cluster-provision/k8s/$i
+    cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i
     ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
 
-    cluster-provision/gocli/build/cli provision cluster-provision/k8s/$i --slim
+    cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
     ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim
   done
+}
+
+function push_node_base_image() {
+  TARGET_IMAGE="${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}"
+  echo "INFO: push $TARGET_IMAGE"
+  skopeo copy "docker-daemon:${TARGET_REPO}/centos9-dev:latest" "docker://${TARGET_IMAGE}"
+  echo ${TARGET_IMAGE} > cluster-provision/k8s/base-image
 }
 
 function push_cluster_images() {
@@ -91,6 +103,11 @@ function push_gocli() {
   echo "INFO: push gocli"
   TARGET_IMAGE="${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}"
   skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
+}
+
+function publish_node_base_image() {
+  build_base_images
+  push_node_base_image
 }
 
 function publish_clusters() {
@@ -130,9 +147,12 @@ function create_git_tag() {
 }
 
 function main() {
+  if [ "$PHASES" == "linux" ]; then
+    publish_node_base_image
+    exit 0
+  fi
   build_gocli
   run_provision_manager
-  build_base_images
   publish_clusters
   publish_alpine_container_disk
   push_gocli
