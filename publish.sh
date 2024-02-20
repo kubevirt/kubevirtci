@@ -75,7 +75,7 @@ function build_clusters() {
 function push_node_base_image() {
   TARGET_IMAGE="${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}"
   echo "INFO: push $TARGET_IMAGE"
-  skopeo copy "docker-daemon:${TARGET_REPO}/centos9-dev:latest" "docker://${TARGET_IMAGE}"
+  skopeo copy "docker-daemon:${TARGET_REPO}/centos9-base:latest" "docker://${TARGET_IMAGE}"
   echo ${TARGET_IMAGE} > cluster-provision/k8s/base-image
 }
 

@@ -90,7 +90,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	scripts := filepath.Join(packagePath)
 
 	if phases == "linux" {
-		target = base + "-dev"
+		target = base + "-base"
 	}
 
 	memory, err := cmd.Flags().GetString("memory")
