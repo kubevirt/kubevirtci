@@ -52,12 +52,12 @@ func NewProvisionCommand() *cobra.Command {
 func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	var base string
 	packagePath := args[0]
-	versionBytes, err := ioutil.ReadFile(filepath.Join(packagePath, "version"))
+	versionBytes, err := os.ReadFile(filepath.Join(packagePath, "version"))
 	if err != nil {
 		return err
 	}
 	version := strings.TrimSpace(string(versionBytes))
-	baseBytes, err := ioutil.ReadFile(filepath.Join(packagePath, "base"))
+	baseBytes, err := os.ReadFile(filepath.Join(packagePath, "base"))
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		base = fmt.Sprintf("quay.io/kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
 	} else {
 		k8sPath := fmt.Sprintf("%s/../", packagePath)
-		baseImageBytes, err := ioutil.ReadFile(filepath.Join(k8sPath, "base-image"))
+		baseImageBytes, err := os.ReadFile(filepath.Join(k8sPath, "base-image"))
 		if err != nil {
 			return err
 		}
