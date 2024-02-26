@@ -2,7 +2,7 @@
 
 After making changes to a kubevirtci provider, you should test it locally before publishing it.
 
-Let's go on the required steps, starting by provisioning, all the way to `make cluster-up`.
+Let's go over the required steps, starting by provisioning, all the way to `make cluster-up`.
 `$KUBEVIRTCI_DIR` is assumed to be your kubevirtci path.
 
 Steps:
