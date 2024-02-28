@@ -54,7 +54,7 @@ export PATH="$ISTIO_BIN_DIR:$PATH"
   chmod +x "$ISTIO_BIN_DIR/istioctl"
 )
 
-dnf install -y libseccomp-devel
+dnf install -y libseccomp-devel container-selinux
 
 
 dnf install -y centos-release-nfv-openvswitch
