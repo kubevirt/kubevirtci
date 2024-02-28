@@ -40,7 +40,7 @@ fi
 
 ../gocli/build/cli provision ${provision_dir} --phases ${PHASES} ${SLIM_MODE}
 
-if [[ $PHASES == $PHASES_DEFAULT ]] || [[ $CHECK_CLUSTER == true ]]; then
+if [[ $PHASES == *"k8s" ]] || [[ $CHECK_CLUSTER == true ]]; then
    if [[ $PHASES == "linux" ]]; then
      echo "skipping cluster check when running linux only phase"
      exit 0
