@@ -47,18 +47,10 @@ function build_gocli() {
   ${CRI_BIN} tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
 }
 
-function build_centos9_base_image() {
-  (cd cluster-provision/centos9 && ./build.sh)
-}
-
 function build_centos9_base_image_with_deps() {
+  (cd cluster-provision/centos9 && ./build.sh)
   IMAGE_TO_BUILD="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | head -1)"
   (cd cluster-provision/k8s/${IMAGE_TO_BUILD} && ../provision.sh)
-}
-
-function build_base_images() {
-    build_centos9_base_image
-    build_centos9_base_image_with_deps
 }
 
 function build_clusters() {
@@ -106,7 +98,7 @@ function push_gocli() {
 }
 
 function publish_node_base_image() {
-  build_base_images
+  build_centos9_base_image_with_deps
   push_node_base_image
 }
 
