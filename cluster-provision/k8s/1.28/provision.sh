@@ -54,16 +54,6 @@ export PATH="$ISTIO_BIN_DIR:$PATH"
   chmod +x "$ISTIO_BIN_DIR/istioctl"
 )
 
-export CRIO_VERSION=1.28
-cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}.repo
-[isv_kubernetes_addons_cri-o_stable_v${CRIO_VERSION}]
-name=CRI-O v${CRIO_VERSION} (Stable) (rpm)
-type=rpm-md
-baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/isv_kubernetes_addons_cri-o_stable_v${CRIO_VERSION}
-gpgcheck=0
-enabled=1
-EOF
-
 dnf install -y container-selinux
 
 dnf install -y libseccomp-devel
