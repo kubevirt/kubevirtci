@@ -247,6 +247,11 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		}
 	}
 	if strings.Contains(phases, "k8s") {
+		// copy provider scripts
+		err = copyDirectory(ctx, cli, node.ID, scripts, "/scripts")
+		if err != nil {
+			return err
+		}
 		err = _cmd(cli, nodeContainer(prefix, nodeName), "if [ -f /scripts/extra-pre-pull-images ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/extra-pre-pull-images vagrant@192.168.66.101:/tmp/extra-pre-pull-images; fi", "copying /scripts/extra-pre-pull-images if existing")
 		if err != nil {
 			return err
