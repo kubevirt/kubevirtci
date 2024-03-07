@@ -66,7 +66,7 @@ fi
 
 # Route SSH
 iptables -t nat -A POSTROUTING ! -s 192.168.66.0/16 --out-interface br0 -j MASQUERADE
-if [ "$ROOTLESS" -ne 1 ]; then
+if [ "$ROOTLESS" != "1" ]; then
   iptables -A FORWARD --in-interface eth0 -j ACCEPT
   iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport 22${n} -j DNAT --to-destination 192.168.66.1${n}:22
 else
@@ -77,7 +77,7 @@ fi
 function create_ip_rules {
   protocol=$1
   shift
-  if [ "$ROOTLESS" -ne 1 ]; then
+  if [ "$ROOTLESS" != "1" ]; then
     for port in "$@"; do
       iptables -t nat -A PREROUTING -p ${protocol} -i eth0 -m ${protocol} --dport ${port} -j DNAT --to-destination 192.168.66.101:${port}
     done
