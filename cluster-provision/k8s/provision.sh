@@ -1,5 +1,5 @@
 #!/bin/bash
-# DO NOT RUN THIS SCRIPT STANDALONE, THIS GETS RUN AS PART OF THE PROVIDER SPECIFIC SCRIPTS. e.g: (cd cluster-provision/k8s/1.27; ../provision.sh)
+# DO NOT RUN THIS SCRIPT STANDALONE, THIS GETS RUN AS PART OF THE PROVIDER SPECIFIC SCRIPTS. e.g: (cd cluster-provision/k8s/1.29; ../provision.sh)
 
 set -ex
 
