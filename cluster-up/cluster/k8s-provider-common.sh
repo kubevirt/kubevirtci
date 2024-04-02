@@ -144,8 +144,10 @@ function deploy_cdi() {
             $ssh node01 -- 'sudo sed --regexp-extended -i s/v[0-9]+\.[0-9]+\.[0-9]+\(.*\)?$/'"$KUBEVIRT_CUSTOM_CDI_VERSION"'/g /opt/cdi-*-operator.yaml'
         fi
 
-        $kubectl create -f /opt/cdi-*-operator.yaml
-        $kubectl create -f /opt/cdi-*-cr.yaml
+        LATEST_CDI_OPERATOR=$($ssh node01 -- 'ls -rt /opt/cdi-*-operator.yaml | tail -n 1')
+        LATEST_CDI_CR=$($ssh node01 -- 'ls -rt /opt/cdi-*-cr.yaml | tail -n 1')
+        $kubectl create -f $LATEST_CDI_OPERATOR
+        $kubectl create -f $LATEST_CDI_CR
     fi
 }
 
