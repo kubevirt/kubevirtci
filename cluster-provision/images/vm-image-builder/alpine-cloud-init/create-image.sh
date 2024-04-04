@@ -22,10 +22,10 @@ fi
 
 docker run --rm --platform=$PLATFORM -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
 ./alpine-make-vm-image \
-	--image-format qcow2 \
-	--image-size 200M \
-    --branch v3.16 \
-	--packages \"$(cat packages)\" \
-	--serial-console \
-	--script-chroot \
-	$1 -- configure.sh"
+    --image-format qcow2 \
+    --image-size 200M \
+    --branch v3.19 \
+    --packages \"$(cat packages)\" \
+    --serial-console \
+    --script-chroot \
+    $1 -- configure.sh"

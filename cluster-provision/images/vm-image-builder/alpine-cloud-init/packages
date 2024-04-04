@@ -1,5 +1,6 @@
 qemu-guest-agent
 cloud-init
+py3-netifaces
 e2fsprogs-extra
 util-linux
 iputils
