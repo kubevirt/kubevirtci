@@ -30,7 +30,7 @@ func ssh(cmd *cobra.Command, args []string) error {
 
 	node := args[0]
 
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return err
 	}

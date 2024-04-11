@@ -82,7 +82,7 @@ func scp(cmd *cobra.Command, args []string) error {
 	src := args[0]
 	dst := args[1]
 
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return err
 	}
