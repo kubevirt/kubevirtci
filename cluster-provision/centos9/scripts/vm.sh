@@ -5,6 +5,7 @@ set -ex
 PROVISION=false
 MEMORY=3096M
 CPU=2
+NUMA=1
 QEMU_ARGS=""
 KERNEL_ARGS=""
 NEXT_DISK=""
@@ -14,6 +15,7 @@ BLOCK_DEV_SIZE=""
 while true; do
   case "$1" in
     -m | --memory ) MEMORY="$2"; shift 2 ;;
+    -a | --numa ) NUMA="$2"; shift 2 ;;
     -c | --cpu ) CPU="$2"; shift 2 ;;
     -q | --qemu-args ) QEMU_ARGS="${2}"; shift 2 ;;
     -k | --additional-kernel-args ) KERNEL_ARGS="${2}"; shift 2 ;;
@@ -163,6 +165,24 @@ for size in ${USB_SIZES[@]}; do
   let "disk_num+=1"
 done
 
+numa_arg=""
+if [ "${NUMA}" -gt 1 ]; then
+    numa_mem_unit="${MEMORY//[[:digit:]]/}"
+    numa_mem_value="${MEMORY//[!0-9]/}"
+    if [ $((CPU % NUMA)) -gt 0 ] || [ $((numa_mem_value % NUMA)) -gt 0 ]; then
+        echo "unable to calculate symmetric NUMA topology with vCPUs:${CPU} Memory:${MEMORY} NUMA:${NUMA}"
+        exit 1
+    fi
+    node_mem="$((numa_mem_value / NUMA))${numa_mem_unit}"
+    node_first_cpu=0
+    node_cpu_step=$((CPU / NUMA - 1))
+    for node_id in $(seq 0 $((NUMA - 1))); do
+        node_last_cpu=$((node_first_cpu + node_cpu_step))
+        numa_arg+=" -object memory-backend-ram,size=${node_mem},id=m${node_id}"
+        numa_arg+=" -numa node,nodeid=${node_id},memdev=m${node_id},cpus=${node_first_cpu}-${node_last_cpu}"
+        node_first_cpu=$((node_last_cpu + 1))
+    done
+fi
 
 exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=unsafe ${block_dev_arg} \
   -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
@@ -171,7 +191,7 @@ exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,c
   -initrd /initrd.img \
   -kernel /vmlinuz \
   -append "$(cat /kernel.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}" \
-  -vnc :${n} -cpu host,migratable=no,+invtsc -m ${MEMORY} -smp ${CPU} \
+  -vnc :${n} -cpu host,migratable=no,+invtsc -m ${MEMORY} -smp ${CPU} ${numa_arg} \
   -serial pty -M q35,accel=kvm,kernel_irqchip=split \
   -device intel-iommu,intremap=on,caching-mode=on -device intel-hda -device hda-duplex -device AC97 \
   -uuid $(cat /proc/sys/kernel/random/uuid) \
