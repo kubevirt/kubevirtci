@@ -39,6 +39,7 @@ KUBEVIRT_CUSTOM_CDI_VERSION=${KUBEVIRT_CUSTOM_CDI_VERSION}
 KUBEVIRT_SWAP_ON=${KUBEVIRT_SWAP_ON:-false}
 KUBEVIRT_KSM_ON=${KUBEVIRT_KSM_ON:-false}
 KUBEVIRT_UNLIMITEDSWAP=${KUBEVIRT_UNLIMITEDSWAP:-false}
+KUBEVIRT_CPU_MANAGER_POLICY=${KUBEVIRT_CPU_MANAGER_POLICY:-none}
 
 # If on a developer setup, expose ocp on 8443, so that the openshift web console can be used (the port is important because of auth redirects)
 # http and https ports are accessed by testing framework and should not be randomized
