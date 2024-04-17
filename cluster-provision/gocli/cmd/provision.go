@@ -241,6 +241,10 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 
 	envVars := fmt.Sprintf("version=%s slim=%t", version, slim)
 	if strings.Contains(phases, "linux") {
+		err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh rm -rf /scripts/manifests", "remove manifests from linux base")
+		if err != nil {
+			return err
+		}
 		err = performPhase(cli, nodeContainer(prefix, nodeName), "/scripts/provision.sh", envVars)
 		if err != nil {
 			return err
