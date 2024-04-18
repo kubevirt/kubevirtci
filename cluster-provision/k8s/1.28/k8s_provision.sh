@@ -363,6 +363,9 @@ cp -rf /tmp/multus /opt/
 # copy cdi manifests
 cp -rf /tmp/cdi*.yaml /opt/
 
+# copy kwok manifests
+cp -rf /tmp/kwok /opt/
+
 # Create a properly labelled tmp directory for testing
 mkdir -p /var/provision/kubevirt.io/tests
 chcon -t container_file_t /var/provision/kubevirt.io/tests
