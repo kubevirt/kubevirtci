@@ -29,7 +29,7 @@ func rm(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return err
 	}

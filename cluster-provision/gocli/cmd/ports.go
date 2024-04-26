@@ -59,7 +59,7 @@ func ports(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return err
 	}

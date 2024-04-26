@@ -74,6 +74,7 @@ func NewRunCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 	}
 	run.Flags().UintP("nodes", "n", 1, "number of cluster nodes to start")
+	run.Flags().UintP("numa", "u", 1, "number of NUMA nodes per node")
 	run.Flags().StringP("memory", "m", "3096M", "amount of ram per node")
 	run.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
 	run.Flags().UintP("secondary-nics", "", 0, "number of secondary nics to add")
@@ -175,6 +176,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	cpu, err := cmd.Flags().GetUint("cpu")
+	if err != nil {
+		return err
+	}
+
+	numa, err := cmd.Flags().GetUint("numa")
 	if err != nil {
 		return err
 	}
@@ -286,7 +292,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	cli, err = client.NewEnvClient()
+	cli, err = client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return err
 	}
@@ -522,9 +528,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
 			},
-			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s %s %s %s %s %s",
+			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s --numa %s %s %s %s %s %s",
 				memory,
 				strconv.Itoa(int(cpu)),
+				strconv.Itoa(int(numa)),
 				blockDev,
 				strings.Join(vmArgsSCSIDisks, " "),
 				strings.Join(vmArgsNvmeDisks, " "),
