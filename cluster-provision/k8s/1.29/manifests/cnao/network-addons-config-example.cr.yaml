@@ -11,4 +11,3 @@ spec:
   macvtap: {}
   multus: {}
   multusDynamicNetworks: {}
-  ovs: {}
