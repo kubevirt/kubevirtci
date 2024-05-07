@@ -48,7 +48,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 ### start cluster
 
 ```bash
-export KUBEVIRT_PROVIDER=k8s-1.27
+export KUBEVIRT_PROVIDER=k8s-1.30
 export KUBECONFIG=$(./cluster-up/kubeconfig.sh)
 export KUBEVIRT_NUM_NODES=2
 
@@ -59,7 +59,7 @@ make cluster-up
 #### start cluster with prometheus, alertmanager and grafana
 To enable prometheus, please also export the following variables before running `make cluster-up`:
 ```bash
-export KUBEVIRT_PROVIDER=k8s-1.27
+export KUBEVIRT_PROVIDER=k8s-1.30
 export KUBEVIRT_DEPLOY_PROMETHEUS=true
 export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
 export KUBEVIRT_DEPLOY_GRAFANA=true
