@@ -11,9 +11,9 @@ spec:
       - key: '.metadata.deletionTimestamp'
         operator: 'DoesNotExist'
       - key: '.status.phase'
-        operator: 'NotIn'
+        operator: 'In'
         values:
-          - 'Running'
+          - 'Scheduled'
       - key: '.spec.nodeSelector.type'
         operator: 'In'
         values:
