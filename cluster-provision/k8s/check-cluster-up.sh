@@ -36,6 +36,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
     export KUBEVIRT_DEPLOY_GRAFANA=true
     export KUBEVIRT_DEPLOY_CDI=true
+    export KUBEVIRT_DEPLOY_KWOK=true
 
     trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
     bash -x ./cluster-up/up.sh
