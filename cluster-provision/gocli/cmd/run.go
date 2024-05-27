@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -121,6 +122,8 @@ func NewRunCommand() *cobra.Command {
 }
 
 func run(cmd *cobra.Command, args []string) (retErr error) {
+
+	sshUser := utils.GetSSHUserByArchitecture(runtime.GOARCH)
 
 	prefix, err := cmd.Flags().GetString("prefix")
 	if err != nil {
@@ -418,6 +421,15 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	// the VM console from the container without ssh
 	qemuArgs += " -serial pty"
 
+	arch := runtime.GOARCH
+	var qemuDevice string
+
+	// Use virtio-net-ccw device incase of s390x Architecture.
+	if arch == "s390x" {
+		qemuDevice = "virtio-net-ccw"
+	} else {
+		qemuDevice = "virtio-net-pci"
+	}
 	wg := sync.WaitGroup{}
 	wg.Add(int(nodes))
 	// start one vm after each other
@@ -430,7 +442,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			netSuffix := fmt.Sprintf("%d-%d", x, i)
 			macSuffix := fmt.Sprintf("%02x", macCounter)
 			macCounter++
-			nodeQemuArgs = fmt.Sprintf("%s -device virtio-net-pci,netdev=secondarynet%s,mac=52:55:00:d1:56:%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, netSuffix, macSuffix, netSuffix, netSuffix)
+			nodeQemuArgs = fmt.Sprintf("%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, qemuDevice, netSuffix, macSuffix, netSuffix, netSuffix)
 		}
 
 		nodeName := nodeNameFromIndex(x + 1)
@@ -571,7 +583,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return fmt.Errorf("checking for ssh.sh script for node %s failed", nodeName)
 		}
 
-		err = waitForVMToBeUp(prefix, nodeName)
+		err = waitForVMToBeUp(cli, prefix, nodeName)
 		if err != nil {
 			return err
 		}
@@ -586,7 +598,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			if !success {
 				return errors.New("failed to enable FIPS and/or reboot")
 			}
-			err = waitForVMToBeUp(prefix, nodeName)
+			err = waitForVMToBeUp(cli, prefix, nodeName)
 			if err != nil {
 				return err
 			}
@@ -636,17 +648,20 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return fmt.Errorf("checking for matching provision script for node %s failed", nodeName)
 		}
 
-		for _, s := range soundcardPCIIDs {
-			// move the VM sound cards to a vfio-pci driver to prepare for assignment
-			err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), s, "")
-			if err != nil {
-				return err
+		// sound cards are not supported on s390x.
+		if arch != "s390x" {
+			for _, s := range soundcardPCIIDs {
+				// move the VM sound cards to a vfio-pci driver to prepare for assignment
+				err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), s, "")
+				if err != nil {
+					return err
+				}
 			}
 		}
 
 		if singleStack {
 			ok, err := docker.Exec(cli, nodeContainer(prefix, nodeName),
-				[]string{"/bin/bash", "-c", "ssh.sh touch /home/vagrant/single_stack"}, os.Stdout)
+				[]string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh touch /home/%s/single_stack", sshUser)}, os.Stdout)
 			if err != nil {
 				return err
 			}
@@ -658,7 +673,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 		if enableAudit {
 			ok, err := docker.Exec(cli, nodeContainer(prefix, nodeName),
-				[]string{"/bin/bash", "-c", "ssh.sh touch /home/vagrant/enable_audit"}, os.Stdout)
+				[]string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh touch /home/%s/enable_audit", sshUser)}, os.Stdout)
 			if err != nil {
 				return err
 			}
@@ -785,7 +800,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	return nil
 }
 
-func waitForVMToBeUp(prefix string, nodeName string) error {
+func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
 	var err error
 	// Wait for the VM to be up
 	for x := 0; x < 10; x++ {
