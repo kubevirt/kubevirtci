@@ -68,7 +68,7 @@ func ssh(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func jumpSSH(nodeIdx int, sshPort uint16, cmd string) (string, error) {
+func jumpSSH(sshPort uint16, nodeIdx int, cmd string, stdOut bool) (string, error) {
 	signer, err := ssh1.ParsePrivateKey([]byte(sshKey))
 	if err != nil {
 		return "", err
@@ -108,11 +108,14 @@ func jumpSSH(nodeIdx int, sshPort uint16, cmd string) (string, error) {
 	var stdout bytes.Buffer
 
 	session.Stderr = &stderr
-	session.Stdout = &stdout
+	session.Stdout = os.Stdout
+	if !stdOut {
+		session.Stdout = &stdout
+	}
 
 	err = session.Run(cmd)
 	if err != nil {
-		return "", fmt.Errorf("Failed to execute command: %v", err)
+		return "", fmt.Errorf("Failed to execute command: %v, %v", err, stderr.String())
 	}
 	return stdout.String(), nil
 }
@@ -160,14 +163,14 @@ func jumpSCP(sshPort uint16, destNodeIdx int, fileName string) error {
 		return err
 	}
 
-	file, err := os.Open(fileName)
+	file, err := f.Open(fileName)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
 	filename := strings.Split(fileName, "/")
-	err = scpClient.CopyFromFile(context.Background(), *file, "/home/vagrant/"+filename[len(filename)-1], "0775")
+	err = scpClient.CopyFile(context.Background(), file, "/home/vagrant/"+filename[len(filename)-1], "0775")
 	if err != nil {
 		return err
 	}

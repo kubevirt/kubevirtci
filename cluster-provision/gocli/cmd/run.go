@@ -3,6 +3,8 @@ package cmd
 import (
 	"bufio"
 	"bytes"
+	"embed"
+	_ "embed"
 	"errors"
 	"fmt"
 	"os"
@@ -29,8 +31,10 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/images"
 	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/k8s/common"
-	"kubevirt.io/kubevirtci/cluster-provision/gocli/k8s/nfscsi"
-	"kubevirt.io/kubevirtci/cluster-provision/gocli/k8s/rookceph"
+
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nfscsi"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/prometheus"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/rookceph"
 
 	"github.com/alessio/shellescape"
 )
@@ -63,6 +67,9 @@ var nvmeDisks []string
 var scsiDisks []string
 var usbDisks []string
 
+//go:embed scripts/*
+var f embed.FS
+
 type dockerSetting struct {
 	Proxy string
 }
@@ -76,7 +83,7 @@ func NewRunCommand() *cobra.Command {
 		RunE:  run,
 		Args:  cobra.ExactArgs(1),
 	}
-	run.Flags().UintP("nodes", "n", 2, "number of cluster nodes to start")
+	run.Flags().UintP("nodes", "n", 1, "number of cluster nodes to start")
 	run.Flags().UintP("numa", "u", 1, "number of NUMA nodes per node")
 	run.Flags().StringP("memory", "m", "3096M", "amount of ram per node")
 	run.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
@@ -692,7 +699,15 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 
 		if success {
-			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName)}, os.Stdout)
+			err = jumpSCP(workerSSHPort, 1, "scripts/node01.sh")
+			if err != nil {
+				panic(err)
+			}
+
+			_, err = jumpSSH(workerSSHPort, 1, "sudo bash node01.sh", true)
+			if err != nil {
+				panic(err)
+			}
 		} else {
 			if gpuAddress != "" {
 				// move the assigned PCI device to a vfio-pci driver to prepare for assignment
@@ -701,31 +716,30 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 					return err
 				}
 			}
-			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/nodes.sh"}, os.Stdout)
+			err = jumpSCP(workerSSHPort, x+1, "scripts/nodes.sh")
+			if err != nil {
+				panic(err)
+			}
+
+			_, err = jumpSSH(workerSSHPort, x+1, "sudo bash nodes.sh", true)
+			if err != nil {
+				panic(err)
+			}
 		}
 
 		if err != nil {
 			return err
 		}
 
-		if !success {
-			return fmt.Errorf("provisioning node %s failed", nodeName)
-		}
+		// if !success {
+		// 	return fmt.Errorf("provisioning node %s failed", nodeName)
+		// }
 
 		go func(id string) {
 			cli.ContainerWait(ctx, id, container.WaitConditionNotRunning)
 			wg.Done()
 		}(node.ID)
 	}
-	// err = utils.Compile("provision")
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// err = jumpSCP(workerSSHPort, 2, "/workdir/bin/provision")
-	// if err != nil {
-	// 	panic(err)
-	// }
 
 	err = copyRemoteFile(workerSSHPort, "/etc/kubernetes/admin.conf", ".kubeconfig")
 	if err != nil {
@@ -774,27 +788,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	if prometheusEnabled {
-		nodeName := nodeNameFromIndex(1)
-
-		var params string
-		if prometheusAlertmanagerEnabled {
-			params += "--alertmanager true "
-		}
-
-		if grafanaEnabled {
-			params += "--grafana true "
-		}
-
-		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
-			"/bin/bash",
-			"-c",
-			fmt.Sprintf("ssh.sh sudo /bin/bash -s -- %s < /scripts/prometheus.sh", params),
-		}, os.Stdout)
+		prommetheusOpt := prometheus.NewPrometheusOpt(k8sClient, grafanaEnabled, prometheusAlertmanagerEnabled)
+		err = prommetheusOpt.Exec()
 		if err != nil {
-			return err
-		}
-		if !success {
-			return fmt.Errorf("deploying Prometheus operator failed")
+			panic(err)
 		}
 	}
 

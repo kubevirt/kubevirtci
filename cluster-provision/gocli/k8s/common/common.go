@@ -3,8 +3,8 @@ package common
 import (
 	"bytes"
 	"context"
+	"embed"
 	"fmt"
-	"os"
 
 	cephv1 "github.com/aerosouund/rook/pkg/apis/ceph.rook.io/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -84,8 +84,8 @@ func (c *K8sDynamicClient) List(gvk schema.GroupVersionKind, ns string) (*unstru
 	return objs, nil
 }
 
-func (c *K8sDynamicClient) Apply(manifestPath string) error {
-	yamlData, err := os.ReadFile(manifestPath)
+func (c *K8sDynamicClient) Apply(fs embed.FS, manifestPath string) error {
+	yamlData, err := fs.ReadFile(manifestPath)
 	if err != nil {
 		return fmt.Errorf("Error reading YAML file: %v", err)
 
