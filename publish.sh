@@ -67,20 +67,18 @@ function build_clusters() {
 function push_node_base_image() {
   TARGET_IMAGE="${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}"
   echo "INFO: push $TARGET_IMAGE"
-  skopeo copy "docker-daemon:${TARGET_REPO}/centos9-base:latest" "docker://${TARGET_IMAGE}"
+  podman push "$TARGET_IMAGE"
   echo ${TARGET_IMAGE} > cluster-provision/k8s/base-image
 }
 
 function push_cluster_images() {
-  # until "unknown blob" issue is fixed use skopeo to push image
-  # see https://github.com/moby/moby/issues/43234
   for i in ${IMAGES_TO_BUILD[@]}; do
     echo "INFO: push $i"
     TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
-    skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
+    podman push "$TARGET_IMAGE"
 
     TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
-    skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
+    podman push "$TARGET_IMAGE"
   done
 
   # images that the change doesn't affect can be retagged from previous tag
@@ -94,7 +92,7 @@ function push_cluster_images() {
 function push_gocli() {
   echo "INFO: push gocli"
   TARGET_IMAGE="${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}"
-  skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
+  podman push "$TARGET_IMAGE"
 }
 
 function publish_node_base_image() {
@@ -117,9 +115,9 @@ function build_alpine_container_disk() {
 function push_alpine_container_disk() {
   echo "INFO: push alpine container disk"
   TARGET_IMAGE="${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}"
-  skopeo copy "docker-daemon:${TARGET_IMAGE}" "docker://${TARGET_IMAGE}"
+  podman push $TARGET_IMAGE
   TARGET_KUBEVIRT_IMAGE="${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel"
-  skopeo copy "docker-daemon:${TARGET_KUBEVIRT_IMAGE}" "docker://${TARGET_KUBEVIRT_IMAGE}"
+  podman push $TARGET_KUBEVIRT_IMAGE
 }
 
 function publish_alpine_container_disk() {
