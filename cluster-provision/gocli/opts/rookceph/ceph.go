@@ -8,17 +8,17 @@ import (
 	cephv1 "github.com/aerosouund/rook/pkg/apis/ceph.rook.io/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/k8s/common"
+	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/k8s"
 )
 
 //go:embed manifests/*
 var f embed.FS
 
 type CephOpt struct {
-	client *k8s.K8sDynamicClient
+	client k8s.K8sDynamicClient
 }
 
-func NewCephOpt(c *k8s.K8sDynamicClient) *CephOpt {
+func NewCephOpt(c k8s.K8sDynamicClient) *CephOpt {
 	return &CephOpt{
 		client: c,
 	}
@@ -55,6 +55,7 @@ func (o *CephOpt) Exec() error {
 			Kind:    "CephBlockPool"},
 			"replicapool",
 			"rook-ceph")
+
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, blockpool)
 		if err != nil {
 			return err
@@ -63,13 +64,14 @@ func (o *CephOpt) Exec() error {
 		if blockpool.Status != nil && blockpool.Status.Phase == "Ready" {
 			break
 		}
+		fmt.Println(blockpool)
 		fmt.Println("Ceph pool block didn't move to ready status, sleeping for 10 seconds")
 		time.Sleep(10 * time.Second)
 	}
 
-	// if blockpool.Status != nil && blockpool.Status.Phase != "Ready" {
-	// 	return fmt.Errorf("CephBlockPool replica pool did not become ready after %d retries", maxRetries)
-	// }
+	if blockpool.Status != nil && blockpool.Status.Phase != "Ready" {
+		return fmt.Errorf("CephBlockPool replica pool did not become ready after %d retries", maxRetries)
+	}
 
 	return nil
 }

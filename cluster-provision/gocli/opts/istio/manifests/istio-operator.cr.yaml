@@ -1,0 +1,24 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  namespace: istio-system
+  name: istio-operator
+spec:
+  profile: demo
+  hub: quay.io/kubevirtci
+  components:
+    cni:
+      enabled: true
+      namespace: kube-system
+  values:
+    global:
+      jwtPolicy: first-party-jwt
+    cni:
+      chained: true
+      cniBinDir: /opt/cni/bin
+      cniConfDir: /etc/cni/net.d
+      privileged: true
+      excludeNamespaces:
+       - istio-system
+       - kube-system
+      logLevel: debug
