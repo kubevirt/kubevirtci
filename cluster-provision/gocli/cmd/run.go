@@ -111,6 +111,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("run-etcd-on-memory", false, "configure etcd to run on RAM memory, etcd data will not be persistent")
 	run.Flags().String("etcd-capacity", "512M", "set etcd data mount size.\nthis flag takes affect only when 'run-etcd-on-memory' is specified")
 	run.Flags().Uint("hugepages-2m", 64, "number of hugepages of size 2M to allocate")
+	run.Flags().Uint("hugepages-1g", 0, "number of hugepages of size 1Gi to allocate")
 	run.Flags().Bool("enable-realtime-scheduler", false, "configures the kernel to allow unlimited runtime for processes that require realtime scheduling")
 	run.Flags().Bool("enable-fips", false, "enables FIPS")
 	run.Flags().Bool("enable-psa", false, "Pod Security Admission")
@@ -271,6 +272,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	if err != nil {
 		return err
 	}
+	hugepages1Gcount, err := cmd.Flags().GetUint("hugepages-1g")
+	if err != nil {
+		return err
+	}
+
 	realtimeSchedulingEnabled, err := cmd.Flags().GetBool("enable-realtime-scheduler")
 	if err != nil {
 		return err
@@ -507,6 +513,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 		if hugepages2Mcount > 0 {
 			kernelArgs += fmt.Sprintf(" hugepagesz=2M hugepages=%d", hugepages2Mcount)
+		}
+
+		if hugepages1Gcount > 0 {
+			kernelArgs += fmt.Sprintf(" hugepagesz=1G hugepages=%d", hugepages1Gcount)
 		}
 
 		if fipsEnabled {
