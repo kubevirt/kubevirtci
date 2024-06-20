@@ -23,6 +23,7 @@ import (
 	"k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/yaml"
 )
@@ -37,6 +38,11 @@ type K8sDynamicClient interface {
 type K8sDynamicClientImpl struct {
 	scheme *runtime.Scheme
 	client dynamic.Interface
+}
+type ReactorConfig struct {
+	verb      string
+	resource  string
+	reactfunc func(action testing.Action) (bool, runtime.Object, error)
 }
 
 func InitConfig(manifestPath string, apiServerPort uint16) (*rest.Config, error) {
@@ -70,7 +76,7 @@ func NewDynamicClient(config *rest.Config) (K8sDynamicClient, error) {
 	}, nil
 }
 
-func NewTestClient() K8sDynamicClient {
+func NewTestClient(reactors ...ReactorConfig) K8sDynamicClient {
 	s := runtime.NewScheme()
 	scheme.AddToScheme(s)
 	apiextensionsv1.AddToScheme(s)
@@ -80,10 +86,21 @@ func NewTestClient() K8sDynamicClient {
 	istiov1alpha1.AddToScheme(s)
 
 	dynamicClient := fake.NewSimpleDynamicClient(s)
+	for _, r := range reactors {
+		dynamicClient.PrependReactor(r.verb, r.resource, r.reactfunc)
+	}
 
 	return &K8sDynamicClientImpl{
 		client: dynamicClient,
 		scheme: s,
+	}
+}
+
+func NewReactorConfig(v string, r string, reactfunc func(action testing.Action) (bool, runtime.Object, error)) ReactorConfig {
+	return ReactorConfig{
+		verb:      v,
+		resource:  r,
+		reactfunc: reactfunc,
 	}
 }
 
