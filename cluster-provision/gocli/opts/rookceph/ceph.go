@@ -64,7 +64,6 @@ func (o *CephOpt) Exec() error {
 		if blockpool.Status != nil && blockpool.Status.Phase == "Ready" {
 			break
 		}
-		fmt.Println(blockpool)
 		fmt.Println("Ceph pool block didn't move to ready status, sleeping for 10 seconds")
 		time.Sleep(10 * time.Second)
 	}
