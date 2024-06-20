@@ -1,253 +1,253 @@
 package providers
 
-func WithNodes(nodes uint) KubevirtProviderOption {
+func WithNodes(nodes interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.Nodes = nodes
+		c.Nodes = nodes.(uint)
 	}
 }
 
-func WithNuma(numa uint) KubevirtProviderOption {
+func WithNuma(numa interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.Numa = numa
+		c.Numa = numa.(uint)
 	}
 }
 
-func WithMemory(memory string) KubevirtProviderOption {
+func WithMemory(memory interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.Memory = memory
+		c.Memory = memory.(string)
 	}
 }
 
-func WithCPU(cpu uint) KubevirtProviderOption {
+func WithCPU(cpu interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.CPU = cpu
+		c.CPU = cpu.(uint)
 	}
 }
 
-func WithSecondaryNics(secondaryNics uint) KubevirtProviderOption {
+func WithSecondaryNics(secondaryNics interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.SecondaryNics = secondaryNics
+		c.SecondaryNics = secondaryNics.(uint)
 	}
 }
 
-func WithQemuArgs(qemuArgs string) KubevirtProviderOption {
+func WithQemuArgs(qemuArgs interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.QemuArgs = qemuArgs
+		c.QemuArgs = qemuArgs.(string)
 	}
 }
 
-func WithKernelArgs(kernelArgs string) KubevirtProviderOption {
+func WithKernelArgs(kernelArgs interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.KernelArgs = kernelArgs
+		c.KernelArgs = kernelArgs.(string)
 	}
 }
 
-func WithBackground(background bool) KubevirtProviderOption {
+func WithBackground(background interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.Background = background
+		c.Background = background.(bool)
 	}
 }
 
-func WithReverse(reverse bool) KubevirtProviderOption {
+func WithReverse(reverse interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.Reverse = reverse
+		c.Reverse = reverse.(bool)
 	}
 }
 
-func WithRandomPorts(randomPorts bool) KubevirtProviderOption {
+func WithRandomPorts(randomPorts interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.RandomPorts = randomPorts
+		c.RandomPorts = randomPorts.(bool)
 	}
 }
 
-func WithSlim(slim bool) KubevirtProviderOption {
+func WithSlim(slim interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.Slim = slim
+		c.Slim = slim.(bool)
 	}
 }
 
-func WithVNCPort(vncPort uint16) KubevirtProviderOption {
+func WithVNCPort(vncPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.VNCPort = vncPort
+		c.VNCPort = vncPort.(uint16)
 	}
 }
 
-func WithHTTPPort(httpPort uint16) KubevirtProviderOption {
+func WithHTTPPort(httpPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.HTTPPort = httpPort
+		c.HTTPPort = httpPort.(uint16)
 	}
 }
 
-func WithHTTPSPort(httpsPort uint16) KubevirtProviderOption {
+func WithHTTPSPort(httpsPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.HTTPSPort = httpsPort
+		c.HTTPSPort = httpsPort.(uint16)
 	}
 }
 
-func WithRegistryPort(registryPort uint16) KubevirtProviderOption {
+func WithRegistryPort(registryPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.RegistryPort = registryPort
+		c.RegistryPort = registryPort.(uint16)
 	}
 }
 
-func WithOCPort(ocpPort uint16) KubevirtProviderOption {
+func WithOCPort(ocpPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.OCPort = ocpPort
+		c.OCPort = ocpPort.(uint16)
 	}
 }
 
-func WithK8sPort(k8sPort uint16) KubevirtProviderOption {
+func WithK8sPort(k8sPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.K8sPort = k8sPort
+		c.K8sPort = k8sPort.(uint16)
 	}
 }
 
-func WithSSHPort(sshPort uint16) KubevirtProviderOption {
+func WithSSHPort(sshPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.SSHPort = sshPort
+		c.SSHPort = sshPort.(uint16)
 	}
 }
 
-func WithPrometheusPort(prometheusPort uint16) KubevirtProviderOption {
+func WithPrometheusPort(prometheusPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.PrometheusPort = prometheusPort
+		c.PrometheusPort = prometheusPort.(uint16)
 	}
 }
 
-func WithGrafanaPort(grafanaPort uint16) KubevirtProviderOption {
+func WithGrafanaPort(grafanaPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.GrafanaPort = grafanaPort
+		c.GrafanaPort = grafanaPort.(uint16)
 	}
 }
 
-func WithDNSPort(dnsPort uint16) KubevirtProviderOption {
+func WithDNSPort(dnsPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.DNSPort = dnsPort
+		c.DNSPort = dnsPort.(uint16)
 	}
 }
 
-func WithNFSData(nfsData string) KubevirtProviderOption {
+func WithNFSData(nfsData interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.NFSData = nfsData
+		c.NFSData = nfsData.(string)
 	}
 }
 
-func WithEnableCeph(enableCeph bool) KubevirtProviderOption {
+func WithEnableCeph(enableCeph interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EnableCeph = enableCeph
+		c.EnableCeph = enableCeph.(bool)
 	}
 }
 
-func WithEnableIstio(enableIstio bool) KubevirtProviderOption {
+func WithEnableIstio(enableIstio interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EnableIstio = enableIstio
+		c.EnableIstio = enableIstio.(bool)
 	}
 }
 
-func WithEnableCNAO(enableCNAO bool) KubevirtProviderOption {
+func WithEnableCNAO(enableCNAO interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EnableCNAO = enableCNAO
+		c.EnableCNAO = enableCNAO.(bool)
 	}
 }
 
-func WithEnableNFSCSI(enableNFSCSI bool) KubevirtProviderOption {
+func WithEnableNFSCSI(enableNFSCSI interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EnableNFSCSI = enableNFSCSI
+		c.EnableNFSCSI = enableNFSCSI.(bool)
 	}
 }
 
-func WithEnablePrometheus(enablePrometheus bool) KubevirtProviderOption {
+func WithEnablePrometheus(enablePrometheus interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EnablePrometheus = enablePrometheus
+		c.EnablePrometheus = enablePrometheus.(bool)
 	}
 }
 
-func WithEnablePrometheusAlertManager(enablePrometheusAlertManager bool) KubevirtProviderOption {
+func WithEnablePrometheusAlertManager(enablePrometheusAlertManager interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EnablePrometheusAlertManager = enablePrometheusAlertManager
+		c.EnablePrometheusAlertManager = enablePrometheusAlertManager.(bool)
 	}
 }
 
-func WithEnableGrafana(enableGrafana bool) KubevirtProviderOption {
+func WithEnableGrafana(enableGrafana interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EnableGrafana = enableGrafana
+		c.EnableGrafana = enableGrafana.(bool)
 	}
 }
 
-func WithDockerProxy(dockerProxy string) KubevirtProviderOption {
+func WithDockerProxy(dockerProxy interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.DockerProxy = dockerProxy
+		c.DockerProxy = dockerProxy.(string)
 	}
 }
 
-func WithGPU(gpu string) KubevirtProviderOption {
+func WithGPU(gpu interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.GPU = gpu
+		c.GPU = gpu.(string)
 	}
 }
 
-func WithNvmeDisks(nvmeDisks []string) KubevirtProviderOption {
+func WithNvmeDisks(nvmeDisks interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.NvmeDisks = nvmeDisks
+		c.NvmeDisks = nvmeDisks.([]string)
 	}
 }
 
-func WithScsiDisks(scsiDisks []string) KubevirtProviderOption {
+func WithScsiDisks(scsiDisks interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.ScsiDisks = scsiDisks
+		c.ScsiDisks = scsiDisks.([]string)
 	}
 }
 
-func WithRunEtcdOnMemory(runEtcdOnMemory bool) KubevirtProviderOption {
+func WithRunEtcdOnMemory(runEtcdOnMemory interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.RunEtcdOnMemory = runEtcdOnMemory
+		c.RunEtcdOnMemory = runEtcdOnMemory.(bool)
 	}
 }
 
-func WithEtcdCapacity(etcdCapacity string) KubevirtProviderOption {
+func WithEtcdCapacity(etcdCapacity interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EtcdCapacity = etcdCapacity
+		c.EtcdCapacity = etcdCapacity.(string)
 	}
 }
 
-func WithHugepages2M(hugepages2M uint) KubevirtProviderOption {
+func WithHugepages2M(hugepages2M interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.Hugepages2M = hugepages2M
+		c.Hugepages2M = hugepages2M.(uint)
 	}
 }
 
-func WithEnableRealtimeScheduler(enableRealtimeScheduler bool) KubevirtProviderOption {
+func WithEnableRealtimeScheduler(enableRealtimeScheduler interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EnableRealtimeScheduler = enableRealtimeScheduler
+		c.EnableRealtimeScheduler = enableRealtimeScheduler.(bool)
 	}
 }
 
-func WithEnableFIPS(enableFIPS bool) KubevirtProviderOption {
+func WithEnableFIPS(enableFIPS interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EnableFIPS = enableFIPS
+		c.EnableFIPS = enableFIPS.(bool)
 	}
 }
 
-func WithEnablePSA(enablePSA bool) KubevirtProviderOption {
+func WithEnablePSA(enablePSA interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EnablePSA = enablePSA
+		c.EnablePSA = enablePSA.(bool)
 	}
 }
 
-func WithSingleStack(singleStack bool) KubevirtProviderOption {
+func WithSingleStack(singleStack interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.SingleStack = singleStack
+		c.SingleStack = singleStack.(bool)
 	}
 }
 
-func WithEnableAudit(enableAudit bool) KubevirtProviderOption {
+func WithEnableAudit(enableAudit interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.EnableAudit = enableAudit
+		c.EnableAudit = enableAudit.(bool)
 	}
 }
 
-func WithUSBDisks(usbDisks []string) KubevirtProviderOption {
+func WithUSBDisks(usbDisks interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.USBDisks = usbDisks
+		c.USBDisks = usbDisks.([]string)
 	}
 }
