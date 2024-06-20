@@ -1,7 +1,9 @@
 package providers
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -21,34 +23,48 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
-	bindvfio "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/bind-vfio"
 	dockerproxy "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/docker-proxy"
 	etcdinmemory "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/etcd"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/node01"
 	nodeprovisioner "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nodes"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/psa"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/realtime"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/rootkey"
+	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/k8s"
 	sshutils "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/ssh"
 )
 
 func NewKubevirtProvider(k8sversion string, image string, cli *client.Client, options ...KubevirtProviderOption) *KubevirtProvider {
-	bp := &KubevirtProvider{
-		Version:     k8sversion,
-		Nodes:       1,
-		Numa:        1,
-		Memory:      "3096M",
-		CPU:         2,
-		Background:  true,
-		Image:       image,
-		RandomPorts: true,
-		Docker:      cli,
+	kp := &KubevirtProvider{
+		Background: true,
+		Docker:     cli,
 	}
 
 	for _, option := range options {
-		option(bp)
+		option(kp)
 	}
 
-	return bp
+	return kp
+}
+
+func NewFromRunning(dnsmasqPrefix string) (*KubevirtProvider, error) {
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	containers, err := docker.GetPrefixedContainers(cli, dnsmasqPrefix+"-dnsmasq")
+	var buf bytes.Buffer
+
+	_, err = docker.Exec(cli, containers[0].ID, []string{"cat", "provider.json"}, &buf)
+	kp := &KubevirtProvider{}
+
+	err = json.Unmarshal(buf.Bytes(), kp)
+	if err != nil {
+		return nil, err
+	}
+
+	return kp, nil
 }
 
 func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc, portMap nat.PortMap) (retErr error) {
@@ -105,12 +121,30 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		containers <- nfsGanesha
 	}
 
-	nodeIds, err := kp.runNodes(ctx)
+	err = kp.runNodes(ctx, containers)
 	if err != nil {
 		return err
 	}
-	for _, node := range nodeIds {
-		containers <- node
+
+	err = sshutils.CopyRemoteFile(kp.SSHPort, "/etc/kubernetes/admin.conf", ".kubeconfig")
+	if err != nil {
+		panic(err)
+	}
+
+	config, err := k8s.InitConfig(".kubeconfig", kp.APIServerPort)
+	if err != nil {
+		panic(err)
+	}
+
+	k8sClient, err := k8s.NewDynamicClient(config)
+	if err != nil {
+		panic(err)
+	}
+	kp.Client = &k8sClient
+
+	err = kp.persistProvider()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -223,10 +257,9 @@ func (kp *KubevirtProvider) runNFSGanesha(ctx context.Context) (string, error) {
 	return nfsGanesha.ID, nil
 }
 
-func (kp *KubevirtProvider) runNodes(ctx context.Context) ([]string, error) {
+func (kp *KubevirtProvider) runNodes(ctx context.Context, containerChan chan string) error {
 	wg := sync.WaitGroup{}
 	wg.Add(int(kp.Nodes))
-	containerIDs := []string{}
 
 	// start one vm after each other
 	macCounter := 0
@@ -244,10 +277,14 @@ func (kp *KubevirtProvider) runNodes(ctx context.Context) ([]string, error) {
 			},
 			Cmd: []string{"/bin/bash", "-c", qemuCMD},
 		}
+		var deviceMappings []container.DeviceMapping
 
-		deviceMappings, err := kp.prepareDeviceMappings()
-		if err != nil {
-			return nil, err
+		if kp.GPU != "" && x == int(kp.Nodes)-1 {
+			dm, err := kp.prepareDeviceMappings()
+			if err != nil {
+				return err
+			}
+			deviceMappings = dm
 		}
 
 		if kp.EnableCeph {
@@ -264,37 +301,42 @@ func (kp *KubevirtProvider) runNodes(ctx context.Context) ([]string, error) {
 			},
 		}, nil, nil, kp.Version+"-"+nodeName)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		containerIDs = append(containerIDs, node.ID)
+		containerChan <- node.ID
 
 		if err := kp.Docker.ContainerStart(ctx, node.ID, types.ContainerStartOptions{}); err != nil {
-			return nil, err
+			return err
 		}
 
 		// Wait for vm start
 		success, err := docker.Exec(kp.Docker, kp.nodeContainer(kp.Version, nodeName), []string{"/bin/bash", "-c", "while [ ! -f /ssh_ready ] ; do sleep 1; done"}, os.Stdout)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		if !success {
-			return nil, fmt.Errorf("checking for ssh.sh script for node %s failed", nodeName)
+			return fmt.Errorf("checking for ssh.sh script for node %s failed", nodeName)
 		}
 
 		err = kp.waitForVMToBeUp(kp.Version, nodeName)
 		if err != nil {
-			return nil, err
+			return err
+		}
+
+		rootkey := rootkey.NewRootKey(kp.SSHPort, x+1)
+		if err = rootkey.Exec(); err != nil {
+			return err
 		}
 
 		// turn to opt
 		if kp.EnableFIPS {
 			if _, err := sshutils.JumpSSH(kp.SSHPort, 1, "fips-mode-setup --enable && ( ssh.sh sudo reboot || true )", true, true); err != nil {
-				return nil, err
+				return err
 			}
 			err = kp.waitForVMToBeUp(kp.Version, nodeName)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -303,7 +345,7 @@ func (kp *KubevirtProvider) runNodes(ctx context.Context) ([]string, error) {
 			//if dockerProxy has value, generate a shell script`/script/docker-proxy.sh` which can be applied to set proxy settings
 			proxyOpt := dockerproxy.NewDockerProxyOpt(kp.SSHPort, kp.DockerProxy, x)
 			if err := proxyOpt.Exec(); err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -312,7 +354,7 @@ func (kp *KubevirtProvider) runNodes(ctx context.Context) ([]string, error) {
 			logrus.Infof("Creating in-memory mount for etcd data on node %s", nodeName)
 			etcdOpt := etcdinmemory.NewEtcdInMemOpt(kp.SSHPort, x, kp.EtcdCapacity)
 			if err = etcdOpt.Exec(); err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -326,33 +368,33 @@ func (kp *KubevirtProvider) runNodes(ctx context.Context) ([]string, error) {
 		//check if we have a special provision script
 		success, err = docker.Exec(kp.Docker, kp.nodeContainer(kp.Version, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("test -f /scripts/%s.sh", nodeName)}, os.Stdout)
 		if err != nil {
-			return nil, fmt.Errorf("checking for matching provision script for node %s failed", nodeName)
+			return fmt.Errorf("checking for matching provision script for node %s failed", nodeName)
 		}
 		// turn to opt
-		for _, s := range []string{"8086:2668", "8086:2415"} {
-			// move the VM sound cards to a vfio-pci driver to prepare for assignment
-			bindVfioOpt := bindvfio.NewBindVfioOpt(kp.SSHPort, x, s)
-			if err := bindVfioOpt.Exec(); err != nil {
-				return nil, err
-			}
-			// turn to opt
-			// err = prepareDeviceForAssignment(kp.Docker, kp.nodeContainer(kp.Version, nodeName), s, "")
-			// if err != nil {
-			// 	return nil, err
-			// }
-		}
+		// for _, s := range []string{"8086:2668", "8086:2415"} {
+		// 	// move the VM sound cards to a vfio-pci driver to prepare for assignment
+		// 	bindVfioOpt := bindvfio.NewBindVfioOpt(kp.SSHPort, x+1, s)
+		// 	if err := bindVfioOpt.Exec(); err != nil {
+		// 		return nil, err
+		// 	}
+		// 	// turn to opt
+		// 	// err = prepareDeviceForAssignment(kp.Docker, kp.nodeContainer(kp.Version, nodeName), s, "")
+		// 	// if err != nil {
+		// 	// 	return nil, err
+		// 	// }
+		// }
 
 		// turn to opt
 		if kp.SingleStack {
 			if _, err := sshutils.JumpSSH(kp.SSHPort, 1, "touch /home/vagrant/single_stack", true, true); err != nil {
-				return nil, err
+				return err
 			}
 		}
 
 		// turn to opt
 		if kp.EnableAudit {
 			if _, err := sshutils.JumpSSH(kp.SSHPort, 1, "touch /home/vagrant/enable_audit", true, true); err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -360,7 +402,7 @@ func (kp *KubevirtProvider) runNodes(ctx context.Context) ([]string, error) {
 		if kp.EnablePSA {
 			psaOpt := psa.NewPsaOpt(kp.SSHPort)
 			if err := psaOpt.Exec(); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		// todo: remove checking for scripts for node, just do different stuff at index 1
@@ -387,7 +429,7 @@ func (kp *KubevirtProvider) runNodes(ctx context.Context) ([]string, error) {
 		}
 
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		go func(id string) {
@@ -396,7 +438,7 @@ func (kp *KubevirtProvider) runNodes(ctx context.Context) ([]string, error) {
 		}(node.ID)
 	}
 
-	return containerIDs, nil
+	return nil
 }
 
 func (kp *KubevirtProvider) prepareDeviceMappings() ([]container.DeviceMapping, error) {
@@ -503,6 +545,20 @@ func (kp *KubevirtProvider) prepareQemuCmd(x int) string {
 		strings.Join(vmArgsUSBDisks, " "),
 		strings.Join(additionalArgs, " "),
 	)
+}
+
+func (kp *KubevirtProvider) persistProvider() error {
+	providerJson, err := json.Marshal(kp)
+	if err != nil {
+		return err
+	}
+	escapedJson := strconv.Quote(string(providerJson))
+
+	_, err = docker.Exec(kp.Docker, kp.DNSMasq, []string{"/bin/bash", "-c", fmt.Sprintf("echo %s | tee /provider.json", string(escapedJson))}, os.Stdout)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // func (kp *KubevirtProvider) Stop() {}
