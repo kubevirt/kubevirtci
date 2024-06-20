@@ -383,7 +383,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		SecondaryNicsCount: secondaryNics,
 		RandomPorts:        randomPorts,
 		PortMap:            portMap,
-		Prefix:             prefix,
+		Prefix:             prefix, // is this needed or is it just equal to cluster ?
 		NodeCount:          nodes,
 	})
 	if err != nil {
@@ -621,10 +621,12 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return err
 		}
 
-		rootkey := rootkey.NewRootKey(sshPort, x)
+		rootkey := rootkey.NewRootKey(sshPort, x+1)
 		if err = rootkey.Exec(); err != nil {
 			return err
 		}
+
+		fmt.Println("added key to root user")
 
 		// turn to opt
 		if fipsEnabled {
@@ -775,7 +777,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		panic(err)
 	}
 
-	cephEnabled = true
 	if cephEnabled {
 		cephOpt := rookceph.NewCephOpt(k8sClient)
 		if err := cephOpt.Exec(); err != nil {

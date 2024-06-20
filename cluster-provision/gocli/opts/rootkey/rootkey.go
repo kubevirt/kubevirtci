@@ -33,7 +33,7 @@ func (r *RootKey) Exec() error {
 	}
 
 	for _, cmd := range cmds {
-		if _, err := utils.JumpSSH(r.sshPort, r.nodeIdx, cmd, true, false); err != nil {
+		if _, err := utils.JumpSSH(r.sshPort, r.nodeIdx, cmd, false, false); err != nil {
 			return err
 		}
 	}
