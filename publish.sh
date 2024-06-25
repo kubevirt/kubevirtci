@@ -27,6 +27,7 @@ function run_provision_manager() {
       return
   fi
 
+#TODO: Check if we need to modify gocli code
   json_result=$(${CRI_BIN} run --rm -v $(pwd):/workdir:Z quay.io/kubevirtci/gocli provision-manager)
   echo "INFO: Provision manager results: $json_result"
 
@@ -43,14 +44,31 @@ function run_provision_manager() {
 }
 
 function build_gocli() {
-  (cd cluster-provision/gocli && make container)
+  export GOARCH=s390x; (cd cluster-provision/gocli && make container)
   ${CRI_BIN} tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
 }
 
+# function build_image() {
+#     local local_base_image=${1:?}
+#     local build_target="${2:?}"
+#     local image_name="${3:?}"
+#     local base_image="${4:?}"
+#     # add qemu-user-static
+#     podman run --rm --privileged multiarch/qemu-user-static --reset -p yes
+#     # build multi-arch images
+#     for arch in ${archs[*]};do
+#         if [[ $local_base_image == false ]]; then
+# 	    podman pull --platform="linux/${arch}" ${base_image}
+#         fi
+#         podman build --platform="linux/${arch}" --build-arg ARCH=${arch} --build-arg IMAGE_ARG=${build_target} . -t "${image_name}-${arch}" -t "${build_target}-${arch}"
+#     done
+# }
+
 function build_centos9_base_image_with_deps() {
-  (cd cluster-provision/centos9 && ./build.sh)
+  export ARCH=s390x; (cd cluster-provision/centos9 && ./build.sh)
   IMAGE_TO_BUILD="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | head -1)"
-  (cd cluster-provision/k8s/${IMAGE_TO_BUILD} && ../provision.sh)
+  #I think this builds k8s image than centos-base
+  export GOARCH=s390x; export ARCH=s390x; (cd cluster-provision/k8s/${IMAGE_TO_BUILD} && ../provision.sh)
 }
 
 function build_clusters() {
