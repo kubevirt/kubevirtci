@@ -147,7 +147,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}()
 
 	// Pull the base image
-	err = docker.ImagePull(cli, ctx, base, types.ImagePullOptions{Platform: "linux/s390x"})
+	err = docker.ImagePull(cli, ctx, base, types.ImagePullOptions{})
 	if err != nil {
 		panic(err)
 	}

@@ -28,7 +28,7 @@ fmt:
 
 .PHONY: container
 container: cli
-	docker build --platform="linux/${GOARCH}" -t ${KUBEVIRTCI_IMAGE_REPO}/gocli build/
+	docker build -t ${KUBEVIRTCI_IMAGE_REPO}/gocli build/
 
 .PHONY: container-run
 container-run: container
