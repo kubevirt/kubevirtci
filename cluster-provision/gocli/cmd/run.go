@@ -33,13 +33,17 @@ import (
 	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/k8s"
 	sshutils "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/ssh"
 
+	bindvfio "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/bind-vfio"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/cnao"
+	dockerproxy "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/docker-proxy"
+	etcdinmemory "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/etcd"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/istio"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/multus"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nfscsi"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/node01"
 	nodeprovisioner "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nodes"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/prometheus"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/psa"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/realtime"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/rookceph"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/rootkey"
@@ -71,9 +75,6 @@ EOF
 
 var soundcardPCIIDs = []string{"8086:2668", "8086:2415"}
 var cli *client.Client
-var nvmeDisks []string
-var scsiDisks []string
-var usbDisks []string
 
 //go:embed scripts/*
 var f embed.FS
@@ -332,6 +333,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	if err != nil {
 		return err
 	}
+	sshClient := &sshutils.SSHClientImpl{}
 
 	b := context.Background()
 	ctx, cancel := context.WithCancel(b)
@@ -621,12 +623,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return err
 		}
 
-		rootkey := rootkey.NewRootKey(sshPort, x+1)
+		rootkey := rootkey.NewRootKey(sshClient, sshPort, x+1)
 		if err = rootkey.Exec(); err != nil {
 			return err
 		}
-
-		fmt.Println("added key to root user")
 
 		// turn to opt
 		if fipsEnabled {
@@ -648,31 +648,27 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		// turn to opt
 		if dockerProxy != "" {
 			//if dockerProxy has value, generate a shell script`/script/docker-proxy.sh` which can be applied to set proxy settings
-			proxyConfig, err := getDockerProxyConfig(dockerProxy)
-			if err != nil {
-				return fmt.Errorf("parsing proxy settings for node %s failed", nodeName)
-			}
-			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("cat <<EOF >/scripts/docker-proxy.sh %s", proxyConfig)}, os.Stdout)
-			if err != nil {
-				return fmt.Errorf("write failed for proxy provision script for node %s", nodeName)
-			}
-			if success {
-				success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/docker-proxy.sh")}, os.Stdout)
+			dpOpt := dockerproxy.NewDockerProxyOpt(sshClient, sshPort, x+1, dockerProxy)
+			if err := dpOpt.Exec(); err != nil {
+				return err
 			}
 		}
 
-		// turn to opt
 		if runEtcdOnMemory {
 			logrus.Infof("Creating in-memory mount for etcd data on node %s", nodeName)
-			err = prepareEtcdDataMount(nodeContainer(prefix, nodeName), etcdDataDir, etcdDataMountSize)
-			if err != nil {
-				logrus.Errorf("failed to create mount for etcd data on node %s: %v", nodeName, err)
+			// err = prepareEtcdDataMount(nodeContainer(prefix, nodeName), etcdDataDir, etcdDataMountSize)
+			// if err != nil {
+			// 	logrus.Errorf("failed to create mount for etcd data on node %s: %v", nodeName, err)
+			// 	return err
+			// }
+			etcd := etcdinmemory.NewEtcdInMemOpt(sshClient, sshPort, x+1, etcdDataMountSize)
+			if err := etcd.Exec(); err != nil {
 				return err
 			}
 		}
 
 		if realtimeSchedulingEnabled {
-			realtimeOpt := realtime.NewRealtimeOpt(sshPort, x+1)
+			realtimeOpt := realtime.NewRealtimeOpt(sshClient, sshPort, x+1)
 			if err := realtimeOpt.Exec(); err != nil {
 				panic(err)
 			}
@@ -687,8 +683,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		// turn to opt
 		for _, s := range soundcardPCIIDs {
 			// move the VM sound cards to a vfio-pci driver to prepare for assignment
-			err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), s, "")
-			if err != nil {
+			bindVfioOpt := bindvfio.NewBindVfioOpt(sshClient, sshPort, x+1, s)
+			if err := bindVfioOpt.Exec(); err != nil {
 				return err
 			}
 		}
@@ -721,31 +717,30 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 		// turn to opt
 		if psaEnabled {
-			success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/psa.sh"}, os.Stdout)
-			if err != nil {
+			psaOpt := psa.NewPsaOpt(sshClient, sshPort)
+			if err := psaOpt.Exec(); err != nil {
 				return err
-			}
-
-			if !success {
-				return fmt.Errorf("provisioning node %s failed", nodeName)
 			}
 		}
 		// todo: remove checking for scripts for node, just do different stuff at index 1
 		if success {
-			n := node01.NewNode01Provisioner(sshPort)
+			n := node01.NewNode01Provisioner(sshClient, sshPort)
 			err := n.Exec()
 			if err != nil {
 				panic(err)
 			}
 		} else {
 			if gpuAddress != "" {
-				// move the assigned PCI device to a vfio-pci driver to prepare for assignment
-				err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), "", gpuAddress)
+				gpuDeviceID, err := getDevicePCIID(gpuAddress)
 				if err != nil {
 					return err
 				}
+				bindVfioOpt := bindvfio.NewBindVfioOpt(sshClient, sshPort, x+1, gpuDeviceID)
+				if err := bindVfioOpt.Exec(); err != nil {
+					return err
+				}
 			}
-			n := nodeprovisioner.NewNodesProvisioner(sshPort, x+1)
+			n := nodeprovisioner.NewNodesProvisioner(sshClient, sshPort, x+1)
 			err = n.Exec()
 			if err != nil {
 				panic(err)
@@ -762,7 +757,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}(node.ID)
 	}
 
-	err = sshutils.CopyRemoteFile(sshPort, "/etc/kubernetes/admin.conf", ".kubeconfig")
+	err = sshClient.CopyRemoteFile(sshPort, "/etc/kubernetes/admin.conf", ".kubeconfig")
 	if err != nil {
 		panic(err)
 	}
@@ -806,7 +801,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	if istioEnabled {
-		istioOpt := istio.NewIstioOpt(k8sClient, sshPort, cnaoEnabled)
+		istioOpt := istio.NewIstioOpt(sshClient, k8sClient, sshPort, cnaoEnabled)
 		if err := istioOpt.Exec(); err != nil {
 			panic(err)
 		}
