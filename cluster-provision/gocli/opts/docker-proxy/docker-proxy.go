@@ -11,16 +11,18 @@ import (
 var f embed.FS
 
 type DockerProxyOpt struct {
-	sshPort uint16
-	proxy   string
-	nodeIdx int
+	sshPort   uint16
+	proxy     string
+	nodeIdx   int
+	sshClient utils.SSHClient
 }
 
-func NewDockerProxyOpt(port uint16, proxy string, idx int) *DockerProxyOpt {
+func NewDockerProxyOpt(sc utils.SSHClient, port uint16, idx int, proxy string) *DockerProxyOpt {
 	return &DockerProxyOpt{
-		sshPort: port,
-		proxy:   proxy,
-		nodeIdx: idx,
+		sshPort:   port,
+		proxy:     proxy,
+		nodeIdx:   idx,
+		sshClient: sc,
 	}
 }
 
@@ -41,7 +43,7 @@ func (o *DockerProxyOpt) Exec() error {
 	}
 
 	for _, cmd := range cmds {
-		if _, err := utils.JumpSSH(o.sshPort, o.nodeIdx, cmd, true, true); err != nil {
+		if _, err := o.sshClient.JumpSSH(o.sshPort, o.nodeIdx, cmd, true, true); err != nil {
 			return err
 		}
 	}

@@ -3,9 +3,9 @@ package istio
 import (
 	"embed"
 	"fmt"
-	"log"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	istiov1alpha1 "istio.io/operator/pkg/apis/istio/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -20,49 +20,55 @@ type IstioOpt struct {
 	sshPort     uint16
 	cnaoEnabled bool
 	client      k8s.K8sDynamicClient
+	version     string
+	sshClient   utils.SSHClient
 }
 
-func NewIstioOpt(c k8s.K8sDynamicClient, sshPort uint16, cnaoEnabled bool) *IstioOpt {
+func NewIstioOpt(sc utils.SSHClient, c k8s.K8sDynamicClient, sshPort uint16, cnaoEnabled bool) *IstioOpt {
 	return &IstioOpt{
 		client:      c,
 		sshPort:     sshPort,
 		cnaoEnabled: cnaoEnabled,
+		version:     "1.15.0",
+		sshClient:   sc,
 	}
 }
 
 func (o *IstioOpt) Exec() error {
-	istioCnao, err := f.ReadFile("manifests/istio-operator-with-cnao.yaml")
+	yamlData, err := f.ReadFile("manifests/ns.yaml")
 	if err != nil {
 		return err
 	}
-	istioWithoutCnao, err := f.ReadFile("manifests/istio-operator-with-cnao.yaml")
-	if err != nil {
-		return err
-	}
-	err = o.client.Apply(f, "manifests/ns.yaml")
-	if err != nil {
+	if err := o.client.Apply(yamlData); err != nil {
 		return err
 	}
 
 	cmds := []string{
-		"istioctl --kubeconfig /etc/kubernetes/admin.conf --hub quay.io/kubevirtci operator init",
-		fmt.Sprintf("cat <<EOF > /opt/istio/istio-operator-with-cnao.cr.yaml\n%s\nEOF", string(istioCnao)),
-		fmt.Sprintf("cat <<EOF > /opt/istio/istio-operator.cr.yaml\n%s\nEOF", string(istioWithoutCnao)),
+		"source /var/lib/kubevirtci/shared_vars.sh",
+		"PATH=/opt/istio-" + o.version + "/bin:$PATH istioctl --kubeconfig /etc/kubernetes/admin.conf --hub quay.io/kubevirtci operator init",
 	}
 	for _, cmd := range cmds {
-		_, err := utils.JumpSSH(o.sshPort, 1, cmd, true, true)
-		if err != nil {
+		if _, err := o.sshClient.JumpSSH(o.sshPort, 1, cmd, true, true); err != nil {
 			return err
 		}
 	}
-	confFile := "/opt/istio/istio-operator.cr.yaml"
-	if o.cnaoEnabled {
-		confFile = "/opt/istio/istio-operator-with-cnao.cr.yaml"
-	}
 
-	err = o.client.Apply(f, confFile)
-	if err != nil {
-		return err
+	if o.cnaoEnabled {
+		yamlData, err := f.ReadFile("manifests/istio-operator-with-cnao.cr.yaml")
+		if err != nil {
+			return err
+		}
+		if err := o.client.Apply(yamlData); err != nil {
+			return err
+		}
+	} else {
+		yamlData, err := f.ReadFile("manifests/istio-operator.cr.yaml")
+		if err != nil {
+			return err
+		}
+		if err := o.client.Apply(yamlData); err != nil {
+			return err
+		}
 	}
 
 	operator := &istiov1alpha1.IstioOperator{}
@@ -76,15 +82,16 @@ func (o *IstioOpt) Exec() error {
 		if err != nil {
 			return err
 		}
-		if operator.Status.Status == 3 {
+		if operator.Status != nil && operator.Status.Status == 3 {
 			break
 		}
-		log.Println("Istio operator didn't move to Healthy status, sleeping for 5 seconds")
-		time.Sleep(time.Second * 5)
+		logrus.Info("Istio operator didn't move to Healthy status, sleeping for 10 seconds")
+		time.Sleep(time.Second * 10)
 	}
 	if operator.Status.Status != 3 {
 		return fmt.Errorf("Istio operator failed to move to Healthy status after max retries")
 	}
+	logrus.Info("Istio operator is now ready!")
 
 	return nil
 }

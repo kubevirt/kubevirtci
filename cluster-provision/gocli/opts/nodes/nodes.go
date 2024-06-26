@@ -11,14 +11,16 @@ import (
 var f embed.FS
 
 type NodesProvisioner struct {
-	sshPort uint16
-	nodeIdx int
+	sshPort   uint16
+	nodeIdx   int
+	sshClient utils.SSHClient
 }
 
-func NewNodesProvisioner(sshPort uint16, nodeIdx int) *NodesProvisioner {
+func NewNodesProvisioner(sc utils.SSHClient, sshPort uint16, nodeIdx int) *NodesProvisioner {
 	return &NodesProvisioner{
-		sshPort: sshPort,
-		nodeIdx: nodeIdx,
+		sshPort:   sshPort,
+		nodeIdx:   nodeIdx,
+		sshClient: sc,
 	}
 }
 
@@ -31,10 +33,10 @@ func (n *NodesProvisioner) Exec() error {
 	cmds := []string{
 		"source /var/lib/kubevirtci/shared_vars.sh",
 		`timeout=30; interval=5; while ! hostnamectl | grep Transient; do echo "Waiting for dhclient to set the hostname from dnsmasq"; sleep $interval; timeout=$((timeout - interval)); [ $timeout -le 0 ] && exit 1; done`,
-		`[ -f /sys/fs/cgroup/cgroup.controllers ] && mkdir -p /etc/crio/crio.conf.d && echo '` + string(cgroupv2) + `' |  tee /etc/crio/crio.conf.d/00-cgroupv2.conf > /dev/null &&  sed -i 's/--cgroup-driver=systemd/--cgroup-driver=cgroupfs/' /etc/sysconfig/kubelet &&  systemctl stop kubelet &&  systemctl restart crio`,
+		`echo "KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --fail-swap-on=false ${nodeip} --feature-gates=CPUManager=true,NodeSwap=true --cpu-manager-policy=static --kube-reserved=cpu=250m --system-reserved=cpu=250m" | tee /etc/sysconfig/kubelet > /dev/null`,
+		`[ -f /sys/fs/cgroup/cgroup.controllers ] && mkdir -p /etc/crio/crio.conf.d && echo '` + string(cgroupv2) + `' |  tee /etc/crio/crio.conf.d/00-cgroupv2.conf > /dev/null &&  sed -i 's/--cgroup-driver=systemd/--cgroup-driver=cgroupfs/' /etc/sysconfig/kubelet && systemctl stop kubelet && systemctl restart crio`,
 		"while [[ $(systemctl status crio | grep -c active) -eq 0 ]]; do sleep 2; done",
-		`echo "KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --fail-swap-on=false ${nodeip} --feature-gates=CPUManager=true,NodeSwap=true --cpu-manager-policy=static --kube-reserved=cpu=250m --system-reserved=cpu=250m" |  tee /etc/sysconfig/kubelet > /dev/null`, // todo: add the condition
-		" systemctl daemon-reload &&  service kubelet restart",
+		"systemctl daemon-reload &&  service kubelet restart",
 		// "if [[ $? -ne 0 ]]; then && rm -rf /var/lib/kubelet/cpu_manager_state && service kubelet restart; fi",
 		"swapoff -a",
 		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
@@ -44,7 +46,7 @@ func (n *NodesProvisioner) Exec() error {
 	}
 
 	for _, cmd := range cmds {
-		_, err := utils.JumpSSH(n.sshPort, n.nodeIdx, cmd, true, true)
+		_, err := n.sshClient.JumpSSH(n.sshPort, n.nodeIdx, cmd, true, true)
 		if err != nil {
 			return fmt.Errorf("error executing %s: %s", cmd, err)
 		}

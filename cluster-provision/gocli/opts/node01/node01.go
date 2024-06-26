@@ -11,12 +11,14 @@ import (
 var f embed.FS
 
 type Node01Provisioner struct {
-	sshPort uint16
+	sshClient utils.SSHClient
+	sshPort   uint16
 }
 
-func NewNode01Provisioner(sshPort uint16) *Node01Provisioner {
+func NewNode01Provisioner(sc utils.SSHClient, sshPort uint16) *Node01Provisioner {
 	return &Node01Provisioner{
-		sshPort: sshPort,
+		sshPort:   sshPort,
+		sshClient: sc,
 	}
 }
 
@@ -49,7 +51,7 @@ func (n *Node01Provisioner) Exec() error {
 		"chcon -t container_file_t /var/lib/rook",
 	}
 	for _, cmd := range cmds {
-		_, err := utils.JumpSSH(n.sshPort, 1, cmd, true, true)
+		_, err := n.sshClient.JumpSSH(n.sshPort, 1, cmd, true, true)
 		if err != nil {
 			return fmt.Errorf("error executing %s: %s", cmd, err)
 		}

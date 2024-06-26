@@ -7,17 +7,19 @@ import (
 )
 
 type RootKey struct {
-	sshPort uint16
-	nodeIdx int
+	sshPort   uint16
+	nodeIdx   int
+	sshClient utils.SSHClient
 }
 
 //go:embed conf/*
 var f embed.FS
 
-func NewRootKey(p uint16, i int) *RootKey {
+func NewRootKey(sc utils.SSHClient, p uint16, i int) *RootKey {
 	return &RootKey{
-		sshPort: p,
-		nodeIdx: i,
+		sshPort:   p,
+		nodeIdx:   i,
+		sshClient: sc,
 	}
 }
 
@@ -33,7 +35,7 @@ func (r *RootKey) Exec() error {
 	}
 
 	for _, cmd := range cmds {
-		if _, err := utils.JumpSSH(r.sshPort, r.nodeIdx, cmd, false, false); err != nil {
+		if _, err := r.sshClient.JumpSSH(r.sshPort, r.nodeIdx, cmd, false, false); err != nil {
 			return err
 		}
 	}

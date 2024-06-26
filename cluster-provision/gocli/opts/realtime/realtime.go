@@ -3,14 +3,16 @@ package realtime
 import utils "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/ssh"
 
 type RealtimeOpt struct {
-	sshPort uint16
-	nodeIdx int
+	sshPort   uint16
+	nodeIdx   int
+	sshClient utils.SSHClient
 }
 
-func NewRealtimeOpt(sshPort uint16, nodeIdx int) *RealtimeOpt {
+func NewRealtimeOpt(sc utils.SSHClient, sshPort uint16, nodeIdx int) *RealtimeOpt {
 	return &RealtimeOpt{
-		sshPort: sshPort,
-		nodeIdx: nodeIdx,
+		sshPort:   sshPort,
+		nodeIdx:   nodeIdx,
+		sshClient: sc,
 	}
 }
 
@@ -21,7 +23,7 @@ func (o *RealtimeOpt) Exec() error {
 	}
 
 	for _, cmd := range cmds {
-		if _, err := utils.JumpSSH(o.sshPort, 1, cmd, true, true); err != nil {
+		if _, err := o.sshClient.JumpSSH(o.sshPort, o.nodeIdx, cmd, true, true); err != nil {
 			return err
 		}
 	}

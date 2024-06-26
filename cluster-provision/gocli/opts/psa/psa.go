@@ -10,12 +10,14 @@ import (
 var f embed.FS
 
 type PsaOpt struct {
-	sshPort uint16
+	sshPort   uint16
+	sshClient utils.SSHClient
 }
 
-func NewPsaOpt(p uint16) *PsaOpt {
+func NewPsaOpt(sc utils.SSHClient, p uint16) *PsaOpt {
 	return &PsaOpt{
-		sshPort: p,
+		sshPort:   p,
+		sshClient: sc,
 	}
 }
 
@@ -29,7 +31,7 @@ func (o *PsaOpt) Exec() error {
 		"echo '" + string(psa) + "' | sudo tee /etc/kubernetes/psa.yaml > /dev/null",
 	}
 	for _, cmd := range cmds {
-		if _, err := utils.JumpSSH(o.sshPort, 1, cmd, true, true); err != nil {
+		if _, err := o.sshClient.JumpSSH(o.sshPort, 1, cmd, true, true); err != nil {
 			return err
 		}
 	}

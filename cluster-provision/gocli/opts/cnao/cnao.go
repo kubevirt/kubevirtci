@@ -24,9 +24,14 @@ func (o *CnaoOpt) Exec() error {
 		"manifests/ns.yaml",
 		"manifests/crd.yaml",
 		"manifests/operator.yaml",
+		"manifests/whereabouts.yaml",
 	}
 	for _, manifest := range manifests {
-		if err := o.client.Apply(f, manifest); err != nil {
+		yamlData, err := f.ReadFile(manifest)
+		if err != nil {
+			return err
+		}
+		if err := o.client.Apply(yamlData); err != nil {
 			return err
 		}
 	}

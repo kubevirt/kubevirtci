@@ -20,7 +20,11 @@ func NewMultusOpt(c k8s.K8sDynamicClient) *MultusOpt {
 }
 
 func (o *MultusOpt) Exec() error {
-	if err := o.client.Apply(f, "manifests/multus.yaml"); err != nil {
+	yamlData, err := f.ReadFile("manifests/multus.yaml")
+	if err != nil {
+		return err
+	}
+	if err := o.client.Apply(yamlData); err != nil {
 		return err
 	}
 	return nil
