@@ -3,12 +3,14 @@ package providers
 import (
 	"github.com/docker/docker/client"
 	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/k8s"
+	utils "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/ssh"
 )
 
 type KubevirtProvider struct {
-	Client  *k8s.K8sDynamicClient `json:"-"`
-	Docker  *client.Client        `json:"-"`
-	DNSMasq string                `json:"dnsmasq"`
+	Client    k8s.K8sDynamicClient `json:"-"`
+	Docker    *client.Client       `json:"-"`
+	SSHClient utils.SSHClient      `json:"-"`
+	DNSMasq   string               `json:"dnsmasq"`
 
 	Version string `json:"version"`
 	Image   string `json:"image"`
@@ -21,7 +23,6 @@ type KubevirtProvider struct {
 	QemuArgs                     string   `flag:"qemu-args" json:"qemu_args"`
 	KernelArgs                   string   `flag:"kernel-args" json:"kernel_args"`
 	Background                   bool     `flag:"background" short:"b" json:"background"`
-	Reverse                      bool     `flag:"reverse" short:"r" json:"reverse"`
 	RandomPorts                  bool     `flag:"random-ports" json:"random_ports"`
 	Slim                         bool     `flag:"slim" json:"slim"`
 	VNCPort                      uint16   `flag:"vnc-port" json:"vnc_port"`
@@ -43,10 +44,23 @@ type KubevirtProvider struct {
 	EnablePrometheus             bool     `flag:"enable-prometheus" json:"enable_prometheus"`
 	EnablePrometheusAlertManager bool     `flag:"enable-prometheus-alertmanager" json:"enable_prometheus_alertmanager"`
 	EnableGrafana                bool     `flag:"enable-grafana" json:"enable_grafana"`
+	EnableMultus                 bool     `flag:"deploy-multus" json:"deploy_multus"`
 	DockerProxy                  string   `flag:"docker-proxy" json:"docker_proxy"`
+	AAQ                          bool     `flag:"deploy-aaq" json:"deploy_aaq"`
+	AAQVersion                   string   `flag:"aaq-version" json:"aaq_version"`
+	CDI                          bool     `flag:"deploy-cdi" json:"deploy_cdi"`
+	CDIVersion                   string   `flag:"cdi-version" json:"cdi_version"`
 	GPU                          string   `flag:"gpu" json:"gpu"`
+	KSM                          bool     `flag:"enable-ksm" json:"enable_ksm"`
+	KSMPages                     uint     `flag:"ksm-page-count" json:"ksm_page_count"`
+	KSMInterval                  uint     `flag:"ksm-scan-interval" json:"ksm_scan_interval"`
+	Swap                         bool     `flag:"enable-swap" json:"enable_swap"`
+	Swapsize                     string   `flag:"swap-size" json:"swap_size"`
+	UnlimitedSwap                bool     `flag:"unlimited-swap" json:"unlimited_swap"`
+	Swapiness                    uint     `flag:"swapiness" json:"swapiness"`
 	NvmeDisks                    []string `flag:"nvme" json:"nvme"`
 	ScsiDisks                    []string `flag:"scsi" json:"scsi"`
+	USBDisks                     []string `flag:"usb" json:"usb"`
 	RunEtcdOnMemory              bool     `flag:"run-etcd-on-memory" json:"run_etcd_on_memory"`
 	EtcdCapacity                 string   `flag:"etcd-capacity" json:"etcd_capacity"`
 	Hugepages2M                  uint     `flag:"hugepages-2m" json:"hugepages_2m"`
@@ -55,7 +69,6 @@ type KubevirtProvider struct {
 	EnablePSA                    bool     `flag:"enable-psa" json:"enable_psa"`
 	SingleStack                  bool     `flag:"single-stack" json:"single_stack"`
 	EnableAudit                  bool     `flag:"enable-audit" json:"enable_audit"`
-	USBDisks                     []string `flag:"usb" json:"usb"`
 }
 
 type KubevirtProviderOption func(c *KubevirtProvider)
@@ -97,10 +110,6 @@ var FlagMap = map[string]FlagConfig{
 	"background": {
 		FlagType:        "bool",
 		ProviderOptFunc: WithBackground,
-	},
-	"reverse": {
-		FlagType:        "bool",
-		ProviderOptFunc: WithReverse,
 	},
 	"random-ports": {
 		FlagType:        "bool",
@@ -233,5 +242,53 @@ var FlagMap = map[string]FlagConfig{
 	"usb": {
 		FlagType:        "[]string",
 		ProviderOptFunc: WithUSBDisks,
+	},
+	"deploy-multus": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithMultus,
+	},
+	"deploy-aaq": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithAAQ,
+	},
+	"deploy-cdi": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithCDI,
+	},
+	"enable-ksm": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithKSM,
+	},
+	"ksm-page-count": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithKSMPages,
+	},
+	"ksm-scan-interval": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithKSMInterval,
+	},
+	"enable-swap": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithSwap,
+	},
+	"unlimited-swap": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithUnlimitedSwap,
+	},
+	"swap-size": {
+		FlagType:        "string",
+		ProviderOptFunc: WithSwapSize,
+	},
+	"swapiness": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithSwapiness,
+	},
+	"cdi-version": {
+		FlagType:        "string",
+		ProviderOptFunc: WithCDIVersion,
+	},
+	"aaq-version": {
+		FlagType:        "string",
+		ProviderOptFunc: WithAAQVersion,
 	},
 }

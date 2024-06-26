@@ -24,6 +24,30 @@ func WithCPU(cpu interface{}) KubevirtProviderOption {
 	}
 }
 
+func WithSwap(swap interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.Swap = swap.(bool)
+	}
+}
+
+func WithUnlimitedSwap(us interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.UnlimitedSwap = us.(bool)
+	}
+}
+
+func WithSwapiness(s interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.Swapiness = s.(uint)
+	}
+}
+
+func WithSwapSize(s interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.Swapsize = s.(string)
+	}
+}
+
 func WithSecondaryNics(secondaryNics interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
 		c.SecondaryNics = secondaryNics.(uint)
@@ -45,12 +69,6 @@ func WithKernelArgs(kernelArgs interface{}) KubevirtProviderOption {
 func WithBackground(background interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
 		c.Background = background.(bool)
-	}
-}
-
-func WithReverse(reverse interface{}) KubevirtProviderOption {
-	return func(c *KubevirtProvider) {
-		c.Reverse = reverse.(bool)
 	}
 }
 
@@ -173,6 +191,39 @@ func WithEnableGrafana(enableGrafana interface{}) KubevirtProviderOption {
 		c.EnableGrafana = enableGrafana.(bool)
 	}
 }
+func WithMultus(multus interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.EnableMultus = multus.(bool)
+	}
+}
+func WithAAQ(aaq interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.AAQ = aaq.(bool)
+	}
+}
+func WithCDI(cdi interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.CDI = cdi.(bool)
+	}
+}
+
+func WithKSM(ksm interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.KSM = ksm.(bool)
+	}
+}
+
+func WithKSMInterval(ki interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.KSMInterval = ki.(uint)
+	}
+}
+
+func WithKSMPages(kp interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.KSMPages = kp.(uint)
+	}
+}
 
 func WithDockerProxy(dockerProxy interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
@@ -183,6 +234,18 @@ func WithDockerProxy(dockerProxy interface{}) KubevirtProviderOption {
 func WithGPU(gpu interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
 		c.GPU = gpu.(string)
+	}
+}
+
+func WithCDIVersion(cdi interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.CDIVersion = cdi.(string)
+	}
+}
+
+func WithAAQVersion(aaq interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.AAQVersion = aaq.(string)
 	}
 }
 
