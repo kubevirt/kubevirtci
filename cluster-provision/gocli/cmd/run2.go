@@ -12,11 +12,12 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/providers"
+	sshutils "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/ssh"
 )
 
-// NewRunCommand returns command that runs given cluster
-func NewRun2Command() *cobra.Command {
+var nvmeDisks, scsiDisks, usbDisks []string
 
+func NewRun2Command() *cobra.Command {
 	run := &cobra.Command{
 		Use:   "run2",
 		Short: "run starts a given cluster",
@@ -30,8 +31,7 @@ func NewRun2Command() *cobra.Command {
 	run.Flags().UintP("secondary-nics", "", 0, "number of secondary nics to add")
 	run.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	run.Flags().String("kernel-args", "", "additional kernel args to pass through to the nodes")
-	run.Flags().BoolP("background", "b", false, "go to background after nodes are up")
-	run.Flags().BoolP("reverse", "r", false, "revert node startup order")
+	run.Flags().BoolP("background", "b", true, "go to background after nodes are up")
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
 	run.Flags().Bool("slim", false, "use the slim flavor")
 	run.Flags().Uint16("vnc-port", 0, "port on localhost for vnc")
@@ -43,17 +43,28 @@ func NewRun2Command() *cobra.Command {
 	run.Flags().Uint16("ssh-port", 0, "port on localhost for ssh server")
 	run.Flags().Uint16("prometheus-port", 0, "port on localhost for prometheus server")
 	run.Flags().Uint16("grafana-port", 0, "port on localhost for grafana server")
-	run.Flags().Uint16("dns-port", 0, "port on localhost for dns server")
+	run.Flags().Uint16("dns-port", 31111, "port on localhost for dns server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().Bool("enable-istio", false, "deploys Istio service mesh")
 	run.Flags().Bool("enable-cnao", false, "enable network extensions with istio")
 	run.Flags().Bool("deploy-cnao", false, "deploy the network extensions operator")
 	run.Flags().Bool("deploy-multus", false, "deploy multus")
+	run.Flags().Bool("deploy-cdi", true, "deploy cdi")
+	run.Flags().String("cdi-version", "", "cdi version")
+	run.Flags().String("aaq-version", "", "aaq version")
+	run.Flags().Bool("deploy-aaq", false, "deploy aaq")
 	run.Flags().Bool("enable-nfs-csi", false, "deploys nfs csi dynamic storage")
 	run.Flags().Bool("enable-prometheus", false, "deploys Prometheus operator")
 	run.Flags().Bool("enable-prometheus-alertmanager", false, "deploys Prometheus alertmanager")
 	run.Flags().Bool("enable-grafana", false, "deploys Grafana")
+	run.Flags().Bool("enable-ksm", false, "enables kernel memory same page merging")
+	run.Flags().Uint("ksm-page-count", 0, "number of pages to scan per time in ksm")
+	run.Flags().Uint("ksm-scan-interval", 0, "sleep interval in milliseconds for ksm")
+	run.Flags().Bool("enable-swap", false, "enable swap")
+	run.Flags().Bool("unlimited-swap", false, "unlimited swap")
+	run.Flags().String("swap-size", "", "swap memory size")
+	run.Flags().Uint("swapiness", 0, "swapiness")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
 	run.Flags().String("container-registry", "quay.io", "the registry to pull cluster container from")
 	run.Flags().String("container-org", "kubevirtci", "the organization at the registry to pull the container from")
@@ -103,6 +114,12 @@ func run2(cmd *cobra.Command, args []string) (retErr error) {
 				return err
 			}
 			opts = append(opts, flagConfig.ProviderOptFunc(flagVal))
+		case "[]string":
+			flagVal, err := flags.GetStringArray(flagName)
+			if err != nil {
+				return err
+			}
+			opts = append(opts, flagConfig.ProviderOptFunc(flagVal))
 		}
 	}
 
@@ -119,6 +136,16 @@ func run2(cmd *cobra.Command, args []string) (retErr error) {
 	utils.AppendUDPIfExplicit(portMap, utils.PortDNS, cmd.Flags(), "dns-port")
 
 	k8sVersion := args[0]
+	allowedK8sVersions := []string{"k8s-1.28", "k8s-1.29", "k8s-1.30"}
+	var validVersion bool
+	for _, v := range allowedK8sVersions {
+		if k8sVersion == v {
+			validVersion = true
+		}
+	}
+	if !validVersion {
+		return fmt.Errorf("Invalid k8s version passed, please use one of k8s-1.28, k8s-1.29 or k8s-1.30")
+	}
 
 	containerRegistry, err := cmd.Flags().GetString("container-registry")
 	if err != nil {
@@ -157,7 +184,8 @@ func run2(cmd *cobra.Command, args []string) (retErr error) {
 		panic(fmt.Sprintf("Failed to download cluster image %s, %s", clusterImage, err))
 
 	}
-	kp := providers.NewKubevirtProvider(k8sVersion, clusterImage, cli, opts...)
+	kp := providers.NewKubevirtProvider(k8sVersion, clusterImage, cli, opts, &sshutils.SSHClientImpl{}, nvmeDisks, scsiDisks, usbDisks)
+
 	err = kp.Start(ctx, cancel, portMap)
 	if err != nil {
 		return err
