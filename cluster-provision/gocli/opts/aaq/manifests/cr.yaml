@@ -1,0 +1,19 @@
+apiVersion: aaq.kubevirt.io/v1alpha1
+kind: AAQ
+metadata:
+  name: aaq
+spec:
+  imagePullPolicy: Always
+  infra:
+    nodeSelector:
+      kubernetes.io/os: linux
+    tolerations:
+      - key: CriticalAddonsOnly
+        operator: Exists
+  workload:
+    nodeSelector:
+      kubernetes.io/os: linux
+  configuration:
+    allowApplicationAwareClusterResourceQuota: true
+    vmiCalculatorConfiguration:
+      configName: IgnoreVmiCalculator
