@@ -1,4 +1,4 @@
-package multus
+package cnao
 
 import (
 	"testing"
@@ -7,9 +7,9 @@ import (
 	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/k8s"
 )
 
-func TestMultusOpt(t *testing.T) {
+func TestCnaoOpt(t *testing.T) {
 	client := k8s.NewTestClient()
-	opt := NewMultusOpt(client)
+	opt := NewCnaoOpt(client)
 	err := opt.Exec()
 	assert.NoError(t, err)
 }

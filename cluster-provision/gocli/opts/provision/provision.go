@@ -10,11 +10,14 @@ import (
 var f embed.FS
 
 type LinuxProvisioner struct {
-	sshPort uint16
+	sshPort   uint16
+	sshClient utils.SSHClient
 }
 
-func NewLinuxProvisioner() *LinuxProvisioner {
-	return &LinuxProvisioner{}
+func NewLinuxProvisioner(sc utils.SSHClient) *LinuxProvisioner {
+	return &LinuxProvisioner{
+		sshClient: sc,
+	}
 }
 
 func (l *LinuxProvisioner) Exec() error {
@@ -47,7 +50,7 @@ func (l *LinuxProvisioner) Exec() error {
 		"dnf install -y NetworkManager NetworkManager-ovs NetworkManager-config-server",
 	}
 	for _, cmd := range cmds {
-		if _, err := utils.JumpSSH(l.sshPort, 1, cmd, true, true); err != nil {
+		if _, err := l.sshClient.JumpSSH(l.sshPort, 1, cmd, true, true); err != nil {
 			return err
 		}
 	}

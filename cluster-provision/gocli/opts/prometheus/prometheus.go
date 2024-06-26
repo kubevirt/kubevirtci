@@ -74,8 +74,11 @@ func (o *PrometheusOpt) Exec() error {
 	}
 
 	for _, manifest := range defaultManifests {
-		err := o.client.Apply(f, manifest)
+		yamlData, err := f.ReadFile(manifest)
 		if err != nil {
+			return err
+		}
+		if err := o.client.Apply(yamlData); err != nil {
 			return err
 		}
 	}
@@ -94,8 +97,11 @@ func (o *PrometheusOpt) Exec() error {
 			"manifests/alertmanager-rules/prometheus-prometheusRule.yaml",
 		}
 		for _, manifest := range alertmanagerManifests {
-			err := o.client.Apply(f, manifest)
+			yamlData, err := f.ReadFile(manifest)
 			if err != nil {
+				return err
+			}
+			if err := o.client.Apply(yamlData); err != nil {
 				return err
 			}
 		}
@@ -113,8 +119,11 @@ func (o *PrometheusOpt) Exec() error {
 		}
 
 		for _, manifest := range grafanaManifests {
-			err := o.client.Apply(f, manifest)
+			yamlData, err := f.ReadFile(manifest)
 			if err != nil {
+				return err
+			}
+			if err := o.client.Apply(yamlData); err != nil {
 				return err
 			}
 		}
