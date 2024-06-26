@@ -3,15 +3,18 @@ package utils
 import (
 	"bytes"
 	"context"
-	"embed"
 	"fmt"
+	"time"
 
 	cephv1 "github.com/aerosouund/rook/pkg/apis/ceph.rook.io/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	monitoringv1alpha1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1alpha1"
+	"github.com/sirupsen/logrus"
 	istiov1alpha1 "istio.io/operator/pkg/apis"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	admissionv1 "k8s.io/pod-security-admission/admission/api/v1"
+	aaqv1alpha1 "kubevirt.io/application-aware-quota-api/pkg/apis/core/v1alpha1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,7 +33,7 @@ import (
 
 type K8sDynamicClient interface {
 	Get(gvk schema.GroupVersionKind, name, ns string) (*unstructured.Unstructured, error)
-	Apply(fs embed.FS, manifestPath string) error
+	Apply(manifest []byte) error
 	List(gvk schema.GroupVersionKind, ns string) (*unstructured.UnstructuredList, error)
 	Delete(gvk schema.GroupVersionKind, name, ns string) error
 }
@@ -56,19 +59,22 @@ func InitConfig(manifestPath string, apiServerPort uint16) (*rest.Config, error)
 	return config, nil
 }
 
-func NewDynamicClient(config *rest.Config) (K8sDynamicClient, error) {
+func NewDynamicClient(config *rest.Config) (*K8sDynamicClientImpl, error) {
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating dynamic client: %v", err)
 	}
 	s := runtime.NewScheme()
 	scheme.AddToScheme(s)
+
 	apiextensionsv1.AddToScheme(s)
 	cephv1.AddToScheme(s)
 	monitoringv1alpha1.AddToScheme(s)
 	monitoringv1.AddToScheme(s)
 	istiov1alpha1.AddToScheme(s)
 	admissionv1.AddToScheme(s)
+	cdiv1beta1.AddToScheme(s)
+	aaqv1alpha1.AddToScheme(s)
 
 	return &K8sDynamicClientImpl{
 		client: dynamicClient,
@@ -79,11 +85,15 @@ func NewDynamicClient(config *rest.Config) (K8sDynamicClient, error) {
 func NewTestClient(reactors ...ReactorConfig) K8sDynamicClient {
 	s := runtime.NewScheme()
 	scheme.AddToScheme(s)
+
 	apiextensionsv1.AddToScheme(s)
 	cephv1.AddToScheme(s)
 	monitoringv1alpha1.AddToScheme(s)
 	monitoringv1.AddToScheme(s)
 	istiov1alpha1.AddToScheme(s)
+	admissionv1.AddToScheme(s)
+	cdiv1beta1.AddToScheme(s)
+	aaqv1alpha1.AddToScheme(s)
 
 	dynamicClient := fake.NewSimpleDynamicClient(s)
 	for _, r := range reactors {
@@ -130,13 +140,8 @@ func (c *K8sDynamicClientImpl) List(gvk schema.GroupVersionKind, ns string) (*un
 	return objs, nil
 }
 
-func (c *K8sDynamicClientImpl) Apply(fs embed.FS, manifestPath string) error {
-	yamlData, err := fs.ReadFile(manifestPath)
-	if err != nil {
-		return fmt.Errorf("Error reading YAML file: %v", err)
-
-	}
-	yamlDocs := bytes.Split(yamlData, []byte("---\n"))
+func (c *K8sDynamicClientImpl) Apply(manifest []byte) error {
+	yamlDocs := bytes.Split(manifest, []byte("---\n"))
 	for _, yamlDoc := range yamlDocs {
 		if len(yamlDoc) == 0 {
 			continue
@@ -162,15 +167,30 @@ func (c *K8sDynamicClientImpl) Apply(fs embed.FS, manifestPath string) error {
 			return err
 		}
 
-		_, err = resourceClient.Create(context.TODO(), obj, v1.CreateOptions{})
+		err = c.createWithRetries(resourceClient, obj)
 		if err != nil {
-			return fmt.Errorf("Error applying manifest: %v", err)
+			return err
 		}
-
-		fmt.Printf("Object %v applied successfully!\n", obj.GetName())
+		logrus.Infof("Object %v applied successfully\n", obj.GetName())
 	}
 
 	return nil
+}
+
+func (c *K8sDynamicClientImpl) createWithRetries(resourceClient dynamic.ResourceInterface, obj *unstructured.Unstructured) error {
+	const maxRetries = 3
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		_, err = resourceClient.Create(context.TODO(), obj, v1.CreateOptions{})
+		if err == nil {
+			return nil
+		}
+		logrus.Infof("Attempt %d: Error applying manifest: %v for object %s\n", i+1, err, obj.GetName())
+		time.Sleep(3 * time.Second)
+	}
+
+	return fmt.Errorf("Error applying manifest after %d attempts: %v for object %s", maxRetries, err, obj.GetName())
 }
 
 func (c *K8sDynamicClientImpl) Delete(gvk schema.GroupVersionKind, name, ns string) error {
