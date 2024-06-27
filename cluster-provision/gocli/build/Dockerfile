@@ -1,6 +1,6 @@
-FROM alpine:3.18.0
+FROM golang:1.22
 
-RUN apk add git
+# RUN apk add git
 WORKDIR /workdir
 RUN git config --global --add safe.directory /workdir
 

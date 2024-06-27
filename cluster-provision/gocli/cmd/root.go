@@ -15,7 +15,6 @@ func init() {
 
 // NewRootCommand returns entrypoint command to interact with all other commands
 func NewRootCommand() *cobra.Command {
-
 	root := &cobra.Command{
 		Use:   "cli",
 		Short: "cli helps you creating ephemeral kubernetes and openshift clusters for testing",
@@ -27,7 +26,6 @@ func NewRootCommand() *cobra.Command {
 	}
 
 	root.PersistentFlags().StringP("prefix", "p", "kubevirt", "Prefix to identify docker containers")
-
 	root.AddCommand(
 		NewPortCommand(),
 		NewProvisionCommand(),
@@ -36,10 +34,10 @@ func NewRootCommand() *cobra.Command {
 		NewSSHCommand(),
 		NewSCPCommand(),
 		NewProvisionManagerCommand(),
+		NewSetContextCommand(),
 	)
 
 	return root
-
 }
 
 // Execute executes root command

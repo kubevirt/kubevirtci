@@ -19,7 +19,7 @@ test:
 
 .PHONY: gocli
 cli:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -ldflags "-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.SUFFIX=:$(KUBEVIRTCI_TAG)'" -o $(BIN_DIR)/cli ./cmd/cli
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -o $(BIN_DIR)/cli ./cmd/cli
 .PHONY: fmt
 fmt:
 	$(GO) fmt ./cmd/...
@@ -32,6 +32,21 @@ container: cli
 .PHONY: container-run
 container-run: container
 	docker run ${KUBEVIRTCI_IMAGE_REPO}/gocli
+
+.PHONY: run-k8s
+run-k8s:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -o $(BIN_DIR)/cli ./cmd/cli
+	./build/cli run k8s-1.28 --background=true
+
+.PHONY: set-context
+set-context:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -o $(BIN_DIR)/cli ./cmd/cli
+	./build/cli set-context --prefix=kubevirt
+
+.PHONY: rm
+rm:
+	./build/cli rm
+
 
 .PHONY: vendor
 vendor:
