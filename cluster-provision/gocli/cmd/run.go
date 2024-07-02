@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"path"
@@ -366,6 +367,13 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
+	dm, err := cli.ContainerInspect(context.Background(), dnsmasq.ID)
+	if err != nil {
+		return err
+	}
+
+	sshPort, err := utils.GetPublicPort(utils.PortSSH, dm.NetworkSettings.Ports)
+
 	// Pull the registry image
 	err = docker.ImagePull(cli, ctx, utils.DockerRegistryImage, types.ImagePullOptions{})
 	if err != nil {
@@ -442,12 +450,19 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 		nodeName := nodeNameFromIndex(x + 1)
 		nodeNum := fmt.Sprintf("%02d", x+1)
-		sshClient = docker.NewAdapter(cli, nodeContainer(prefix, nodeName))
 
+		sshClient, err = libssh.NewSSHClient(sshPort, x+1, false)
+		if err != nil {
+			return err
+		}
 		if reverse {
 			nodeName = nodeNameFromIndex((int(nodes) - x))
 			nodeNum = fmt.Sprintf("%02d", (int(nodes) - x))
-			sshClient = docker.NewAdapter(cli, nodeContainer(prefix, nodeName))
+			sshClient, err = libssh.NewSSHClient(sshPort, (int(nodes) - x), false)
+
+			if err != nil {
+				return err
+			}
 		}
 
 		// assign a GPU to one node
@@ -590,6 +605,19 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return err
 		}
 
+		// the scripts required for running the provider exist in the node container, in order to execute them directly on the node they must be copied to the node first
+		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key " + fmt.Sprintf("-r /scripts vagrant@192.168.66.10%d:/home/vagrant/scripts", x+1)}, io.Discard)
+		if err != nil {
+			return err
+		}
+
+		// move the scripts to the same location they were in in the nodecontainer to enable command abstraction
+		for _, cmd := range []string{"sudo mkdir /scripts", "sudo cp -r /home/vagrant/scripts/* /scripts"} {
+			if err = sshClient.Command(cmd); err != nil {
+				return err
+			}
+		}
+
 		n := nodesconfig.NewNodeLinuxConfig(x+1, prefix, dockerProxy, etcdDataMountSize, gpuAddress,
 			fipsEnabled, runEtcdOnMemory, singleStack, enableAudit, realtimeSchedulingEnabled, psaEnabled)
 
@@ -603,10 +631,18 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}(node.ID)
 	}
 
-	sshClient = docker.NewAdapter(cli, nodeContainer(prefix, nodeNameFromIndex(1)))
+	sshClient, _ := libssh.NewSSHClient(sshPort, 1, false)
 	n := nodesconfig.NewNodeK8sConfig(cephEnabled, prometheusEnabled, prometheusAlertmanagerEnabled, grafanaEnabled, istioEnabled, nfsCsiEnabled)
 	if err = provisionK8sOptions(sshClient, n); err != nil {
 		return err
+	}
+
+	// clean up scripts directory
+	for i := 0; i < int(nodes); i++ {
+		sshClient, _ := libssh.NewSSHClient(sshPort, i+1, false)
+		if err = sshClient.Command("rm -rf /home/vagrant/scripts"); err != nil {
+			return fmt.Errorf("Cleaning up scripts dir failed: %s", err)
+		}
 	}
 
 	// If background flag was specified, we don't want to clean up if we reach that state
