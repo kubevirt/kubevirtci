@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -28,6 +27,7 @@ import (
 	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/images"
+	sshutils "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/ssh"
 
 	"github.com/alessio/shellescape"
 )
@@ -59,6 +59,7 @@ var cli *client.Client
 var nvmeDisks []string
 var scsiDisks []string
 var usbDisks []string
+var sshClient sshutils.SSHClient
 
 type dockerSetting struct {
 	Proxy string
@@ -441,9 +442,12 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 		nodeName := nodeNameFromIndex(x + 1)
 		nodeNum := fmt.Sprintf("%02d", x+1)
+		sshClient = docker.NewDockerAdapter(cli, nodeContainer(prefix, nodeName))
+
 		if reverse {
 			nodeName = nodeNameFromIndex((int(nodes) - x))
 			nodeNum = fmt.Sprintf("%02d", (int(nodes) - x))
+			sshClient = docker.NewDockerAdapter(cli, nodeContainer(prefix, nodeName))
 		}
 
 		// assign a GPU to one node
@@ -587,16 +591,12 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 
 		if fipsEnabled {
-			success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
-				"/bin/bash", "-c", "ssh.sh sudo fips-mode-setup --enable && ( ssh.sh sudo reboot || true )",
-			}, os.Stdout)
-			if err != nil {
-				return err
+			for _, cmd := range []string{"sudo fips-mode-setup --enable", "sudo reboot"} {
+				if err := sshClient.SSH(cmd); err != nil {
+					return fmt.Errorf("Starting fips mode failed: %s", err)
+				}
 			}
-			if !success {
-				return errors.New("failed to enable FIPS and/or reboot")
-			}
-			err = waitForVMToBeUp(prefix, nodeName)
+			err := waitForVMToBeUp(prefix, nodeName)
 			if err != nil {
 				return err
 			}
@@ -608,106 +608,72 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			if err != nil {
 				return fmt.Errorf("parsing proxy settings for node %s failed", nodeName)
 			}
-			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("cat <<EOF >/scripts/docker-proxy.sh %s", proxyConfig)}, os.Stdout)
-			if err != nil {
-				return fmt.Errorf("write failed for proxy provision script for node %s", nodeName)
+
+			if err = sshClient.SSH(fmt.Sprintf("cat <<EOF > /scripts/docker-proxy.sh %s", proxyConfig)); err != nil {
+				return fmt.Errorf("write failed for proxy provision script for node %d: %s", x+1, err)
 			}
-			if success {
-				success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/docker-proxy.sh")}, os.Stdout)
+
+			if err = sshClient.SSH("/scripts/docker-proxy.sh"); err != nil {
+				return fmt.Errorf("Running docker proxy failed on node %d: %s", x+1, err)
 			}
 		}
 
 		if runEtcdOnMemory {
 			logrus.Infof("Creating in-memory mount for etcd data on node %s", nodeName)
-			err = prepareEtcdDataMount(nodeContainer(prefix, nodeName), etcdDataDir, etcdDataMountSize)
+			err = prepareEtcdDataMount(sshClient, etcdDataDir, etcdDataMountSize)
 			if err != nil {
-				logrus.Errorf("failed to create mount for etcd data on node %s: %v", nodeName, err)
 				return err
 			}
 		}
 
 		if realtimeSchedulingEnabled {
-			success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
-				"/bin/bash",
-				"-c",
-				"ssh.sh sudo /bin/bash < /scripts/realtime.sh",
-			}, os.Stdout)
-			if err != nil {
-				return err
+			if err = sshClient.SSH("/scripts/realtime.sh"); err != nil {
+				return fmt.Errorf("Provisioning kernel to allow unlimited runtime realtime scheduler failed: %s", err)
 			}
-			if !success {
-				return errors.New("provisioning kernel to allow unlimited runtime realtime scheduler failed")
-			}
-		}
-
-		//check if we have a special provision script
-		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("test -f /scripts/%s.sh", nodeName)}, os.Stdout)
-		if err != nil {
-			return fmt.Errorf("checking for matching provision script for node %s failed", nodeName)
 		}
 
 		for _, s := range soundcardPCIIDs {
 			// move the VM sound cards to a vfio-pci driver to prepare for assignment
-			err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), s, "")
+			err = prepareDeviceForAssignment(sshClient, s, "")
 			if err != nil {
 				return err
 			}
 		}
 
 		if singleStack {
-			ok, err := docker.Exec(cli, nodeContainer(prefix, nodeName),
-				[]string{"/bin/bash", "-c", "ssh.sh touch /home/vagrant/single_stack"}, os.Stdout)
-			if err != nil {
-				return err
-			}
-
-			if !ok {
-				return fmt.Errorf("provisioning node %s failed (setting singleStack phase)", nodeName)
+			if err = sshClient.SSH("touch /home/vagrant/single_stack"); err != nil {
+				return fmt.Errorf("provisioning node %d failed (setting singleStack phase): %s", x+1, err)
 			}
 		}
 
 		if enableAudit {
-			ok, err := docker.Exec(cli, nodeContainer(prefix, nodeName),
-				[]string{"/bin/bash", "-c", "ssh.sh touch /home/vagrant/enable_audit"}, os.Stdout)
-			if err != nil {
-				return err
-			}
-
-			if !ok {
-				return fmt.Errorf("provisioning node %s failed (setting enableAudit phase)", nodeName)
+			if err = sshClient.SSH("touch /home/vagrant/enable_audit"); err != nil {
+				return fmt.Errorf("provisioning node %d failed (setting enableAudit phase): %s", x+1, err)
 			}
 		}
 
 		if psaEnabled {
-			success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/psa.sh"}, os.Stdout)
-			if err != nil {
-				return err
-			}
-
-			if !success {
-				return fmt.Errorf("provisioning node %s failed", nodeName)
+			if err = sshClient.SSH("/scripts/psa.sh"); err != nil {
+				return fmt.Errorf("provisioning node %d failed: %s", x+1, err)
 			}
 		}
 
-		if success {
-			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo /bin/bash < /scripts/%s.sh", nodeName)}, os.Stdout)
+		if x+1 == 1 {
+			if err = sshClient.SSH("/scripts/node01.sh"); err != nil {
+				return fmt.Errorf("provisioning node %d failed: %s", x+1, err)
+			}
+
 		} else {
 			if gpuAddress != "" {
 				// move the assigned PCI device to a vfio-pci driver to prepare for assignment
-				err = prepareDeviceForAssignment(cli, nodeContainer(prefix, nodeName), "", gpuAddress)
+				err = prepareDeviceForAssignment(sshClient, "", gpuAddress)
 				if err != nil {
 					return err
 				}
 			}
-			success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "ssh.sh sudo /bin/bash < /scripts/nodes.sh"}, os.Stdout)
-		}
-
-		if err != nil {
-			return err
-		}
-
-		if !success {
-			return fmt.Errorf("provisioning node %s failed", nodeName)
+			if err = sshClient.SSH("/scripts/nodes.sh"); err != nil {
+				return fmt.Errorf("provisioning node %d failed: %s", x+1, err)
+			}
 		}
 
 		go func(id string) {
@@ -716,54 +682,26 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}(node.ID)
 	}
 
+	sshClient = docker.NewDockerAdapter(cli, nodeContainer(prefix, nodeNameFromIndex(1)))
 	if cephEnabled {
-		nodeName := nodeNameFromIndex(1)
-		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
-			"/bin/bash",
-			"-c",
-			"ssh.sh sudo /bin/bash < /scripts/rook-ceph.sh",
-		}, os.Stdout)
-		if err != nil {
-			return err
-		}
-		if !success {
-			return fmt.Errorf("provisioning Ceph CSI failed")
+		if err = sshClient.SSH("/scripts/rook-ceph.sh"); err != nil {
+			return fmt.Errorf("provisioning Ceph CSI failed: %s", err)
 		}
 	}
 
 	if nfsCsiEnabled {
-		nodeName := nodeNameFromIndex(1)
-		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
-			"/bin/bash",
-			"-c",
-			"ssh.sh sudo /bin/bash < /scripts/nfs-csi.sh",
-		}, os.Stdout)
-		if err != nil {
-			return err
-		}
-		if !success {
-			return fmt.Errorf("deploying NFS CSI storage failed")
+		if err = sshClient.SSH("/scripts/nfs-csi.sh"); err != nil {
+			return fmt.Errorf("provisioning NFS CSI failed: %s", err)
 		}
 	}
 
 	if istioEnabled {
-		nodeName := nodeNameFromIndex(1)
-		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
-			"/bin/bash",
-			"-c",
-			"ssh.sh sudo /bin/bash < /scripts/istio.sh",
-		}, os.Stdout)
-		if err != nil {
-			return err
-		}
-		if !success {
-			return fmt.Errorf("deploying Istio service mesh failed")
+		if err = sshClient.SSH("/scripts/istio.sh"); err != nil {
+			return fmt.Errorf("deploying Istio service mesh failed: %s", err)
 		}
 	}
 
 	if prometheusEnabled {
-		nodeName := nodeNameFromIndex(1)
-
 		var params string
 		if prometheusAlertmanagerEnabled {
 			params += "--alertmanager true "
@@ -773,16 +711,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			params += "--grafana true "
 		}
 
-		success, err := docker.Exec(cli, nodeContainer(prefix, nodeName), []string{
-			"/bin/bash",
-			"-c",
-			fmt.Sprintf("ssh.sh sudo /bin/bash -s -- %s < /scripts/prometheus.sh", params),
-		}, os.Stdout)
-		if err != nil {
-			return err
-		}
-		if !success {
-			return fmt.Errorf("deploying Prometheus operator failed")
+		if err = sshClient.SSH(fmt.Sprintf("-s -- %s < /scripts/prometheus.sh", params)); err != nil {
+			return fmt.Errorf("deploying Prometheus operator failed: %s", err)
 		}
 	}
 
@@ -869,48 +799,29 @@ func getDevicePCIID(pciAddress string) (string, error) {
 }
 
 // prepareDeviceForAssignment moves the deivce from it's original driver to vfio-pci driver
-func prepareDeviceForAssignment(cli *client.Client, nodeContainer, pciID, pciAddress string) error {
+func prepareDeviceForAssignment(sshClient sshutils.SSHClient, pciID, pciAddress string) error {
 	devicePCIID := pciID
 	if pciAddress != "" {
 		devicePCIID, _ = getDevicePCIID(pciAddress)
 	}
-	success, err := docker.Exec(cli, nodeContainer, []string{
-		"/bin/bash",
-		"-c",
-		fmt.Sprintf("ssh.sh sudo /bin/bash -s -- --vendor %s < /scripts/bind_device_to_vfio.sh", devicePCIID),
-	}, os.Stdout)
-	if err != nil {
+	if err := sshClient.SSH(fmt.Sprintf("-s -- --vendor %s < /scripts/bind_device_to_vfio.sh", devicePCIID)); err != nil {
 		return err
-	}
-	if !success {
-		return fmt.Errorf("binding device to vfio driver failed")
 	}
 	return nil
 }
 
-func prepareEtcdDataMount(node string, etcdDataDir string, mountSize string) error {
-	var err error
-	var success bool
-
-	success, err = docker.Exec(cli, node, []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo mkdir -p %s", etcdDataDir)}, os.Stdout)
-	if !success || err != nil {
-		return fmt.Errorf("create etcd data directory '%s'on node %s failed: %v", etcdDataDir, node, err)
+func prepareEtcdDataMount(sshClient sshutils.SSHClient, etcdDataDir string, mountSize string) error {
+	cmds := []string{
+		fmt.Sprintf("mkdir -p %s", etcdDataDir),
+		fmt.Sprintf("test -d %s", etcdDataDir),
+		fmt.Sprintf("mount -t tmpfs -o size=%s tmpfs %s", mountSize, etcdDataDir),
+		fmt.Sprintf("df -h %s", etcdDataDir),
 	}
 
-	success, err = docker.Exec(cli, node, []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo test -d %s", etcdDataDir)}, os.Stdout)
-	if !success || err != nil {
-		return fmt.Errorf("verify etcd data directory '%s'on node %s exists failed: %v", etcdDataDir, node, err)
+	for _, cmd := range cmds {
+		if err := sshClient.SSH(cmd); err != nil {
+			return err
+		}
 	}
-
-	success, err = docker.Exec(cli, node, []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo mount -t tmpfs -o size=%s tmpfs %s", mountSize, etcdDataDir)}, os.Stdout)
-	if !success || err != nil {
-		return fmt.Errorf("create tmpfs mount '%s' for etcd data on node %s failed: %v", etcdDataDir, node, err)
-	}
-
-	success, err = docker.Exec(cli, node, []string{"/bin/bash", "-c", fmt.Sprintf("ssh.sh sudo df -h %s", etcdDataDir)}, os.Stdout)
-	if !success || err != nil {
-		return fmt.Errorf("verify that a mount for etcd data is exists on node %s failed: %v", node, err)
-	}
-
 	return nil
 }
