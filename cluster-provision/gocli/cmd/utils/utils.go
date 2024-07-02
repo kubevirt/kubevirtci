@@ -34,3 +34,12 @@ func appendIfExplicit(ports nat.PortMap, exposedPort int, flagSet *pflag.FlagSet
 	}
 	return nil
 }
+
+// GetSSHUserByArchitecture returns the SSH user
+// based on the system architecture.
+func GetSSHUserByArchitecture(arch string) string {
+	if arch == "s390x" {
+		return "cloud-user"
+	}
+	return "vagrant"
+}
