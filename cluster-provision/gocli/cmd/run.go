@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/nodesconfig"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
@@ -123,7 +124,6 @@ func NewRunCommand() *cobra.Command {
 }
 
 func run(cmd *cobra.Command, args []string) (retErr error) {
-
 	prefix, err := cmd.Flags().GetString("prefix")
 	if err != nil {
 		return err
@@ -590,90 +590,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return err
 		}
 
-		if fipsEnabled {
-			for _, cmd := range []string{"sudo fips-mode-setup --enable", "sudo reboot"} {
-				if err := sshClient.Command(cmd); err != nil {
-					return fmt.Errorf("Starting fips mode failed: %s", err)
-				}
-			}
-			err := waitForVMToBeUp(prefix, nodeName)
-			if err != nil {
-				return err
-			}
-		}
+		n := nodesconfig.NewNodeLinuxConfig(x+1, prefix, dockerProxy, etcdDataMountSize, gpuAddress,
+			fipsEnabled, runEtcdOnMemory, singleStack, enableAudit, realtimeSchedulingEnabled, psaEnabled)
 
-		if dockerProxy != "" {
-			//if dockerProxy has value, generate a shell script`/script/docker-proxy.sh` which can be applied to set proxy settings
-			proxyConfig, err := getDockerProxyConfig(dockerProxy)
-			if err != nil {
-				return fmt.Errorf("parsing proxy settings for node %s failed", nodeName)
-			}
-
-			if err = sshClient.Command(fmt.Sprintf("cat <<EOF > /scripts/docker-proxy.sh %s", proxyConfig)); err != nil {
-				return fmt.Errorf("write failed for proxy provision script for node %d: %s", x+1, err)
-			}
-
-			if err = sshClient.Command("/scripts/docker-proxy.sh"); err != nil {
-				return fmt.Errorf("Running docker proxy failed on node %d: %s", x+1, err)
-			}
-		}
-
-		if runEtcdOnMemory {
-			logrus.Infof("Creating in-memory mount for etcd data on node %s", nodeName)
-			err = prepareEtcdDataMount(sshClient, etcdDataDir, etcdDataMountSize)
-			if err != nil {
-				return err
-			}
-		}
-
-		if realtimeSchedulingEnabled {
-			if err = sshClient.Command("/scripts/realtime.sh"); err != nil {
-				return fmt.Errorf("Provisioning kernel to allow unlimited runtime realtime scheduler failed: %s", err)
-			}
-		}
-
-		for _, s := range soundcardPCIIDs {
-			// move the VM sound cards to a vfio-pci driver to prepare for assignment
-			err = prepareDeviceForAssignment(sshClient, s, "")
-			if err != nil {
-				return err
-			}
-		}
-
-		if singleStack {
-			if err = sshClient.Command("touch /home/vagrant/single_stack"); err != nil {
-				return fmt.Errorf("provisioning node %d failed (setting singleStack phase): %s", x+1, err)
-			}
-		}
-
-		if enableAudit {
-			if err = sshClient.Command("touch /home/vagrant/enable_audit"); err != nil {
-				return fmt.Errorf("provisioning node %d failed (setting enableAudit phase): %s", x+1, err)
-			}
-		}
-
-		if psaEnabled {
-			if err = sshClient.Command("/scripts/psa.sh"); err != nil {
-				return fmt.Errorf("provisioning node %d failed: %s", x+1, err)
-			}
-		}
-
-		if x+1 == 1 {
-			if err = sshClient.Command("/scripts/node01.sh"); err != nil {
-				return fmt.Errorf("provisioning node %d failed: %s", x+1, err)
-			}
-
-		} else {
-			if gpuAddress != "" {
-				// move the assigned PCI device to a vfio-pci driver to prepare for assignment
-				err = prepareDeviceForAssignment(sshClient, "", gpuAddress)
-				if err != nil {
-					return err
-				}
-			}
-			if err = sshClient.Command("/scripts/nodes.sh"); err != nil {
-				return fmt.Errorf("provisioning node %d failed: %s", x+1, err)
-			}
+		if err = provisionNode(sshClient, n); err != nil {
+			return err
 		}
 
 		go func(id string) {
@@ -683,37 +604,9 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	sshClient = docker.NewAdapter(cli, nodeContainer(prefix, nodeNameFromIndex(1)))
-	if cephEnabled {
-		if err = sshClient.Command("/scripts/rook-ceph.sh"); err != nil {
-			return fmt.Errorf("provisioning Ceph CSI failed: %s", err)
-		}
-	}
-
-	if nfsCsiEnabled {
-		if err = sshClient.Command("/scripts/nfs-csi.sh"); err != nil {
-			return fmt.Errorf("provisioning NFS CSI failed: %s", err)
-		}
-	}
-
-	if istioEnabled {
-		if err = sshClient.Command("/scripts/istio.sh"); err != nil {
-			return fmt.Errorf("deploying Istio service mesh failed: %s", err)
-		}
-	}
-
-	if prometheusEnabled {
-		var params string
-		if prometheusAlertmanagerEnabled {
-			params += "--alertmanager true "
-		}
-
-		if grafanaEnabled {
-			params += "--grafana true "
-		}
-
-		if err = sshClient.Command(fmt.Sprintf("-s -- %s < /scripts/prometheus.sh", params)); err != nil {
-			return fmt.Errorf("deploying Prometheus operator failed: %s", err)
-		}
+	n := nodesconfig.NewNodeK8sConfig(cephEnabled, prometheusEnabled, prometheusAlertmanagerEnabled, grafanaEnabled, istioEnabled, nfsCsiEnabled)
+	if err = provisionK8sOptions(sshClient, n); err != nil {
+		return err
 	}
 
 	// If background flag was specified, we don't want to clean up if we reach that state
@@ -721,7 +614,129 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		wg.Wait()
 		stop <- fmt.Errorf("Done. please clean up")
 	}
+	return nil
 
+}
+
+func provisionK8sOptions(sshClient libssh.Client, n *nodesconfig.NodeK8sConfig) error {
+	if n.Ceph {
+		if err := sshClient.Command("/scripts/rook-ceph.sh"); err != nil {
+			return fmt.Errorf("provisioning Ceph CSI failed: %s", err)
+		}
+	}
+
+	if n.NfsCsi {
+		if err := sshClient.Command("/scripts/nfs-csi.sh"); err != nil {
+			return fmt.Errorf("provisioning NFS CSI failed: %s", err)
+		}
+	}
+
+	if n.Istio {
+		if err := sshClient.Command("/scripts/istio.sh"); err != nil {
+			return fmt.Errorf("deploying Istio service mesh failed: %s", err)
+		}
+	}
+
+	if n.Prometheus {
+		var params string
+		if n.Alertmanager {
+			params += "--alertmanager true "
+		}
+
+		if n.Grafana {
+			params += "--grafana true "
+		}
+
+		if err := sshClient.Command(fmt.Sprintf("-s -- %s < /scripts/prometheus.sh", params)); err != nil {
+			return fmt.Errorf("deploying Prometheus operator failed: %s", err)
+		}
+	}
+	return nil
+}
+
+func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) error {
+	nodeName := nodeNameFromIndex(n.NodeIdx)
+	if n.FipsEnabled {
+		for _, cmd := range []string{"sudo fips-mode-setup --enable", "sudo reboot"} {
+			if err := sshClient.Command(cmd); err != nil {
+				return fmt.Errorf("Starting fips mode failed: %s", err)
+			}
+		}
+		err := waitForVMToBeUp(n.K8sVersion, nodeName)
+		if err != nil {
+			return err
+		}
+	}
+
+	if n.DockerProxy != "" {
+		//if dockerProxy has value, generate a shell script`/script/docker-proxy.sh` which can be applied to set proxy settings
+		proxyConfig, err := getDockerProxyConfig(n.DockerProxy)
+		if err != nil {
+			return fmt.Errorf("parsing proxy settings for node %s failed", nodeName)
+		}
+
+		if err = sshClient.Command(fmt.Sprintf("cat <<EOF > /scripts/docker-proxy.sh %s", proxyConfig)); err != nil {
+			return fmt.Errorf("write failed for proxy provision script for node %d: %s", n.NodeIdx, err)
+		}
+
+	}
+
+	if n.EtcdInMemory {
+		logrus.Infof("Creating in-memory mount for etcd data on node %s", nodeName)
+		err := prepareEtcdDataMount(sshClient, etcdDataDir, n.EtcdSize)
+		if err != nil {
+			return err
+		}
+	}
+
+	if n.Realtime {
+		if err := sshClient.Command("/scripts/realtime.sh"); err != nil {
+			return fmt.Errorf("Provisioning kernel to allow unlimited runtime realtime scheduler failed: %s", err)
+		}
+	}
+
+	for _, s := range soundcardPCIIDs {
+		// move the VM sound cards to a vfio-pci driver to prepare for assignment
+		if err := sshClient.Command(fmt.Sprintf("-s -- --vendor %s < /scripts/bind_device_to_vfio.sh", s)); err != nil {
+			return fmt.Errorf("Provisioning soundcard failed: %s", err)
+		}
+	}
+
+	if n.SingleStack {
+		if err := sshClient.Command("touch /home/vagrant/single_stack"); err != nil {
+			return fmt.Errorf("provisioning node %d failed (setting singleStack phase): %s", n.NodeIdx, err)
+		}
+	}
+
+	if n.EnableAudit {
+		if err := sshClient.Command("touch /home/vagrant/enable_audit"); err != nil {
+			return fmt.Errorf("provisioning node %d failed (setting enableAudit phase): %s", n.NodeIdx, err)
+		}
+	}
+
+	if n.PSA {
+		if err := sshClient.Command("/scripts/psa.sh"); err != nil {
+			return fmt.Errorf("provisioning node %d failed: %s", n.NodeIdx, err)
+		}
+	}
+
+	if n.NodeIdx == 1 {
+		if err := sshClient.Command("/scripts/node01.sh"); err != nil {
+			return fmt.Errorf("provisioning node %d failed: %s", n.NodeIdx, err)
+		}
+
+	} else {
+		if n.GpuAddress != "" {
+			// move the assigned PCI device to a vfio-pci driver to prepare for assignment
+			err := prepareDeviceForAssignment(sshClient, "", n.GpuAddress)
+			if err != nil {
+				return err
+			}
+		}
+		if err := sshClient.Command("/scripts/nodes.sh"); err != nil {
+			return fmt.Errorf("provisioning node %d failed: %s", n.NodeIdx, err)
+		}
+	}
 	return nil
 }
 
