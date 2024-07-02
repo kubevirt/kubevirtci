@@ -26,6 +26,9 @@ The following RPM packages need to be present on your machine:
 To cross build for the Arm64 image on AMD64 machines, the following RPM needs to be installed:
 - qemu-system-aarch64
 
+To cross build for the s390x image on AMD64 machines, the following RPM needs to be installed:
+- qemu-system-s390x
+
 ## Quickstart: Build and publish an existing containerdisk
 
 Choose one of the configuration directories in this folder which you want to
@@ -49,6 +52,12 @@ variable.
 export ARCHITECTURE=arm64
 ```
 
+To build for s390x, you need to set the following environment
+variable.
+```
+export ARCHITECTURE=s390x
+``` 
+
 To build the Virtual Machine without console output, only need to set the
 environment variable `CONSOLE`. This is useful when the build script is
 run in a CICD pipeline.
@@ -66,6 +75,7 @@ $ ls -l example/
 cloud-config    # cloud-init configuration for virt-customize
 image-url       # download URL of the base image
 image-url-arm64 # download URL of the base image for Arm64
+image-url-s390x # download URL of the base image for s390x
 os-variant      # operating system variant (for example fedora32)
 ```
 
@@ -92,8 +102,8 @@ $ virtctl console testvm1
 ```
 
 ### Build and publish multi-arch images
-The multi-arch publish does not support building alpine-cloud-init because the [alpine-make-vm-image](https://raw.githubusercontent.com/alpinelinux/alpine-make-vm-image/master/alpine-make-vm-image) project does not support building Arm64 images.
-The `publish-multiarch-containerdisk.sh` script now supports building Arm64 and AMD64 images.
+The multi-arch publish does not support building alpine-cloud-init because the [alpine-make-vm-image](https://raw.githubusercontent.com/alpinelinux/alpine-make-vm-image/master/alpine-make-vm-image) project does not support building Arm64 and s390x images.
+The `publish-multiarch-containerdisk.sh` script now supports building Arm64, AMD64 and s390x images.
 The script primarily performs the following tasks:
 1. Use `create-containerdisk.sh` to build images.
 2. Upload the resulting images to a specific registry.
@@ -115,9 +125,9 @@ The script primarily performs the following tasks:
 ./ publish-multiarch-containerdisk.sh example myregistry registry_org
 
 # The script will do following things:
-# 1. Build both Arm64 and AMD64 example image.
+# 1. Build the Arm64,AMD64 and s390x example image.
 # 2. Generate a tag based on the current time.
-# 3. Push the registry_org/myregistry/example:tag-arm64 and registry_org/myregistry/example:tag-amd64.
+# 3. Push the registry_org/myregistry/example:tag-arm64,registry_org/myregistry/example:tag-amd64 and registry_org/myregistry/example:tag-s390x
 # 4. Generate a multi-arch manifest for the image, registry_org/myregistry/example:tag.
 ```
 

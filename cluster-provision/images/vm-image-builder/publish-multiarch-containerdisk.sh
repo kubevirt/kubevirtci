@@ -3,7 +3,7 @@ set -exuo pipefail
 
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
 source ${SCRIPT_PATH}/common.sh
-archs=(amd64 arm64)
+archs=(amd64 arm64 s390x)
 
 main() {
     local build_only=""
