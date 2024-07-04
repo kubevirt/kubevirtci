@@ -59,6 +59,10 @@ spec:
                     description: NameServerIp defines the name server IP
                     type: string
                 type: object
+              kubevirtIpamController:
+                description: KubevirtIpamController plugin allows to support IPAM
+                  for secondary networks
+                type: object
               linuxBridge:
                 description: LinuxBridge plugin allows users to create a bridge and
                   add the host and the container to it
@@ -1510,20 +1514,6 @@ spec:
                              ciphers:     - DES-CBC3-SHA
                         items:
                           enum:
-                          - TLS_AES_128_GCM_SHA256
-                          - TLS_AES_256_GCM_SHA384
-                          - TLS_CHACHA20_POLY1305_SHA256
-                          - ECDHE-ECDSA-AES128-GCM-SHA256
-                          - ECDHE-RSA-AES128-GCM-SHA256
-                          - ECDHE-ECDSA-AES256-GCM-SHA384
-                          - ECDHE-RSA-AES256-GCM-SHA384
-                          - ECDHE-ECDSA-CHACHA20-POLY1305
-                          - ECDHE-RSA-CHACHA20-POLY1305
-                          - DHE-RSA-AES128-GCM-SHA256
-                          - DHE-RSA-AES256-GCM-SHA384
-                          - TLS_AES_128_GCM_SHA256
-                          - TLS_AES_256_GCM_SHA384
-                          - TLS_CHACHA20_POLY1305_SHA256
                           - TLS_AES_128_GCM_SHA256
                           - TLS_AES_256_GCM_SHA384
                           - TLS_CHACHA20_POLY1305_SHA256
@@ -1706,6 +1696,10 @@ spec:
                     description: NameServerIp defines the name server IP
                     type: string
                 type: object
+              kubevirtIpamController:
+                description: KubevirtIpamController plugin allows to support IPAM
+                  for secondary networks
+                type: object
               linuxBridge:
                 description: LinuxBridge plugin allows users to create a bridge and
                   add the host and the container to it
@@ -3157,20 +3151,6 @@ spec:
                              ciphers:     - DES-CBC3-SHA
                         items:
                           enum:
-                          - TLS_AES_128_GCM_SHA256
-                          - TLS_AES_256_GCM_SHA384
-                          - TLS_CHACHA20_POLY1305_SHA256
-                          - ECDHE-ECDSA-AES128-GCM-SHA256
-                          - ECDHE-RSA-AES128-GCM-SHA256
-                          - ECDHE-ECDSA-AES256-GCM-SHA384
-                          - ECDHE-RSA-AES256-GCM-SHA384
-                          - ECDHE-ECDSA-CHACHA20-POLY1305
-                          - ECDHE-RSA-CHACHA20-POLY1305
-                          - DHE-RSA-AES128-GCM-SHA256
-                          - DHE-RSA-AES256-GCM-SHA384
-                          - TLS_AES_128_GCM_SHA256
-                          - TLS_AES_256_GCM_SHA384
-                          - TLS_CHACHA20_POLY1305_SHA256
                           - TLS_AES_128_GCM_SHA256
                           - TLS_AES_256_GCM_SHA384
                           - TLS_CHACHA20_POLY1305_SHA256
