@@ -121,6 +121,24 @@ rules:
   verbs:
   - delete
 - apiGroups:
+  - k8s.cni.cncf.io
+  resources:
+  - ipamclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+- apiGroups:
+  - k8s.cni.cncf.io
+  resources:
+  - network-attachment-definitions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - events
@@ -144,12 +162,6 @@ rules:
   - create
   - patch
   - update
-- apiGroups:
-  - k8s.cni.cncf.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
 - apiGroups:
   - ""
   resources:
@@ -238,6 +250,12 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - k8s.cni.cncf.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -329,6 +347,34 @@ rules:
   verbs:
   - get
   - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - patch
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  - issuers
+  verbs:
+  - get
+  - create
+  - update
+  - delete
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -349,7 +395,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    networkaddonsoperator.network.kubevirt.io/version: 0.87.0
+    networkaddonsoperator.network.kubevirt.io/version: 0.94.1
   labels:
     prometheus.cnao.io: "true"
   name: cluster-network-addons-operator
@@ -375,29 +421,31 @@ spec:
         - name: MULTUS_IMAGE
           value: ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:3fbcc32bd4e4d15bd93c96def784a229cd84cca27942bf4858b581f31c97ee02
         - name: MULTUS_DYNAMIC_NETWORKS_CONTROLLER_IMAGE
-          value: ghcr.io/k8snetworkplumbingwg/multus-dynamic-networks-controller@sha256:dee1979d92f0a31598a6e3569ac7004be7d29e7ca9e31db23753ef263110dc04
+          value: ghcr.io/k8snetworkplumbingwg/multus-dynamic-networks-controller@sha256:83b460502671fb4f34116363a1a39b2ddfc9d14a920ee0a6413bfc3bd0580404
         - name: LINUX_BRIDGE_IMAGE
-          value: quay.io/kubevirt/cni-default-plugins@sha256:825e3f9fec1996c54a52cec806154945b38f76476b160d554c36e38dfffe5e61
+          value: quay.io/kubevirt/cni-default-plugins@sha256:0c354fa9d695b8cab97b459e8afea2f7662407a987e83f6f6f1a8af4b45726be
         - name: LINUX_BRIDGE_MARKER_IMAGE
-          value: quay.io/kubevirt/bridge-marker@sha256:5d24c6d1ecb0556896b7b81c7e5260b54173858425777b7a84df8a706c07e6d2
+          value: quay.io/kubevirt/bridge-marker@sha256:bba066e3b5ff3fb8c5e20861fe8abe51e3c9b50ad6ce3b2616af9cb5479a06d0
         - name: OVS_CNI_IMAGE
-          value: quay.io/kubevirt/ovs-cni-plugin@sha256:5f7290e2294255ab2547c3b4bf48cc2d75531ec5a43e600366e9b2719bef983f
+          value: quay.io/kubevirt/ovs-cni-plugin@sha256:e16ac74343da21abb8fb668ce71e728053d00503a992dae2164b9e94a280113e
         - name: KUBEMACPOOL_IMAGE
-          value: quay.io/kubevirt/kubemacpool@sha256:afba7d0c4a95d2d4924f6ee6ef16bbe59117877383819057f01809150829cb0c
+          value: quay.io/kubevirt/kubemacpool@sha256:20e156be33e6d3692c456081acbb91a4349f94de448f7d1f1cddd0228931b31f
         - name: MACVTAP_CNI_IMAGE
-          value: quay.io/kubevirt/macvtap-cni@sha256:434420511e09b2b5ede785a2c9062b6658ffbc26fbdd4629ce06110f9039c600
+          value: quay.io/kubevirt/macvtap-cni@sha256:850b89343ace7c7ea6b18dd8e11964613974e9d1f7377af03854d407fb15230a
         - name: KUBE_RBAC_PROXY_IMAGE
-          value: quay.io/openshift/origin-kube-rbac-proxy@sha256:baedb268ac66456018fb30af395bb3d69af5fff3252ff5d549f0231b1ebb6901
+          value: quay.io/openshift/origin-kube-rbac-proxy@sha256:e2def4213ec0657e72eb790ae8a115511d5b8f164a62d3568d2f1bff189917e8
         - name: KUBE_SECONDARY_DNS_IMAGE
-          value: ghcr.io/kubevirt/kubesecondarydns@sha256:77132adb5f840ceb0aadd408731a5c8b01a4b427a78084ab5e4e9b961195cb02
+          value: ghcr.io/kubevirt/kubesecondarydns@sha256:6268d84154e2483fbce8c1adacbdaf6f0839117b2d48d9fa4687cc8f76bd5130
         - name: CORE_DNS_IMAGE
           value: registry.k8s.io/coredns/coredns@sha256:a0ead06651cf580044aeb0a0feba63591858fb2e43ade8c9dea45a6a89ae7e5e
+        - name: KUBEVIRT_IPAM_CONTROLLER_IMAGE
+          value: ghcr.io/kubevirt/ipam-controller@sha256:f272eaf82c9e4fcd7fdee5d9031afba8019cff2dc842ca3e36be49de28083fee
         - name: OPERATOR_IMAGE
-          value: quay.io/kubevirt/cluster-network-addons-operator:v0.87.0
+          value: quay.io/kubevirt/cluster-network-addons-operator:v0.94.1
         - name: OPERATOR_NAME
           value: cluster-network-addons-operator
         - name: OPERATOR_VERSION
-          value: 0.87.0
+          value: 0.94.1
         - name: OPERATOR_NAMESPACE
           valueFrom:
             fieldRef:
@@ -416,8 +464,8 @@ spec:
         - name: MONITORING_SERVICE_ACCOUNT
           value: prometheus-k8s
         - name: RUNBOOK_URL_TEMPLATE
-          value: https://kubevirt.io/monitoring/runbooks/
-        image: quay.io/kubevirt/cluster-network-addons-operator:v0.87.0
+          value: https://kubevirt.io/monitoring/runbooks/%s
+        image: quay.io/kubevirt/cluster-network-addons-operator:v0.94.1
         imagePullPolicy: Always
         name: cluster-network-addons-operator
         resources:
@@ -433,7 +481,7 @@ spec:
         - --logtostderr
         - --secure-listen-address=:8443
         - --upstream=http://127.0.0.1:8080
-        image: quay.io/openshift/origin-kube-rbac-proxy@sha256:baedb268ac66456018fb30af395bb3d69af5fff3252ff5d549f0231b1ebb6901
+        image: quay.io/openshift/origin-kube-rbac-proxy@sha256:e2def4213ec0657e72eb790ae8a115511d5b8f164a62d3568d2f1bff189917e8
         imagePullPolicy: Always
         name: kube-rbac-proxy
         ports:
