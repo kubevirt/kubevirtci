@@ -56,6 +56,11 @@ function main() {
     for i in "${!manifests[@]}"; do
         file="${manifests_url[i]##*/}"
         echo "${manifests[$i]}" > "./cluster-provision/k8s/${provider}/manifests/cnao/${file}"
+
+        if [[ $file == "network-addons-config-example.cr.yaml" ]]; then
+            sed -i '/ovs:/d' ./cluster-provision/k8s/${provider}/manifests/cnao/${file}
+            sed -i '/kubevirtIpamController:/d' ./cluster-provision/k8s/${provider}/manifests/cnao/${file}
+        fi
     done
 
     echo "cnao, provision, Bump k8s-${provider} cnao to ${cnao_version}"
