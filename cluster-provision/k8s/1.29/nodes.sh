@@ -51,11 +51,11 @@ done
 if [ -f /etc/sysconfig/kubelet ]; then
     # TODO use config file! this is deprecated
     cat <<EOT >>/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --fail-swap-on=false ${nodeip} --feature-gates=CPUManager=true,NodeSwap=true --cpu-manager-policy=static --kube-reserved=cpu=250m --system-reserved=cpu=250m
+KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --fail-swap-on=false ${nodeip} --feature-gates=NodeSwap=true --cpu-manager-policy=static --kube-reserved=cpu=250m --system-reserved=cpu=250m
 EOT
 else
     cat <<EOT >>/etc/systemd/system/kubelet.service.d/09-kubeadm.conf
-Environment="KUBELET_CPUMANAGER_ARGS=--fail-swap-on=false --feature-gates=CPUManager=true,NodeSwap=true ${nodeip} --cpu-manager-policy=static --kube-reserved=cpu=250m --system-reserved=cpu=250m"
+Environment="KUBELET_CPUMANAGER_ARGS=--fail-swap-on=false --feature-gates=NodeSwap=true ${nodeip} --cpu-manager-policy=static --kube-reserved=cpu=250m --system-reserved=cpu=250m"
 EOT
 sed -i 's/$KUBELET_EXTRA_ARGS/$KUBELET_EXTRA_ARGS $KUBELET_CPUMANAGER_ARGS/' /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 fi
