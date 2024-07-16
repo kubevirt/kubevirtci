@@ -48,7 +48,7 @@ do
     sleep 2
 done
 
-if [ -f /etc/sysconfig/kubelet ]; then
+if [ -f /etc/sysconfig/kubelet && ${KUBEVIRT_CPU_MANAGER_POLICY} == "static"]; then
     # TODO use config file! this is deprecated
     cat <<EOT >>/etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=${KUBELET_CGROUP_ARGS} --fail-swap-on=false ${nodeip} --feature-gates=NodeSwap=true --cpu-manager-policy=static --kube-reserved=cpu=250m --system-reserved=cpu=250m
