@@ -30,10 +30,10 @@ var _ = Describe("Node Provisioning", func() {
 		It("should execute the correct commands", func() {
 			n := nodesconfig.NewNodeLinuxConfig(1, "k8s-1.30", "", "512M", "", false, true, true, true, true, true)
 			cmds := []string{
-				"mkdir -p /var/lib/etcd",
-				"test -d /var/lib/etcd",
-				fmt.Sprintf("mount -t tmpfs -o size=%s tmpfs /var/lib/etcd", n.EtcdSize),
-				"df -h /var/lib/etcd",
+				"sudo mkdir -p /var/lib/etcd",
+				"sudo test -d /var/lib/etcd",
+				fmt.Sprintf("sudo mount -t tmpfs -o size=%s tmpfs /var/lib/etcd", n.EtcdSize),
+				"sudo df -h /var/lib/etcd",
 				"/scripts/realtime.sh",
 				"touch /home/vagrant/single_stack",
 				"touch /home/vagrant/enable_audit",
