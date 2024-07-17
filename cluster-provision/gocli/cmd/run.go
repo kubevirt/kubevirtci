@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"path"
@@ -29,6 +28,26 @@ import (
 	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/images"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/aaq"
+	bindvfio "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/bind-vfio"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/cdi"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/cnao"
+	dockerproxy "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/docker-proxy"
+	etcdinmemory "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/etcd"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/istio"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/ksm"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/multus"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nfscsi"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/node01"
+	nodesprovision "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nodes"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/prometheus"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/psa"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/realtime"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/rookceph"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/rootkey"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/swap"
+	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/k8s"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 
 	"github.com/alessio/shellescape"
@@ -83,27 +102,40 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().UintP("secondary-nics", "", 0, "number of secondary nics to add")
 	run.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	run.Flags().String("kernel-args", "", "additional kernel args to pass through to the nodes")
-	run.Flags().BoolP("background", "b", false, "go to background after nodes are up")
-	run.Flags().BoolP("reverse", "r", false, "revert node startup order")
+	run.Flags().BoolP("background", "b", true, "go to background after nodes are up")
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
 	run.Flags().Bool("slim", false, "use the slim flavor")
-	run.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
-	run.Flags().Uint("http-port", 0, "port on localhost for http")
-	run.Flags().Uint("https-port", 0, "port on localhost for https")
-	run.Flags().Uint("registry-port", 0, "port on localhost for the docker registry")
-	run.Flags().Uint("ocp-port", 0, "port on localhost for the ocp cluster")
-	run.Flags().Uint("k8s-port", 0, "port on localhost for the k8s cluster")
-	run.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
-	run.Flags().Uint("prometheus-port", 0, "port on localhost for prometheus server")
-	run.Flags().Uint("grafana-port", 0, "port on localhost for grafana server")
-	run.Flags().Uint("dns-port", 0, "port on localhost for dns server")
+	run.Flags().Uint16("vnc-port", 0, "port on localhost for vnc")
+	run.Flags().Uint16("http-port", 0, "port on localhost for http")
+	run.Flags().Uint16("https-port", 0, "port on localhost for https")
+	run.Flags().Uint16("registry-port", 0, "port on localhost for the docker registry")
+	run.Flags().Uint16("ocp-port", 0, "port on localhost for the ocp cluster")
+	run.Flags().Uint16("k8s-port", 0, "port on localhost for the k8s cluster")
+	run.Flags().Uint16("ssh-port", 0, "port on localhost for ssh server")
+	run.Flags().Uint16("prometheus-port", 0, "port on localhost for prometheus server")
+	run.Flags().Uint16("grafana-port", 0, "port on localhost for grafana server")
+	run.Flags().Uint16("dns-port", 0, "port on localhost for dns server")
 	run.Flags().String("nfs-data", "", "path to data which should be exposed via nfs to the nodes")
 	run.Flags().Bool("enable-ceph", false, "enables dynamic storage provisioning using Ceph")
 	run.Flags().Bool("enable-istio", false, "deploys Istio service mesh")
+	run.Flags().Bool("reverse", false, "reverse node setup order")
+	run.Flags().Bool("enable-cnao", false, "enable network extensions with istio")
+	run.Flags().Bool("deploy-multus", false, "deploy multus")
+	run.Flags().Bool("deploy-cdi", true, "deploy cdi")
+	run.Flags().String("cdi-version", "", "cdi version")
+	run.Flags().String("aaq-version", "", "aaq version")
+	run.Flags().Bool("deploy-aaq", false, "deploy aaq")
 	run.Flags().Bool("enable-nfs-csi", false, "deploys nfs csi dynamic storage")
 	run.Flags().Bool("enable-prometheus", false, "deploys Prometheus operator")
 	run.Flags().Bool("enable-prometheus-alertmanager", false, "deploys Prometheus alertmanager")
 	run.Flags().Bool("enable-grafana", false, "deploys Grafana")
+	run.Flags().Bool("enable-ksm", false, "enables kernel memory same page merging")
+	run.Flags().Uint("ksm-page-count", 10, "number of pages to scan per time in ksm")
+	run.Flags().Uint("ksm-scan-interval", 20, "sleep interval in milliseconds for ksm")
+	run.Flags().Bool("enable-swap", false, "enable swap")
+	run.Flags().Bool("unlimited-swap", false, "unlimited swap")
+	run.Flags().Uint("swap-size", 0, "swap memory size in GB")
+	run.Flags().Uint("swapiness", 0, "swapiness")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
 	run.Flags().String("container-registry", "quay.io", "the registry to pull cluster container from")
 	run.Flags().String("container-org", "kubevirtci", "the organization at the registry to pull the container from")
@@ -125,6 +157,7 @@ func NewRunCommand() *cobra.Command {
 }
 
 func run(cmd *cobra.Command, args []string) (retErr error) {
+
 	prefix, err := cmd.Flags().GetString("prefix")
 	if err != nil {
 		return err
@@ -299,6 +332,70 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	if err != nil {
 		return err
 	}
+	cnaoEnabled, err := cmd.Flags().GetBool("enable-cnao")
+	if err != nil {
+		return err
+	}
+
+	deployCdi, err := cmd.Flags().GetBool("deploy-cdi")
+	if err != nil {
+		return err
+	}
+
+	cdiVersion, err := cmd.Flags().GetString("cdi-version")
+	if err != nil {
+		return err
+	}
+
+	deployAaq, err := cmd.Flags().GetBool("deploy-aaq")
+	if err != nil {
+		return err
+	}
+
+	aaqVersion, err := cmd.Flags().GetString("aaq-version")
+	if err != nil {
+		return err
+	}
+
+	deployMultus, err := cmd.Flags().GetBool("deploy-multus")
+	if err != nil {
+		return err
+	}
+
+	enableSwap, err := cmd.Flags().GetBool("enable-swap")
+	if err != nil {
+		return err
+	}
+
+	unlimitedSwap, err := cmd.Flags().GetBool("unlimited-swap")
+	if err != nil {
+		return err
+	}
+
+	swapiness, err := cmd.Flags().GetUint("swapiness")
+	if err != nil {
+		return err
+	}
+
+	swapSize, err := cmd.Flags().GetUint("swap-size")
+	if err != nil {
+		return err
+	}
+
+	enableKsm, err := cmd.Flags().GetBool("enable-ksm")
+	if err != nil {
+		return err
+	}
+
+	ksmPageCount, err := cmd.Flags().GetUint("ksm-page-count")
+	if err != nil {
+		return err
+	}
+
+	ksmScanInterval, err := cmd.Flags().GetUint("ksm-scan-interval")
+	if err != nil {
+		return err
+	}
 
 	cli, err = client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -373,6 +470,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	sshPort, err := utils.GetPublicPort(utils.PortSSH, dm.NetworkSettings.Ports)
+	apiServerPort, err := utils.GetPublicPort(utils.PortAPI, dm.NetworkSettings.Ports)
 
 	// Pull the registry image
 	err = docker.ImagePull(cli, ctx, utils.DockerRegistryImage, types.ImagePullOptions{})
@@ -450,7 +548,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 		nodeName := nodeNameFromIndex(x + 1)
 		nodeNum := fmt.Sprintf("%02d", x+1)
-
 		sshClient, err = libssh.NewSSHClient(sshPort, x+1, false)
 		if err != nil {
 			return err
@@ -605,21 +702,32 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return err
 		}
 
-		// the scripts required for running the provider exist in the node container, in order to execute them directly on the node they must be copied to the node first
-		success, err = docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key " + fmt.Sprintf("-r /scripts vagrant@192.168.66.10%d:/home/vagrant/scripts", x+1)}, io.Discard)
-		if err != nil {
+		rootkey := rootkey.NewRootKey(sshClient)
+		if err = rootkey.Exec(); err != nil {
 			return err
 		}
+		sshClient, err = libssh.NewSSHClient(sshPort, x+1, true)
 
-		// move the scripts to the same location they were in in the nodecontainer to enable command abstraction
-		for _, cmd := range []string{"sudo mkdir /scripts", "sudo cp -r /home/vagrant/scripts/* /scripts"} {
-			if err = sshClient.Command(cmd); err != nil {
-				return err
-			}
+		linuxConfigFuncs := []nodesconfig.LinuxConfigFunc{
+			nodesconfig.WithFipsEnabled(fipsEnabled),
+			nodesconfig.WithDockerProxy(dockerProxy),
+			nodesconfig.WithEtcdInMemory(runEtcdOnMemory),
+			nodesconfig.WithEtcdSize(etcdDataMountSize),
+			nodesconfig.WithSingleStack(singleStack),
+			nodesconfig.WithEnableAudit(enableAudit),
+			nodesconfig.WithGpuAddress(gpuAddress),
+			nodesconfig.WithRealtime(realtimeSchedulingEnabled),
+			nodesconfig.WithPSA(psaEnabled),
+			nodesconfig.WithKsm(enableKsm),
+			nodesconfig.WithKsmPageCount(int(ksmPageCount)),
+			nodesconfig.WithKsmScanInterval(int(ksmScanInterval)),
+			nodesconfig.WithSwap(enableSwap),
+			nodesconfig.WithSwapiness(int(swapiness)),
+			nodesconfig.WithSwapSize(int(swapSize)),
+			nodesconfig.WithUnlimitedSwap(unlimitedSwap),
 		}
 
-		n := nodesconfig.NewNodeLinuxConfig(x+1, prefix, dockerProxy, etcdDataMountSize, gpuAddress,
-			fipsEnabled, runEtcdOnMemory, singleStack, enableAudit, realtimeSchedulingEnabled, psaEnabled)
+		n := nodesconfig.NewNodeLinuxConfig(x+1, prefix, linuxConfigFuncs)
 
 		if err = provisionNode(sshClient, n); err != nil {
 			return err
@@ -631,18 +739,44 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}(node.ID)
 	}
 
-	sshClient, _ := libssh.NewSSHClient(sshPort, 1, false)
-	n := nodesconfig.NewNodeK8sConfig(cephEnabled, prometheusEnabled, prometheusAlertmanagerEnabled, grafanaEnabled, istioEnabled, nfsCsiEnabled)
-	if err = provisionK8sOptions(sshClient, n); err != nil {
+	sshClient, err := libssh.NewSSHClient(sshPort, 1, true)
+	if err != nil {
 		return err
 	}
 
-	// clean up scripts directory
-	for i := 0; i < int(nodes); i++ {
-		sshClient, _ := libssh.NewSSHClient(sshPort, i+1, false)
-		if err = sshClient.Command("rm -rf /home/vagrant/scripts"); err != nil {
-			return fmt.Errorf("Cleaning up scripts dir failed: %s", err)
-		}
+	k8sConfs := []nodesconfig.K8sConfigFunc{
+		nodesconfig.WithCeph(cephEnabled),
+		nodesconfig.WithPrometheus(prometheusEnabled),
+		nodesconfig.WithAlertmanager(prometheusAlertmanagerEnabled),
+		nodesconfig.WithGrafana(grafanaEnabled),
+		nodesconfig.WithIstio(istioEnabled),
+		nodesconfig.WithNfsCsi(nfsCsiEnabled),
+		nodesconfig.WithCnao(cnaoEnabled),
+		nodesconfig.WithMultus(deployMultus),
+		nodesconfig.WithCdi(deployCdi),
+		nodesconfig.WithCdiVersion(cdiVersion),
+		nodesconfig.WithAAQ(deployAaq),
+		nodesconfig.WithAAQVersion(aaqVersion),
+	}
+	n := nodesconfig.NewNodeK8sConfig(k8sConfs)
+
+	err = sshClient.CopyRemoteFile("/etc/kubernetes/admin.conf", ".kubeconfig")
+	if err != nil {
+		return err
+	}
+
+	config, err := k8s.InitConfig(".kubeconfig", apiServerPort)
+	if err != nil {
+		return err
+	}
+
+	k8sClient, err := k8s.NewDynamicClient(config)
+	if err != nil {
+		return err
+	}
+
+	if err = provisionK8sOptions(sshClient, k8sClient, n, prefix); err != nil {
+		return err
 	}
 
 	// If background flag was specified, we don't want to clean up if we reach that state
@@ -650,51 +784,73 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		wg.Wait()
 		stop <- fmt.Errorf("Done. please clean up")
 	}
-	return nil
 
+	return nil
 }
 
-func provisionK8sOptions(sshClient libssh.Client, n *nodesconfig.NodeK8sConfig) error {
+func provisionK8sOptions(sshClient libssh.Client, k8sClient k8s.K8sDynamicClient, n *nodesconfig.NodeK8sConfig, k8sVersion string) error {
+	opts := []opts.Opt{}
+
 	if n.Ceph {
-		if err := sshClient.Command("/scripts/rook-ceph.sh"); err != nil {
-			return fmt.Errorf("provisioning Ceph CSI failed: %s", err)
-		}
+		cephOpt := rookceph.NewCephOpt(k8sClient)
+		opts = append(opts, cephOpt)
 	}
 
 	if n.NfsCsi {
-		if err := sshClient.Command("/scripts/nfs-csi.sh"); err != nil {
-			return fmt.Errorf("provisioning NFS CSI failed: %s", err)
-		}
+		nfsCsiOpt := nfscsi.NewNfsCsiOpt(k8sClient)
+		opts = append(opts, nfsCsiOpt)
+	}
+
+	if n.Multus {
+		multusOpt := multus.NewMultusOpt(k8sClient, sshClient)
+		opts = append(opts, multusOpt)
+	}
+
+	if n.Cnao {
+		cnaoOpt := cnao.NewCnaoOpt(k8sClient, sshClient)
+		opts = append(opts, cnaoOpt)
 	}
 
 	if n.Istio {
-		if err := sshClient.Command("/scripts/istio.sh"); err != nil {
-			return fmt.Errorf("deploying Istio service mesh failed: %s", err)
-		}
+		istioOpt := istio.NewIstioOpt(sshClient, k8sClient, n.Cnao)
+		opts = append(opts, istioOpt)
 	}
 
 	if n.Prometheus {
-		var params string
-		if n.Alertmanager {
-			params += "--alertmanager true "
-		}
+		prometheusOpt := prometheus.NewPrometheusOpt(k8sClient, n.Grafana, n.Alertmanager)
+		opts = append(opts, prometheusOpt)
+	}
 
-		if n.Grafana {
-			params += "--grafana true "
-		}
+	if n.Cdi {
+		cdi := cdi.NewCdiOpt(k8sClient, sshClient, n.CdiVersion)
+		opts = append(opts, cdi)
+	}
 
-		if err := sshClient.Command(fmt.Sprintf("-s -- %s < /scripts/prometheus.sh", params)); err != nil {
-			return fmt.Errorf("deploying Prometheus operator failed: %s", err)
+	if n.AAQ {
+		if k8sVersion == "k8s-1.30" {
+			aaq := aaq.NewAaqOpt(k8sClient, sshClient, n.CdiVersion)
+			opts = append(opts, aaq)
+		} else {
+			logrus.Info("AAQ was requested but k8s version is not k8s-1.30, skipping")
 		}
 	}
+
+	for _, opt := range opts {
+		if err := opt.Exec(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) error {
+	opts := []opts.Opt{}
 	nodeName := nodeNameFromIndex(n.NodeIdx)
+
 	if n.FipsEnabled {
 		for _, cmd := range []string{"sudo fips-mode-setup --enable", "sudo reboot"} {
-			if err := sshClient.Command(cmd); err != nil {
+			if _, err := sshClient.Command(cmd, true); err != nil {
 				return fmt.Errorf("Starting fips mode failed: %s", err)
 			}
 		}
@@ -706,73 +862,78 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 
 	if n.DockerProxy != "" {
 		//if dockerProxy has value, generate a shell script`/script/docker-proxy.sh` which can be applied to set proxy settings
-		proxyConfig, err := getDockerProxyConfig(n.DockerProxy)
-		if err != nil {
-			return fmt.Errorf("parsing proxy settings for node %s failed", nodeName)
-		}
-
-		if err = sshClient.Command(fmt.Sprintf("cat <<EOF > /scripts/docker-proxy.sh %s", proxyConfig)); err != nil {
-			return fmt.Errorf("write failed for proxy provision script for node %d: %s", n.NodeIdx, err)
-		}
-
+		dp := dockerproxy.NewDockerProxyOpt(sshClient, n.DockerProxy)
+		opts = append(opts, dp)
 	}
 
 	if n.EtcdInMemory {
 		logrus.Infof("Creating in-memory mount for etcd data on node %s", nodeName)
-		err := prepareEtcdDataMount(sshClient, etcdDataDir, n.EtcdSize)
-		if err != nil {
-			return err
-		}
+		etcdinmem := etcdinmemory.NewEtcdInMemOpt(sshClient, n.EtcdSize)
+		opts = append(opts, etcdinmem)
 	}
 
 	if n.Realtime {
-		if err := sshClient.Command("/scripts/realtime.sh"); err != nil {
-			return fmt.Errorf("Provisioning kernel to allow unlimited runtime realtime scheduler failed: %s", err)
-		}
+		realtimeOpt := realtime.NewRealtimeOpt(sshClient)
+		opts = append(opts, realtimeOpt)
 	}
 
 	for _, s := range soundcardPCIIDs {
 		// move the VM sound cards to a vfio-pci driver to prepare for assignment
-		if err := sshClient.Command(fmt.Sprintf("-s -- --vendor %s < /scripts/bind_device_to_vfio.sh", s)); err != nil {
-			return fmt.Errorf("Provisioning soundcard failed: %s", err)
-		}
+		bvfio := bindvfio.NewBindVfioOpt(sshClient, s)
+		opts = append(opts, bvfio)
 	}
 
 	if n.SingleStack {
-		if err := sshClient.Command("touch /home/vagrant/single_stack"); err != nil {
+		if _, err := sshClient.Command("touch /home/vagrant/single_stack", false); err != nil {
 			return fmt.Errorf("provisioning node %d failed (setting singleStack phase): %s", n.NodeIdx, err)
 		}
 	}
 
 	if n.EnableAudit {
-		if err := sshClient.Command("touch /home/vagrant/enable_audit"); err != nil {
+		if _, err := sshClient.Command("touch /home/vagrant/enable_audit", false); err != nil {
 			return fmt.Errorf("provisioning node %d failed (setting enableAudit phase): %s", n.NodeIdx, err)
 		}
 	}
 
 	if n.PSA {
-		if err := sshClient.Command("/scripts/psa.sh"); err != nil {
-			return fmt.Errorf("provisioning node %d failed: %s", n.NodeIdx, err)
-		}
+		psaOpt := psa.NewPsaOpt(sshClient)
+		opts = append(opts, psaOpt)
 	}
 
 	if n.NodeIdx == 1 {
-		if err := sshClient.Command("/scripts/node01.sh"); err != nil {
-			return fmt.Errorf("provisioning node %d failed: %s", n.NodeIdx, err)
-		}
+		n := node01.NewNode01Provisioner(sshClient)
+		opts = append(opts, n)
 
 	} else {
 		if n.GpuAddress != "" {
 			// move the assigned PCI device to a vfio-pci driver to prepare for assignment
-			err := prepareDeviceForAssignment(sshClient, "", n.GpuAddress)
+			gpuDeviceID, err := getDevicePCIID(n.GpuAddress)
 			if err != nil {
 				return err
 			}
+			bindVfioOpt := bindvfio.NewBindVfioOpt(sshClient, gpuDeviceID)
+			opts = append(opts, bindVfioOpt)
 		}
-		if err := sshClient.Command("/scripts/nodes.sh"); err != nil {
-			return fmt.Errorf("provisioning node %d failed: %s", n.NodeIdx, err)
+		n := nodesprovision.NewNodesProvisioner(sshClient)
+		opts = append(opts, n)
+	}
+
+	if n.KsmEnabled {
+		ksmOpt := ksm.NewKsmOpt(sshClient, n.KsmScanInterval, n.KsmPageCount)
+		opts = append(opts, ksmOpt)
+	}
+
+	if n.SwapEnabled {
+		swapOpt := swap.NewSwapOpt(sshClient, n.Swapiness, n.UnlimitedSwap, n.SwapSize)
+		opts = append(opts, swapOpt)
+	}
+
+	for _, o := range opts {
+		if err := o.Exec(); err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 
@@ -847,32 +1008,4 @@ func getDevicePCIID(pciAddress string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("no pci_id is found")
-}
-
-// prepareDeviceForAssignment moves the deivce from it's original driver to vfio-pci driver
-func prepareDeviceForAssignment(sshClient libssh.Client, pciID, pciAddress string) error {
-	devicePCIID := pciID
-	if pciAddress != "" {
-		devicePCIID, _ = getDevicePCIID(pciAddress)
-	}
-	if err := sshClient.Command(fmt.Sprintf("-s -- --vendor %s < /scripts/bind_device_to_vfio.sh", devicePCIID)); err != nil {
-		return err
-	}
-	return nil
-}
-
-func prepareEtcdDataMount(sshClient libssh.Client, etcdDataDir string, mountSize string) error {
-	cmds := []string{
-		fmt.Sprintf("sudo mkdir -p %s", etcdDataDir),
-		fmt.Sprintf("sudo test -d %s", etcdDataDir),
-		fmt.Sprintf("sudo mount -t tmpfs -o size=%s tmpfs %s", mountSize, etcdDataDir),
-		fmt.Sprintf("sudo df -h %s", etcdDataDir),
-	}
-
-	for _, cmd := range cmds {
-		if err := sshClient.Command(cmd); err != nil {
-			return err
-		}
-	}
-	return nil
 }
