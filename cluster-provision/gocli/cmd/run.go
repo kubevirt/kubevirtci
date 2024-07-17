@@ -863,10 +863,10 @@ func prepareDeviceForAssignment(sshClient libssh.Client, pciID, pciAddress strin
 
 func prepareEtcdDataMount(sshClient libssh.Client, etcdDataDir string, mountSize string) error {
 	cmds := []string{
-		fmt.Sprintf("mkdir -p %s", etcdDataDir),
-		fmt.Sprintf("test -d %s", etcdDataDir),
-		fmt.Sprintf("mount -t tmpfs -o size=%s tmpfs %s", mountSize, etcdDataDir),
-		fmt.Sprintf("df -h %s", etcdDataDir),
+		fmt.Sprintf("sudo mkdir -p %s", etcdDataDir),
+		fmt.Sprintf("sudo test -d %s", etcdDataDir),
+		fmt.Sprintf("sudo mount -t tmpfs -o size=%s tmpfs %s", mountSize, etcdDataDir),
+		fmt.Sprintf("sudo df -h %s", etcdDataDir),
 	}
 
 	for _, cmd := range cmds {
