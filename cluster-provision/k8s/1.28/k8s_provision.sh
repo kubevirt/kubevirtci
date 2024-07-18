@@ -69,7 +69,8 @@ fi
 
 export CRIO_VERSION=1.28
 if [ "$arch" == "s390x" ]; then
-  BASEURL="https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/${CRIO_VERSION}/CentOS_9_Stream/"
+  #As crio version available in kubevirtci-crio-mirror/isv_kubernetes_addons_cri-o_stable_v1.28 is broken with issue https://github.com/containers/crun/issues/1494, which is fixed, but yet to released.
+  BASEURL="https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/${CRIO_VERSION}:/${CRIO_VERSION}.4/CentOS_9_Stream/"
 else
   BASEURL="https://storage.googleapis.com/kubevirtci-crio-mirror/isv_kubernetes_addons_cri-o_stable_v${CRIO_VERSION}"
 fi
