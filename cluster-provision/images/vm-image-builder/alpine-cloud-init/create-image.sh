@@ -13,7 +13,7 @@ if [ "${ARCHITECTURE}" != ""  ]; then
     PLATFORM=linux/$ARCHITECTURE
 fi
 
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+docker run --rm --privileged docker.io/multiarch/qemu-user-static --reset -p yes
 
 if [ ! -f alpine-make-vm-image ]; then
     curl  https://raw.githubusercontent.com/alpinelinux/alpine-make-vm-image/master/alpine-make-vm-image -o alpine-make-vm-image

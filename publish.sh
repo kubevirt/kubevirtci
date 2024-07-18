@@ -66,8 +66,9 @@ function build_clusters() {
 
 function push_node_base_image() {
   TARGET_IMAGE="${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}"
+  podman tag ${TARGET_REPO}/centos9-base:latest ${TARGET_IMAGE}
   echo "INFO: push $TARGET_IMAGE"
-  podman push "$TARGET_IMAGE"
+  podman push ${TARGET_IMAGE}
   echo ${TARGET_IMAGE} > cluster-provision/k8s/base-image
 }
 
