@@ -1,32 +1,11 @@
 filters:
   ".*":
     reviewers:
-      - awels
-      - davidvossel
-      - rmohr
-      - vladikr
-      - dhiller
-      - qinqon
-      - oshoval
-      - phoracek
-      - ormergi
-      - stu-gott
-      - jean-edouard
-      - enp0s3
+    - reviewers
     approvers:
-      - awels
-      - davidvossel
-      - rmohr
-      - vladikr
-      - dhiller
-      - qinqon
-      - phoracek
-      - stu-gott
-      - jean-edouard
-      - enp0s3
-      - brianmcarey
+    - approvers
     emeritus_approvers:
-      - cynepco3hahue
-      - danielBelenky
-      - fgimenez
-      - slintes
+    - cynepco3hahue
+    - danielBelenky
+    - fgimenez
+    - slintes
