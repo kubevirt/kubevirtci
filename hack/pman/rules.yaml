@@ -17,6 +17,7 @@ none:
   - LICENSE
   - Makefile
   - OWNERS
+  - OWNERS_ALIASES
   - .gitignore
 regex:
   - cluster-provision/k8s/[0-9].[0-9][0-9]*
