@@ -73,3 +73,262 @@ type KubevirtProvider struct {
 }
 
 type KubevirtProviderOption func(c *KubevirtProvider)
+
+type FlagConfig struct {
+	FlagType        string
+	ProviderOptFunc func(interface{}) KubevirtProviderOption
+}
+
+var ProvisionFlagMap = map[string]FlagConfig{
+	"memory": {
+		FlagType:        "string",
+		ProviderOptFunc: WithMemory,
+	},
+	"cpu": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithCPU,
+	},
+	"slim": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithSlim,
+	},
+	"random-ports": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithRandomPorts,
+	},
+	"phases": {
+		FlagType:        "string",
+		ProviderOptFunc: WithPhases,
+	},
+	"additional-persistent-kernel-arguments": {
+		FlagType:        "[]string",
+		ProviderOptFunc: WithAdditionalKernelArgs,
+	},
+	"vnc-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithVNCPort,
+	},
+	"ssh-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithSSHPort,
+	},
+	"qemu-args": {
+		FlagType:        "string",
+		ProviderOptFunc: WithQemuArgs,
+	},
+}
+
+var RunFlagMap = map[string]FlagConfig{
+	"nodes": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithNodes,
+	},
+	"numa": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithNuma,
+	},
+	"memory": {
+		FlagType:        "string",
+		ProviderOptFunc: WithMemory,
+	},
+	"cpu": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithCPU,
+	},
+	"secondary-nics": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithSecondaryNics,
+	},
+	"qemu-args": {
+		FlagType:        "string",
+		ProviderOptFunc: WithQemuArgs,
+	},
+	"kernel-args": {
+		FlagType:        "string",
+		ProviderOptFunc: WithKernelArgs,
+	},
+	"background": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithBackground,
+	},
+	"random-ports": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithRandomPorts,
+	},
+	"slim": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithSlim,
+	},
+	"vnc-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithVNCPort,
+	},
+	"http-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithHTTPPort,
+	},
+	"https-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithHTTPSPort,
+	},
+	"registry-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithRegistryPort,
+	},
+	"ocp-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithOCPort,
+	},
+	"k8s-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithK8sPort,
+	},
+	"ssh-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithSSHPort,
+	},
+	"prometheus-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithPrometheusPort,
+	},
+	"grafana-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithGrafanaPort,
+	},
+	"dns-port": {
+		FlagType:        "uint16",
+		ProviderOptFunc: WithDNSPort,
+	},
+	"nfs-data": {
+		FlagType:        "string",
+		ProviderOptFunc: WithNFSData,
+	},
+	"enable-ceph": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithEnableCeph,
+	},
+	"enable-istio": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithEnableIstio,
+	},
+	"enable-cnao": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithEnableCNAO,
+	},
+	"enable-nfs-csi": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithEnableNFSCSI,
+	},
+	"enable-prometheus": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithEnablePrometheus,
+	},
+	"enable-prometheus-alertmanager": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithEnablePrometheusAlertManager,
+	},
+	"enable-grafana": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithEnableGrafana,
+	},
+	"docker-proxy": {
+		FlagType:        "string",
+		ProviderOptFunc: WithDockerProxy,
+	},
+	"gpu": {
+		FlagType:        "string",
+		ProviderOptFunc: WithGPU,
+	},
+	"nvme": {
+		FlagType:        "[]string",
+		ProviderOptFunc: WithNvmeDisks,
+	},
+	"scsi": {
+		FlagType:        "[]string",
+		ProviderOptFunc: WithScsiDisks,
+	},
+	"run-etcd-on-memory": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithRunEtcdOnMemory,
+	},
+	"etcd-capacity": {
+		FlagType:        "string",
+		ProviderOptFunc: WithEtcdCapacity,
+	},
+	"hugepages-2m": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithHugepages2M,
+	},
+	"enable-realtime-scheduler": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithEnableRealtimeScheduler,
+	},
+	"enable-fips": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithEnableFIPS,
+	},
+	"enable-psa": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithEnablePSA,
+	},
+	"single-stack": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithSingleStack,
+	},
+	"enable-audit": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithEnableAudit,
+	},
+	"usb": {
+		FlagType:        "[]string",
+		ProviderOptFunc: WithUSBDisks,
+	},
+	"deploy-multus": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithMultus,
+	},
+	"deploy-aaq": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithAAQ,
+	},
+	"deploy-cdi": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithCDI,
+	},
+	"enable-ksm": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithKSM,
+	},
+	"ksm-page-count": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithKSMPages,
+	},
+	"ksm-scan-interval": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithKSMInterval,
+	},
+	"enable-swap": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithSwap,
+	},
+	"unlimited-swap": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithUnlimitedSwap,
+	},
+	"swap-size": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithSwapSize,
+	},
+	"swapiness": {
+		FlagType:        "uint",
+		ProviderOptFunc: WithSwapiness,
+	},
+	"cdi-version": {
+		FlagType:        "string",
+		ProviderOptFunc: WithCDIVersion,
+	},
+	"aaq-version": {
+		FlagType:        "string",
+		ProviderOptFunc: WithAAQVersion,
+	},
+}
