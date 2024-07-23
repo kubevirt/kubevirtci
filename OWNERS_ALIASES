@@ -1,0 +1,134 @@
+aliases:
+  reviewers:
+  - brianmcarey
+  - dhiller
+  - ormergi
+  - oshoval
+  - qinqon
+  approvers:
+  - awels
+  - brianmcarey
+  - davidvossel
+  - dhiller
+  - enp0s3
+  - jean-edouard
+  - phoracek
+  - qinqon
+  - rmohr
+  - stu-gott
+  - vladikr
+
+  #
+  # SIG Test
+  #
+  sig-test-reviewers:
+  - kbidarkar
+  sig-test-approvers:
+  - kbidarkar
+  - phoracek
+  - enp0s3
+  - xpivarc
+  - acardace
+  - dhiller
+  - AlonaKaplan
+
+  #
+  # SIG Network
+  # Owns anything related to networking.
+  #
+  sig-network-reviewers:
+  - AlonaKaplan
+  - EdDev
+  - RamLavi
+  - ormergi
+  sig-network-approvers:
+  - AlonaKaplan
+  - EdDev
+
+  #
+  # SIG Scale
+  # Owns to keep kubevirt's scalability comparable to Kubernetes'.
+  #
+  sig-scale-approvers:
+  - rthallisey
+  sig-scale-reviewers:
+  - rthallisey
+
+  #
+  # SIG Storage
+  # Owns anything related to storage.
+  #
+  sig-storage-approvers:
+  - mhenriks
+  - alicefr
+  sig-storage-reviewers:
+  - awels
+  - akalenyu
+  - ShellyKa13
+
+  #
+  # SIG API
+  # Owns the API including API life-cycle, deprecation,
+  # and backwards compatibility.
+  #
+  sig-api-approvers: [ ]
+  sig-api-reviewers: [ ]
+
+  #
+  # SIG Compute
+  # Owns everything which is taking place on a node, for example
+  # (but not limited to) groups, SELinux, node labels, …
+  # And everything on the cluster level such as RBAC, controller, …
+  #
+  sig-compute-approvers:
+  - jean-edouard
+  - iholder101
+  sig-compute-reviewers:
+  - victortoso
+
+  #
+  # SIG Observability
+  # Owns the responsibility to keep kubevirt observable by i.e.
+  # having mertics, alters, and runbooks.
+  #
+  sig-observability-approvers:
+  - sradco
+  - machadovilaca
+  sig-observability-reviewers:
+  - machadovilaca
+  - avlitman
+  - assafad
+
+  #
+  # SIG Release
+  # Owns the release process, including the schedule, and tools.
+  #
+  sig-release-approvers:
+  - acardace
+  - fossedihelm
+  - xpivarc
+  sig-release-reviewers:
+  - acardace
+  - fossedihelm
+  - xpivarc
+
+  #
+  # SIG Buildsystem
+  # Owns bazel, and ensures that kubevirt can be build.
+  #
+  sig-buildsystem-approvers:
+  - brianmcarey
+  - dhiller
+  - xpivarc
+  sig-buildsystem-reviewers:
+  - brianmcarey
+  - enp0s3
+  - xpivarc
+
+  #
+  # SIG Architecture
+  # Owns the overall architecture, and supporting the growth, health,
+  # openess of KubeVirt.
+  #
+  sig-architecture-approvers: [ ]
+  sig-architecture-reviewers: [ ]
