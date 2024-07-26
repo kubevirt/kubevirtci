@@ -26,7 +26,7 @@ RUN if test "$BUILDARCH" != "s390x"; then \
     fi
 
 
-FROM base as nodecontainer
+FROM base AS nodecontainer
 
 ARG BUILDARCH
        
@@ -36,7 +36,7 @@ COPY vagrant.key /vagrant.key
 
 RUN chmod 700 vagrant.key
 
-ENV DOCKERIZE_VERSION v0.6.1
+ENV DOCKERIZE_VERSION=v0.6.1
 
 RUN if test "$BUILDARCH" != "s390x"; then \
       curl -L -o dockerize-linux-$BUILDARCH.tar.gz https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz; \
