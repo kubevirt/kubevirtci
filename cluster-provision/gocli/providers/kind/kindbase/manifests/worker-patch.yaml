@@ -1,0 +1,5 @@
+- role: worker
+  extraMounts:
+  - containerPath: /var/log/audit
+    hostPath: /var/log/audit
+    readOnly: true
