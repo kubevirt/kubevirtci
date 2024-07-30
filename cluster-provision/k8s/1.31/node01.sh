@@ -40,10 +40,8 @@ if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
     cat << EOF > ${CRIO_CONF_DIR}/00-cgroupv2.conf
 [crio.runtime]
 conmon_cgroup = "pod"
-cgroup_manager = "cgroupfs"
+cgroup_manager = "systemd"
 EOF
-
-    sed -i 's/--cgroup-driver=systemd/--cgroup-driver=cgroupfs/' /etc/sysconfig/kubelet
 
     systemctl stop kubelet
     systemctl restart crio
