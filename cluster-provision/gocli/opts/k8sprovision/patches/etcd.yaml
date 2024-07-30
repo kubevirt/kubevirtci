@@ -1,0 +1,4 @@
+spec:
+  securityContext:
+    seLinuxOptions:
+      type: spc_t
