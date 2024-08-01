@@ -14,7 +14,6 @@ func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient, pciID string) {
 
 	sshClient.EXPECT().CommandWithNoStdOut("readlink "+driverPath+" | awk -F'/' '{print $NF}'").Return("not-vfio", nil)
 	sshClient.EXPECT().Command("modprobe -i vfio-pci")
-	sshClient.EXPECT().Command("ls /sys/bus/pci/drivers/vfio-pci")
 
 	cmds := []string{
 		"if [[ ! -d /sys/bus/pci/devices/testpciaddr ]]; then echo 'Error: PCI address does not exist!' && exit 1; fi",
