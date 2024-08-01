@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
@@ -48,7 +49,7 @@ nodnsmasq:
 				continue nodnsmasq
 			}
 		}
-		err := cli.ContainerRemove(context.Background(), c.ID, types.ContainerRemoveOptions{Force: true})
+		err := cli.ContainerRemove(context.Background(), c.ID, container.RemoveOptions{Force: true})
 		if err != nil {
 			return err
 		}
@@ -56,7 +57,7 @@ nodnsmasq:
 
 	// delete dnsmasq at the end since other containers rely on ints network namespace
 	if dnsmasq != nil {
-		err := cli.ContainerRemove(context.Background(), dnsmasq.ID, types.ContainerRemoveOptions{Force: true})
+		err := cli.ContainerRemove(context.Background(), dnsmasq.ID, container.RemoveOptions{Force: true})
 		if err != nil {
 			return err
 		}

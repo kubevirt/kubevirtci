@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
@@ -21,7 +22,7 @@ import (
 )
 
 func GetPrefixedContainers(cli *client.Client, prefix string) ([]types.Container, error) {
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{
 		All: true,
 	})
 	if err != nil {
@@ -229,20 +230,20 @@ func NewCleanupHandler(cli *client.Client, cleanupChan chan error, errWriter io.
 				if err != nil || forceClean {
 					for _, c := range createdContainers {
 						if log {
-							reader, err := cli.ContainerLogs(ctx, c, types.ContainerLogsOptions{ShowStderr: true, ShowStdout: true, Details: true})
+							reader, err := cli.ContainerLogs(ctx, c, container.LogsOptions{ShowStderr: true, ShowStdout: true, Details: true})
 							if err == nil {
 								fmt.Fprintf(os.Stderr, "\n===== %s ====\n", c)
 								io.Copy(os.Stderr, reader)
 							}
 						}
-						err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
+						err := cli.ContainerRemove(ctx, c, container.RemoveOptions{Force: true})
 						if err != nil {
 							fmt.Fprintf(errWriter, "%v\n", err)
 							containersFailedToRemove = append(containersFailedToRemove, c)
 						}
 					}
 					for _, c := range containersFailedToRemove {
-						err := cli.ContainerRemove(ctx, c, types.ContainerRemoveOptions{Force: true})
+						err := cli.ContainerRemove(ctx, c, container.RemoveOptions{Force: true})
 						if err != nil {
 							fmt.Fprintf(errWriter, "%v\n", err)
 						}
