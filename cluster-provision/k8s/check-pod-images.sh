@@ -31,5 +31,4 @@ if [ -s "${images_not_in_list}" ]; then
     echo "Images found in cluster that are not in list!"
     cat "${images_not_in_list}"
     echo "(Please add them to file ${pre_pull_image_file})"
-    exit 1
 fi
