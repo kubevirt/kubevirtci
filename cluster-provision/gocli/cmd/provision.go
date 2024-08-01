@@ -163,7 +163,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	containers <- dnsmasq.ID
-	if err := cli.ContainerStart(ctx, dnsmasq.ID, types.ContainerStartOptions{}); err != nil {
+	if err := cli.ContainerStart(ctx, dnsmasq.ID, container.StartOptions{}); err != nil {
 		return err
 	}
 
@@ -217,7 +217,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	containers <- node.ID
-	if err := cli.ContainerStart(ctx, node.ID, types.ContainerStartOptions{}); err != nil {
+	if err := cli.ContainerStart(ctx, node.ID, container.StartOptions{}); err != nil {
 		return err
 	}
 
@@ -315,7 +315,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	logrus.Infof("Commiting the node as %s", target)
-	_, err = cli.ContainerCommit(ctx, node.ID, types.ContainerCommitOptions{
+	_, err = cli.ContainerCommit(ctx, node.ID, container.CommitOptions{
 		Reference: target,
 		Comment:   "PROVISION SUCCEEDED",
 		Author:    "gocli",

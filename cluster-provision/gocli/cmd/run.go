@@ -363,7 +363,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	containers <- dnsmasq.ID
-	if err := cli.ContainerStart(ctx, dnsmasq.ID, types.ContainerStartOptions{}); err != nil {
+	if err := cli.ContainerStart(ctx, dnsmasq.ID, container.StartOptions{}); err != nil {
 		return err
 	}
 
@@ -391,7 +391,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	containers <- registry.ID
-	if err := cli.ContainerStart(ctx, registry.ID, types.ContainerStartOptions{}); err != nil {
+	if err := cli.ContainerStart(ctx, registry.ID, container.StartOptions{}); err != nil {
 		return err
 	}
 
@@ -424,7 +424,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return err
 		}
 		containers <- nfsServer.ID
-		if err := cli.ContainerStart(ctx, nfsServer.ID, types.ContainerStartOptions{}); err != nil {
+		if err := cli.ContainerStart(ctx, nfsServer.ID, container.StartOptions{}); err != nil {
 			return err
 		}
 	}
@@ -586,7 +586,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return err
 		}
 		containers <- node.ID
-		if err := cli.ContainerStart(ctx, node.ID, types.ContainerStartOptions{}); err != nil {
+		if err := cli.ContainerStart(ctx, node.ID, container.StartOptions{}); err != nil {
 			return err
 		}
 
