@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/bramvdbogaerde/go-scp"
 	"github.com/sirupsen/logrus"
@@ -31,9 +32,11 @@ type Client interface {
 // Represents an interface to run a command on a node in the kubevirt cluster
 // Implementation to the SSHClient interface based on native golang libraries
 type SSHClientImpl struct {
-	sshPort uint16
-	nodeIdx int
-	config  *ssh.ClientConfig
+	sshPort   uint16
+	nodeIdx   int
+	initMutex sync.Mutex
+	config    *ssh.ClientConfig
+	client    *ssh.Client
 }
 
 func NewSSHClient(port uint16, idx int, root bool) (*SSHClientImpl, error) {
@@ -54,33 +57,24 @@ func NewSSHClient(port uint16, idx int, root bool) (*SSHClientImpl, error) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 	return &SSHClientImpl{
-		config:  c,
-		sshPort: port,
-		nodeIdx: idx,
+		config:    c,
+		sshPort:   port,
+		initMutex: sync.Mutex{},
+		nodeIdx:   idx,
 	}, nil
 }
 
 // SSH performs two ssh connections, one to the forwarded port by dnsmasq to the local which is the ssh port of the control plane node
 // then a hop to the designated host where the command is desired to be ran
 func (s *SSHClientImpl) Command(cmd string) error {
-	client, err := ssh.Dial("tcp", net.JoinHostPort("127.0.0.1", fmt.Sprint(s.sshPort)), s.config)
-	if err != nil {
-		return fmt.Errorf("Failed to connect to SSH server: %v", err)
+	if s.client == nil {
+		err := s.initClient()
+		if err != nil {
+			return err
+		}
 	}
 
-	conn, err := client.Dial("tcp", fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx))
-	if err != nil {
-		return fmt.Errorf("Error establishing connection to the next hop host: %s", err)
-	}
-
-	ncc, chans, reqs, err := ssh.NewClientConn(conn, fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx), s.config)
-	if err != nil {
-		return fmt.Errorf("Error creating forwarded ssh connection: %s", err)
-	}
-
-	jumpHost := ssh.NewClient(ncc, chans, reqs)
-
-	session, err := jumpHost.NewSession()
+	session, err := s.client.NewSession()
 	if err != nil {
 		return err
 	}
@@ -106,23 +100,14 @@ func (s *SSHClientImpl) Command(cmd string) error {
 }
 
 func (s *SSHClientImpl) CommandWithNoStdOut(cmd string) (string, error) {
-	client, err := ssh.Dial("tcp", net.JoinHostPort("127.0.0.1", fmt.Sprint(s.sshPort)), s.config)
-	if err != nil {
-		return "", fmt.Errorf("Failed to connect to SSH server: %v", err)
+	if s.client == nil {
+		err := s.initClient()
+		if err != nil {
+			return "", err
+		}
 	}
 
-	conn, err := client.Dial("tcp", fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx))
-	if err != nil {
-		return "", fmt.Errorf("Error establishing connection to the next hop host: %s", err)
-	}
-
-	ncc, chans, reqs, err := ssh.NewClientConn(conn, fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx), s.config)
-	if err != nil {
-		return "", fmt.Errorf("Error creating forwarded ssh connection: %s", err)
-	}
-
-	jumpHost := ssh.NewClient(ncc, chans, reqs)
-	session, err := jumpHost.NewSession()
+	session, err := s.client.NewSession()
 	if err != nil {
 		return "", err
 	}
@@ -148,25 +133,16 @@ func (s *SSHClientImpl) CommandWithNoStdOut(cmd string) (string, error) {
 	return stdout.String(), nil
 }
 
+// Copies a file from a jump host after first establishing a connection with the forwarded port by dnsmasq
 func (s *SSHClientImpl) SCP(fileName string, contents io.Reader) error {
-	client, err := ssh.Dial("tcp", net.JoinHostPort("127.0.0.1", fmt.Sprint(s.sshPort)), s.config)
-	if err != nil {
-		return fmt.Errorf("Failed to connect to SSH server: %v", err)
+	if s.client == nil {
+		err := s.initClient()
+		if err != nil {
+			return err
+		}
 	}
 
-	conn, err := client.Dial("tcp", fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx))
-	if err != nil {
-		return fmt.Errorf("Error establishing connection to the next hop host: %s", err)
-	}
-
-	ncc, chans, reqs, err := ssh.NewClientConn(conn, fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx), s.config)
-	if err != nil {
-		return fmt.Errorf("Error creating forwarded ssh connection: %s", err)
-	}
-
-	jumpHost := ssh.NewClient(ncc, chans, reqs)
-
-	scpClient, err := scp.NewClientBySSH(jumpHost)
+	scpClient, err := scp.NewClientBySSH(s.client)
 	if err != nil {
 		return err
 	}
@@ -184,25 +160,16 @@ func (s *SSHClientImpl) SCP(fileName string, contents io.Reader) error {
 	return nil
 }
 
+// Copies a file on a jump host after first establishing a connection with the forwarded port by dnsmasq
 func (s *SSHClientImpl) CopyRemoteFile(remotePathToCopy string, target io.Writer) error {
-	client, err := ssh.Dial("tcp", net.JoinHostPort("127.0.0.1", fmt.Sprint(s.sshPort)), s.config)
-	if err != nil {
-		return fmt.Errorf("Failed to connect to SSH server: %v", err)
+	if s.client == nil {
+		err := s.initClient()
+		if err != nil {
+			return err
+		}
 	}
 
-	conn, err := client.Dial("tcp", fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx))
-	if err != nil {
-		return fmt.Errorf("Error establishing connection to the next hop host: %s", err)
-	}
-
-	ncc, chans, reqs, err := ssh.NewClientConn(conn, fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx), s.config)
-	if err != nil {
-		return fmt.Errorf("Error creating forwarded ssh connection: %s", err)
-	}
-
-	jumpHost := ssh.NewClient(ncc, chans, reqs)
-
-	session, err := jumpHost.NewSession()
+	session, err := s.client.NewSession()
 	if err != nil {
 		return err
 	}
@@ -275,4 +242,27 @@ func (s *SSHClientImpl) CopyRemoteFile(remotePathToCopy string, target io.Writer
 	}
 
 	return err
+}
+
+func (s *SSHClientImpl) initClient() error {
+	s.initMutex.Lock()
+	defer s.initMutex.Unlock()
+	client, err := ssh.Dial("tcp", net.JoinHostPort("127.0.0.1", fmt.Sprint(s.sshPort)), s.config)
+	if err != nil {
+		return fmt.Errorf("Failed to connect to SSH server: %v", err)
+	}
+
+	conn, err := client.Dial("tcp", fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx))
+	if err != nil {
+		return fmt.Errorf("Error establishing connection to the next hop host: %s", err)
+	}
+
+	ncc, chans, reqs, err := ssh.NewClientConn(conn, fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx), s.config)
+	if err != nil {
+		return fmt.Errorf("Error creating forwarded ssh connection: %s", err)
+	}
+
+	jumpHost := ssh.NewClient(ncc, chans, reqs)
+	s.client = jumpHost
+	return nil
 }
