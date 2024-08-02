@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/alessio/shellescape v1.4.2
+	github.com/bramvdbogaerde/go-scp v1.2.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/docker/docker v26.1.5+incompatible
 	github.com/docker/go-connections v0.5.0
