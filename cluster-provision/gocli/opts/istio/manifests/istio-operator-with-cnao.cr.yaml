@@ -1,0 +1,28 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  namespace: istio-system
+  name: istio-operator
+spec:
+  profile: demo
+  hub: quay.io/kubevirtci
+  components:
+    cni:
+      enabled: true
+      namespace: kube-system
+  values:
+    global:
+      jwtPolicy: first-party-jwt
+    cni:
+      chained: false
+      cniBinDir: /opt/cni/bin
+      cniConfDir: /etc/cni/multus/net.d
+      privileged: true
+      excludeNamespaces:
+       - istio-system
+       - kube-system
+      logLevel: debug
+      cniConfFileName: "istio-cni.conf"
+    sidecarInjectorWebhook:
+      injectedAnnotations:
+        "k8s.v1.cni.cncf.io/networks": istio-cni

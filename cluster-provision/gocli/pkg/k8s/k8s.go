@@ -32,6 +32,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+var s = initSchema()
+
 type K8sDynamicClient interface {
 	Get(gvk schema.GroupVersionKind, name, ns string) (*unstructured.Unstructured, error)
 	Apply(obj *unstructured.Unstructured) error
@@ -65,7 +67,6 @@ func NewDynamicClient(config *rest.Config) (*k8sDynamicClientImpl, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error creating dynamic client: %v", err)
 	}
-	s := initSchema()
 	return &k8sDynamicClientImpl{
 		client: dynamicClient,
 		scheme: s,
@@ -73,7 +74,6 @@ func NewDynamicClient(config *rest.Config) (*k8sDynamicClientImpl, error) {
 }
 
 func NewTestClient(reactors ...ReactorConfig) *k8sDynamicClientImpl {
-	s := initSchema()
 	dynamicClient := fake.NewSimpleDynamicClient(s)
 	for _, r := range reactors {
 		dynamicClient.PrependReactor(r.verb, r.resource, r.reactfunc)
@@ -134,14 +134,14 @@ func (c *k8sDynamicClientImpl) Apply(obj *unstructured.Unstructured) error {
 	return nil
 }
 
-func SerializeIntoObject(scheme *runtime.Scheme, manifest []byte) (*unstructured.Unstructured, error) {
+func SerializeIntoObject(manifest []byte) (*unstructured.Unstructured, error) {
 	jsonData, err := yaml.YAMLToJSON(manifest)
 	if err != nil {
 		return nil, fmt.Errorf("Error converting YAML to JSON: %v\n", err)
 	}
 
 	obj := &unstructured.Unstructured{}
-	dec := serializer.NewCodecFactory(scheme).UniversalDeserializer()
+	dec := serializer.NewCodecFactory(s).UniversalDeserializer()
 	_, _, err = dec.Decode(jsonData, nil, obj)
 	if err != nil {
 		return nil, fmt.Errorf("Error decoding JSON to Unstructured object: %v\n", err)
