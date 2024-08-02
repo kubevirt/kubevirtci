@@ -61,71 +61,16 @@ func NewSSHClient(port uint16, idx int, root bool) (*SSHClientImpl, error) {
 	}, nil
 }
 
-// SSH performs two ssh connections, one to the forwarded port by dnsmasq to the local which is the ssh port of the control plane node
-// then a hop to the designated host where the command is desired to be ran
 func (s *SSHClientImpl) Command(cmd string) error {
-	if s.client == nil {
-		err := s.initClient()
-		if err != nil {
-			return err
-		}
-	}
-
-	session, err := s.client.NewSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-
-	session.Stdout = os.Stdout
-	session.Stderr = os.Stderr
-
-	if len(cmd) > 0 {
-		firstCmdChar := cmd[0]
-		// indicates the command is a script or a script with params
-		if string(firstCmdChar) == "/" || string(firstCmdChar) == "-" {
-			cmd = "sudo /bin/bash " + cmd
-		}
-	}
-	logrus.Infof("[node %d]: %s", s.nodeIdx, cmd)
-
-	err = session.Run(cmd)
-	if err != nil {
-		return fmt.Errorf("Failed to execute command: %v, %v", cmd, err)
-	}
-	return nil
+	return s.executeCommand(cmd, os.Stdout, os.Stderr)
 }
 
 func (s *SSHClientImpl) CommandWithNoStdOut(cmd string) (string, error) {
-	if s.client == nil {
-		err := s.initClient()
-		if err != nil {
-			return "", err
-		}
-	}
-
-	session, err := s.client.NewSession()
-	if err != nil {
-		return "", err
-	}
-	defer session.Close()
 	var stdout, stderr bytes.Buffer
-	session.Stdout = &stdout
-	session.Stderr = &stderr
 
-	if len(cmd) > 0 {
-		firstCmdChar := cmd[0]
-		// indicates the command is a script or a script with params
-		if string(firstCmdChar) == "/" || string(firstCmdChar) == "-" {
-			cmd = "sudo /bin/bash " + cmd
-		}
-	}
-	logrus.Infof("[node %d]: %s", s.nodeIdx, cmd)
-
-	err = session.Run(cmd)
+	err := s.executeCommand(cmd, &stdout, &stderr)
 	if err != nil {
-		err = fmt.Errorf(stderr.String())
-		return "", fmt.Errorf("Failed to execute command: %v, %v", cmd, err)
+		return "", fmt.Errorf("%w, %s", err, stderr.String())
 	}
 	return stdout.String(), nil
 }
@@ -239,6 +184,38 @@ func (s *SSHClientImpl) CopyRemoteFile(remotePathToCopy string, target io.Writer
 	}
 
 	return err
+}
+
+func (s *SSHClientImpl) executeCommand(cmd string, outWriter, errWriter io.Writer) error {
+	if s.client == nil {
+		err := s.initClient()
+		if err != nil {
+			return err
+		}
+	}
+	session, err := s.client.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	session.Stdout = outWriter
+	session.Stderr = errWriter
+
+	if len(cmd) > 0 {
+		firstCmdChar := cmd[0]
+		// indicates the command is a script or a script with params
+		if string(firstCmdChar) == "/" || string(firstCmdChar) == "-" {
+			cmd = "sudo /bin/bash " + cmd
+		}
+	}
+	logrus.Infof("[node %d]: %s", s.nodeIdx, cmd)
+
+	err = session.Run(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to execute command: %s", cmd)
+	}
+	return nil
 }
 
 func (s *SSHClientImpl) initClient() error {
