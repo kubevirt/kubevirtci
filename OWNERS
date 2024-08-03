@@ -1,11 +1,9 @@
-filters:
-  ".*":
-    reviewers:
-    - reviewers
-    approvers:
-    - approvers
-    emeritus_approvers:
-    - cynepco3hahue
-    - danielBelenky
-    - fgimenez
-    - slintes
+reviewers:
+- reviewers
+approvers:
+- approvers
+emeritus_approvers:
+- cynepco3hahue
+- danielBelenky
+- fgimenez
+- slintes
