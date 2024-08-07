@@ -83,6 +83,10 @@ while [[ $retry_counter -lt 20 && $kubectl_rc -ne 0 ]]; do
     retry_counter=$((retry_counter + 1))
 done
 
+# Increase etcd's disk priority as suggested in the tuning guide
+# https://etcd.io/docs/v3.2/tuning/#disk
+sudo ionice -c2 -n0 -p `pgrep etcd`
+
 echo "Printing kuberenetes version"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf version
 
