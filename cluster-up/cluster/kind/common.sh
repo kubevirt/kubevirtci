@@ -263,7 +263,6 @@ function _add_kubeadm_cpu_manager_config_patch() {
     kind: JoinConfiguration
     nodeRegistration:
       kubeletExtraArgs:
-        "feature-gates": "CPUManager=true"
         "cpu-manager-policy": "static"
         "kube-reserved": "cpu=500m"
         "system-reserved": "cpu=500m"
