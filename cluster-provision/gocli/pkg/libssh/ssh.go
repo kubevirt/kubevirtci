@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"runtime"
 
 	"golang.org/x/crypto/ssh"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 )
 
 //go:embed key.pem
@@ -30,7 +32,9 @@ func NewSSHClient(port uint16, idx int, root bool) (*SSHClientImpl, error) {
 	if err != nil {
 		return nil, err
 	}
-	u := "vagrant"
+
+	u := utils.GetSSHUserByArchitecture(runtime.GOARCH)
+	
 	if root {
 		u = "root"
 	}
