@@ -2,6 +2,8 @@
 
 set -ex
 
+ARCH=$(uname -m)
+
 KUBEVIRTCI_SHARED_DIR=/var/lib/kubevirtci
 mkdir -p $KUBEVIRTCI_SHARED_DIR
 export ISTIO_VERSION=1.15.0
@@ -14,13 +16,13 @@ export ISTIO_BIN_DIR="/opt/istio-${ISTIO_VERSION}/bin"
 EOF
 source $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 
-# Install modules of the initrd kernel
+# Install modules of the initrd kernel. These modules extend the kernel's functionality, providing support for various hardware devices, file systems, network protocols, KVM/virtualization, and other features.
 dnf install -y "kernel-modules-$(uname -r)"
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
-if growpart /dev/vda 1; then
-    resize2fs /dev/vda1
+if growpart /dev/vda 1; then #growpart adjusts the partition size to fill the available space on the disk
+    resize2fs /dev/vda1 #resizes file system to the available space on the partition
 fi
 
 dnf install -y patch
@@ -58,7 +60,13 @@ dnf install -y container-selinux
 
 dnf install -y libseccomp-devel
 
-dnf install -y centos-release-nfv-openvswitch
-dnf install -y openvswitch2.16
+#openvswitch for s390x is not available from the centos default repos.
+if [ "$ARCH" == "s390x" ]; then
+  dnf install -y https://kojipkgs.fedoraproject.org//packages/openvswitch/2.16.0/2.fc36/s390x/openvswitch-2.16.0-2.fc36.s390x.rpm
+  systemctl enable openvswitch
+else
+  dnf install -y centos-release-nfv-openvswitch
+  dnf install -y openvswitch2.16
+fi 
 
 dnf install -y NetworkManager NetworkManager-ovs NetworkManager-config-server

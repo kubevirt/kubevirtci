@@ -21,7 +21,7 @@ cd $KUBEVIRTCI_DIR
 
 ```bash
 # Build a provider. This includes starting it with cluster-up for verification and shutting it down for cleanup.
-(cd cluster-provision/k8s/1.27; ../provision.sh)
+(cd cluster-provision/k8s/1.28; ../provision.sh)
 ```
 
 Note: 
@@ -34,7 +34,7 @@ please use `export BYPASS_PMAN_CHANGE_CHECK=true` to bypass provision-manager ch
 # set local provision test flag (mandatory)
 export KUBEVIRTCI_PROVISION_CHECK=1
 ```
-
+This ensures to set container-registry to quay.io and container-suffix to :latest
 If `KUBEVIRTCI_PROVISION_CHECK` is not used,
 you can set `KUBEVIRTCI_CONTAINER_REGISTRY` (default: `quay.io`), `KUBEVIRTCI_CONTAINER_ORG` (default: `kubevirtci`) and `KUBEVIRTCI_CONTAINER_SUFFIX` (default: according gocli tag),
 in order to use a custom image.
@@ -48,7 +48,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 ### start cluster
 
 ```bash
-export KUBEVIRT_PROVIDER=k8s-1.30
+export KUBEVIRT_PROVIDER=k8s-1.28
 export KUBECONFIG=$(./cluster-up/kubeconfig.sh)
 export KUBEVIRT_NUM_NODES=2
 
@@ -59,7 +59,7 @@ make cluster-up
 #### start cluster with prometheus, alertmanager and grafana
 To enable prometheus, please also export the following variables before running `make cluster-up`:
 ```bash
-export KUBEVIRT_PROVIDER=k8s-1.30
+export KUBEVIRT_PROVIDER=k8s-1.28
 export KUBEVIRT_DEPLOY_PROMETHEUS=true
 export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
 export KUBEVIRT_DEPLOY_GRAFANA=true
@@ -134,12 +134,16 @@ For that we have phased mode.
 Usage: export the required mode, i.e `export PHASES=linux` or `export PHASES=k8s`
 and then run the provision. the full flow will be:
 
-`export PHASES=linux; (cd cluster-provision/k8s/1.21; ../provision.sh)`  
-`export PHASES=k8s; (cd cluster-provision/k8s/1.21; ../provision.sh)`  
+`export PHASES=linux; (cd cluster-provision/k8s/1.28; ../provision.sh)`  
+`export PHASES=k8s; (cd cluster-provision/k8s/1.28; ../provision.sh)`  
 Run the `k8s` step as much as needed. It reuses the intermediate image that was created
 by the `linux` phase.  
+Note :
+1. By default when you run `k8s` phase alone, it uses centos9 image specified in cluster-provision/k8s/base-image, not the one built locally in the `linux` phase. So, to make `k8s` phase use the locally built centos9 image, update cluster-provision/k8s/base-image with the locally built image name and tag (default: quay.io/kubevirtci/centos9:latest)
+2. Also note if you run both `linux,k8s` phases, then it doesn't save the intermediate container image generated post linux image. So, for the centos9 image required for k8s stage, you've to run the linux phase alone. 
+
 Once you are done, either check the cluster manually, or use:  
-`export PHASES=k8s; export CHECK_CLUSTER=true; (cd cluster-provision/k8s/1.21; ../provision.sh)`
+`export PHASES=k8s; export CHECK_CLUSTER=true; (cd cluster-provision/k8s/1.28; ../provision.sh)`
 
 ### provision without pre-pulling images
 

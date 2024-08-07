@@ -1,6 +1,6 @@
---- a/cluster-provision/k8s/1.24/manifests/cni.do-not-change.yaml
-+++ b/cluster-provision/k8s/1.24/manifests/cni.do-not-change.yaml
-@@ -32,7 +32,12 @@
+--- a/cluster-provision/k8s/1.28/manifests/cni.do-not-change.yaml
++++ b/cluster-provision/k8s/1.28/manifests/cni.do-not-change.yaml
+@@ -69,8 +69,13 @@ data:
            "nodename": "__KUBERNETES_NODE_NAME__",
            "mtu": __CNI_MTU__,
            "ipam": {
@@ -8,50 +8,55 @@
 +              "type": "calico-ipam",
 +              "assign_ipv4": "false",
 +              "assign_ipv6": "true"
-+          },
+           },
 +          "container_settings": {
 +              "allow_ip_forwarding": true
-           },
++           },
            "policy": {
                "type": "k8s"
-@@ -3533,7 +3538,7 @@
+           },
+@@ -4777,7 +4782,7 @@ spec:
          # It can be deleted if this is a fresh installation, or if you have already
          # upgraded to use calico-ipam.
          - name: upgrade-ipam
--          image: docker.io/calico/cni:v3.18.0
-+          image: quay.io/calico/cni:v3.18.0
+-          image: docker.io/calico/cni:v3.27.2
++          image: quay.io/calico/cni:v3.27.2
+           imagePullPolicy: IfNotPresent
            command: ["/opt/cni/bin/calico-ipam", "-upgrade"]
            envFrom:
-           - configMapRef:
-@@ -3560,7 +3565,7 @@
+@@ -4805,7 +4810,7 @@ spec:
          # This container installs the CNI binaries
          # and CNI network config file on each node.
          - name: install-cni
--          image: docker.io/calico/cni:v3.18.0
-+          image: quay.io/calico/cni:v3.18.0
+-          image: docker.io/calico/cni:v3.27.2
++          image: quay.io/calico/cni:v3.27.2
+           imagePullPolicy: IfNotPresent
            command: ["/opt/cni/bin/install"]
            envFrom:
-           - configMapRef:
-@@ -3601,7 +3606,7 @@
-         # Adds a Flex Volume Driver that creates a per-pod Unix Domain Socket to allow Dikastes
-         # to communicate with Felix over the Policy Sync API.
-         - name: flexvol-driver
--          image: docker.io/calico/pod2daemon-flexvol:v3.18.0
-+          image: quay.io/calico/pod2daemon-flexvol:v3.18.0
+@@ -4848,7 +4853,7 @@ spec:
+         # i.e. bpf at /sys/fs/bpf and cgroup2 at /run/calico/cgroup. Calico-node initialisation is executed
+         # in best effort fashion, i.e. no failure for errors, to not disrupt pod creation in iptable mode.
+         - name: "mount-bpffs"
+-          image: docker.io/calico/node:v3.27.2
++          image: quay.io/calico/node:v3.27.2
+           imagePullPolicy: IfNotPresent
+           command: ["calico-node", "-init", "-best-effort"]
            volumeMounts:
-           - name: flexvol-driver-host
-             mountPath: /host/driver
-@@ -3612,7 +3617,7 @@
+@@ -4874,7 +4879,7 @@ spec:
          # container programs network policy and routes on each
          # host.
          - name: calico-node
--          image: docker.io/calico/node:v3.18.0
-+          image: quay.io/calico/node:v3.18.0
+-          image: docker.io/calico/node:v3.27.2
++          image: quay.io/calico/node:v3.27.2
+           imagePullPolicy: IfNotPresent
            envFrom:
            - configMapRef:
-               # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
-@@ -3641,10 +3646,10 @@
+@@ -4902,12 +4907,14 @@ spec:
+             # Cluster type to identify the deployment type
+             - name: CLUSTER_TYPE
                value: "k8s,bgp"
++            - name: IP_AUTODETECTION_METHOD
++              value: "interface=eth.*"
              # Auto-detect the BGP IP address.
              - name: IP
 -              value: "autodetect"
@@ -63,24 +68,21 @@
              # Enable or Disable VXLAN on the default IP pool.
              - name: CALICO_IPV4POOL_VXLAN
                value: "Never"
-@@ -3671,6 +3676,8 @@
-             # no effect. This should fall within `--cluster-cidr`.
+@@ -4938,6 +4945,8 @@ spec:
              # - name: CALICO_IPV4POOL_CIDR
              #   value: "192.168.0.0/16"
+             # Disable file logging so `kubectl logs` works.
 +            - name: IP6
 +              value: "autodetect"
-             # Disable file logging so `kubectl logs` works.
              - name: CALICO_DISABLE_FILE_LOGGING
                value: "true"
-@@ -3679,12 +3686,16 @@
+             # Set Felix endpoint to host default action to ACCEPT.
+@@ -4945,9 +4954,13 @@ spec:
                value: "ACCEPT"
              # Disable IPv6 on Kubernetes.
              - name: FELIX_IPV6SUPPORT
 -              value: "false"
 +              value: "true"
-             # Set Felix logging to "info"
-             - name: FELIX_LOGSEVERITYSCREEN
-               value: "info"
              - name: FELIX_HEALTHENABLED
                value: "true"
 +            - name: CALICO_IPV6POOL_NAT_OUTGOING
@@ -90,12 +92,8 @@
            securityContext:
              privileged: true
            resources:
-@@ -3818,11 +3829,16 @@
-           operator: Exists
-         - key: node-role.kubernetes.io/master
+@@ -5092,9 +5105,12 @@ spec:
            effect: NoSchedule
-+        - key: node-role.kubernetes.io/control-plane
-+          effect: NoSchedule
        serviceAccountName: calico-kube-controllers
        priorityClassName: system-cluster-critical
 +      securityContext:
@@ -103,17 +101,8 @@
 +          type: spc_t
        containers:
          - name: calico-kube-controllers
--          image: docker.io/calico/kube-controllers:v3.18.0
-+          image: quay.io/calico/kube-controllers:v3.18.0
+-          image: docker.io/calico/kube-controllers:v3.27.2
++          image: quay.io/calico/kube-controllers:v3.27.2
+           imagePullPolicy: IfNotPresent
            env:
              # Choose which controllers to run.
-             - name: ENABLED_CONTROLLERS
-@@ -3847,7 +3863,7 @@
- 
- # This manifest creates a Pod Disruption Budget for Controller to allow K8s Cluster Autoscaler to evict
- 
--apiVersion: policy/v1beta1
-+apiVersion: policy/v1
- kind: PodDisruptionBudget
- metadata:
-   name: calico-kube-controllers

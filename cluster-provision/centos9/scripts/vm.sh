@@ -11,6 +11,9 @@ KERNEL_ARGS=""
 NEXT_DISK=""
 BLOCK_DEV=""
 BLOCK_DEV_SIZE=""
+#TODO: Check other places where vagrant as username is used
+VM_USER=$( [ "$(uname -m)" = "s390x" ] && echo "cloud-user" || echo "vagrant" )
+VM_USER_SSH_KEY="vagrant.key"
 
 while true; do
   case "$1" in
@@ -38,6 +41,12 @@ function calc_next_disk {
   if [ -n "$NEXT_DISK" ]; then next=${NEXT_DISK}; fi
   if [ "$last" = "00" ]; then
     last="box.qcow2"
+    # Customize qcow2 image using virt-sysprep (with KVM accelerator)
+    if [ "$(uname -m)" = "s390x" ]; then
+      export LIBGUESTFS_BACKEND=direct
+      export LIBGUESTFS_BACKEND_SETTINGS=force_kvm
+      virt-sysprep -a box.qcow2 --run-command 'useradd -m cloud-user' --append '/etc/cloud/cloud.cfg:runcmd:' --append '/etc/cloud/cloud.cfg: - hostnamectl set-hostname ""' --root-password password:Zxc@123 --ssh-inject cloud-user:string:"ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
+    fi
   else
     last=$(printf "/disk%02d.qcow2" $last)
   fi
@@ -50,7 +59,7 @@ cat >/usr/local/bin/ssh.sh <<EOL
 #!/bin/bash
 set -e
 dockerize -wait tcp://192.168.66.1${n}:22 -timeout 300s &>/dev/null
-ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@192.168.66.1${n} -i vagrant.key -p 22 -q \$@
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${VM_USER}@192.168.66.1${n} -i ${VM_USER_SSH_KEY} -p 22 -q \$@
 EOL
 chmod u+x /usr/local/bin/ssh.sh
 echo "done" >/ssh_ready
@@ -184,15 +193,100 @@ if [ "${NUMA}" -gt 1 ]; then
     done
 fi
 
-exec qemu-system-x86_64 -enable-kvm -drive format=qcow2,file=${next},if=virtio,cache=unsafe ${block_dev_arg} \
-  -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
-  -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
-  -device virtio-rng-pci \
-  -initrd /initrd.img \
-  -kernel /vmlinuz \
-  -append "$(cat /kernel.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}" \
-  -vnc :${n} -cpu host,migratable=no,+invtsc -m ${MEMORY} -smp ${CPU} ${numa_arg} \
-  -serial pty -M q35,accel=kvm,kernel_irqchip=split \
-  -device intel-iommu,intremap=on,caching-mode=on -device intel-hda -device hda-duplex -device AC97 \
-  -uuid $(cat /proc/sys/kernel/random/uuid) \
-  ${QEMU_ARGS}
+if [ "$(uname -m)" != "s390x" ]; then
+  #Docs: https://www.qemu.org/docs/master/system/invocation.html
+  qemu_system_cmd="qemu-system-x86_64 \
+    -enable-kvm \
+    -drive format=qcow2,file=${next},if=virtio,cache=unsafe ${block_dev_arg} \
+    -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
+    -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
+    -device virtio-rng-pci \
+    -initrd /initrd.img \
+    -kernel /vmlinuz \
+    -append \"$(cat /kernel.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}\" \
+    -vnc :${n} \
+    -cpu host,migratable=no,+invtsc \
+    -m ${MEMORY} \
+    -smp ${CPU} ${numa_arg} \
+    -serial pty \
+    -machine q35,accel=kvm,kernel_irqchip=split \
+    -device intel-iommu,intremap=on,caching-mode=on \
+    -device intel-hda \
+    -device hda-duplex \
+    -device AC97 \
+    -uuid $(cat /proc/sys/kernel/random/uuid) \
+    ${QEMU_ARGS}"
+else
+  # As per https://www.qemu.org/docs/master/system/s390x/bootdevices.html#booting-without-bootindex-parameter -drive if=virtio can't be specified with bootindex for s390x
+  qemu_system_cmd="qemu-system-s390x \
+    -enable-kvm \
+    -drive format=qcow2,file=${next},if=none,cache=unsafe,id=drive1 ${block_dev_arg} \
+    -device virtio-blk,drive=drive1,bootindex=1 \
+    -device virtio-net-ccw,netdev=network0,mac=52:55:00:d1:55:${n} \
+    -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
+    -device virtio-rng \
+    -initrd /initrd.img \
+    -kernel /vmlinuz \
+    -append \"$(cat /kernel.s390x.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}\" \
+    -vnc :${n} \
+    -cpu host \
+    -m ${MEMORY} \
+    -smp ${CPU} ${numa_arg} \
+    -serial pty \
+    -machine s390-ccw-virtio,accel=kvm \
+    -uuid $(cat /proc/sys/kernel/random/uuid) \
+    ${QEMU_ARGS}"
+fi
+
+# Remove secondary network devices from qemu_system_cmd and move them to qemu_monitor_cmds, so
+# that those devices are later added after VM is started using qemu monitor to avoid
+# primary network interface to be named other than eth0. This is mainly required for s390x, as 
+# otherwise if primary interface is other than eth0, it is not getting the IP from dhcp server.
+qemu_monitor_cmds=()
+IFS=' ' read -r -a qemu_parts <<< "$qemu_system_cmd"
+for ((i = 0; i < ${#qemu_parts[@]}; i++)); do
+  part="${qemu_parts[$i]}"
+  nxtpart="${qemu_parts[$i + 1]}"
+  # Check for secondary network devices and move them to qemu_monitor_cmds
+  if { [ "$part" == "-netdev" ] && [[ "$nxtpart" == *"secondarynet"* ]]; } || \
+     { [ "$part" == "-device" ] && [[ "$nxtpart" == *"virtio-net-ccw"* ]] && [[ "$nxtpart" == *"secondarynet"* ]]; }; then
+    qemu_system_cmd=$(echo "$qemu_system_cmd" | sed "s/ -$part $nxtpart//")
+    qemu_monitor_cmds+=("${part}_add $nxtpart")
+  fi
+done
+
+qemu_system_cmd+=" -monitor unix:/tmp/qemu-monitor.sock,server,nowait"
+echo "qemu_system_cmd is ${qemu_system_cmd}"
+echo "qemu_monitor_cmds is ${qemu_monitor_cmds}"
+
+PID=0
+eval "nohup $qemu_system_cmd &"
+PID=$!
+
+# Function to check if QEMU monitor socket is ready
+is_qemu_monitor_ready() {
+  socat - UNIX-CONNECT:/tmp/qemu-monitor.sock < /dev/null > /dev/null 2>&1
+}
+
+# Wait for the QEMU monitor socket to be ready
+elapsed=0
+while ! is_qemu_monitor_ready; do
+  if [ $elapsed -ge 60 ]; then
+    echo "QEMU monitor socket did not become available within 60 seconds."
+    exit 1
+  fi
+  sleep 1
+  elapsed=$((elapsed + 1))
+done
+echo "QEMU monitor socket is ready."
+
+# Send commands to QEMU monitor
+if [ "${#qemu_monitor_cmds[@]}" -gt 0 ]; then
+  # Sort commands in reverse alphabetical order so that -netdev are passed first then -dev
+  IFS=$'\t' qemu_monitor_cmds_sorted=($(printf "%s\n" "${qemu_monitor_cmds[@]}" | sort -r))
+  for qemu_monitor_cmd in "${qemu_monitor_cmds_sorted[@]}"; do
+    echo "$qemu_monitor_cmd" | socat - UNIX-CONNECT:/tmp/qemu-monitor.sock
+  done
+fi
+
+wait $PID
