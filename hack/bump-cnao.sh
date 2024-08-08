@@ -21,13 +21,12 @@ set -e
 CNAO_RELEASES="https://github.com/kubevirt/cluster-network-addons-operator/releases/download"
 
 # syntax:
-# ./hack/bump-cnao.sh <PROVIDER> <CNAO_VERSION>
+# ./hack/bump-cnao.sh <CNAO_VERSION>
 
 # usage example
-# ./hack/bump-cnao.sh 1.19 v0.54.0
+# ./hack/bump-cnao.sh v0.54.0
 
 function main() {
-    provider="${1:?provider not set or empty}"
     cnao_version="${2:?cnao version not set or empty}"
 
     declare -a manifests_url
@@ -39,7 +38,7 @@ function main() {
     declare -a manifests
     for url in "${manifests_url[@]}"; do
         file="${url##*/}"
-        if ! ls "./cluster-provision/k8s/${provider}/manifests/cnao/${file}" > /dev/null; then
+        if ! ls "./cluster-provision/gocli/opts/cnao/manifests/${file}" > /dev/null; then
             echo "${file} not found at kubevirtci folder"
             exit 1
         fi
@@ -55,11 +54,11 @@ function main() {
 
     for i in "${!manifests[@]}"; do
         file="${manifests_url[i]##*/}"
-        echo "${manifests[$i]}" > "./cluster-provision/k8s/${provider}/manifests/cnao/${file}"
+        echo "${manifests[$i]}" > "./cluster-provision/gocli/opts/cnao/manifests/${file}"
 
         if [[ $file == "network-addons-config-example.cr.yaml" ]]; then
-            sed -i '/ovs:/d' ./cluster-provision/k8s/${provider}/manifests/cnao/${file}
-            sed -i '/kubevirtIpamController:/d' ./cluster-provision/k8s/${provider}/manifests/cnao/${file}
+            sed -i '/ovs:/d' ./cluster-provision/gocli/opts/cnao/manifests/${file}
+            sed -i '/kubevirtIpamController:/d' ./cluster-provision/gocli/opts/cnao/manifests/${file}
         fi
     done
 

@@ -45,12 +45,12 @@ if [ "$(find "$provision_dir/manifests" -name "cdi-*.yaml" | wc -l)" -gt 0 ]; th
     find "$provision_dir/manifests" -name "cdi-*.yaml" -print
 
     if [ -z "$force" ]; then
-        echo "$provision_dir/manifests/cdi-*.yaml already exists!"
+        echo "$provision_dir/manifests/*.yaml already exists!"
         exit 1
     fi
 
     echo "Deleting old cdi manifests"
-    find "$provision_dir/manifests" -name "cdi-*.yaml" -delete
+    find "$provision_dir/manifests" -name "*.yaml" -delete
 fi
 
 cdi_release_json="$(pwd)/$(mktemp cdi_release_XXXXXXXX.json)"
@@ -60,7 +60,7 @@ function cleanup() {
 }
 trap cleanup EXIT SIGTERM
 tag_name=$(jq -r '.tag_name' "$cdi_release_json")
-cdi_version="${tag_name/#v/}"
+
 (
     cd "$provision_dir/manifests"
     for file in $(
@@ -69,7 +69,13 @@ cdi_version="${tag_name/#v/}"
         curl -O -s -L -f "$file"
     done
 
-    while IFS= read -r -d '' file; do
-        mv "$file" "${file/#\.\/cdi-/\.\/cdi-$cdi_version-}"
-    done < <(find . -type f -name 'cdi*.yaml' -print0)
+    # Renaming files to cr.yaml and operator.yaml
+    if [ -f "cdi-cr.yaml" ]; then
+        mv "cdi-cr.yaml" "cr.yaml"
+    fi
+
+    if [ -f "cdi-operator.yaml" ]; then
+        mv "cdi-operator.yaml" "operator.yaml"
+    fi
 )
+
