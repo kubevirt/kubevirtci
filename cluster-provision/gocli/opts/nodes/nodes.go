@@ -3,6 +3,7 @@ package nodes
 import (
 	_ "embed"
 	"fmt"
+	"runtime"
 
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 )
@@ -33,10 +34,15 @@ func (n *nodesProvisioner) Exec() error {
 		nodeIP = "--node-ip=::"
 	}
 
+	kubeletCpuManagerArgs := ",CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m"
+	if runtime.GOARCH == "s390x" {
+			// CPU Manager feature is not yet supported on s390x.
+			kubeletCpuManagerArgs = ""
+	}
 	cmds := []string{
 		"source /var/lib/kubevirtci/shared_vars.sh",
 		`timeout=30; interval=5; while ! hostnamectl | grep Transient; do echo "Waiting for dhclient to set the hostname from dnsmasq"; sleep $interval; timeout=$((timeout - interval)); [ $timeout -le 0 ] && exit 1; done`,
-		`echo "KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --fail-swap-on=false ` + nodeIP + ` --feature-gates=CPUManager=true,NodeSwap=true --cpu-manager-policy=static --kube-reserved=cpu=250m --system-reserved=cpu=250m" | tee /etc/sysconfig/kubelet > /dev/null`,
+		`echo "KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --fail-swap-on=false ` + nodeIP + ` --feature-gates=NodeSwap=true` + kubeletCpuManagerArgs + `" | tee /etc/sysconfig/kubelet > /dev/null`,
 		"systemctl daemon-reload &&  service kubelet restart",
 		"swapoff -a",
 		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
