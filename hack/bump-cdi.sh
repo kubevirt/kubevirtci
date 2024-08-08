@@ -41,11 +41,26 @@ if [ $# -gt 0 ]; then
     exit 1
 fi
 
-while IFS= read -r -d '' provider_dir; do
-    if ! ./cluster-provision/k8s/fetch-latest-cdi.sh -f "$provider_dir"; then
-        echo "Failed to update cdi manifests for $provider_dir"
+
+cdi_dir="./cluster-provision/gocli/opts/cdi/"
+
+if [ -d "$cdi_dir" ]; then
+    # Execute the fetch-latest-cdi.sh script on the directory
+    if ! ./cluster-provision/k8s/fetch-latest-cdi.sh -f "$cdi_dir"; then
+        echo "Failed to update cdi manifests for $cdi_dir"
         exit 1
     else
-        echo "Updated cdi manifests for $provider_dir"
+        echo "Updated cdi manifests for $cdi_dir"
     fi
-done < <(find ./cluster-provision/k8s -mindepth 1 -maxdepth 1 -type d -regex '^.*[0-9]\.[0-9]+.*$' -regextype 'posix-extended' -print0)
+
+    # Bump versions in the two files within the directory
+    for file in "$cdi_dir"/*; do
+        # Replace version numbers in the file (example: bumping from 1.0.0 to 1.1.0)
+        sed -i 's/1\.0\.0/1.1.0/g' "$file"
+    done
+
+else
+    echo "Directory $cdi_dir does not exist."
+    exit 1
+fi
+
