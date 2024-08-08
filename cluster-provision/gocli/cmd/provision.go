@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -23,6 +24,7 @@ import (
 	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
 
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 )
 
@@ -51,6 +53,7 @@ func NewProvisionCommand() *cobra.Command {
 
 func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	var base string
+	sshUser := libssh.GetUserByArchitecture(runtime.GOARCH)
 	packagePath := args[0]
 	versionBytes, err := os.ReadFile(filepath.Join(packagePath, "version"))
 	if err != nil {
@@ -228,13 +231,13 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	// Wait for ssh.sh script to exist
+	logrus.Info("Wait for ssh.sh script to exist")
 	err = _cmd(cli, nodeContainer(prefix, nodeName), "while [ ! -f /ssh_ready ] ; do sleep 1; done", "checking for ssh.sh script")
 	if err != nil {
 		return err
 	}
 
-	// Wait for the VM to be up
-	err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh echo VM is up", "waiting for node to come up")
+	err = waitForVMToBeUp(cli, prefix, nodeName)
 	if err != nil {
 		return err
 	}
@@ -252,21 +255,21 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		if err != nil {
 			return err
 		}
-		err = _cmd(cli, nodeContainer(prefix, nodeName), "if [ -f /scripts/extra-pre-pull-images ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/extra-pre-pull-images vagrant@192.168.66.101:/tmp/extra-pre-pull-images; fi", "copying /scripts/extra-pre-pull-images if existing")
+		err = _cmd(cli, nodeContainer(prefix, nodeName), fmt.Sprintf("if [ -f /scripts/extra-pre-pull-images ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/extra-pre-pull-images %s@192.168.66.101:/tmp/extra-pre-pull-images; fi", sshUser), "copying /scripts/extra-pre-pull-images if existing")
 		if err != nil {
 			return err
 		}
-		err = _cmd(cli, nodeContainer(prefix, nodeName), "if [ -f /scripts/fetch-images.sh ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/fetch-images.sh vagrant@192.168.66.101:/tmp/fetch-images.sh; fi", "copying /scripts/fetch-images.sh if existing")
+		err = _cmd(cli, nodeContainer(prefix, nodeName), fmt.Sprintf("if [ -f /scripts/fetch-images.sh ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/fetch-images.sh %s@192.168.66.101:/tmp/fetch-images.sh; fi", sshUser), "copying /scripts/fetch-images.sh if existing")
 		if err != nil {
 			return err
 		}
 
-		err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key vagrant@192.168.66.101 'mkdir -p /tmp/ceph /tmp/cnao /tmp/nfs-csi /tmp/nodeports /tmp/prometheus /tmp/whereabouts /tmp/kwok'", "Create required manifest directories before copy")
+		err = _cmd(cli, nodeContainer(prefix, nodeName), fmt.Sprintf("ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key %s@192.168.66.101 'mkdir -p /tmp/ceph /tmp/cnao /tmp/nfs-csi /tmp/nodeports /tmp/prometheus /tmp/whereabouts /tmp/kwok'", sshUser), "Create required manifest directories before copy")
 		if err != nil {
 			return err
 		}
 		// Copy manifests to the VM
-		err = _cmd(cli, nodeContainer(prefix, nodeName), "scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/manifests/* vagrant@192.168.66.101:/tmp", "copying manifests to the VM")
+		err = _cmd(cli, nodeContainer(prefix, nodeName), fmt.Sprintf("scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/manifests/* %s@192.168.66.101:/tmp", sshUser), "copying manifests to the VM")
 		if err != nil {
 			return err
 		}

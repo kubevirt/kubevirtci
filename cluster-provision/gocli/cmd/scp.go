@@ -3,11 +3,13 @@ package cmd
 import (
 	"context"
 	"os"
+	"runtime"
 
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 
 	"bytes"
 	"fmt"
@@ -56,8 +58,9 @@ func NewSCPCommand() *cobra.Command {
 		Args:  cobra.MinimumNArgs(2),
 	}
 
+	sshUser := libssh.GetUserByArchitecture(runtime.GOARCH)
 	ssh.Flags().String("container-name", "dnsmasq", "the container name to SSH copy from")
-	ssh.Flags().String("ssh-user", "vagrant", "the user that used to connect via SSH to the node")
+	ssh.Flags().String("ssh-user", sshUser, "the user that used to connect via SSH to the node")
 
 	return ssh
 }
