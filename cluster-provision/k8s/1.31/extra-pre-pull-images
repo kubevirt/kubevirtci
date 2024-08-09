@@ -1,4 +1,3 @@
-quay.io/kubevirtci/grafana-grafana:7.5.4
 quay.io/kubevirtci/install-cni:1.15.0
 quay.io/kubevirtci/operator:1.15.0
 quay.io/kubevirtci/pilot:1.15.0
@@ -8,3 +7,5 @@ quay.io/calico/cni:v3.18.0
 quay.io/calico/kube-controllers:v3.18.0
 quay.io/calico/node:v3.18.0
 quay.io/calico/pod2daemon-flexvol:v3.18.0
+quay.io/kubevirtci/grafana-grafana:11.1.0
+quay.io/prometheus-operator/prometheus-config-reloader:v0.75.1

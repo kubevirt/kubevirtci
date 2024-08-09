@@ -5,3 +5,4 @@ resources:
 images:
   - name: grafana/grafana
     newName: quay.io/kubevirtci/grafana-grafana
+    newTag: 11.1.0
