@@ -121,6 +121,7 @@ if [[ ($GRAFANA != "false") && ($GRAFANA != "FALSE") ]]; then
     kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/grafana/grafana-service.yaml
     kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/grafana/grafana-serviceAccount.yaml
     kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/grafana/grafana-serviceMonitor.yaml
+    kubectl --kubeconfig /etc/kubernetes/admin.conf create -f /tmp/prometheus/grafana/grafana-config.yaml
 fi
 
 # Deploy nodeports
