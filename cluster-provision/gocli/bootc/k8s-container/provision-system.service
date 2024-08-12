@@ -1,0 +1,11 @@
+[Unit]
+Description=KubevirtCI System Setup
+After=NetworkManager-wait-online.service
+Requires=NetworkManager-wait-online.service
+
+[Service]
+ExecStart=/opt/scripts/provision-system.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
