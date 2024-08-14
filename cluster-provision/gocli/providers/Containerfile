@@ -1,0 +1,4 @@
+FROM quay.io/kubevirtci/centos9-base
+COPY output/qcow2/disk.qcow2 /disk.qcow2
+COPY vm.sh /vm.sh
+RUN chmod 777 vm.sh disk.qcow2
