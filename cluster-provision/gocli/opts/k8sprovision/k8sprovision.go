@@ -3,8 +3,6 @@ package k8sprovision
 import (
 	"embed"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 
@@ -33,22 +31,12 @@ func NewK8sProvisioner(sshClient libssh.Client, version string, slim bool) *K8sP
 }
 
 func (k *K8sProvisioner) Exec() error {
-	crio, err := f.ReadFile("conf/crio-yum.repo")
-	if err != nil {
-		return err
-	}
-
 	registries, err := f.ReadFile("conf/registries.conf")
 	if err != nil {
 		return err
 	}
 
 	storage, err := f.ReadFile("conf/storage.conf")
-	if err != nil {
-		return err
-	}
-
-	k8sRepo, err := f.ReadFile("conf/kubernetes.repo")
 	if err != nil {
 		return err
 	}
@@ -83,6 +71,15 @@ func (k *K8sProvisioner) Exec() error {
 		return err
 	}
 
+	advAudit, err := f.ReadFile("conf/adv-audit.yaml")
+	if err != nil {
+		return err
+	}
+
+	psa, err := f.ReadFile("conf/psa.yaml")
+	if err != nil {
+		return err
+	}
 	etcdPatch, err := patchFs.ReadFile("patches/etcd.yaml")
 	if err != nil {
 		return err
@@ -103,21 +100,6 @@ func (k *K8sProvisioner) Exec() error {
 		return err
 	}
 
-	packagesVersion, err := k.getPackagesVersion()
-	if err != nil {
-		return err
-	}
-
-	advAudit, err := f.ReadFile("conf/adv-audit.yaml")
-	if err != nil {
-		return err
-	}
-
-	psa, err := f.ReadFile("conf/psa.yaml")
-	if err != nil {
-		return err
-	}
-
 	kubeAdm, err := f.ReadFile("conf/kubeadm.conf")
 	if err != nil {
 		return err
@@ -128,21 +110,13 @@ func (k *K8sProvisioner) Exec() error {
 		return err
 	}
 
-	k8sMinor := strings.Split(k.version, ".")[1]
-	k8sRepoWithVersion := strings.Replace(string(k8sRepo), "VERSION", k8sMinor, 1)
-
 	kubeAdmConf := strings.Replace(string(kubeAdm), "VERSION", k.version, 1)
 	kubeAdm6Conf := strings.Replace(string(kubeAdm6), "VERSION", k.version, 1)
 
 	cmds := []string{
-		"echo '" + string(crio) + "' | tee /etc/yum.repos.d/devel_kubic_libcontainers_stable_cri-o_v1.28.repo >> /dev/null",
-		"dnf install -y cri-o",
 		"echo '" + string(registries) + "' | tee /etc/containers/registries.conf >> /dev/null",
 		"echo '" + string(storage) + "' | tee /etc/containers/storage.conf >> /dev/null",
-		"systemctl restart crio",
 		"systemctl enable --now crio",
-		"echo '" + k8sRepoWithVersion + "' | tee /etc/yum.repos.d/kubernetes.repo >> /dev/null",
-		fmt.Sprintf("dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y kubectl-%[1]s kubeadm-%[1]s kubelet-%[1]s kubernetes-cni", packagesVersion),
 		"kubeadm config images pull --kubernetes-version " + k.version,
 		`image_regex='([a-z0-9\_\.]+[/-]?)+(@sha256)?:[a-z0-9\_\.\-]+' image_regex_w_double_quotes='"?'"${image_regex}"'"?' find /tmp -type f -name '*.yaml' -print0 | xargs -0 grep -iE '(image|value): '"${image_regex_w_double_quotes}" > /tmp/images`,
 	}
@@ -182,16 +156,14 @@ func (k *K8sProvisioner) Exec() error {
 	}
 
 	cmds = []string{
-		"mkdir /provision",
-		"yum install -y patch || true",
-		"dnf install -y patch || true",
-		"cp /tmp/cni.do-not-change.yaml /provision/cni.yaml",
-		"mv /tmp/cni.do-not-change.yaml /provision/cni_ipv6.yaml",
+		"mkdir -p /etc/provision",
+		"cp /tmp/cni.do-not-change.yaml /etc/provision/cni.yaml",
+		"mv /tmp/cni.do-not-change.yaml /etc/provision/cni_ipv6.yaml",
 		"echo '" + string(cniPatch) + "' | tee /tmp/cni_patch.diff >> /dev/null",
 		"echo '" + string(cniV6Patch) + "' | tee /tmp/cni_v6_patch.diff >> /dev/null",
-		"patch /provision/cni.yaml /tmp/cni_patch.diff",
-		"patch /provision/cni_ipv6.yaml /tmp/cni_v6_patch.diff",
-		"cp /tmp/local-volume.yaml /provision/local-volume.yaml",
+		"patch /etc/provision/cni.yaml /tmp/cni_patch.diff",
+		"patch /etc/provision/cni_ipv6.yaml /tmp/cni_v6_patch.diff",
+		"cp /tmp/local-volume.yaml /etc/provision/local-volume.yaml",
 		`echo "vm.unprivileged_userfaultfd = 1" > /etc/sysctl.d/enable-userfaultfd.conf`,
 		"modprobe bridge",
 		"modprobe overlay",
@@ -209,38 +181,28 @@ func (k *K8sProvisioner) Exec() error {
 		`echo "net.netfilter.nf_conntrack_max=1000000" >> /etc/sysctl.conf`,
 		"sysctl --system",
 		"systemctl restart NetworkManager",
-		`nmcli connection modify "System eth0" ipv6.method auto ipv6.addr-gen-mode eui64`,
-		`nmcli connection up "System eth0"`,
-		"sysctl --system",
-		"echo bridge >> /etc/modules-load.d/k8s.conf",
-		"echo br_netfilter >> /etc/modules-load.d/k8s.conf",
-		"echo overlay >> /etc/modules-load.d/k8s.conf",
-		"mkdir -p /provision/kubeadm-patches",
-		"echo '" + string(secContextPatch) + "' | tee /provision/kubeadm-patches/add-security-context-deployment-patch.yaml >> /dev/null",
-		"echo '" + string(etcdPatch) + "' | tee /provision/kubeadm-patches/etcd.yaml >> /dev/null",
-		"echo '" + string(apiServerPatch) + "' | tee /provision/kubeadm-patches/kube-apiserver.yaml >> /dev/null",
-		"echo '" + string(controllerManagerPatch) + "' | tee /provision/kubeadm-patches/kube-controller-manager.yaml >> /dev/null",
-		"echo '" + string(schedulerPatch) + "' | tee /provision/kubeadm-patches/kube-scheduler.yaml >> /dev/null",
+		"mkdir -p /etc/provision/kubeadm-patches",
+		"echo '" + string(secContextPatch) + "' | tee /etc/provision/kubeadm-patches/add-security-context-deployment-patch.yaml >> /dev/null",
+		"echo '" + string(etcdPatch) + "' | tee /etc/provision/kubeadm-patches/etcd.yaml >> /dev/null",
+		"echo '" + string(apiServerPatch) + "' | tee /etc/provision/kubeadm-patches/kube-apiserver.yaml >> /dev/null",
+		"echo '" + string(controllerManagerPatch) + "' | tee /etc/provision/kubeadm-patches/kube-controller-manager.yaml >> /dev/null",
+		"echo '" + string(schedulerPatch) + "' | tee /etc/provision/kubeadm-patches/kube-scheduler.yaml >> /dev/null",
 		"mkdir /etc/kubernetes/audit",
 		"echo '" + string(advAudit) + "' | tee /etc/kubernetes/audit/adv-audit.yaml >> /dev/null",
 		"echo '" + string(psa) + "' | tee /etc/kubernetes/psa.yaml >> /dev/null",
 		"echo '" + kubeAdmConf + "' | tee /etc/kubernetes/kubeadm.conf >> /dev/null",
 		"echo '" + kubeAdm6Conf + "' | tee /etc/kubernetes/kubeadm_ipv6.conf >> /dev/null",
-		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
 		"swapoff -a",
 		"systemctl restart kubelet",
-		"kubeadm init --config /etc/kubernetes/kubeadm.conf -v5",
+		"kubeadm init --config /etc/kubernetes/kubeadm.conf -v5 || true",
 		"kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p '" + string(secContextPatch) + "'",
-		"kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /provision/cni.yaml",
+		"kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/provision/cni.yaml",
 		"kubectl --kubeconfig=/etc/kubernetes/admin.conf wait --for=condition=Ready pods --all -n kube-system --timeout=300s",
 		"kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system",
 		"kubeadm reset --force",
 		"mkdir -p /var/provision/kubevirt.io/tests",
 		"chcon -t container_file_t /var/provision/kubevirt.io/tests",
 		`echo "tmpfs /var/provision/kubevirt.io/tests tmpfs rw,context=system_u:object_r:container_file_t:s0 0 1" >> /etc/fstab`,
-		"rm -f /etc/sysconfig/network-scripts/ifcfg-*",
-		"nmcli connection add con-name eth0 ifname eth0 type ethernet",
-		"rm -f /etc/machine-id ; touch /etc/machine-id",
 	}
 
 	for _, cmd := range cmds {
@@ -270,34 +232,4 @@ func (k *K8sProvisioner) pullImageRetry(image string) error {
 		return fmt.Errorf("reached max retries to download for %s", image)
 	}
 	return nil
-}
-
-func (k *K8sProvisioner) getPackagesVersion() (string, error) {
-	packagesVersion := k.version
-	if strings.HasSuffix(k.version, "alpha") || strings.HasSuffix(k.version, "beta") || strings.HasSuffix(k.version, "rc") {
-		k8sversion := strings.Split(k.version, ".")
-
-		url := fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/stable-%s.%s.txt", k8sversion[0], k8sversion[1])
-		resp, err := http.Get(url)
-		if err != nil {
-			fmt.Println("Error fetching the URL:", err)
-			return "", err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			fmt.Printf("Failed to fetch URL. HTTP status: %s\n", resp.Status)
-			return "", err
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Println("Error reading the response body:", err)
-			return "", err
-		}
-
-		packagesVersion = strings.TrimPrefix(string(body), "v")
-
-	}
-	return packagesVersion, nil
 }
