@@ -27,7 +27,7 @@ func (r *RootKey) Exec() error {
 
 	cmds := []string{
 		"echo '" + string(key) + "' | sudo tee /root/.ssh/authorized_keys > /dev/null",
-		"sudo service sshd restart",
+		"sudo systemctl restart sshd",
 	}
 
 	for _, cmd := range cmds {
