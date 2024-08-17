@@ -26,6 +26,18 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 )
 
+const (
+	baseLinuxPhase = "quay.io/kubevirtci/centos9"
+	baseK8sPhase   = "quay.io/kubevirtci/centos9:2410220401-09fda07d"
+)
+
+var versionMap = map[string]string{
+	"1.30": "1.30.2",
+	"1.29": "1.29.6",
+	"1.28": "1.28.11",
+	"1.31": "1.31.0",
+}
+
 // NewProvisionCommand provision given cluster
 func NewProvisionCommand() *cobra.Command {
 
