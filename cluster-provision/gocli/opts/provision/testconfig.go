@@ -1,26 +1,10 @@
 package provision
 
 import (
-	_ "embed"
-
-	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
+	kubevirtcimocks "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/mock"
 )
 
-//go:embed conf/shared_vars.sh
-var sharedVars []byte
-
-type linuxProvisioner struct {
-	sshPort   uint16
-	sshClient libssh.Client
-}
-
-func NewLinuxProvisioner(sc libssh.Client) *linuxProvisioner {
-	return &linuxProvisioner{
-		sshClient: sc,
-	}
-}
-
-func (l *linuxProvisioner) Exec() error {
+func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient) {
 	cmds := []string{
 		`mkdir -p /var/lib/kubevirtci && echo '` + string(sharedVars) + `' |  tee /var/lib/kubevirtci/shared_vars.sh > /dev/null`,
 		`dnf install -y "kernel-modules-$(uname -r)"`,
@@ -44,10 +28,8 @@ func (l *linuxProvisioner) Exec() error {
 		"dnf install -y openvswitch2.16",
 		"dnf install -y NetworkManager NetworkManager-ovs NetworkManager-config-server",
 	}
+
 	for _, cmd := range cmds {
-		if err := l.sshClient.Command(cmd); err != nil {
-			return err
-		}
+		sshClient.EXPECT().Command(cmd)
 	}
-	return nil
 }
