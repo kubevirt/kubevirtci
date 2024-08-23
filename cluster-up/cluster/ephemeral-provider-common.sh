@@ -210,7 +210,7 @@ function _add_common_params() {
     fi
 
     if [ ! -z $KUBEVIRT_KSM_SLEEP_BETWEEN_SCANS_MS ]; then
-        params=" --ksm-sleep-interval=$KUBEVIRT_KSM_SLEEP_BETWEEN_SCANS_MS $params"
+        params=" --ksm-scan-interval=$KUBEVIRT_KSM_SLEEP_BETWEEN_SCANS_MS $params"
     fi
 
     if [ ! -z $KUBEVIRT_KSM_PAGES_TO_SCAN ]; then
