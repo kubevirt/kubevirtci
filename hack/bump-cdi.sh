@@ -42,7 +42,7 @@ if [ $# -gt 0 ]; then
 fi
 
 
-cdi_dir="./cluster-provision/gocli/opts/cdi/"
+cdi_dir="./cluster-provision/gocli/opts/cdi"
 
 if [ -d "$cdi_dir" ]; then
     # Execute the fetch-latest-cdi.sh script on the directory
@@ -52,13 +52,6 @@ if [ -d "$cdi_dir" ]; then
     else
         echo "Updated cdi manifests for $cdi_dir"
     fi
-
-    # Bump versions in the two files within the directory
-    for file in "$cdi_dir"/*; do
-        # Replace version numbers in the file (example: bumping from 1.0.0 to 1.1.0)
-        sed -i 's/1\.0\.0/1.1.0/g' "$file"
-    done
-
 else
     echo "Directory $cdi_dir does not exist."
     exit 1
