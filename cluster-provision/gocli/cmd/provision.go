@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
@@ -38,7 +39,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().StringP("memory", "m", "3096M", "amount of ram per node")
 	provision.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
 	provision.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
-	provision.Flags().Bool("random-ports", false, "expose all ports on random localhost ports")
+	provision.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
 	provision.Flags().Bool("slim", false, "create slim provider (uncached images)")
 	provision.Flags().Uint("vnc-port", 0, "port on localhost for vnc")
 	provision.Flags().Uint("ssh-port", 0, "port on localhost for ssh server")
@@ -167,6 +168,21 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
+	dm, err := cli.ContainerInspect(context.Background(), dnsmasq.ID)
+	if err != nil {
+		return err
+	}
+
+	sshPort, err := utils.GetPublicPort(utils.PortSSH, dm.NetworkSettings.Ports)
+	if err != nil {
+		return err
+	}
+
+	sshClient, err := libssh.NewSSHClient(sshPort, 1, false)
+	if err != nil {
+		return err
+	}
+
 	nodeName := nodeNameFromIndex(1)
 	nodeNum := fmt.Sprintf("%02d", 1)
 
@@ -239,9 +255,15 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
+	// Copy scripts to the VM
+	err = _cmd(cli, nodeContainer(prefix, nodeName), `find /scripts/ -maxdepth 1 -type f -exec scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 {} vagrant@192.168.66.101:/tmp \;`, "copying manifests to the VM")
+	if err != nil {
+		return err
+	}
+
 	envVars := fmt.Sprintf("version=%s slim=%t", version, slim)
 	if strings.Contains(phases, "linux") {
-		err = performPhase(cli, nodeContainer(prefix, nodeName), "/scripts/provision.sh", envVars)
+		err := sshClient.Command("sudo " + envVars + " /bin/bash /tmp/provision.sh")
 		if err != nil {
 			return err
 		}
@@ -252,32 +274,22 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		if err != nil {
 			return err
 		}
-		err = _cmd(cli, nodeContainer(prefix, nodeName), "if [ -f /scripts/extra-pre-pull-images ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/extra-pre-pull-images vagrant@192.168.66.101:/tmp/extra-pre-pull-images; fi", "copying /scripts/extra-pre-pull-images if existing")
-		if err != nil {
-			return err
-		}
 		err = _cmd(cli, nodeContainer(prefix, nodeName), "if [ -f /scripts/fetch-images.sh ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/fetch-images.sh vagrant@192.168.66.101:/tmp/fetch-images.sh; fi", "copying /scripts/fetch-images.sh if existing")
 		if err != nil {
 			return err
 		}
-
-		err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key vagrant@192.168.66.101 'mkdir -p /tmp/ceph /tmp/cnao /tmp/nfs-csi /tmp/nodeports /tmp/prometheus /tmp/whereabouts /tmp/kwok'", "Create required manifest directories before copy")
-		if err != nil {
-			return err
-		}
-		// Copy manifests to the VM
 		err = _cmd(cli, nodeContainer(prefix, nodeName), "scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/manifests/* vagrant@192.168.66.101:/tmp", "copying manifests to the VM")
 		if err != nil {
 			return err
 		}
-
-		err = performPhase(cli, nodeContainer(prefix, nodeName), "/scripts/k8s_provision.sh", envVars)
+		err = sshClient.Command("sudo " + envVars + " /bin/bash /tmp/k8s_provision.sh")
 		if err != nil {
 			return err
 		}
 	}
 
-	_cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh sudo shutdown now -h", "shutting down the node")
+	sshClient.Command("sudo shutdown now -h")
+
 	err = _cmd(cli, nodeContainer(prefix, nodeName), "rm /usr/local/bin/ssh.sh", "removing the ssh.sh script")
 	if err != nil {
 		return err
