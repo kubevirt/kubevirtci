@@ -379,14 +379,3 @@ func _cmd(cli *client.Client, container string, cmd string, description string) 
 	}
 	return nil
 }
-
-func performPhase(cli *client.Client, container string, script string, envVars string) error {
-	err := _cmd(cli, container, fmt.Sprintf("test -f %s", script), "checking provision scripts")
-	if err != nil {
-		return err
-	}
-
-	return _cmd(cli, container,
-		fmt.Sprintf("ssh.sh sudo %s /bin/bash < %s", envVars, script),
-		fmt.Sprintf("provisioning the node (%s)", script))
-}
