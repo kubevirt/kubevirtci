@@ -1,3 +1,4 @@
+---
 apiVersion: networkaddonsoperator.network.kubevirt.io/v1
 kind: NetworkAddonsConfig
 metadata:
@@ -10,4 +11,3 @@ spec:
   macvtap: {}
   multus: {}
   multusDynamicNetworks: {}
-  ovs: {}
