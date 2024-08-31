@@ -27,7 +27,7 @@ var _ = Describe("CnaoOpt", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		client = k8s.NewTestClient()
 		sshClient = kubevirtcimocks.NewMockSSHClient(mockCtrl)
-		opt = NewCnaoOpt(client, sshClient)
+		opt = NewCnaoOpt(client, sshClient, false)
 	})
 
 	AfterEach(func() {
