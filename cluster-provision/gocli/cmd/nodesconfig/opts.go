@@ -46,6 +46,12 @@ func WithSingleStack(singleStack bool) LinuxConfigFunc {
 	}
 }
 
+func WithNoEtcdFsync(noEtcdFsync bool) LinuxConfigFunc {
+	return func(n *NodeLinuxConfig) {
+		n.NoEtcdFsync = noEtcdFsync
+	}
+}
+
 func WithEnableAudit(enableAudit bool) LinuxConfigFunc {
 	return func(n *NodeLinuxConfig) {
 		n.EnableAudit = enableAudit
