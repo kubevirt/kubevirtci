@@ -812,7 +812,7 @@ func provisionK8sOptions(sshClient libssh.Client, k8sClient k8s.K8sDynamicClient
 	}
 
 	if n.CNAO {
-		cnaoOpt := cnao.NewCnaoOpt(k8sClient, sshClient)
+		cnaoOpt := cnao.NewCnaoOpt(k8sClient, sshClient, n.Multus)
 		opts = append(opts, cnaoOpt)
 	}
 

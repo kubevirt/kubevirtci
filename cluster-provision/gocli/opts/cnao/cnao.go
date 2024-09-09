@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 
 	"github.com/sirupsen/logrus"
 	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/k8s"
@@ -16,14 +17,16 @@ import (
 var f embed.FS
 
 type cnaoOpt struct {
-	client    k8s.K8sDynamicClient
-	sshClient libssh.Client
+	client        k8s.K8sDynamicClient
+	sshClient     libssh.Client
+	multusEnabled bool
 }
 
-func NewCnaoOpt(c k8s.K8sDynamicClient, sshClient libssh.Client) *cnaoOpt {
+func NewCnaoOpt(c k8s.K8sDynamicClient, sshClient libssh.Client, multusEnabled bool) *cnaoOpt {
 	return &cnaoOpt{
-		client:    c,
-		sshClient: sshClient,
+		client:        c,
+		sshClient:     sshClient,
+		multusEnabled: multusEnabled,
 	}
 }
 
@@ -41,6 +44,12 @@ func (o *cnaoOpt) Exec() error {
 			for _, yamlDoc := range yamlDocs {
 				if len(yamlDoc) == 0 {
 					continue
+				}
+
+				if path == "manifests/network-addons-config-example.cr.yaml" && o.multusEnabled {
+					re := regexp.MustCompile("(?m)[\r\n]+^.*multus.*$")
+					res := re.ReplaceAllString(string(yamlDoc), "")
+					yamlDoc = []byte(res)
 				}
 
 				obj, err := k8s.SerializeIntoObject(yamlDoc)
