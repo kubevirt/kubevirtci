@@ -77,6 +77,7 @@ var _ = Describe("Node Provisioning", func() {
 			}
 			n := nodesconfig.NewNodeK8sConfig(k8sConfs)
 
+			rookceph.AddExpectCalls(sshClient)
 			istio.AddExpectCalls(sshClient)
 			aaq.AddExpectCalls(sshClient)
 
