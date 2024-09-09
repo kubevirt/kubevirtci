@@ -14,18 +14,21 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/k8s"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 )
 
 //go:embed manifests/*
 var f embed.FS
 
 type cephOpt struct {
-	client k8s.K8sDynamicClient
+	client    k8s.K8sDynamicClient
+	sshClient libssh.Client
 }
 
-func NewCephOpt(c k8s.K8sDynamicClient) *cephOpt {
+func NewCephOpt(c k8s.K8sDynamicClient, sshClient libssh.Client) *cephOpt {
 	return &cephOpt{
-		client: c,
+		client:    c,
+		sshClient: sshClient,
 	}
 }
 
@@ -97,6 +100,16 @@ func (o *cephOpt) Exec() error {
 	err = backoff.Retry(operation, backoffStrategy)
 	if err != nil {
 		return fmt.Errorf("Operation failed after maximum retries: %v", err)
+	}
+
+	cmds := []string{
+		`kubectl --kubeconfig /etc/kubernetes/admin.conf patch storageclass local -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'`,
+		`kubectl --kubeconfig /etc/kubernetes/admin.conf patch storageclass rook-ceph-block -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'`,
+	}
+	for _, cmd := range cmds {
+		if err := o.sshClient.Command(cmd); err != nil {
+			return err
+		}
 	}
 
 	return nil
