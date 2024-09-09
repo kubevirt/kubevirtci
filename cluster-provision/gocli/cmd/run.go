@@ -797,7 +797,7 @@ func provisionK8sOptions(sshClient libssh.Client, k8sClient k8s.K8sDynamicClient
 	opts := []opts.Opt{}
 
 	if n.Ceph {
-		cephOpt := rookceph.NewCephOpt(k8sClient)
+		cephOpt := rookceph.NewCephOpt(k8sClient, sshClient)
 		opts = append(opts, cephOpt)
 	}
 
