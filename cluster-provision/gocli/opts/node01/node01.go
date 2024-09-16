@@ -16,12 +16,14 @@ var advAudit []byte
 type node01Provisioner struct {
 	sshClient   libssh.Client
 	singleStack bool
+	etcdNoFsync bool
 }
 
-func NewNode01Provisioner(sc libssh.Client, singleStack bool) *node01Provisioner {
+func NewNode01Provisioner(sc libssh.Client, singleStack, etcdNoFsync bool) *node01Provisioner {
 	return &node01Provisioner{
 		sshClient:   sc,
 		singleStack: singleStack,
+		etcdNoFsync: etcdNoFsync,
 	}
 }
 
@@ -36,6 +38,11 @@ func (n *node01Provisioner) Exec() error {
 		cniManifest = "/provision/cni_ipv6.yaml"
 	}
 
+	kubeadmInitCmd := "kubeadm init --config " + kubeadmConf + " -v5"
+	if n.etcdNoFsync {
+		kubeadmInitCmd = fmt.Sprintf("sed -i 's/#etcdExtraArgs/extraArgs: \\{unsafe-no-fsync: \\\"True\\\"}/' %s && %s", kubeadmConf, kubeadmInitCmd)
+	}
+
 	cmds := []string{
 		`if [ -f /home/vagrant/enable_audit ]; then echo '` + string(advAudit) + `' | tee /etc/kubernetes/audit/adv-audit.yaml > /dev/null; fi`,
 		`timeout=30; interval=5; while ! hostnamectl | grep Transient; do echo "Waiting for dhclient to set the hostname from dnsmasq"; sleep $interval; timeout=$((timeout - interval)); [ $timeout -le 0 ] && exit 1; done`,
@@ -44,7 +51,7 @@ func (n *node01Provisioner) Exec() error {
 		"while [[ $(systemctl status crio | grep -c active) -eq 0 ]]; do sleep 2; done",
 		"swapoff -a",
 		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
-		"kubeadm init --config " + kubeadmConf + " -v5",
+		kubeadmInitCmd,
 		`kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /provision/kubeadm-patches/add-security-context-deployment-patch.yaml)"`,
 		`kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f ` + cniManifest,
 		`kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/control-plane:NoSchedule-`,

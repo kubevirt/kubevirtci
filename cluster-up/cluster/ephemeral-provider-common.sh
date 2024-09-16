@@ -138,6 +138,10 @@ function _add_common_params() {
         params=" --single-stack $params"
     fi
 
+    if [ $KUBEVIRT_NO_ETCD_FSYNC == "true" ]; then
+        params=" --no-etcd-fsync $params"
+    fi
+
     if [ $KUBEVIRT_ENABLE_AUDIT == "true" ]; then
         params=" --enable-audit $params"
     fi

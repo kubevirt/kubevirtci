@@ -151,6 +151,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-fips", false, "enables FIPS")
 	run.Flags().Bool("enable-psa", false, "Pod Security Admission")
 	run.Flags().Bool("single-stack", false, "enable single stack IPv6")
+	run.Flags().Bool("no-etcd-fsync", false, "unsafe: disable fsyncs in etcd")
 	run.Flags().Bool("enable-audit", false, "enable k8s audit for all metadata events")
 	run.Flags().StringArrayVar(&usbDisks, "usb", []string{}, "size of the emulate USB disk to pass to the node")
 	return run
@@ -321,6 +322,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	singleStack, err := cmd.Flags().GetBool("single-stack")
+	if err != nil {
+		return err
+	}
+	noEtcdFsync, err := cmd.Flags().GetBool("no-etcd-fsync")
 	if err != nil {
 		return err
 	}
@@ -714,6 +719,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodesconfig.WithEtcdInMemory(runEtcdOnMemory),
 			nodesconfig.WithEtcdSize(etcdDataMountSize),
 			nodesconfig.WithSingleStack(singleStack),
+			nodesconfig.WithNoEtcdFsync(noEtcdFsync),
 			nodesconfig.WithEnableAudit(enableAudit),
 			nodesconfig.WithGpuAddress(gpuAddress),
 			nodesconfig.WithRealtime(realtimeSchedulingEnabled),
@@ -900,7 +906,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 	}
 
 	if n.NodeIdx == 1 {
-		n := node01.NewNode01Provisioner(sshClient, n.SingleStack)
+		n := node01.NewNode01Provisioner(sshClient, n.SingleStack, n.NoEtcdFsync)
 		opts = append(opts, n)
 
 	} else {

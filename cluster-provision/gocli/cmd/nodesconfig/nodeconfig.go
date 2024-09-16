@@ -9,6 +9,7 @@ type NodeLinuxConfig struct {
 	EtcdInMemory    bool
 	EtcdSize        string
 	SingleStack     bool
+	NoEtcdFsync     bool
 	EnableAudit     bool
 	GpuAddress      string
 	Realtime        bool
