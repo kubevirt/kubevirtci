@@ -121,7 +121,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("reverse", false, "reverse node setup order")
 	run.Flags().Bool("enable-cnao", false, "enable network extensions with istio")
 	run.Flags().Bool("deploy-multus", false, "deploy multus")
-	run.Flags().Bool("deploy-cdi", true, "deploy cdi")
+	run.Flags().Bool("deploy-cdi", false, "deploy cdi")
 	run.Flags().String("cdi-version", "", "cdi version")
 	run.Flags().String("aaq-version", "", "aaq version")
 	run.Flags().Bool("deploy-aaq", false, "deploy aaq")
