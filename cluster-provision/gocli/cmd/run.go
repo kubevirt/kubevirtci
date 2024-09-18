@@ -452,21 +452,36 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 	}
 
-	dnsmasq, err := containers2.DNSMasq(cli, ctx, &containers2.DNSMasqOptions{
-		ClusterImage:       clusterImage,
-		SecondaryNicsCount: secondaryNics,
-		RandomPorts:        randomPorts,
-		PortMap:            portMap,
-		Prefix:             prefix,
-		NodeCount:          nodes,
-	})
-	if err != nil {
-		return err
-	}
+	var dnsmasq *container.CreateResponse
+	for i := 0; i <= 3; i++ {
+		if i == 3 {
+			fmt.Printf("dnsmasq container failed to start 3 times")
+			return err
+		}
+		dnsmasq, err = containers2.DNSMasq(cli, ctx, &containers2.DNSMasqOptions{
+			ClusterImage:       clusterImage,
+			SecondaryNicsCount: secondaryNics,
+			RandomPorts:        randomPorts,
+			PortMap:            portMap,
+			Prefix:             prefix,
+			NodeCount:          nodes,
+		})
+		if err != nil {
+			return err
+		}
 
-	containers <- dnsmasq.ID
-	if err := cli.ContainerStart(ctx, dnsmasq.ID, container.StartOptions{}); err != nil {
-		return err
+		if err := cli.ContainerStart(ctx, dnsmasq.ID, container.StartOptions{}); err != nil {
+			fmt.Printf("Failed to start dnsmasq container: %s\n", err)
+			fmt.Printf("Retry creating and starting dnsmasq container\n")
+			if err := cli.ContainerRemove(ctx, dnsmasq.ID, container.RemoveOptions{}); err != nil {
+				return err
+			}
+			time.Sleep(2 * time.Second)
+
+		} else {
+			containers <- dnsmasq.ID
+			break
+		}
 	}
 
 	dm, err := cli.ContainerInspect(context.Background(), dnsmasq.ID)
