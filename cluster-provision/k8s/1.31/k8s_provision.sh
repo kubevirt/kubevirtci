@@ -62,7 +62,7 @@ function pull_container_retry() {
     fi
 }
 
-export CRIO_VERSION=1.30
+export CRIO_VERSION=1.31
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}.repo
 [isv_kubernetes_addons_cri-o_stable_v${CRIO_VERSION}]
 name=CRI-O v${CRIO_VERSION} (Stable) (rpm)
