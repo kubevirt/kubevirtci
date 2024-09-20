@@ -19,6 +19,9 @@
 
 set -e
 
+>&2 echo "WARNING: usage of '${BASH_SOURCE[0]}' is deprecated!"
+>&2 echo "         see: https://github.com/kubevirt/kubevirtci/issues/1277"
+
 if [ -z "$KUBEVIRTCI_PATH" ]; then
     KUBEVIRTCI_PATH="$(
         cd "$(dirname "$BASH_SOURCE[0]")/"
