@@ -41,5 +41,12 @@ elif [ -n "$KUBECONFIG" ]; then
     CONFIG_ARGS="--kubeconfig=${KUBECONFIG}"
 fi
 
-${KUBEVIRTCI_PATH}/../_out/cmd/virtctl/virtctl $CONFIG_ARGS "$@"
+KUBEVIRT_OUT_PATH=${KUBEVIRTCI_PATH}/../_out
+if [ ! -d ${KUBEVIRT_OUT_PATH} ]; then
+    # see https://github.com/kubevirt/kubevirt/pull/12872
+    >&2 echo "WARNING: $KUBEVIRT_OUT_PATH not found, falling back to parent"
+    KUBEVIRT_OUT_PATH=${KUBEVIRTCI_PATH}/../../_out
+    >&2 echo "         $KUBEVIRT_OUT_PATH"
+fi
+${KUBEVIRT_OUT_PATH}/cmd/virtctl/virtctl $CONFIG_ARGS "$@"
 
