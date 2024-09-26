@@ -35,7 +35,7 @@ var _ = Describe("CnaoOpt", func() {
 	})
 
 	It("should execute create CNAO with Multus", func() {
-		opt = NewCnaoOpt(client, sshClient, false)
+		opt = NewCnaoOpt(client, sshClient, false, false)
 		sshClient.EXPECT().Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf wait deployment -n cluster-network-addons cluster-network-addons-operator --for condition=Available --timeout=200s")
 		opt.Exec()
 
@@ -51,7 +51,7 @@ var _ = Describe("CnaoOpt", func() {
 	})
 
 	It("should execute create CNAO without Multus", func() {
-		opt = NewCnaoOpt(client, sshClient, true)
+		opt = NewCnaoOpt(client, sshClient, true, false)
 		sshClient.EXPECT().Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf wait deployment -n cluster-network-addons cluster-network-addons-operator --for condition=Available --timeout=200s")
 		opt.Exec()
 
