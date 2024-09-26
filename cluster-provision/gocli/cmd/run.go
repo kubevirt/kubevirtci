@@ -120,6 +120,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-istio", false, "deploys Istio service mesh")
 	run.Flags().Bool("reverse", false, "reverse node setup order")
 	run.Flags().Bool("enable-cnao", false, "enable network extensions with istio")
+	run.Flags().Bool("skip-cnao-cr", false, "skip deploying cnao custom resource. if true, only cnao CRDS will be deployed")
 	run.Flags().Bool("deploy-multus", false, "deploy multus")
 	run.Flags().Bool("deploy-cdi", false, "deploy cdi")
 	run.Flags().String("cdi-version", "", "cdi version")
@@ -338,6 +339,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	cnaoEnabled, err := cmd.Flags().GetBool("enable-cnao")
+	if err != nil {
+		return err
+	}
+	cnaoSkipCR, err := cmd.Flags().GetBool("skip-cnao-cr")
 	if err != nil {
 		return err
 	}
@@ -773,6 +778,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		nodesconfig.WithIstio(istioEnabled),
 		nodesconfig.WithNfsCsi(nfsCsiEnabled),
 		nodesconfig.WithCnao(cnaoEnabled),
+		nodesconfig.WithCNAOSkipCR(cnaoSkipCR),
 		nodesconfig.WithMultus(deployMultus),
 		nodesconfig.WithCdi(deployCdi),
 		nodesconfig.WithCdiVersion(cdiVersion),
@@ -833,7 +839,7 @@ func provisionK8sOptions(sshClient libssh.Client, k8sClient k8s.K8sDynamicClient
 	}
 
 	if n.CNAO {
-		cnaoOpt := cnao.NewCnaoOpt(k8sClient, sshClient, n.Multus)
+		cnaoOpt := cnao.NewCnaoOpt(k8sClient, sshClient, n.Multus, n.CNAOSkipCR)
 		opts = append(opts, cnaoOpt)
 	}
 
