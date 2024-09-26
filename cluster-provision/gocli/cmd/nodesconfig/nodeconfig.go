@@ -32,6 +32,7 @@ type NodeK8sConfig struct {
 	Istio        bool
 	NfsCsi       bool
 	CNAO         bool
+	CNAOSkipCR   bool
 	Multus       bool
 	CDI          bool
 	CDIVersion   string

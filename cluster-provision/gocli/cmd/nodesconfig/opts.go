@@ -172,6 +172,12 @@ func WithCnao(cnao bool) K8sConfigFunc {
 	}
 }
 
+func WithCNAOSkipCR(skip bool) K8sConfigFunc {
+	return func(n *NodeK8sConfig) {
+		n.CNAOSkipCR = skip
+	}
+}
+
 func WithMultus(multus bool) K8sConfigFunc {
 	return func(n *NodeK8sConfig) {
 		n.Multus = multus
