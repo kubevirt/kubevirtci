@@ -20,13 +20,15 @@ type cnaoOpt struct {
 	client        k8s.K8sDynamicClient
 	sshClient     libssh.Client
 	multusEnabled bool
+	skipCR        bool
 }
 
-func NewCnaoOpt(c k8s.K8sDynamicClient, sshClient libssh.Client, multusEnabled bool) *cnaoOpt {
+func NewCnaoOpt(c k8s.K8sDynamicClient, sshClient libssh.Client, multusEnabled, skipCR bool) *cnaoOpt {
 	return &cnaoOpt{
 		client:        c,
 		sshClient:     sshClient,
 		multusEnabled: multusEnabled,
+		skipCR:        skipCR,
 	}
 }
 
@@ -46,10 +48,16 @@ func (o *cnaoOpt) Exec() error {
 					continue
 				}
 
-				if path == "manifests/network-addons-config-example.cr.yaml" && o.multusEnabled {
-					re := regexp.MustCompile("(?m)[\r\n]+^.*multus.*$")
-					res := re.ReplaceAllString(string(yamlDoc), "")
-					yamlDoc = []byte(res)
+				if path == "manifests/network-addons-config-example.cr.yaml" {
+					if o.skipCR {
+						continue
+					}
+
+					if o.multusEnabled {
+						re := regexp.MustCompile("(?m)[\r\n]+^.*multus.*$")
+						res := re.ReplaceAllString(string(yamlDoc), "")
+						yamlDoc = []byte(res)
+					}
 				}
 
 				obj, err := k8s.SerializeIntoObject(yamlDoc)
