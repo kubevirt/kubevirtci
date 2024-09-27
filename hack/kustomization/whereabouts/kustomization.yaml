@@ -8,4 +8,4 @@ resources:
 
 images:
   - name: ghcr.io/k8snetworkplumbingwg/whereabouts
-    newTag: ##VERSION##-amd64
+    newTag: ##VERSION##

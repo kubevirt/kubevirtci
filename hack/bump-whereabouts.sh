@@ -22,14 +22,13 @@ WHEREABOUTS_BASE="https://github.com/k8snetworkplumbingwg/whereabouts/archive"
 WHEREABOUTS_RELEASES="${WHEREABOUTS_BASE}/refs/tags/"
 
 # syntax:
-# ./hack/bump-whereabouts.sh <PROVIDER> <WHEREABOUTS_VERSION>
+# ./hack/bump-whereabouts.sh <WHEREABOUTS_VERSION>
 
 # usage example
-# ./hack/bump-whereabouts.sh 1.19 v0.4.2
-# ./hack/bump-whereabouts.sh 1.19 master
+# ./hack/bump-whereabouts.sh v0.4.2
+# ./hack/bump-whereabouts.sh master
 
-provider="${1:?provider not set or empty}"
-whereabouts_version="${2:?whereabouts version not set or empty}"
+whereabouts_version="${1:?whereabouts version not set or empty}"
 
 url=
 if [[ $whereabouts_version = v* ]]; then
@@ -51,11 +50,11 @@ manifests_dir=doc
 cp hack/kustomization/whereabouts/*.yaml ${tmp_dir}/whereabouts/${manifests_dir}/
 sed -i "s/##VERSION##/${whereabouts_version}/" ${tmp_dir}/whereabouts/${manifests_dir}/kustomization.yaml
 
-target_dir="cluster-provision/k8s/${provider}/manifests/whereabouts"
+target_dir="cluster-provision/gocli/opts/cnao/manifests/"
 mkdir -p ${target_dir}
-rm -rf ${target_dir:?}/*
-kubectl kustomize ${tmp_dir}/whereabouts/${manifests_dir}/ >${target_dir}/whereabouts-${whereabouts_version}.yaml
+rm -rf ${target_dir:?}/whereabouts.yaml
+kubectl kustomize ${tmp_dir}/whereabouts/${manifests_dir}/ >${target_dir}/whereabouts.yaml
 
 rm -rf $tmp_dir
 
-echo "whereabouts, provision, Bump k8s-${provider} whereabouts to ${whereabouts_version}"
+echo "whereabouts, provision, Bump whereabouts to ${whereabouts_version}"
