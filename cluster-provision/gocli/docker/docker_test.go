@@ -23,23 +23,23 @@ func Test_filterByPrefix(t *testing.T) {
 				prefix     string
 			}{
 				containers: []types.Container{
-					container("prefix-1", "something", "unimportant"),
-					container("prefix-2", "something1", "unimportant1"),
-					container("absolutely-unrelated"),
-					container("something1", "not-a-prefix1", "unimportant1"),
-					container("something1", "prefix-3", "unimportant1"),
-					container("prefix-4"),
-					container("/prefix-5"),
-					container("not-a-prefix2", "unimportant1"),
+					containerFromNames("prefix-1", "something", "unimportant"),
+					containerFromNames("prefix-2", "something1", "unimportant1"),
+					containerFromNames("absolutely-unrelated"),
+					containerFromNames("something1", "not-a-prefix1", "unimportant1"),
+					containerFromNames("something1", "prefix-3", "unimportant1"),
+					containerFromNames("prefix-4"),
+					containerFromNames("/prefix-5"),
+					containerFromNames("not-a-prefix2", "unimportant1"),
 				},
 				prefix: "prefix",
 			},
 			want: []types.Container{
-				container("prefix-1", "something", "unimportant"),
-				container("prefix-2", "something1", "unimportant1"),
-				container("something1", "prefix-3", "unimportant1"),
-				container("prefix-4"),
-				container("/prefix-5"),
+				containerFromNames("prefix-1", "something", "unimportant"),
+				containerFromNames("prefix-2", "something1", "unimportant1"),
+				containerFromNames("something1", "prefix-3", "unimportant1"),
+				containerFromNames("prefix-4"),
+				containerFromNames("/prefix-5"),
 			},
 		},
 	}
@@ -52,7 +52,7 @@ func Test_filterByPrefix(t *testing.T) {
 	}
 }
 
-func container(names ...string) types.Container {
+func containerFromNames(names ...string) types.Container {
 	return types.Container{
 		Names: names,
 	}
