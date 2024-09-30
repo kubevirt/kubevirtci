@@ -15,7 +15,7 @@ all: container-run
 
 .PHONY: test
 test:
-	$(GO) test -v ./cmd/... -coverprofile cover.out
+	$(GO) test -v ./... -coverprofile cover.out
 
 .PHONY: gocli
 cli:
