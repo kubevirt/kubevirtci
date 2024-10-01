@@ -10,33 +10,25 @@ const (
 	registry          = "registry.k8s.io"
 )
 
-type ControlPlane interface{}
-
 type ControlPlaneRunner struct {
-	Phases []Phase
+	dnsmasqID        string
+	containerRuntime cri.ContainerClient
 }
 
 type Phase interface {
 	Run() error
 }
 
-func NewControlPlaneRunner(containerRuntime cri.ContainerClient) *ControlPlaneRunner {
-	phases := []Phase{}
-
-	phases = append(phases, NewRunETCDPhase("", containerRuntime))
-	phases = append(phases, NewRunControlPlaneComponentsPhase("", containerRuntime))
-
-	return &ControlPlaneRunner{
-		Phases: phases,
-	}
-}
+func NewControlPlaneRunner() {}
 
 func (cp *ControlPlaneRunner) Start() error {
-	for _, phase := range cp.Phases {
-		err := phase.Run()
-		if err != nil {
-			return err
-		}
+	if err := NewRunETCDPhase(cp.dnsmasqID, cp.containerRuntime).Run(); err != nil {
+		return err
 	}
+
+	if err := NewRunControlPlaneComponentsPhase(cp.dnsmasqID, cp.containerRuntime).Run(); err != nil {
+		return err
+	}
+
 	return nil
 }

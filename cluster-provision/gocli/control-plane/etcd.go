@@ -7,7 +7,7 @@ type RunETCDPhase struct {
 	containerRuntime cri.ContainerClient
 }
 
-func NewRunETCDPhase(dnsmasqID string, containerRuntime cri.ContainerClient) *RunETCDPhase {
+func NewRunETCDPhase(dnsmasqID string, containerRuntime cri.ContainerClient) Phase {
 	return &RunETCDPhase{
 		dnsmasqID:        dnsmasqID,
 		containerRuntime: containerRuntime,
