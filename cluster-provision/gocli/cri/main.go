@@ -13,6 +13,7 @@ type ContainerClient interface {
 
 type CreateOpts struct {
 	Privileged    bool
+	Mounts        map[string]string
 	Name          string
 	Ports         map[string]string
 	RestartPolicy string

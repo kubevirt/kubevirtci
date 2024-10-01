@@ -60,6 +60,10 @@ func (dc *DockerClient) Create(image string, createOpts *cri.CreateOpts) (string
 		ports += "-p " + containerPort + ":" + hostPort
 	}
 
+	for hostFile, containerFile := range createOpts.Mounts {
+		ports += "-v " + hostFile + ":" + containerFile
+	}
+
 	args := []string{
 		"--name=" + createOpts.Name,
 		"--privileged=" + strconv.FormatBool(createOpts.Privileged),
