@@ -24,17 +24,17 @@ type KubevirtProvider struct {
 	RandomPorts                  bool     `flag:"random-ports" json:"random_ports"`
 	Prefix                       string   `flag:"prefix" json:"prefix"`
 	Slim                         bool     `flag:"slim" json:"slim"`
-	VNCPort                      uint16   `flag:"vnc-port" json:"vnc_port"`
-	HTTPPort                     uint16   `flag:"http-port" json:"http_port"`
-	HTTPSPort                    uint16   `flag:"https-port" json:"https_port"`
-	RegistryPort                 uint16   `flag:"registry-port" json:"registry_port"`
-	OCPort                       uint16   `flag:"ocp-port" json:"ocp_port"`
-	K8sPort                      uint16   `flag:"k8s-port" json:"k8s_port"`
-	SSHPort                      uint16   `flag:"ssh-port" json:"ssh_port"`
-	PrometheusPort               uint16   `flag:"prometheus-port" json:"prometheus_port"`
-	GrafanaPort                  uint16   `flag:"grafana-port" json:"grafana_port"`
-	DNSPort                      uint16   `flag:"dns-port" json:"dns_port"`
-	APIServerPort                uint16   `json:"api_server_port"`
+	VNCPort                      uint     `flag:"vnc-port" json:"vnc_port"`
+	HTTPPort                     uint     `flag:"http-port" json:"http_port"`
+	HTTPSPort                    uint     `flag:"https-port" json:"https_port"`
+	RegistryPort                 uint     `flag:"registry-port" json:"registry_port"`
+	OCPort                       uint     `flag:"ocp-port" json:"ocp_port"`
+	K8sPort                      uint     `flag:"k8s-port" json:"k8s_port"`
+	SSHPort                      uint     `flag:"ssh-port" json:"ssh_port"`
+	PrometheusPort               uint     `flag:"prometheus-port" json:"prometheus_port"`
+	GrafanaPort                  uint     `flag:"grafana-port" json:"grafana_port"`
+	DNSPort                      uint     `flag:"dns-port" json:"dns_port"`
+	APIServerPort                uint     `json:"api_server_port"`
 	NFSData                      string   `flag:"nfs-data" json:"nfs_data"`
 	EnableCeph                   bool     `flag:"enable-ceph" json:"enable_ceph"`
 	EnableIstio                  bool     `flag:"enable-istio" json:"enable_istio"`

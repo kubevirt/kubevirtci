@@ -66,7 +66,7 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		if err != nil {
 			return err
 		}
-		kp.SSHPort = port
+		kp.SSHPort = uint(port)
 	}
 
 	if kp.APIServerPort == 0 {
@@ -74,7 +74,7 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		if err != nil {
 			return err
 		}
-		kp.APIServerPort = port
+		kp.APIServerPort = uint(port)
 	}
 
 	registry, err := kp.runRegistry(ctx)
@@ -97,7 +97,7 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 
 	for x := 0; x < int(kp.Nodes); x++ {
 		nodeName := kp.nodeNameFromIndex(x + 1)
-		sshClient, err := libssh.NewSSHClient(kp.SSHPort, x+1, false)
+		sshClient, err := libssh.NewSSHClient(uint16(kp.SSHPort), x+1, false)
 		if err != nil {
 			return err
 		}
@@ -164,7 +164,7 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		if err = rootkey.Exec(); err != nil {
 			return err
 		}
-		sshClient, err = libssh.NewSSHClient(kp.SSHPort, x+1, true)
+		sshClient, err = libssh.NewSSHClient(uint16(kp.SSHPort), x+1, true)
 
 		if err = kp.provisionNode(sshClient, x+1); err != nil {
 			return err
@@ -176,7 +176,7 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		}(node.ID)
 	}
 
-	sshClient, err := libssh.NewSSHClient(kp.SSHPort, 1, true)
+	sshClient, err := libssh.NewSSHClient(uint16(kp.SSHPort), 1, true)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		return err
 	}
 
-	config, err := k8s.NewConfig(".kubeconfig", kp.APIServerPort)
+	config, err := k8s.NewConfig(".kubeconfig", uint16(kp.APIServerPort))
 	if err != nil {
 		return err
 	}

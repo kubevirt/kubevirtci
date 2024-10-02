@@ -92,61 +92,61 @@ func WithSlim(slim interface{}) KubevirtProviderOption {
 
 func WithVNCPort(vncPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.VNCPort = vncPort.(uint16)
+		c.VNCPort = vncPort.(uint)
 	}
 }
 
 func WithHTTPPort(httpPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.HTTPPort = httpPort.(uint16)
+		c.HTTPPort = httpPort.(uint)
 	}
 }
 
 func WithHTTPSPort(httpsPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.HTTPSPort = httpsPort.(uint16)
+		c.HTTPSPort = httpsPort.(uint)
 	}
 }
 
 func WithRegistryPort(registryPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.RegistryPort = registryPort.(uint16)
+		c.RegistryPort = registryPort.(uint)
 	}
 }
 
 func WithOCPort(ocpPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.OCPort = ocpPort.(uint16)
+		c.OCPort = ocpPort.(uint)
 	}
 }
 
 func WithK8sPort(k8sPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.K8sPort = k8sPort.(uint16)
+		c.K8sPort = k8sPort.(uint)
 	}
 }
 
 func WithSSHPort(sshPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.SSHPort = sshPort.(uint16)
+		c.SSHPort = sshPort.(uint)
 	}
 }
 
 func WithPrometheusPort(prometheusPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.PrometheusPort = prometheusPort.(uint16)
+		c.PrometheusPort = prometheusPort.(uint)
 	}
 }
 
 func WithGrafanaPort(grafanaPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.GrafanaPort = grafanaPort.(uint16)
+		c.GrafanaPort = grafanaPort.(uint)
 	}
 }
 
 func WithDNSPort(dnsPort interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
-		c.DNSPort = dnsPort.(uint16)
+		c.DNSPort = dnsPort.(uint)
 	}
 }
 
