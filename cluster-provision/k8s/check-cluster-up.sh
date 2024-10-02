@@ -29,14 +29,17 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRT_NUM_NODES=2
     export KUBEVIRT_MEMORY_SIZE=5520M
     export KUBEVIRT_NUM_SECONDARY_NICS=2
-    export KUBEVIRT_WITH_CNAO=true
-    export KUBEVIRT_WITH_MULTUS_V3=true
-    export KUBEVIRT_DEPLOY_ISTIO=true
-    export KUBEVIRT_DEPLOY_PROMETHEUS=true
-    export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
-    export KUBEVIRT_DEPLOY_GRAFANA=true
-    export KUBEVIRT_DEPLOY_CDI=true
-    export KUBEVIRT_DEPLOY_KWOK=true
+
+    if [ "${SLIM}" != "true" ]; then
+        export KUBEVIRT_WITH_CNAO=true
+        export KUBEVIRT_WITH_MULTUS_V3=true
+        export KUBEVIRT_DEPLOY_ISTIO=true
+        export KUBEVIRT_DEPLOY_PROMETHEUS=true
+        export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
+        export KUBEVIRT_DEPLOY_GRAFANA=true
+        export KUBEVIRT_DEPLOY_CDI=true
+        export KUBEVIRT_DEPLOY_KWOK=true
+    fi
 
     trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
     bash -x ./cluster-up/up.sh
@@ -49,25 +52,28 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     # and KUBEVIRT_NUM_SECONDARY_NICS
     ${ksh} get node node01
     ${ksh} get node node02
-    ${ssh} node01 -- ip l show eth1
-    ${ssh} node01 -- ip l show eth2
-    ${ssh} node02 -- ip l show eth1
-    ${ssh} node02 -- ip l show eth2
 
-    # Verify Multus v3 image is used
-    ${ksh} get ds -n kube-system kube-multus-ds -o yaml | grep multus-cni:v3
+    if [ "${SLIM}" != "true" ]; then
+        ${ssh} node01 -- ip l show eth1
+        ${ssh} node01 -- ip l show eth2
+        ${ssh} node02 -- ip l show eth1
+        ${ssh} node02 -- ip l show eth2
 
-    # Sanity check that Multus able to connect secondary networks
-    ${ksh} create -f "$DIR/test-multi-net.yaml"
-    ${ksh} wait pod test-multi-net --for condition=ready=true
-    ${ksh} delete -f "$DIR/test-multi-net.yaml"
+        # Verify Multus v3 image is used
+        ${ksh} get ds -n kube-system kube-multus-ds -o yaml | grep multus-cni:v3
 
-    pre_pull_image_file="$DIR/${provision_dir}/extra-pre-pull-images"
-    if [ -f "${pre_pull_image_file}" ]; then
-        bash -x "$DIR/deploy-manifests.sh" "${provision_dir}"
-        bash -x "$DIR/validate-pod-pull-policies.sh"
-        if [[ ${SLIM} == false ]]; then
-            bash -x "$DIR/check-pod-images.sh" "${provision_dir}"
+        # Sanity check that Multus able to connect secondary networks
+        ${ksh} create -f "$DIR/test-multi-net.yaml"
+        ${ksh} wait pod test-multi-net --for condition=ready=true
+        ${ksh} delete -f "$DIR/test-multi-net.yaml"
+
+        pre_pull_image_file="$DIR/${provision_dir}/extra-pre-pull-images"
+        if [ -f "${pre_pull_image_file}" ]; then
+            bash -x "$DIR/deploy-manifests.sh" "${provision_dir}"
+            bash -x "$DIR/validate-pod-pull-policies.sh"
+            if [[ ${SLIM} == false ]]; then
+                bash -x "$DIR/check-pod-images.sh" "${provision_dir}"
+            fi
         fi
     fi
 
@@ -76,9 +82,13 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 
     if [ "${CI}" == "true" ] && [ -f $conformance_config ]; then
         if [ "$RUN_KUBEVIRT_CONFORMANCE" == "true" ]; then
-            LATEST=$(curl -L "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/latest")
-            ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-operator.yaml"
-            ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-cr.yaml"
+            arch_suffix=""
+            if [[ $(uname -m) == *s390x* ]]; then
+                arch_suffix="-s390x"
+            fi
+            LATEST=$(curl -L "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/latest${arch_suffix}")
+            ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-operator${arch_suffix}.yaml"
+            ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-cr${arch_suffix}.yaml"
 
             ${ksh} wait -n kubevirt kv kubevirt --for condition=Available --timeout 15m
 
@@ -88,7 +98,8 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
                 ${ksh} patch -n kubevirt kv kubevirt --type='merge' --patch '{"spec": {"configuration": {"seccompConfiguration": {"virtualMachineInstanceProfile": {"customProfile": {"localhostProfile" : "kubevirt/kubevirt.json"} } } } } }'
             fi
 
-            export SONOBUOY_EXTRA_ARGS="--plugin https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/conformance.yaml"
+            export SONOBUOY_EXTRA_ARGS="--plugin https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/conformance${arch_suffix}.yaml"
+
             hack/conformance.sh $conformance_config
         fi
 
