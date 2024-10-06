@@ -22,8 +22,8 @@ func buildEtcdCmdArgs() map[string]string {
 func buildControllerMgrCmdArgs() map[string]string {
 	return map[string]string{
 		"--allocate-node-cidrs":              "true",
-		"--authorization-kubeconfig":         "/etc/kubernetes/controller-manager.conf",
-		"--authentication-kubeconfig":        "/etc/kubernetes/controller-manager.conf",
+		"--authorization-kubeconfig":         "/etc/kubernetes/pki/kube-controller-manager.kubeconfig",
+		"--authentication-kubeconfig":        "/etc/kubernetes/pki/kube-controller-manager.kubeconfig",
 		"--bind-address":                     "127.0.0.1",
 		"--cluster-cidr":                     "10.244.0.0/16,fd10:244::/112",
 		"--cluster-name":                     "kubernetes",

@@ -5,12 +5,14 @@ import "kubevirt.io/kubevirtci/cluster-provision/gocli/cri"
 type RunControlPlaneComponentsPhase struct {
 	dnsmasqID        string
 	k8sVersion       string
+	pkiPath          string
 	containerRuntime cri.ContainerClient
 }
 
-func NewRunControlPlaneComponentsPhase(dnsmasqID string, containerRuntime cri.ContainerClient) *RunControlPlaneComponentsPhase {
+func NewRunControlPlaneComponentsPhase(dnsmasqID string, containerRuntime cri.ContainerClient, pkiPath string) *RunControlPlaneComponentsPhase {
 	return &RunControlPlaneComponentsPhase{
 		dnsmasqID:        dnsmasqID,
+		pkiPath:          pkiPath,
 		containerRuntime: containerRuntime,
 	}
 }
@@ -43,7 +45,7 @@ func (p *RunControlPlaneComponentsPhase) runApiServer() error {
 	createOpts := &cri.CreateOpts{
 		Name: "api-server",
 		Mounts: map[string]string{
-			"": "", // TODO
+			p.pkiPath: "/etc/kubernetes/pki/",
 		},
 		Network: "container:" + p.dnsmasqID,
 		Command: cmd,
@@ -78,7 +80,7 @@ func (p *RunControlPlaneComponentsPhase) runControllerMgr() error {
 	createOpts := &cri.CreateOpts{
 		Name: "kube-controller-manager",
 		Mounts: map[string]string{
-			"": "", // TODO
+			p.pkiPath: "/etc/kubernetes/pki/",
 		},
 		Network: "container:" + p.dnsmasqID,
 		Command: cmd,
@@ -103,12 +105,12 @@ func (p *RunControlPlaneComponentsPhase) runScheduler() error {
 		return err
 	}
 
-	cmd := []string{"kube-scheduler", "--kubeconfig=/etc/kubernetes/scheduler.conf"}
+	cmd := []string{"kube-scheduler", "--kubeconfig=/etc/kubernetes/kube-scheduler.kubeconfig"}
 
 	createOpts := &cri.CreateOpts{
 		Name: "kube-scheduler",
 		Mounts: map[string]string{
-			"": "", // TODO
+			p.pkiPath: "/etc/kubernetes/pki/",
 		},
 		Network: "container:" + p.dnsmasqID,
 		Command: cmd,

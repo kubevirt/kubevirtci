@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -9,7 +10,10 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
+	controlplane "kubevirt.io/kubevirtci/cluster-provision/gocli/control-plane"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/aaq"
@@ -86,6 +90,21 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 			return nil
 		}
 		containers <- nfsGanesha
+	}
+
+	var c *rest.Config
+
+	if kp.Nodes > 1 {
+		runner := controlplane.NewControlPlaneRunner(dnsmasq)
+		c, err = runner.Start()
+		if err != nil {
+			return err
+		}
+		k8sClient, err := k8s.NewDynamicClient(c)
+		if err != nil {
+			return err
+		}
+		kp.Client = k8sClient
 	}
 
 	wg := sync.WaitGroup{}
@@ -178,26 +197,41 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		return err
 	}
 
-	kubeConf, err := os.Create(".kubeconfig")
-	if err != nil {
-		return err
-	}
+	switch kp.Nodes {
+	case 1:
+		kubeConf, err := os.Create(".kubeconfig")
+		if err != nil {
+			return err
+		}
 
-	err = sshClient.CopyRemoteFile("/etc/kubernetes/admin.conf", kubeConf)
-	if err != nil {
-		return err
-	}
+		err = sshClient.CopyRemoteFile("/etc/kubernetes/admin.conf", kubeConf)
+		if err != nil {
+			return err
+		}
 
-	config, err := k8s.NewConfig(".kubeconfig", uint16(kp.APIServerPort))
-	if err != nil {
-		return err
-	}
+		config, err := k8s.NewConfig(".kubeconfig", uint16(kp.APIServerPort))
+		if err != nil {
+			return err
+		}
 
-	k8sClient, err := k8s.NewDynamicClient(config)
-	if err != nil {
-		return err
+		k8sClient, err := k8s.NewDynamicClient(config)
+		if err != nil {
+			return err
+		}
+		kp.Client = k8sClient
+	default:
+		c.Host = "https://192.168.66.110:6443"
+		kubeconfig := controlplane.RestConfigToKubeconfig(c)
+		configBytes, err := clientcmd.Write(*kubeconfig)
+		if err != nil {
+			return err
+		}
+
+		err = sshClient.SCP("/etc/kubernetes/admin.conf", bytes.NewReader(configBytes))
+		if err != nil {
+			return err
+		}
 	}
-	kp.Client = k8sClient
 
 	if err = kp.provisionK8sOpts(sshClient); err != nil {
 		return err

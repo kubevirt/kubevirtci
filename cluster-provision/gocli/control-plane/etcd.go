@@ -5,12 +5,14 @@ import "kubevirt.io/kubevirtci/cluster-provision/gocli/cri"
 type RunETCDPhase struct {
 	dnsmasqID        string
 	containerRuntime cri.ContainerClient
+	pkiPath          string
 }
 
-func NewRunETCDPhase(dnsmasqID string, containerRuntime cri.ContainerClient) Phase {
+func NewRunETCDPhase(dnsmasqID string, containerRuntime cri.ContainerClient, pkiPath string) Phase {
 	return &RunETCDPhase{
 		dnsmasqID:        dnsmasqID,
 		containerRuntime: containerRuntime,
+		pkiPath:          pkiPath,
 	}
 }
 
@@ -31,7 +33,7 @@ func (p *RunETCDPhase) Run() error {
 	createOpts := &cri.CreateOpts{
 		Name: "etcd",
 		Mounts: map[string]string{
-			"/etcdcert": "/etc/kubernetes/pki/etcd", //TODO
+			p.pkiPath: "/etc/kubernetes/pki/etcd",
 		},
 		Network: "container:" + p.dnsmasqID,
 		Command: etcdCmd,

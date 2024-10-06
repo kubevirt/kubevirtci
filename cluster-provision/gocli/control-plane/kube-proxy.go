@@ -16,6 +16,12 @@ type KubeProxyPhase struct {
 	client k8s.K8sDynamicClient
 }
 
+func NewKubeProxyPhase(client k8s.K8sDynamicClient) *KubeProxyPhase {
+	return &KubeProxyPhase{
+		client: client,
+	}
+}
+
 func (p *KubeProxyPhase) Run() error {
 	yamlDocs := bytes.Split(kp, []byte("---\n"))
 	for _, yamlDoc := range yamlDocs {

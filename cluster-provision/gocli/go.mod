@@ -1,6 +1,8 @@
 module kubevirt.io/kubevirtci/cluster-provision/gocli
 
-go 1.21
+go 1.22.3
+
+toolchain go1.23.1
 
 require (
 	github.com/alessio/shellescape v1.4.2
