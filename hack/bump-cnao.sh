@@ -27,7 +27,7 @@ CNAO_RELEASES="https://github.com/kubevirt/cluster-network-addons-operator/relea
 # ./hack/bump-cnao.sh v0.54.0
 
 function main() {
-    cnao_version="${2:?cnao version not set or empty}"
+    cnao_version="${1:?cnao version not set or empty}"
 
     declare -a manifests_url
     manifests_url+=("${CNAO_RELEASES}/${cnao_version}/namespace.yaml")
@@ -38,8 +38,12 @@ function main() {
     declare -a manifests
     for url in "${manifests_url[@]}"; do
         file="${url##*/}"
-        if ! ls "./cluster-provision/gocli/opts/cnao/manifests/${file}" > /dev/null; then
-            echo "${file} not found at kubevirtci folder"
+        expected_file_name=$file
+        if [[ $file == "network-addons-config.crd.yaml" ]]; then
+            expected_file_name="crd.yaml"
+        fi
+        if ! ls "./cluster-provision/gocli/opts/cnao/manifests/${expected_file_name}" > /dev/null; then
+            echo "${expected_file_name} not found at kubevirtci folder"
             exit 1
         fi
 
@@ -54,15 +58,19 @@ function main() {
 
     for i in "${!manifests[@]}"; do
         file="${manifests_url[i]##*/}"
-        echo "${manifests[$i]}" > "./cluster-provision/gocli/opts/cnao/manifests/${file}"
+        target=$file
+        if [[ $file == "network-addons-config.crd.yaml" ]]; then
+            target="crd.yaml"
+        fi
+        echo "${manifests[$i]}" > "./cluster-provision/gocli/opts/cnao/manifests/${target}"
 
-        if [[ $file == "network-addons-config-example.cr.yaml" ]]; then
-            sed -i '/ovs:/d' ./cluster-provision/gocli/opts/cnao/manifests/${file}
-            sed -i '/kubevirtIpamController:/d' ./cluster-provision/gocli/opts/cnao/manifests/${file}
+        if [[ $target == "network-addons-config-example.cr.yaml" ]]; then
+            sed -i '/ovs:/d' ./cluster-provision/gocli/opts/cnao/manifests/${target}
+            sed -i '/kubevirtIpamController:/d' ./cluster-provision/gocli/opts/cnao/manifests/${target}
         fi
     done
 
-    echo "cnao, provision, Bump k8s-${provider} cnao to ${cnao_version}"
+    echo "cnao, provision: Bump CNAO to ${cnao_version}"
 }
 
 main "$@"
