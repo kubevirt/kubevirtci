@@ -12,7 +12,10 @@ import (
 	"strings"
 	"sync"
 
+	"time"
+
 	"github.com/bramvdbogaerde/go-scp"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
@@ -224,9 +227,24 @@ func (s *SSHClientImpl) executeCommand(cmd string, outWriter, errWriter io.Write
 func (s *SSHClientImpl) initClient() error {
 	s.initMutex.Lock()
 	defer s.initMutex.Unlock()
-	client, err := ssh.Dial("tcp", net.JoinHostPort("127.0.0.1", fmt.Sprint(s.sshPort)), s.config)
+
+	var (
+		client *ssh.Client
+		err    error
+	)
+
+	operation := func() error {
+		client, err = ssh.Dial("tcp", net.JoinHostPort("127.0.0.1", fmt.Sprint(s.sshPort)), s.config)
+		return err
+	}
+
+	backoffStrategy := backoff.NewExponentialBackOff()
+	backoffStrategy.InitialInterval = 3 * time.Second
+	backoffStrategy.MaxElapsedTime = 1 * time.Minute
+
+	err = backoff.Retry(operation, backoffStrategy)
 	if err != nil {
-		return fmt.Errorf("Failed to connect to SSH server: %v", err)
+		return err
 	}
 
 	conn, err := client.Dial("tcp", fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx))

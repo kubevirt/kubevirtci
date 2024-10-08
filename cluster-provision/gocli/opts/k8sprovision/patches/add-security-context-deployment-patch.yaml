@@ -1,0 +1,6 @@
+spec:
+  template:
+    spec:
+      securityContext:
+        seLinuxOptions:
+          type: spc_t

@@ -1,0 +1,6 @@
+[isv_kubernetes_addons_cri-o_stable_v1.VERSION]
+name=CRI-O v1.VERSION (Stable) (rpm)
+type=rpm-md
+baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/isv_kubernetes_addons_cri-o_stable_v1.VERSION
+gpgcheck=0
+enabled=1
