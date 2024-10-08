@@ -1,5 +1,13 @@
+# Build the vmcli Go CLI
+FROM docker.io/library/golang:1.22 AS vmcli-builder
 
-FROM quay.io/kubevirtci/fedora@sha256:e3a6087f62f288571db14defb7e0e10ad7fe6f973f567b0488d3aac5e927035a
+WORKDIR /app
+
+COPY vmcli/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build -o ./_bin/vmcli ./cmd/cli
+
+# Prepare the VM runner
+FROM quay.io/kubevirtci/fedora@sha256:e3a6087f62f288571db14defb7e0e10ad7fe6f973f567b0488d3aac5e927035a AS runner
 
 ARG centos_version
 
@@ -31,3 +39,4 @@ RUN curl -L -o /initrd.img http://mirror.stream.centos.org/9-stream/BaseOS/x86_6
 RUN curl -L -o /vmlinuz http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/images/pxeboot/vmlinuz
 
 COPY scripts/* /
+COPY --from=vmcli-builder /app/_bin/vmcli /
