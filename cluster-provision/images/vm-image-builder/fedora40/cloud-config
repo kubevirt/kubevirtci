@@ -1,0 +1,65 @@
+#cloud-config
+password: fedora
+chpasswd: { expire: False }
+ssh_pwauth: yes
+write_files:
+    - path: /etc/modules-load.d/mlx5.conf
+      content: |
+        mlx5_core
+        mlx5_ib
+    - path: /etc/modules-load.d/mlx4.conf
+      content: |
+        mlx4_core
+        mlx4_ib
+    - path: /etc/modules-load.d/i40e.conf
+      content: |
+        i40e
+    - path: /etc/modules-load.d/igb.conf
+      content: |
+        igb
+    - path: /etc/systemd/system/wait-for-cloud-init.service
+      owner: root:root
+      permissions: '0755'
+      content: |
+          [Unit]
+          Description=Wait for cloud-init to complete
+          Before=qemu-guest-agent.service
+          After=cloud-final.service
+
+          [Service]
+          Type=oneshot
+          ExecStartPre=cloud-init status --wait
+          ExecStart=/usr/bin/true
+          RemainAfterExit=true
+
+          [Install]
+          WantedBy=cloud-init.service
+    # Note: bash and libreadline in Fedora 35 come with 'bracketed-paste' mode
+    # enabled by default. This results in extra escape sequences in the
+    # console output. The mode is explicitly disabled here to make the existing
+    # tests compatible.
+    - path: /etc/profile.d/disable-bracketed-paste.sh
+      content: |
+        bind 'set enable-bracketed-paste off'
+runcmd:
+  - sudo systemctl daemon-reload
+  - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress-ng dmidecode virt-what vm-dump-metrics tpm2-tools nc sg3_utils iperf3 wget
+  # Download the busybox netcat and relpace it with the OpenBSD netcat
+  # To align with the netcat tool used in the Alpine image for network e2e testing
+  - if [ $(uname -m) == "aarch64" ]; then export CPUARCH="armv8l"; else export CPUARCH="x86_64"; fi
+  - sudo wget https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/busybox-${CPUARCH}
+  - sudo chmod +x busybox-${CPUARCH}
+  - sudo mv /usr/bin/nc /usr/bin/netcat-openbsd
+  - sudo mv busybox-${CPUARCH} /usr/bin/nc
+  - sudo dnf clean all
+  - sudo systemctl enable wait-for-cloud-init
+  - sudo systemctl enable qemu-guest-agent.service
+  - sudo hostnamectl set-hostname ""
+  - sudo hostnamectl set-hostname "" --transient
+  - sudo sed -i /users-groups/d /etc/cloud/cloud.cfg
+  - sudo sed -i 's/^SELINUX=.*/SELINUX=permissive/' /etc/selinux/config
+  # Adjust /etc/nsswitch.conf to mitigate the bug with nss-myhostame which
+  # breaks FQDN: https://bugzilla.redhat.com/show_bug.cgi?id=2038634
+  - |
+    sudo sed -i 's/hosts:      files myhostname resolve \[\!UNAVAIL=return\] dns/hosts:      resolve \[\!UNAVAIL=return\] files myhostname dns/' /etc/nsswitch.conf
+  - sudo shutdown
