@@ -156,9 +156,19 @@ cp /tmp/local-volume.yaml /provision/local-volume.yaml
 kubelet_conf_d="/etc/kubernetes/kubelet.conf.d"
 mkdir -m 644 $kubelet_conf_d
 
-# TODO use config file! this is deprecated
+# Set our custom initializations to kubelet
+kubevirt_kubelet_conf="$kubelet_conf_d/50-kubevirt.conf"
+cat <<EOF >$kubevirt_kubelet_conf
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+failSwapOn: false
+kubeletCgroups: /systemd/system.slice
+EOF
+
+# Set only command line options not supported by config
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice  --fail-swap-on=false --kubelet-cgroups=/systemd/system.slice --config-dir=$kubelet_conf_d
+KUBELET_EXTRA_ARGS=--runtime-cgroups=/systemd/system.slice --config-dir=$kubelet_conf_d
 EOT
 
 # Enable userfaultfd for centos9 to support post-copy live migration.
