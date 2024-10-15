@@ -2,9 +2,10 @@ quay.io/kubevirtci/install-cni:1.15.0
 quay.io/kubevirtci/operator:1.15.0
 quay.io/kubevirtci/pilot:1.15.0
 quay.io/kubevirtci/proxyv2:1.15.0
-quay.io/calico/cni:v3.27.2
-quay.io/calico/kube-controllers:v3.27.2
-quay.io/calico/node:v3.27.2
+quay.io/calico/cni:v3.18.0
+quay.io/calico/kube-controllers:v3.18.0
+quay.io/calico/node:v3.18.0
+quay.io/calico/pod2daemon-flexvol:v3.18.0
 quay.io/prometheus-operator/prometheus-config-reloader:v0.75.1
 docker.io/grafana/grafana:11.1.0
 ghcr.io/k8snetworkplumbingwg/multus-dynamic-networks-controller@sha256:dee1979d92f0a31598a6e3569ac7004be7d29e7ca9e31db23753ef263110dc04
