@@ -10,6 +10,7 @@ func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient) {
 		"systemctl daemon-reload &&  service kubelet restart",
 		"swapoff -a",
 		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
+		`timeout=60; interval=5; while ! systemctl status crio | grep active; do echo "Waiting for cri-o service to be ready"; sleep $interval; timeout=$((timeout - interval)); [ $timeout -le 0 ] && exit 1; done`,
 		"kubeadm join --token abcdef.1234567890123456 192.168.66.101:6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true",
 		"mkdir -p /var/lib/rook",
 		"chcon -t container_file_t /var/lib/rook",
