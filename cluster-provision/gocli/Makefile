@@ -11,11 +11,15 @@ export GOFLAGS=-mod=vendor
 BIN_DIR = $(CURDIR)/build
 GO ?= go
 
-all: container-run
+all: test-gocli container-run
 
 .PHONY: test
 test:
 	$(GO) test -v ./cmd/... -coverprofile cover.out
+
+.PHONY: test-gocli
+test-gocli:
+	$(GO) test -v ./... -coverprofile cover.out
 
 .PHONY: gocli
 cli:
