@@ -4,6 +4,8 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/k8s"
@@ -41,8 +43,36 @@ func (o *multusOpt) Exec() error {
 			return fmt.Errorf("error applying manifest %s", err)
 		}
 	}
-	if err := o.sshClient.Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf rollout status -n kube-system ds/kube-multus-ds --timeout=200s"); err != nil {
-		return err
+	var rolloutComplete bool
+	go func() {
+		err := o.sshClient.Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf rollout status -n kube-system ds/kube-multus-ds --timeout=200s")
+		if err != nil {
+			fmt.Println("Rollout status failed:", err)
+		}
+		rolloutComplete = true
+	}()
+
+	for {
+		if rolloutComplete {
+			break
+		}
+		cmd := "kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -l name=kube-multus-ds -o jsonpath='{.items[*].metadata.name}'"
+		pods, err := o.sshClient.CommandWithNoStdOut(cmd)
+		if err != nil {
+			fmt.Println("Failed to get pods:", err)
+			return err
+		}
+
+		fmt.Println("Pods in kube-multus-ds DaemonSet:", pods)
+		for _, pod := range strings.Split(pods, " ") {
+			logCmd := fmt.Sprintf("kubectl --kubeconfig=/etc/kubernetes/admin.conf logs -n kube-system %s --tail=30", pod)
+			err := o.sshClient.Command(logCmd)
+			if err != nil {
+				fmt.Println("Failed to get logs for pod", pod, ":", err)
+				continue
+			}
+		}
+		time.Sleep(10 * time.Second)
 	}
 	return nil
 }
