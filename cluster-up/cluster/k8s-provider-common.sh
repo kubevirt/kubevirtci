@@ -66,11 +66,6 @@ function up() {
 
     ${_cli} scp --prefix $provider_prefix /etc/kubernetes/admin.conf - >${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
 
-    # Set server and disable tls check
-    export KUBECONFIG=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
-    kubectl config set-cluster kubernetes --server="https://$(_main_ip):$(_port k8s)"
-    kubectl config set-cluster kubernetes --insecure-skip-tls-verify=true
-
     # Workaround https://github.com/containers/conmon/issues/315 by not dumping the file to stdout for the time being
     if [[ ${_cri_bin} = podman* ]]; then
         k8s_version=$(kubectl get node node01 --no-headers -o=custom-columns=VERSION:.status.nodeInfo.kubeletVersion)
@@ -80,6 +75,11 @@ function up() {
     fi
 
     chmod u+x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+
+    # Set server and disable tls check
+    export KUBECONFIG=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+    ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl config set-cluster kubernetes --server="https://$(_main_ip):$(_port k8s)"
+    ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl config set-cluster kubernetes --insecure-skip-tls-verify=true
 
     # Make sure that local config is correct
     prepare_config
