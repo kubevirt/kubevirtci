@@ -19,6 +19,7 @@ RUN curl -LO https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_V
   && chmod u+x dockerize \
   && mv dockerize /usr/local/bin/
 
+#TODO: Replace vagrant box image with generic cloud image which is already in qcow2 image than converting. ie., same way as it is (or will be) done for s390x
 COPY scripts/download_box.sh /
 
 RUN echo "Centos9 version $centos_version"
