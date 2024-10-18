@@ -68,6 +68,11 @@ EOT
 
 systemctl daemon-reload
 systemctl restart crio.service
+
+while [[ systemctl status crio | grep active | wc -l -eq 0 ]]
+do
+    sleep 2
+done
 EOF
 `
 	etcdDataDir         = "/var/lib/etcd"
