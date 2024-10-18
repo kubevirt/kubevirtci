@@ -2,6 +2,8 @@
 
 set -ex
 
+arch=$(uname -m)
+
 source /var/lib/kubevirtci/shared_vars.sh
 
 function getKubernetesClosestStableVersion() {
@@ -71,6 +73,42 @@ baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/isv_kubernetes_add
 gpgcheck=0
 enabled=1
 EOF
+
+# Temporary: Added debug to understand why we are getting error for s390x running in prow s390x cluster
+# To be reverted after debugging is finished
+echo "ping mirrors.centos.org"
+ping -c 5 mirrors.centos.org || true
+
+echo "ping quay.io"
+ping -c 5 quay.io || true
+
+echo "Pinging google.com repeatedly to observe traffic"
+
+count=0
+max_attempts=5
+
+while [ $count -lt $max_attempts ]; do
+    ping -c 1 google.com || true  # Send 1 ping attempt, continue even if it fails
+    count=$((count + 1))
+done
+
+echo "Completed $max_attempts ping attempts."
+
+echo "ping 8.8.8.8"
+ping -c 5 8.8.8.8 || true
+
+echo "ip addr"
+ip addr || true
+
+echo "ip route"
+ip route || true
+
+echo "cat /etc/resolv.conf"
+cat /etc/resolv.conf || true
+
+echo "dmesg | grep -i network"
+dmesg | grep -i network || true
+
 
 dnf install -y cri-o
 
@@ -202,10 +240,13 @@ sysctl --system
 
 systemctl restart NetworkManager
 
-nmcli connection modify "System eth0" \
-   ipv6.method auto \
-   ipv6.addr-gen-mode eui64
-nmcli connection up "System eth0"
+# No need to modify the ethernet connection incase of s390x Architecture.
+if [ "$arch" != "s390x" ]; then
+  nmcli connection modify "System eth0" \
+    ipv6.method auto \
+    ipv6.addr-gen-mode eui64
+  nmcli connection up "System eth0"
+fi
 
 kubeadmn_patches_path="/provision/kubeadm-patches"
 mkdir -p $kubeadmn_patches_path
