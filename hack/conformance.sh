@@ -6,7 +6,8 @@ ARCH=$(uname -m | grep -q s390x && echo s390x || echo amd64)
 
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
 
-ARTIFACTS=${ARTIFACTS:-${PWD}}
+ARTIFACTS=${ARTIFACTS:-${PWD}/artifacts}
+mkdir -p "$ARTIFACTS"
 
 config_file=${1:-}
 sonobuoy_version=0.56.9
