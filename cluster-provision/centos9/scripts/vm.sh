@@ -25,6 +25,7 @@ while true; do
     -n | --nvme-device-size ) NVME_DISK_SIZES+="$2 "; shift 2 ;;
     -t | --scsi-device-size ) SCSI_DISK_SIZES+="$2 "; shift 2 ;;
     -u | --usb-device-size ) USB_SIZES+="$2 "; shift 2 ;;
+    -S | --shared-device-size ) SHARED_DISK_SIZES+="$2 "; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -164,6 +165,16 @@ for size in ${USB_SIZES[@]}; do
   qemu-img create -f raw $disk $size
   let "disk_num+=1"
 done
+
+if [ "$n" = "01" ] ; then
+  disk_num=0
+  for size in ${SHARED_DISK_SIZES[@]}; do
+    echo "Creating disk "$size" for shared disk emulation"
+    disk="/shared/disk"${disk_num}".img"
+    qemu-img create -f raw $disk $size
+    let "disk_num+=1"
+  done
+fi
 
 numa_arg=""
 if [ "${NUMA}" -gt 1 ]; then
