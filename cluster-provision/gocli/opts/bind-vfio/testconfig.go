@@ -16,8 +16,8 @@ func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient, pciID string) {
 	sshClient.EXPECT().Command("modprobe -i vfio-pci")
 
 	cmds := []string{
-		"if [[ ! -d /sys/bus/pci/devices/testpciaddr ]]; then echo 'Error: PCI address does not exist!' && exit 1; fi",
-		"if [[ ! -d /sys/bus/pci/devices/testpciaddr/iommu/ ]]; then echo 'Error: No vIOMMU found in the VM' && exit 1; fi",
+		"if [[ ! -d /sys/bus/pci/devices/testpciaddr ]]; then echo 'PCI address does not exist!' && exit 1; fi",
+		"if [[ ! -d /sys/bus/pci/devices/testpciaddr/iommu/ ]]; then echo 'No vIOMMU found in the VM' && exit 1; fi",
 		"[[ 'not-vfio' != 'vfio-pci' ]] && echo testpciaddr > " + driverPath + "/unbind && echo 'vfio-pci' > " + driverOverride + " && echo testpciaddr > /sys/bus/pci/drivers/vfio-pci/bind",
 	}
 	for _, cmd := range cmds {
