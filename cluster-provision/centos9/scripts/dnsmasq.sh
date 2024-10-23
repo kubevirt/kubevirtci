@@ -4,6 +4,7 @@ set -ex
 
 NUM_NODES=${NUM_NODES-1}
 NUM_SECONDARY_NICS=${NUM_SECONDARY_NICS:-0}
+SEQ_START=1
 
 ip link add br0 type bridge
 echo 0 > /proc/sys/net/ipv6/conf/br0/disable_ipv6
@@ -18,7 +19,18 @@ for snet in $(seq 1 ${NUM_SECONDARY_NICS}); do
   ip link set dev br${snet} up
 done
 
+# if the number is one then do the normal thing, if its higher than one then do the manual ip thingy
+
 for i in $(seq 1 ${NUM_NODES}); do
+  if [ $NUM_NODES > 1 ]; then
+    ip tuntap add dev tap01 mode tap user $(whoami)
+    ip link set tap01 master br0
+    ip link set dev tap01 up
+    ip addr add 192.168.66.101/24 dev tap01
+    ip -6 addr add fd00::101 dev tap01
+    i++
+  fi;
+
   n="$(printf "%02d" ${i})"
   ip tuntap add dev tap${n} mode tap user $(whoami)
   ip link set tap${n} master br0

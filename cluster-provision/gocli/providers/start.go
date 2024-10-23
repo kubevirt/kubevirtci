@@ -220,7 +220,8 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		}
 		kp.Client = k8sClient
 	default:
-		c.Host = "https://192.168.66.110:6443"
+		// we need to be able to reach the control plane from the vm network
+		c.Host = "https://192.168.66.101:6443"
 		kubeconfig := controlplane.RestConfigToKubeconfig(c)
 		configBytes, err := clientcmd.Write(*kubeconfig)
 		if err != nil {
@@ -231,6 +232,32 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		if err != nil {
 			return err
 		}
+
+		// and also from the host network
+		kubeConf, err := os.Create(".kubeconfig")
+		if err != nil {
+			return err
+		}
+		kubeconfig = controlplane.RestConfigToKubeconfig(c)
+		configBytes, err = clientcmd.Write(*kubeconfig)
+		if err != nil {
+			return err
+		}
+
+		_, err = kubeConf.Write(configBytes)
+		if err != nil {
+			return err
+		}
+
+		config, err := k8s.NewConfig(".kubeconfig", uint16(kp.APIServerPort))
+		if err != nil {
+			return err
+		}
+		k8sClient, err := k8s.NewDynamicClient(config)
+		if err != nil {
+			return err
+		}
+		kp.Client = k8sClient
 	}
 
 	if err = kp.provisionK8sOpts(sshClient); err != nil {
