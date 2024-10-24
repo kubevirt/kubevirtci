@@ -42,8 +42,8 @@ func (o *bindVfioOpt) Exec() error {
 	}
 
 	cmds := []string{
-		"if [[ ! -d /sys/bus/pci/devices/" + pciDevId + " ]]; then echo 'Error: PCI address does not exist!' && exit 1; fi",
-		"if [[ ! -d /sys/bus/pci/devices/" + pciDevId + "/iommu/ ]]; then echo 'Error: No vIOMMU found in the VM' && exit 1; fi",
+		"if [[ ! -d /sys/bus/pci/devices/" + pciDevId + " ]]; then echo 'PCI address does not exist!' && exit 1; fi",
+		"if [[ ! -d /sys/bus/pci/devices/" + pciDevId + "/iommu/ ]]; then echo 'No vIOMMU found in the VM' && exit 1; fi",
 		"[[ '" + driver + "' != 'vfio-pci' ]] && echo " + pciDevId + " > " + driverPath + "/unbind && echo 'vfio-pci' > " + driverOverride + " && echo " + pciDevId + " > /sys/bus/pci/drivers/vfio-pci/bind",
 	}
 
