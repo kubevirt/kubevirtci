@@ -2,9 +2,12 @@
 
 set -xeuo pipefail
 
+ARCH=$(uname -m | grep -q s390x && echo s390x || echo amd64)
+
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
 
-ARTIFACTS=${ARTIFACTS:-${PWD}}
+ARTIFACTS=${ARTIFACTS:-${PWD}/artifacts}
+mkdir -p "$ARTIFACTS"
 
 config_file=${1:-}
 sonobuoy_version=0.56.9
@@ -61,7 +64,7 @@ teardown() {
     fi
 }
 
-curl -L "https://github.com/vmware-tanzu/sonobuoy/releases/download/v${sonobuoy_version}/sonobuoy_${sonobuoy_version}_linux_amd64.tar.gz" | tar -xz
+curl -L "https://github.com/vmware-tanzu/sonobuoy/releases/download/v${sonobuoy_version}/sonobuoy_${sonobuoy_version}_linux_${ARCH}.tar.gz" | tar -xz
 
 trap teardown EXIT
 

@@ -34,3 +34,10 @@ func appendIfExplicit(ports nat.PortMap, exposedPort int, flagSet *pflag.FlagSet
 	}
 	return nil
 }
+
+func GetSSHUserByArchitecture(arch string) string {
+	if arch == "s390x" {
+		return "cloud-user"
+	}
+	return "vagrant"
+}

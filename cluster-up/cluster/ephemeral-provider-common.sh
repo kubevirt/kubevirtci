@@ -199,6 +199,8 @@ function _add_common_params() {
 
     if [ "$KUBEVIRT_DEPLOY_CDI" == "true" ]; then
         params=" --deploy-cdi $params"
+    else
+        params=" --deploy-cdi=false $params"
     fi
 
     if [ -n "$KUBEVIRT_CUSTOM_CDI_VERSION" ]; then
