@@ -6,7 +6,7 @@ set -ex
 PHASES_DEFAULT="linux,k8s"
 PHASES="${PHASES:-$PHASES_DEFAULT}"
 CHECK_CLUSTER="${CHECK_CLUSTER:-false}"
-export SLIM="${SLIM:-false}"
+export SLIM="${SLIM:-true}"
 BYPASS_PMAN_CHANGE_CHECK=${BYPASS_PMAN_CHANGE_CHECK:-false}
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

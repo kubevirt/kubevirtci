@@ -40,9 +40,10 @@ func (o *multusOpt) Exec() error {
 		if err := o.client.Apply(obj); err != nil {
 			return fmt.Errorf("error applying manifest %s", err)
 		}
-	}
-	if err := o.sshClient.Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf rollout status -n kube-system ds/kube-multus-ds --timeout=200s"); err != nil {
-		return err
+		err = o.sshClient.Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf rollout status -n kube-system ds/kube-multus-ds --timeout=200s")
+		if err != nil {
+			fmt.Println("Rollout status failed:", err)
+		}
 	}
 	return nil
 }

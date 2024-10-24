@@ -62,7 +62,12 @@ func NewSCPCommand() *cobra.Command {
 	return ssh
 }
 
-func scp(cmd *cobra.Command, args []string) error {
+func scp(cmd *cobra.Command, args []string) (retErr error) {
+	defer func() {
+		if retErr != nil {
+			panic(retErr)
+		}
+	}()
 
 	prefix, err := cmd.Flags().GetString("prefix")
 	if err != nil {

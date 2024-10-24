@@ -1,0 +1,17 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+- level: Request
+  users: ["kubernetes-admin"]
+  resources:
+  - group: kubevirt.io
+    resources:
+    - virtualmachines
+    - virtualmachineinstances
+    - virtualmachineinstancereplicasets
+    - virtualmachineinstancepresets
+    - virtualmachineinstancemigrations
+  omitStages:
+  - RequestReceived
+  - ResponseStarted
+  - Panic

@@ -65,7 +65,7 @@ const (
 )
 
 // GetPublicPort returns public port by private port
-func GetPublicPort(port uint16, ports nat.PortMap) (uint16, error) {
+func GetPublicPort(port uint, ports nat.PortMap) (uint16, error) {
 	portStr := strconv.Itoa(int(port))
 	for k, p := range ports {
 		if k == nat.Port(portStr+"/tcp") || k == nat.Port(portStr+"/udp") {
@@ -84,7 +84,7 @@ func GetPublicPort(port uint16, ports nat.PortMap) (uint16, error) {
 }
 
 // PrintPublicPort prints public port
-func PrintPublicPort(port uint16, ports nat.PortMap) error {
+func PrintPublicPort(port uint, ports nat.PortMap) error {
 	p, err := GetPublicPort(port, ports)
 	if err != nil {
 		return err

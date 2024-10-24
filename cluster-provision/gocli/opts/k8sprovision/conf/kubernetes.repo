@@ -1,0 +1,6 @@
+[kubernetes]
+name=Kubernetes Release
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.VERSION/rpm
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0

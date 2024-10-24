@@ -9,7 +9,7 @@ type nodeLabler struct {
 	labelSelector string
 }
 
-func NewNodeLabler(sc libssh.Client, p uint16, l string) *nodeLabler {
+func NewNodeLabler(sc libssh.Client, l string) *nodeLabler {
 	return &nodeLabler{
 		sshClient:     sc,
 		labelSelector: l,
