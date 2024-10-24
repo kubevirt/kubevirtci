@@ -17,6 +17,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
@@ -85,6 +86,7 @@ var cli *client.Client
 var nvmeDisks []string
 var scsiDisks []string
 var usbDisks []string
+var sharedDisks []string
 var sshClient libssh.Client
 
 type dockerSetting struct {
@@ -160,6 +162,8 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("no-etcd-fsync", false, "unsafe: disable fsyncs in etcd")
 	run.Flags().Bool("enable-audit", false, "enable k8s audit for all metadata events")
 	run.Flags().StringArrayVar(&usbDisks, "usb", []string{}, "size of the emulate USB disk to pass to the node")
+	run.Flags().StringArrayVar(&sharedDisks, "shared-block-device", []string{}, "size of block device to share between all nodes")
+
 	return run
 }
 
@@ -421,7 +425,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	ctx, cancel := context.WithCancel(b)
 
 	stop := make(chan error, 10)
-	containers, _, done := docker.NewCleanupHandler(cli, stop, cmd.OutOrStderr(), false)
+	containers, volumes, done := docker.NewCleanupHandler(cli, stop, cmd.OutOrStderr(), false)
 
 	defer func() {
 		stop <- retErr
@@ -557,6 +561,15 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 	}
 
+	sharedVolumeName := prefix + "-shared"
+	if len(sharedDisks) > 0 {
+		sharedVolume, err := cli.VolumeCreate(ctx, volume.CreateOptions{Name: sharedVolumeName})
+		if err != nil {
+			return err
+		}
+		volumes <- sharedVolume.Name
+	}
+
 	// Add serial pty so we can do stuff like 'screen /dev/pts0' to access
 	// the VM console from the container without ssh
 	qemuArgs += " -serial pty"
@@ -652,6 +665,20 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			}
 		}
 
+		var vmArgsSharedDisks []string
+		if len(sharedDisks) > 0 {
+			for i, size := range sharedDisks {
+				pciOffset := i + 1
+				resource.MustParse(size)
+				disk := fmt.Sprintf("/shared/disk%d.img", i)
+				blockDev := fmt.Sprintf("-blockdev file,filename=%s,node-name=shared-disk-%d,read-only=off,cache.direct=on,cache.no-flush=off", disk, i)
+				device1 := fmt.Sprintf("-device pcie-root-port,id=pci.%d,bus=pcie.0", pciOffset)
+				device2 := fmt.Sprintf("-device virtio-blk-pci,bus=pci.%d,drive=shared-disk-%d,id=shared-disk-%d,share-rw=on,write-cache=on,werror=stop,rerror=stop", pciOffset, i, i)
+				nodeQemuArgs = fmt.Sprintf("%s %s %s %s", nodeQemuArgs, blockDev, device1, device2)
+				vmArgsSharedDisks = append(vmArgsSCSIDisks, fmt.Sprintf("--shared-device-size %s", size))
+			}
+		}
+
 		additionalArgs := []string{}
 		if len(nodeQemuArgs) > 0 {
 			additionalArgs = append(additionalArgs, "--qemu-args", shellescape.Quote(nodeQemuArgs))
@@ -684,7 +711,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
 			},
-			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s --numa %s %s %s %s %s %s",
+			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s --numa %s %s %s %s %s %s %s",
 				memory,
 				strconv.Itoa(int(cpu)),
 				strconv.Itoa(int(numa)),
@@ -692,8 +719,17 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 				strings.Join(vmArgsSCSIDisks, " "),
 				strings.Join(vmArgsNvmeDisks, " "),
 				strings.Join(vmArgsUSBDisks, " "),
+				strings.Join(vmArgsSharedDisks, " "),
 				strings.Join(additionalArgs, " "),
 			)},
+		}
+
+		hostConfig := &container.HostConfig{
+			Privileged:  true,
+			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
+			Resources: container.Resources{
+				Devices: deviceMappings,
+			},
 		}
 
 		if cephEnabled {
@@ -702,13 +738,19 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			}
 		}
 
-		node, err := cli.ContainerCreate(ctx, vmContainerConfig, &container.HostConfig{
-			Privileged:  true,
-			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
-			Resources: container.Resources{
-				Devices: deviceMappings,
-			},
-		}, nil, nil, prefix+"-"+nodeName)
+		if len(sharedDisks) > 0 {
+			if vmContainerConfig.Volumes == nil {
+				vmContainerConfig.Volumes = map[string]struct{}{}
+			}
+			vmContainerConfig.Volumes["/shared"] = struct{}{}
+			hostConfig.Mounts = append(hostConfig.Mounts, mount.Mount{
+				Type:   mount.TypeVolume,
+				Source: sharedVolumeName,
+				Target: "/shared",
+			})
+		}
+
+		node, err := cli.ContainerCreate(ctx, vmContainerConfig, hostConfig, nil, nil, prefix+"-"+nodeName)
 		if err != nil {
 			return err
 		}
