@@ -1,4 +1,4 @@
-FROM quay.io/fedora/fedora:39 AS base
+FROM quay.io/kubevirtci/fedora:41 AS base
 
 RUN dnf -y install jq iptables iproute dnsmasq qemu socat openssh-clients screen bind-utils tcpdump iputils libguestfs-tools-c && dnf clean all
 
