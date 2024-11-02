@@ -9,11 +9,12 @@ type RunControlPlaneComponentsPhase struct {
 	containerRuntime cri.ContainerClient
 }
 
-func NewRunControlPlaneComponentsPhase(dnsmasqID string, containerRuntime cri.ContainerClient, pkiPath string) *RunControlPlaneComponentsPhase {
+func NewRunControlPlaneComponentsPhase(dnsmasqID string, containerRuntime cri.ContainerClient, pkiPath, k8sVersion string) *RunControlPlaneComponentsPhase {
 	return &RunControlPlaneComponentsPhase{
 		dnsmasqID:        dnsmasqID,
 		pkiPath:          pkiPath,
 		containerRuntime: containerRuntime,
+		k8sVersion:       k8sVersion,
 	}
 }
 

@@ -24,13 +24,14 @@ type ControlPlaneRunner struct {
 	dnsmasqID        string
 	containerRuntime cri.ContainerClient
 	Client           k8s.K8sDynamicClient
+	k8sVersion       string
 }
 
 type Phase interface {
 	Run() error
 }
 
-func NewControlPlaneRunner(dnsmasqID string) *ControlPlaneRunner {
+func NewControlPlaneRunner(dnsmasqID string, k8sVersion string) *ControlPlaneRunner {
 	var containerRuntime cri.ContainerClient
 	if podman.IsAvailable() {
 		containerRuntime = podman.NewPodman()
@@ -59,7 +60,7 @@ func (cp *ControlPlaneRunner) Start() (*rest.Config, error) {
 		return nil, err
 	}
 
-	if err := NewRunControlPlaneComponentsPhase(cp.dnsmasqID, cp.containerRuntime, defaultPkiPath).Run(); err != nil {
+	if err := NewRunControlPlaneComponentsPhase(cp.dnsmasqID, cp.containerRuntime, defaultPkiPath, cp.k8sVersion).Run(); err != nil {
 		return nil, err
 	}
 
