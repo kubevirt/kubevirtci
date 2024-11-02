@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"errors"
 
 	"github.com/sirupsen/logrus"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cri"
@@ -55,15 +56,6 @@ func (dc *DockerClient) Start(containerID string) error {
 }
 
 func (dc *DockerClient) Create(image string, createOpts *cri.CreateOpts) (string, error) {
-	ports := ""
-	for containerPort, hostPort := range createOpts.Ports {
-		ports += "-p " + containerPort + ":" + hostPort
-	}
-
-	for hostFile, containerFile := range createOpts.Mounts {
-		ports += "-v " + hostFile + ":" + containerFile
-	}
-
 	args := []string{
 		"--name=" + createOpts.Name,
 		"--privileged=" + strconv.FormatBool(createOpts.Privileged),
@@ -74,6 +66,10 @@ func (dc *DockerClient) Create(image string, createOpts *cri.CreateOpts) (string
 
 	for containerPort, hostPort := range createOpts.Ports {
 		args = append(args, "-p", containerPort+":"+hostPort)
+	}
+
+	for hostFile, containerFile := range createOpts.Mounts {
+		args = append(args, "-v", hostFile+":"+containerFile)
 	}
 
 	if len(createOpts.Capabilities) > 0 {
@@ -90,7 +86,7 @@ func (dc *DockerClient) Create(image string, createOpts *cri.CreateOpts) (string
 
 	containerID, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", err
+		return "", errors.New(string(containerID))
 	}
 	logrus.Info("created registry container with id: ", string(containerID))
 	return strings.TrimSuffix(string(containerID), "\n"), nil
