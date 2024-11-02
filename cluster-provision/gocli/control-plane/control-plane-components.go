@@ -2,6 +2,13 @@ package controlplane
 
 import "kubevirt.io/kubevirtci/cluster-provision/gocli/cri"
 
+var versionMap = map[string]string{
+	"1.30": "v1.30.2",
+	"1.29": "v1.29.6",
+	"1.28": "v1.28.11",
+	"1.31": "v1.31.0",
+}
+
 type RunControlPlaneComponentsPhase struct {
 	dnsmasqID        string
 	k8sVersion       string
@@ -30,7 +37,7 @@ func (p *RunControlPlaneComponentsPhase) Run() error {
 }
 
 func (p *RunControlPlaneComponentsPhase) runApiServer() error {
-	apiServerImage := registry + "/" + apiServer + ":" + p.k8sVersion
+	apiServerImage := registry + "/" + apiServer + ":" + versionMap[p.k8sVersion]
 	err := p.containerRuntime.ImagePull(apiServerImage)
 	if err != nil {
 		return err
