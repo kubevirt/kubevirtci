@@ -72,7 +72,7 @@ func (p *RunControlPlaneComponentsPhase) runApiServer() error {
 }
 
 func (p *RunControlPlaneComponentsPhase) runControllerMgr() error {
-	ctrlMgrImage := registry + "/" + controllerManager + ":" + p.k8sVersion
+	ctrlMgrImage := registry + "/" + controllerManager + ":" + versionMap[p.k8sVersion]
 	err := p.containerRuntime.ImagePull(ctrlMgrImage)
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func (p *RunControlPlaneComponentsPhase) runControllerMgr() error {
 		Command: cmd,
 	}
 
-	apiserverContainer, err := p.containerRuntime.Create(ctrlMgrImage, createOpts)
+	apiserverContainer, err := p.containerRuntime.Create(ctrlMgrImage, createOpts) // todo: variable names
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func (p *RunControlPlaneComponentsPhase) runControllerMgr() error {
 }
 
 func (p *RunControlPlaneComponentsPhase) runScheduler() error {
-	schedulerImage := registry + "/" + scheduler + ":" + p.k8sVersion
+	schedulerImage := registry + "/" + scheduler + ":" + versionMap[p.k8sVersion]
 	err := p.containerRuntime.ImagePull(schedulerImage)
 	if err != nil {
 		return err
