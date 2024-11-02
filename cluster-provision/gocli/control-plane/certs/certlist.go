@@ -58,7 +58,7 @@ func SchedulerCert() *Cert {
 			Organization: []string{"system:system:kube-scheduler"},
 			AltNames: cert.AltNames{
 				DNSNames: []string{"kube-scheduler"},
-				IPs:      []net.IP{[]byte("127.0.0.1")},
+				IPs:      []net.IP{net.ParseIP("127.0.0.1")},
 			},
 			Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		},
@@ -76,7 +76,7 @@ func ControllerMgrCert() *Cert {
 			Organization: []string{"system:kube-controller-manager"},
 			AltNames: cert.AltNames{
 				DNSNames: []string{"kube-scheduler"},
-				IPs:      []net.IP{[]byte("127.0.0.1")},
+				IPs:      []net.IP{net.ParseIP("127.0.0.1")},
 			},
 			Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		},
