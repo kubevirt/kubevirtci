@@ -96,7 +96,7 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 	var c *rest.Config
 
 	if kp.Nodes > 1 {
-		runner := controlplane.NewControlPlaneRunner(dnsmasq, strings.Split(kp.Version, "-")[1])
+		runner := controlplane.NewControlPlaneRunner(dnsmasq, strings.Split(kp.Version, "-")[1], uint(kp.APIServerPort))
 		c, err = runner.Start()
 		if err != nil {
 			return err

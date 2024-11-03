@@ -1,8 +1,8 @@
 package controlplane
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"path"
 
 	"k8s.io/client-go/tools/clientcmd"
@@ -46,7 +46,7 @@ func (p *KubeConfigPhase) Run() error {
 		if err != nil {
 			return fmt.Errorf("error writing to file: %w", err)
 		}
-	
+
 	}
 	return nil
 }

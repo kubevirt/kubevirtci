@@ -25,13 +25,14 @@ type ControlPlaneRunner struct {
 	containerRuntime cri.ContainerClient
 	Client           k8s.K8sDynamicClient
 	k8sVersion       string
+	apiServerPort    uint
 }
 
 type Phase interface {
 	Run() error
 }
 
-func NewControlPlaneRunner(dnsmasqID string, k8sVersion string) *ControlPlaneRunner {
+func NewControlPlaneRunner(dnsmasqID string, k8sVersion string, apiServerPort uint) *ControlPlaneRunner {
 	var containerRuntime cri.ContainerClient
 	if podman.IsAvailable() {
 		containerRuntime = podman.NewPodman()
@@ -44,7 +45,8 @@ func NewControlPlaneRunner(dnsmasqID string, k8sVersion string) *ControlPlaneRun
 	return &ControlPlaneRunner{
 		containerRuntime: containerRuntime,
 		dnsmasqID:        dnsmasqID,
-		k8sVersion: k8sVersion,
+		k8sVersion:       k8sVersion,
+		apiServerPort:    apiServerPort,
 	}
 }
 
@@ -65,7 +67,7 @@ func (cp *ControlPlaneRunner) Start() (*rest.Config, error) {
 		return nil, err
 	}
 
-	config, err := k8s.NewConfig(path.Join(defaultPkiPath, "admin.kubeconfig"), 6443)
+	config, err := k8s.NewConfig(path.Join(defaultPkiPath, "admin/.kubeconfig"), uint16(cp.apiServerPort))
 	if err != nil {
 		return nil, err
 	}
