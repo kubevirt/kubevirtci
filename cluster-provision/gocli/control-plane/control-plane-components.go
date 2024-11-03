@@ -1,6 +1,9 @@
 package controlplane
 
-import "kubevirt.io/kubevirtci/cluster-provision/gocli/cri"
+import (
+	"time"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/cri"
+)
 
 var versionMap = map[string]string{
 	"1.30": "v1.30.2",
@@ -32,6 +35,8 @@ func (p *RunControlPlaneComponentsPhase) Run() error {
 		if err != nil {
 			return err
 		}
+		// wait 10 seconds before component starts to allow them to do all their necessary bootstrapping
+		time.Sleep(time.Second*10)
 	}
 	return nil
 }
@@ -113,7 +118,7 @@ func (p *RunControlPlaneComponentsPhase) runScheduler() error {
 		return err
 	}
 
-	cmd := []string{"kube-scheduler", "--kubeconfig=/etc/kubernetes/kube-scheduler.kubeconfig"}
+	cmd := []string{"kube-scheduler", "--kubeconfig=/etc/kubernetes/kube-scheduler/.kubeconfig"}
 
 	createOpts := &cri.CreateOpts{
 		Name: "kube-scheduler",

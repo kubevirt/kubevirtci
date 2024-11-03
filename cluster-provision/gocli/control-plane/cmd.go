@@ -22,15 +22,15 @@ func buildEtcdCmdArgs() map[string]string {
 func buildControllerMgrCmdArgs() map[string]string {
 	return map[string]string{
 		"--allocate-node-cidrs":              "true",
-		"--authorization-kubeconfig":         "/etc/kubernetes/pki/kube-controller-manager.kubeconfig",
-		"--authentication-kubeconfig":        "/etc/kubernetes/pki/kube-controller-manager.kubeconfig",
+		"--authorization-kubeconfig":         "/etc/kubernetes/pki/kube-controller-manager/.kubeconfig",
+		"--authentication-kubeconfig":        "/etc/kubernetes/pki/kube-controller-manager/.kubeconfig",
 		"--bind-address":                     "127.0.0.1",
 		"--cluster-cidr":                     "10.244.0.0/16,fd10:244::/112",
 		"--cluster-name":                     "kubernetes",
 		"--cluster-signing-cert-file":        "/etc/kubernetes/pki/ca.crt",
 		"--cluster-signing-key-file":         "/etc/kubernetes/pki/key.pem",
 		"--controllers":                      "*,csrapproving,csrsigning,bootstrapsigner,tokencleaner",
-		"--kubeconfig":                       "/etc/kubernetes/pki/kube-controller-manager.kubeconfig",
+		"--kubeconfig":                       "/etc/kubernetes/pki/kube-controller-manager/.kubeconfig",
 		"--node-cidr-mask-size-ipv6":         "116",
 		"--leader-elect":                     "true",
 		"-v":                                 "5",
@@ -43,7 +43,7 @@ func buildControllerMgrCmdArgs() map[string]string {
 
 func buildApiServerCmdArgs() map[string]string {
 	return map[string]string{
-		"--advertise-address":                "192.168.66.110",
+		"--advertise-address":                "192.168.66.101",
 		"--allow-privileged":                 "true",
 		"--audit-log-format":                 "json",
 		"--audit-log-path":                   "/var/log/k8s-audit/k8s-audit.log",
@@ -52,17 +52,17 @@ func buildApiServerCmdArgs() map[string]string {
 		"--enable-admission-plugins":         "NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota",
 		"--enable-bootstrap-token-auth":      "true",
 		"--etcd-cafile":                      "/etc/kubernetes/pki/ca.crt",
-		"--etcd-certfile":                    "/etc/kubernetes/pki/kube-api-server.crt",
-		"--etcd-keyfile":                     "/etc/kubernetes/pki/kube-api-server.key",
+		"--etcd-certfile":                    "/etc/kubernetes/pki/apiserver.crt",
+		"--etcd-keyfile":                     "/etc/kubernetes/pki/apiserver.pem",
 		"--etcd-servers":                     "https://127.0.0.1:2379",
 		"--kubelet-preferred-address-types":  "InternalIP,ExternalIP,Hostname",
 		"--secure-port":                      "6443",
 		"--v":                                "3",
 		"--service-account-issuer":           "https://kubernetes.default.svc.cluster.local",
-		"--service-account-key-file":         "/etc/kubernetes/pki/service-accounts.key",
-		"--service-account-signing-key-file": " /etc/kubernetes/pki/service-accounts.key",
+		"--service-account-key-file":         "/etc/kubernetes/pki/service-accounts.pem",
+		"--service-account-signing-key-file": "/etc/kubernetes/pki/service-accounts.pem",
 		"--service-cluster-ip-range":         "10.96.0.0/24",
-		"--tls-cert-file":                    "/etc/kubernetes/pki/kube-api-server.crt",
-		"--tls-private-key-file":             "/etc/kubernetes/pki/kube-api-server.key",
+		"--tls-cert-file":                    "/etc/kubernetes/pki/apiserver.crt",
+		"--tls-private-key-file":             "/etc/kubernetes/pki/apiserver.pem",
 	}
 }

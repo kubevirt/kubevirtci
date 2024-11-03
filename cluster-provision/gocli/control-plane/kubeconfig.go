@@ -2,6 +2,7 @@ package controlplane
 
 import (
 	"os"
+	"fmt"
 	"path"
 
 	"k8s.io/client-go/tools/clientcmd"
@@ -41,38 +42,41 @@ func (p *KubeConfigPhase) Run() error {
 		}
 
 		kubeconfig := buildKubeConfigFromCerts(ca, clientCert, key, "https://127.0.0.1:6443", userName) // todo: handle this better
-		err = clientcmd.WriteToFile(kubeconfig, path.Join(p.pkiPath, component, ".kubeconfig"))
+		err = clientcmd.WriteToFile(kubeconfig, p.pkiPath+"/"+component+"/.kubeconfig")
 		if err != nil {
-			return err
+			return fmt.Errorf("error writing to file: %w", err)
 		}
-		return nil
+	
 	}
 	return nil
 }
 
 func buildKubeConfigFromCerts(ca, clientCert, clientKey []byte, server, user string) clientcmdapi.Config {
-	clusters := make(map[string]*clientcmdapi.Cluster)
-	clusters["kubernetes"] = &clientcmdapi.Cluster{
-		Server:                   server,
-		CertificateAuthorityData: ca,
+	clusters := map[string]*clientcmdapi.Cluster{
+		"kubernetes": {
+			Server:                   server,
+			CertificateAuthorityData: ca,
+		},
 	}
-	contexts := make(map[string]*clientcmdapi.Context)
-	contexts["default"] = &clientcmdapi.Context{
-		Cluster:  "kubernetes",
-		AuthInfo: user,
+	contexts := map[string]*clientcmdapi.Context{
+		"default": {
+			Cluster:  "kubernetes",
+			AuthInfo: user,
+		},
 	}
-	authinfos := make(map[string]*clientcmdapi.AuthInfo)
-	authinfos[user] = &clientcmdapi.AuthInfo{
-		ClientCertificateData: clientCert,
-		ClientKeyData:         clientKey,
+	authInfos := map[string]*clientcmdapi.AuthInfo{
+		user: {
+			ClientCertificateData: clientCert,
+			ClientKeyData:         clientKey,
+		},
 	}
-	clientConfig := clientcmdapi.Config{
+
+	return clientcmdapi.Config{
 		Kind:           "Config",
 		APIVersion:     "v1",
 		Clusters:       clusters,
 		Contexts:       contexts,
 		CurrentContext: "default",
-		AuthInfos:      authinfos,
+		AuthInfos:      authInfos,
 	}
-	return clientConfig
 }

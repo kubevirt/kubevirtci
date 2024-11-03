@@ -44,6 +44,7 @@ func NewControlPlaneRunner(dnsmasqID string, k8sVersion string) *ControlPlaneRun
 	return &ControlPlaneRunner{
 		containerRuntime: containerRuntime,
 		dnsmasqID:        dnsmasqID,
+		k8sVersion: k8sVersion,
 	}
 }
 
