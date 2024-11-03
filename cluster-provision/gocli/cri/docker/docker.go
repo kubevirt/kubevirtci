@@ -88,7 +88,7 @@ func (dc *DockerClient) Create(image string, createOpts *cri.CreateOpts) (string
 	if err != nil {
 		return "", errors.New(string(containerID))
 	}
-	logrus.Infof("created %s container with id: %s\n", createOpts.Name, string(containerID))
+	logrus.Infof("created %s container with id: %s", createOpts.Name, string(containerID))
 	return strings.TrimSuffix(string(containerID), "\n"), nil
 }
 
