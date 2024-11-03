@@ -1,11 +1,11 @@
 package docker
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
-	"errors"
 
 	"github.com/sirupsen/logrus"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cri"
@@ -88,7 +88,7 @@ func (dc *DockerClient) Create(image string, createOpts *cri.CreateOpts) (string
 	if err != nil {
 		return "", errors.New(string(containerID))
 	}
-	logrus.Info("created registry container with id: ", string(containerID))
+	logrus.Infof("created %s container with id: %s\n", createOpts.Name, string(containerID))
 	return strings.TrimSuffix(string(containerID), "\n"), nil
 }
 
