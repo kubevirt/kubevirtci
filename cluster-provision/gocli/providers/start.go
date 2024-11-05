@@ -128,7 +128,7 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 			Env: []string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
 			},
-			Cmd: []string{"/bin/bash", "-c", qemuCMD},
+			Cmd: []string{"/bin/bash", "-c", "sleep 9000000"},
 		}
 		var deviceMappings []container.DeviceMapping
 
