@@ -89,7 +89,9 @@ func (cp *ControlPlaneRunner) Start() (*rest.Config, error) {
 		return nil, err
 	}
 
-	// new cni phase ?
+	if err := NewCNIPhase(k8sClient, false).Run(); err != nil {
+		return nil, err
+	}
 
 	return config, nil
 }
