@@ -323,7 +323,7 @@ func (kp *KubevirtProvider) provisionNode(sshClient libssh.Client, nodeIdx int) 
 		opts = append(opts, psaOpt)
 	}
 
-	if nodeIdx == 1 {
+	if nodeIdx == 100 {
 		n := node01.NewNode01Provisioner(sshClient, kp.SingleStack, kp.NoEtcdFsync)
 		opts = append(opts, n)
 
