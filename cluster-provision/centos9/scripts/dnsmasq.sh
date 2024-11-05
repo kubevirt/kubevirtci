@@ -22,17 +22,16 @@ done
 # if the number is one then do the normal thing, if its higher than one then do the manual ip thingy
 i=1
 while [ $i -le ${NUM_NODES} ]; do
-  if [ ${NUM_NODES} -gt 1 ] && [ $i -eq 1 ]; then
-    ip tuntap add dev tap01 mode tap user $(whoami)
-    ip link set tap01 master br0
-    ip link set dev tap01 up
-    ip addr add 192.168.66.110/24 dev tap01
-    ip -6 addr add fd00::110 dev tap01
+  if [ ${NUM_NODES} -gt 1 ]; then
+    ip tuntap add dev tap101 mode tap user $(whoami)
+    ip link set tap101 master br0
+    ip link set dev tap101 up
+    ip addr add 192.168.66.110/24 dev tap101
+    ip -6 addr add fd00::110 dev tap101
     iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport 6443 -j DNAT --to-destination 192.168.66.110:6443
-    ((i++))
   fi
 
-  n="$(printf "%02d" $((i - 1)))"
+  n="$(printf "%02d" ${i})"
   ip tuntap add dev tap${n} mode tap user $(whoami)
   ip link set tap${n} master br0
   ip link set dev tap${n} up
