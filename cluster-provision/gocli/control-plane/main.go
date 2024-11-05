@@ -81,9 +81,15 @@ func (cp *ControlPlaneRunner) Start() (*rest.Config, error) {
 		return nil, err
 	}
 
+	if err := NewBootstrapAuthResourcesPhase(k8sClient, defaultPkiPath).Run(); err != nil {
+		return nil, err
+	}
+
 	if err := NewKubeProxyPhase(k8sClient).Run(); err != nil {
 		return nil, err
 	}
+
+	// new cni phase ?
 
 	return config, nil
 }

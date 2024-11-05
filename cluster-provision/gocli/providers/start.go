@@ -25,7 +25,6 @@ import (
 	etcd "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/etcd"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/istio"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/ksm"
-	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/labelnodes"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/multus"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nfscsi"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/node01"
@@ -222,7 +221,7 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		kp.Client = k8sClient
 	default:
 		// we need to be able to reach the control plane from the vm network
-		c.Host = "https://192.168.66.101:6443"
+		c.Host = "https://192.168.66.110:6443"
 		kubeconfig := controlplane.RestConfigToKubeconfig(c)
 		configBytes, err := clientcmd.Write(*kubeconfig)
 		if err != nil {
@@ -235,22 +234,22 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		}
 
 		// and also from the host network
-		kubeConf, err := os.Create(".kubeconfig")
-		if err != nil {
-			return err
-		}
-		kubeconfig = controlplane.RestConfigToKubeconfig(c)
-		configBytes, err = clientcmd.Write(*kubeconfig)
-		if err != nil {
-			return err
-		}
+		// kubeConf, err := os.Create(".kubeconfig")
+		// if err != nil {
+		// 	return err
+		// }
+		// kubeconfig = controlplane.RestConfigToKubeconfig(c)
+		// configBytes, err = clientcmd.Write(*kubeconfig)
+		// if err != nil {
+		// 	return err
+		// }
 
-		_, err = kubeConf.Write(configBytes)
-		if err != nil {
-			return err
-		}
+		// _, err = kubeConf.Write(configBytes)
+		// if err != nil {
+		// 	return err
+		// }
 
-		config, err := k8s.NewConfig(".kubeconfig", uint16(kp.APIServerPort))
+		config, err := k8s.NewConfig("/etc/kubevirtci/pki/admin/.kubeconfig", uint16(kp.APIServerPort)) // todo
 		if err != nil {
 			return err
 		}
@@ -323,7 +322,7 @@ func (kp *KubevirtProvider) provisionNode(sshClient libssh.Client, nodeIdx int) 
 		opts = append(opts, psaOpt)
 	}
 
-	if nodeIdx == 100 {
+	if nodeIdx == 1 && kp.Nodes == 1 {
 		n := node01.NewNode01Provisioner(sshClient, kp.SingleStack, kp.NoEtcdFsync)
 		opts = append(opts, n)
 
@@ -362,11 +361,11 @@ func (kp *KubevirtProvider) provisionNode(sshClient libssh.Client, nodeIdx int) 
 
 func (kp *KubevirtProvider) provisionK8sOpts(sshClient libssh.Client) error {
 	opts := []opts.Opt{}
-	labelSelector := "node-role.kubernetes.io/control-plane"
-	if kp.Nodes > 1 {
-		labelSelector = "!node-role.kubernetes.io/control-plane"
-	}
-	opts = append(opts, labelnodes.NewNodeLabler(sshClient, labelSelector))
+	// labelSelector := "node-role.kubernetes.io/control-plane"
+	// if kp.Nodes > 1 {
+	// 	labelSelector = "!node-role.kubernetes.io/control-plane"
+	// }
+	// opts = append(opts, labelnodes.NewNodeLabler(sshClient, labelSelector))
 
 	if kp.CDI {
 		opts = append(opts, cdi.NewCdiOpt(kp.Client, sshClient, kp.CDIVersion))

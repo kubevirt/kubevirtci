@@ -3,7 +3,11 @@ package controlplane
 import (
 	"bytes"
 	_ "embed"
+	"encoding/base64"
 	"fmt"
+	"os"
+	"path"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/k8s"
@@ -19,10 +23,23 @@ var kk []byte
 var clusterInfo []byte
 
 type BootstrapAuthResourcesPhase struct {
-	client k8s.K8sDynamicClient
+	client  k8s.K8sDynamicClient
+	pkiPath string
+}
+
+func NewBootstrapAuthResourcesPhase(client k8s.K8sDynamicClient, pkiPath string) *BootstrapAuthResourcesPhase {
+	return &BootstrapAuthResourcesPhase{
+		client:  client,
+		pkiPath: pkiPath,
+	}
 }
 
 func (p *BootstrapAuthResourcesPhase) Run() error {
+	caData, err := os.ReadFile(path.Join(p.pkiPath + "ca.crt"))
+	if err != nil {
+		return err
+	}
+	clusterInfo = []byte(strings.Replace(string(clusterInfo), "CADATA", base64.StdEncoding.EncodeToString(caData), 1))
 	for _, manifest := range [][]byte{token, kk, clusterInfo} {
 		yamlDocs := bytes.Split(manifest, []byte("---\n"))
 		for _, yamlDoc := range yamlDocs {
