@@ -32,7 +32,7 @@ while [ $i -le ${NUM_NODES} ]; do
     ((i++))
   fi
 
-  n="$(printf "%02d" ${i-1})"
+  n="$(printf "%02d" $((i - 1)))"
   ip tuntap add dev tap${n} mode tap user $(whoami)
   ip link set tap${n} master br0
   ip link set dev tap${n} up
