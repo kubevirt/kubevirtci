@@ -35,7 +35,7 @@ func NewBootstrapAuthResourcesPhase(client k8s.K8sDynamicClient, pkiPath string)
 }
 
 func (p *BootstrapAuthResourcesPhase) Run() error {
-	caData, err := os.ReadFile(path.Join(p.pkiPath + "ca.crt"))
+	caData, err := os.ReadFile(path.Join(p.pkiPath, "ca.crt"))
 	if err != nil {
 		return err
 	}
