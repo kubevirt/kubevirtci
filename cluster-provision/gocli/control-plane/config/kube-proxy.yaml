@@ -124,7 +124,6 @@ spec:
       containers:
         - name: kube-proxy
           securityContext:
-            allowPrivilegeEscalation: false
             capabilities:
               add:
               - NET_ADMIN
