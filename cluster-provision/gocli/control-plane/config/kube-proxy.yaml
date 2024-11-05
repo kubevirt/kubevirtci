@@ -129,7 +129,7 @@ spec:
               add:
               - NET_ADMIN
               - SYS_RESOURCE
-            privileged: false
+            privileged: true
             readOnlyRootFilesystem: false
             runAsNonRoot: false
           image: registry.k8s.io/kube-proxy:v1.28.0
