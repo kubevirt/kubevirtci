@@ -25,11 +25,11 @@ func NewNodesProvisioner(sc libssh.Client, singleStack bool) *nodesProvisioner {
 func (n *nodesProvisioner) Exec() error {
 	var (
 		nodeIP         = ""
-		controlPlaneIP = "192.168.66.101"
+		controlPlaneIP = "192.168.66.110"
 	)
 
 	if n.singleStack {
-		controlPlaneIP = "[fd00::101]"
+		controlPlaneIP = "[fd00::110]"
 		nodeIP = "--node-ip=::"
 	}
 
