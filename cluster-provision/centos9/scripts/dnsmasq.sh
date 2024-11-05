@@ -3,7 +3,7 @@
 set -ex
 
 NUM_NODES=${NUM_NODES-1}
-NUM_SECONDARY_NICS=${NUM_SECONDARY_NICS:-0}
+NUM_SECONDARY_NICS=0
 SEQ_START=1
 
 ip link add br0 type bridge
@@ -20,28 +20,32 @@ for snet in $(seq 1 ${NUM_SECONDARY_NICS}); do
 done
 
 # if the number is one then do the normal thing, if its higher than one then do the manual ip thingy
-
-for i in $(seq 1 ${NUM_NODES}); do
-  if [ $NUM_NODES > 1 ]; then
+i=1
+while [ $i -le ${NUM_NODES} ]; do
+  if [ ${NUM_NODES} -gt 1 ] && [ $i -eq 1 ]; then
     ip tuntap add dev tap01 mode tap user $(whoami)
     ip link set tap01 master br0
     ip link set dev tap01 up
-    ip addr add 192.168.66.101/24 dev tap01
-    ip -6 addr add fd00::101 dev tap01
-    i++
-  fi;
+    ip addr add 192.168.66.110/24 dev tap01
+    ip -6 addr add fd00::110 dev tap01
+    iptables -t nat -A PREROUTING -p tcp -i eth0 -m tcp --dport 6443 -j DNAT --to-destination 192.168.66.110:6443
+    ((i++))
+  fi
 
   n="$(printf "%02d" ${i})"
   ip tuntap add dev tap${n} mode tap user $(whoami)
   ip link set tap${n} master br0
   ip link set dev tap${n} up
   DHCP_HOSTS="${DHCP_HOSTS} --dhcp-host=52:55:00:d1:55:${n},192.168.66.1${n},[fd00::1${n}],node${n},infinite"
+
   for s in $(seq 1 ${NUM_SECONDARY_NICS}); do
     tap_name=stap$(($i - 1))-$(($s - 1))
     ip tuntap add dev $tap_name mode tap user $(whoami)
     ip link set $tap_name master br${s}
     ip link set dev $tap_name up
   done
+
+  ((i++))  # Increment for the main loop
 done
 
 # Make sure that all VMs can reach the internet
