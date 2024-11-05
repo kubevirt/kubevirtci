@@ -22,7 +22,7 @@ done
 # if the number is one then do the normal thing, if its higher than one then do the manual ip thingy
 i=1
 while [ $i -le ${NUM_NODES} ]; do
-  if [ ${NUM_NODES} -gt 1 ]; then
+  if [ ${NUM_NODES} -gt 1 ] && [ $i -eq 1 ]; then
     ip tuntap add dev tap101 mode tap user $(whoami)
     ip link set tap101 master br0
     ip link set dev tap101 up
