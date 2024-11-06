@@ -25,6 +25,7 @@ import (
 	etcd "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/etcd"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/istio"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/ksm"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/localvolume"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/multus"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nfscsi"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/node01"
@@ -348,6 +349,7 @@ func (kp *KubevirtProvider) provisionK8sOpts(sshClient libssh.Client) error {
 	// 	labelSelector = "!node-role.kubernetes.io/control-plane"
 	// }
 	// opts = append(opts, labelnodes.NewNodeLabler(sshClient, labelSelector))
+	opts = append(opts, localvolume.NewLocalVolumeOpt(sshClient))
 
 	if kp.CDI {
 		opts = append(opts, cdi.NewCdiOpt(kp.Client, sshClient, kp.CDIVersion))
