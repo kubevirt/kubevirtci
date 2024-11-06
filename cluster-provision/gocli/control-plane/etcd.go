@@ -33,7 +33,7 @@ func (p *RunETCDPhase) Run() error {
 	}
 
 	createOpts := &cri.CreateOpts{
-		Name: p.k8sVersion + "-etcd",
+		Name: "k8s-" + p.k8sVersion + "-etcd",
 		Mounts: map[string]string{
 			p.pkiPath: "/etc/kubernetes/pki/etcd",
 		},
