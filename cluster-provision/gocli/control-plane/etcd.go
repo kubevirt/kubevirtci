@@ -6,13 +6,15 @@ type RunETCDPhase struct {
 	dnsmasqID        string
 	containerRuntime cri.ContainerClient
 	pkiPath          string
+	k8sVersion       string
 }
 
-func NewRunETCDPhase(dnsmasqID string, containerRuntime cri.ContainerClient, pkiPath string) Phase {
+func NewRunETCDPhase(dnsmasqID string, containerRuntime cri.ContainerClient, pkiPath, k8sVersion string) Phase {
 	return &RunETCDPhase{
 		dnsmasqID:        dnsmasqID,
 		containerRuntime: containerRuntime,
 		pkiPath:          pkiPath,
+		k8sVersion:       k8sVersion,
 	}
 }
 
@@ -31,7 +33,7 @@ func (p *RunETCDPhase) Run() error {
 	}
 
 	createOpts := &cri.CreateOpts{
-		Name: "etcd",
+		Name: p.k8sVersion + "-etcd",
 		Mounts: map[string]string{
 			p.pkiPath: "/etc/kubernetes/pki/etcd",
 		},

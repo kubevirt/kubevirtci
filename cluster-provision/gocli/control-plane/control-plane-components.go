@@ -57,7 +57,7 @@ func (p *RunControlPlaneComponentsPhase) runApiServer() error {
 	}
 
 	createOpts := &cri.CreateOpts{
-		Name: "api-server",
+		Name: p.k8sVersion + "-api-server",
 		Mounts: map[string]string{
 			p.pkiPath: "/etc/kubernetes/pki/",
 		},
@@ -92,7 +92,7 @@ func (p *RunControlPlaneComponentsPhase) runControllerMgr() error {
 	}
 
 	createOpts := &cri.CreateOpts{
-		Name: "kube-controller-manager",
+		Name: p.k8sVersion + "-kube-controller-manager",
 		Mounts: map[string]string{
 			p.pkiPath: "/etc/kubernetes/pki/",
 		},
@@ -122,7 +122,7 @@ func (p *RunControlPlaneComponentsPhase) runScheduler() error {
 	cmd := []string{"kube-scheduler", "--kubeconfig=/etc/kubernetes/pki/kube-scheduler/.kubeconfig"}
 
 	createOpts := &cri.CreateOpts{
-		Name: "kube-scheduler",
+		Name: p.k8sVersion + "-kube-scheduler",
 		Mounts: map[string]string{
 			p.pkiPath: "/etc/kubernetes/pki/",
 		},

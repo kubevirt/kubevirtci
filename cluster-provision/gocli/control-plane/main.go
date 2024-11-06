@@ -55,7 +55,7 @@ func (cp *ControlPlaneRunner) Start() (*rest.Config, error) {
 		return nil, err
 	}
 
-	if err := NewRunETCDPhase(cp.dnsmasqID, cp.containerRuntime, defaultPkiPath).Run(); err != nil {
+	if err := NewRunETCDPhase(cp.dnsmasqID, cp.containerRuntime, defaultPkiPath, cp.k8sVersion).Run(); err != nil {
 		return nil, err
 	}
 
