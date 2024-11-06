@@ -29,6 +29,7 @@ if [ "${KUBEVIRTCI_RUNTIME}" = "podman" ]; then
 elif [ "${KUBEVIRTCI_RUNTIME}" = "docker" ]; then
     _cri_bin=docker
     _cri_socket="/var/run/docker.sock"
+    _bin_dir=$(which docker)
 else
     _cri_socket=$(detect_podman_socket)
     if [ -n "$_cri_socket" ]; then
@@ -45,7 +46,7 @@ else
 fi
 
 _cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-quay.io/kubevirtci/gocli:${KUBEVIRTCI_TAG}}"
-_cli="${_cri_bin} run --privileged --net=host --rm ${USE_TTY} -v ${_cri_socket}:/var/run/docker.sock"
+_cli="${_cri_bin} run --privileged --net=host --rm ${USE_TTY} -v ${_cri_socket}:/var/run/docker.sock" -v "${_bin_dir}:/usr/local/bin/${_cri_bin}"
 # gocli will try to mount /lib/modules to make it accessible to dnsmasq in
 # in case it exists
 if [ -d /lib/modules ]; then
