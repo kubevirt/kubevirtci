@@ -43,7 +43,7 @@ func buildControllerMgrCmdArgs() map[string]string {
 
 func buildApiServerCmdArgs() map[string]string {
 	return map[string]string{
-		"--advertise-address":                "192.168.66.101",
+		"--advertise-address":                "192.168.66.110",
 		"--allow-privileged":                 "true",
 		"--audit-log-format":                 "json",
 		"--audit-log-path":                   "/var/log/k8s-audit/k8s-audit.log",
