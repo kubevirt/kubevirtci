@@ -11,26 +11,39 @@ import (
 var cgroupv2 []byte
 
 type nodesProvisioner struct {
-	sshClient   libssh.Client
-	singleStack bool
+	sshClient             libssh.Client
+	singleStack           bool
+	controlPlaneContainer bool
 }
 
-func NewNodesProvisioner(sc libssh.Client, singleStack bool) *nodesProvisioner {
+func NewNodesProvisioner(sc libssh.Client, singleStack bool, controlPlaneContainer bool) *nodesProvisioner {
 	return &nodesProvisioner{
-		sshClient:   sc,
-		singleStack: singleStack,
+		sshClient:             sc,
+		singleStack:           singleStack,
+		controlPlaneContainer: controlPlaneContainer,
 	}
 }
 
 func (n *nodesProvisioner) Exec() error {
 	var (
-		nodeIP         = ""
-		controlPlaneIP = "192.168.66.110"
+		nodeIP         string
+		controlPlaneIP string
 	)
 
+	controlPlaneIP = "192.168.66.101"
+
 	if n.singleStack {
-		controlPlaneIP = "[fd00::110]"
+		controlPlaneIP = "[fd00::101]"
 		nodeIP = "--node-ip=::"
+	}
+
+	if n.controlPlaneContainer {
+		if n.singleStack {
+			controlPlaneIP = "[fd00::110]"
+		} else {
+			controlPlaneIP = "192.168.66.110"
+			nodeIP = ""
+		}
 	}
 
 	cmds := []string{

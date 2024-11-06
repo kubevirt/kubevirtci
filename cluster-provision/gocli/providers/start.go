@@ -227,29 +227,12 @@ func (kp *KubevirtProvider) Start(ctx context.Context, cancel context.CancelFunc
 		if err != nil {
 			return err
 		}
-
 		err = sshClient.SCP("/etc/kubernetes/admin.conf", bytes.NewReader(configBytes))
 		if err != nil {
 			return err
 		}
 
-		// and also from the host network
-		// kubeConf, err := os.Create(".kubeconfig")
-		// if err != nil {
-		// 	return err
-		// }
-		// kubeconfig = controlplane.RestConfigToKubeconfig(c)
-		// configBytes, err = clientcmd.Write(*kubeconfig)
-		// if err != nil {
-		// 	return err
-		// }
-
-		// _, err = kubeConf.Write(configBytes)
-		// if err != nil {
-		// 	return err
-		// }
-
-		config, err := k8s.NewConfig("/etc/kubevirtci/pki/admin/.kubeconfig", uint16(kp.APIServerPort)) // todo
+		config, err := k8s.NewConfig("/etc/kubevirtci/pki/admin/.kubeconfig", uint16(kp.APIServerPort))
 		if err != nil {
 			return err
 		}
@@ -325,7 +308,6 @@ func (kp *KubevirtProvider) provisionNode(sshClient libssh.Client, nodeIdx int) 
 	if nodeIdx == 1 && kp.Nodes == 1 {
 		n := node01.NewNode01Provisioner(sshClient, kp.SingleStack, kp.NoEtcdFsync)
 		opts = append(opts, n)
-
 	} else {
 		if kp.GPU != "" {
 			// move the assigned PCI device to a vfio-pci driver to prepare for assignment
@@ -336,7 +318,7 @@ func (kp *KubevirtProvider) provisionNode(sshClient libssh.Client, nodeIdx int) 
 			bindVfioOpt := bindvfio.NewBindVfioOpt(sshClient, gpuDeviceID)
 			opts = append(opts, bindVfioOpt)
 		}
-		n := nodesprovision.NewNodesProvisioner(sshClient, kp.SingleStack)
+		n := nodesprovision.NewNodesProvisioner(sshClient, kp.SingleStack, kp.Nodes > 1)
 		opts = append(opts, n)
 	}
 

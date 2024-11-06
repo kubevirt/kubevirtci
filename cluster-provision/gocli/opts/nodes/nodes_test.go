@@ -24,7 +24,7 @@ var _ = Describe("NodesProvisioner", func() {
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		sshClient = kubevirtcimocks.NewMockSSHClient(mockCtrl)
-		opt = NewNodesProvisioner(sshClient, false)
+		opt = NewNodesProvisioner(sshClient, false, false)
 		AddExpectCalls(sshClient)
 	})
 
