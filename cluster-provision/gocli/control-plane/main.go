@@ -93,6 +93,10 @@ func (cp *ControlPlaneRunner) Start() (*rest.Config, error) {
 		return nil, err
 	}
 
+	if err := NewCoreDNSPhase(k8sClient).Run(); err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
 
