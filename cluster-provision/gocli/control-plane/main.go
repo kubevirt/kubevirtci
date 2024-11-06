@@ -38,7 +38,7 @@ func NewControlPlaneRunner(dnsmasqID string, k8sVersion string, apiServerPort ui
 		containerRuntime = podman.NewPodman()
 
 	}
-	if docker.IsAvailable() {
+	if true {
 		containerRuntime = docker.NewDockerClient()
 	}
 
