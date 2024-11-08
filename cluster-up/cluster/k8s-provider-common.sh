@@ -68,8 +68,8 @@ function up() {
 
     # Set server and disable tls check
     export KUBECONFIG=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
-    kubectl config set-cluster kubernetes --server="https://$(_main_ip):$(_port k8s)"
-    kubectl config set-cluster kubernetes --insecure-skip-tls-verify=true
+    kubectl config set-cluster default --server="https://$(_main_ip):$(_port k8s)"
+    kubectl config set-cluster default --insecure-skip-tls-verify=true
 
     # Workaround https://github.com/containers/conmon/issues/315 by not dumping the file to stdout for the time being
     if [[ ${_cri_bin} = podman* ]]; then
