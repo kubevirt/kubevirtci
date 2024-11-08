@@ -5,15 +5,6 @@ set -e
 # shellcheck source=cluster-up/cluster/ephemeral-provider-common.sh
 source "${KUBEVIRTCI_PATH}/cluster/ephemeral-provider-common.sh"
 
-
-
-function deploy_kwok() {
-    if [[ ${KUBEVIRT_DEPLOY_KWOK} == "true" ]]; then
-        $kubectl create -f /opt/kwok/kwok.yaml
-        $kubectl create -f /opt/kwok/stage-fast.yaml
-    fi
-}
-
 # copy_istio_cni_conf_files copy the generated Istio CNI net conf file
 # (at '/etc/cni/multus/net.d/') to where Multus expect CNI net conf files ('/etc/cni/net.d/')
 function copy_istio_cni_conf_files() {
@@ -97,8 +88,6 @@ function up() {
 
     configure_prometheus
     configure_cpu_manager
-
-    deploy_kwok
 
     until wait_for_kwok_ready; do
         echo "Waiting for cluster components..."

@@ -25,6 +25,7 @@ import (
 	etcd "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/etcd"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/istio"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/ksm"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/kwok"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/localvolume"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/multus"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nfscsi"
@@ -385,6 +386,10 @@ func (kp *KubevirtProvider) provisionK8sOpts(sshClient libssh.Client) error {
 
 	if kp.EnableIstio {
 		opts = append(opts, istio.NewIstioOpt(sshClient, kp.Client, kp.EnableCNAO))
+	}
+
+	if kp.EnableKwok {
+		opts = append(opts, kwok.NewKwokOpt(kp.Client))
 	}
 
 	for _, opt := range opts {

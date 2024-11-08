@@ -196,6 +196,11 @@ func WithMultus(multus interface{}) KubevirtProviderOption {
 		c.EnableMultus = multus.(bool)
 	}
 }
+func WithKwok(kwok interface{}) KubevirtProviderOption {
+	return func(c *KubevirtProvider) {
+		c.EnableKwok = kwok.(bool)
+	}
+}
 func WithAAQ(aaq interface{}) KubevirtProviderOption {
 	return func(c *KubevirtProvider) {
 		c.AAQ = aaq.(bool)

@@ -37,6 +37,7 @@ type KubevirtProvider struct {
 	NFSData                      string   `flag:"nfs-data" json:"nfs_data"`
 	EnableCeph                   bool     `flag:"enable-ceph" json:"enable_ceph"`
 	EnableIstio                  bool     `flag:"enable-istio" json:"enable_istio"`
+	EnableKwok                   bool     `flag:"deploy-kwok" json:"deploy_kwok"`
 	EnableCNAO                   bool     `flag:"enable-cnao" json:"enable_cnao"`
 	SkipCnaoCR                   bool     `flag:"skip-cnao-cr" json:"skip_cnao_cr"`
 	EnableNFSCSI                 bool     `flag:"enable-nfs-csi" json:"enable_nfs_csi"`
@@ -288,6 +289,10 @@ var RunFlagMap = map[string]FlagConfig{
 	"deploy-multus": {
 		FlagType:        "bool",
 		ProviderOptFunc: WithMultus,
+	},
+	"deploy-kwok": {
+		FlagType:        "bool",
+		ProviderOptFunc: WithKwok,
 	},
 	"deploy-aaq": {
 		FlagType:        "bool",

@@ -50,6 +50,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("skip-cnao-cr", false, "skip deploying cnao custom resource. if true, only cnao CRDS will be deployed")
 	run.Flags().Bool("deploy-multus", false, "deploy multus")
 	run.Flags().Bool("deploy-cdi", false, "deploy cdi")
+	run.Flags().Bool("deploy-kwok", false, "deploy kwok")
 	run.Flags().String("cdi-version", "", "cdi version")
 	run.Flags().String("aaq-version", "", "aaq version")
 	run.Flags().Bool("deploy-aaq", false, "deploy aaq")

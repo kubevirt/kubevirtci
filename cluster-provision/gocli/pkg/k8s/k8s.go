@@ -14,6 +14,7 @@ import (
 	admissionv1 "k8s.io/pod-security-admission/admission/api/v1"
 	aaqv1alpha1 "kubevirt.io/application-aware-quota-api/pkg/apis/core/v1alpha1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
+	kwokv1alpha1 "sigs.k8s.io/kwok/pkg/apis/v1alpha1"
 
 	"github.com/cenkalti/backoff/v4"
 	corev1 "k8s.io/api/core/v1"
@@ -188,6 +189,7 @@ func initSchema() *runtime.Scheme {
 	_ = monitoringv1alpha1.AddToScheme(s)
 	_ = monitoringv1.AddToScheme(s)
 	_ = istiov1alpha1.AddToScheme(s)
+	_ = kwokv1alpha1.AddToScheme(s)
 	_ = admissionv1.AddToScheme(s)
 	_ = cdiv1beta1.AddToScheme(s)
 	_ = aaqv1alpha1.AddToScheme(s)

@@ -248,6 +248,10 @@ function _add_common_params() {
         params=" --docker-proxy=$KUBEVIRTCI_PROXY $params"
     fi
 
+    if [ "$KUBEVIRT_DEPLOY_KWOK" == "true" ]; then
+        params=" --deploy-kwok $params"
+    fi
+
     echo $params
 }
 
