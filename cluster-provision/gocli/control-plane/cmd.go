@@ -58,6 +58,8 @@ func buildApiServerCmdArgs() map[string]string {
 		"--kubelet-preferred-address-types":  "InternalIP,ExternalIP,Hostname",
 		"--secure-port":                      "6443",
 		"--v":                                "3",
+		"--kubelet-client-certificate":       "/etc/kubernetes/pki/apiserver-kubelet-client.crt",
+		"--kubelet-client-key":               "/etc/kubernetes/pki/apiserver-kubelet-client.pem",
 		"--service-account-issuer":           "https://kubernetes.default.svc.cluster.local",
 		"--service-account-key-file":         "/etc/kubernetes/pki/service-accounts.pem",
 		"--service-account-signing-key-file": "/etc/kubernetes/pki/service-accounts.pem",
