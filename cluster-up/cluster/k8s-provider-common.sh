@@ -84,6 +84,8 @@ function up() {
     else
         label="node-role.kubernetes.io/control-plane"
     fi
+    
+    $kubectl label node node01 node-role.kubernetes.io/control-plane
     $kubectl label node -l $label node-role.kubernetes.io/worker=''
 
     configure_prometheus
