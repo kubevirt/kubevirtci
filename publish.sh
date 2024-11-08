@@ -2,7 +2,10 @@
 
 set -e
 
-export KUBEVIRTCI_TAG=$(date +"%y%m%d%H%M")-$(git rev-parse --short HEAD)
+archs=(amd64 s390x)
+ARCH=$(uname -m | grep -q s390x && echo s390x || echo amd64)
+
+export KUBEVIRTCI_TAG=${KUBEVIRTCI_TAG:-$(date +"%y%m%d%H%M")-$(git rev-parse --short HEAD)}
 PREV_KUBEVIRTCI_TAG=$(curl -sL https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirtci/latest?ignoreCache=1)
 BYPASS_PMAN=${BYPASS_PMAN:-false}
 PHASES=${PHASES:-k8s}
@@ -44,55 +47,86 @@ function run_provision_manager() {
 
 function build_gocli() {
   (cd cluster-provision/gocli && make container)
-  ${CRI_BIN} tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
+  if [ $ARCH == "amd64" ]; then
+    ${CRI_BIN} tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
+  else
+    ${CRI_BIN} tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}-${ARCH}
+  fi
 }
 
 function build_centos9_base_image_with_deps() {
   (cd cluster-provision/centos9 && ./build.sh)
   IMAGE_TO_BUILD="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | head -1)"
+  if [ $ARCH == "s390x" ]; then
+    IMAGE_TO_BUILD="1.30"
+  fi
   (cd cluster-provision/k8s/${IMAGE_TO_BUILD} && ../provision.sh)
 }
 
 function build_clusters() {
-  for i in ${IMAGES_TO_BUILD[@]}; do
-    echo "INFO: building $i"
-    cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i
-    ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
+  for i in "${IMAGES_TO_BUILD[@]}"; do
+    if [ $ARCH == "amd64" ]; then
+      echo "INFO: building $i"
+      cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i
+      ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
 
-    cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
-    ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim
+      cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
+      ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim
+    elif [ $ARCH == "s390x" ] && [ $i == "1.30" ]; then
+      echo "INFO: building $i slim"
+      cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
+      ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}
+    fi
   done
 }
 
 function push_node_base_image() {
-  TARGET_IMAGE="${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}"
+  if [ $ARCH == "amd64" ]; then
+    TARGET_IMAGE="${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}"
+  else
+    TARGET_IMAGE="${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}-${ARCH}"
+  fi
   podman tag ${TARGET_REPO}/centos9-base:latest ${TARGET_IMAGE}
   echo "INFO: push $TARGET_IMAGE"
   podman push ${TARGET_IMAGE}
-  echo ${TARGET_IMAGE} > cluster-provision/k8s/base-image
 }
 
 function push_cluster_images() {
-  for i in ${IMAGES_TO_BUILD[@]}; do
-    echo "INFO: push $i"
-    TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
-    podman push "$TARGET_IMAGE"
+  for i in "${IMAGES_TO_BUILD[@]}"; do
+    if [ $ARCH == "amd64" ]; then
+      echo "INFO: push $i"
+      TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
+      podman push "$TARGET_IMAGE"
 
-    TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
-    podman push "$TARGET_IMAGE"
+      TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
+      podman push "$TARGET_IMAGE"
+    elif [ $ARCH == "s390x" ] && [ $i == "1.30" ]; then
+      echo "INFO: push $i slim"
+      TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
+      podman push "$TARGET_IMAGE"
+    fi
   done
 
   # images that the change doesn't affect can be retagged from previous tag
   for i in ${IMAGES_TO_RETAG[@]}; do
     echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG)"
-    skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
-    skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
+    if [ $ARCH == "amd64" ]; then 
+      skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
+      skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
+    elif [ $ARCH == "s390x" ] && [ $i == "1.30" ]; then
+      skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-${ARCH}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-${ARCH}"
+      skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim-${ARCH}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
+    fi
   done
 }
 
 function push_gocli() {
-  echo "INFO: push gocli"
-  TARGET_IMAGE="${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}"
+  echo "INFO: push gocli for ${ARCH}"
+  if [ $ARCH == "amd64" ]; then
+    TARGET_IMAGE="${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}"
+  else
+    TARGET_IMAGE="${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}-${ARCH}"
+  fi
   podman push "$TARGET_IMAGE"
 }
 
@@ -137,17 +171,60 @@ function create_git_tag() {
   git push ${TARGET_GIT_REMOTE} ${KUBEVIRTCI_TAG}
 }
 
+publish_manifest() {
+  local cur_archs=("${archs[@]}")
+  local amend=""
+  local image_name="${1:?}"
+  local image_tag="${2:?}"
+  local full_image_name="${TARGET_REPO}/${image_name}:${image_tag}"
+  if [[ "$image_name" != "centos9" && "$image_name" != "gocli" && ! ( "$image_name" == "k8s-1.30" && "$image_tag" =~ "slim" ) ]]; then
+    unset 'cur_archs[1]'
+  fi
+  for arch in ${cur_archs[*]};do
+    if [ "$arch" = "amd64" ]; then
+      amend+=" --amend ${TARGET_REPO}/${image_name}:${image_tag}"
+    else
+      amend+=" --amend ${TARGET_REPO}/${image_name}:${image_tag}-${arch}"
+    fi
+  done
+  podman manifest create ${full_image_name} ${amend}
+  podman manifest push ${full_image_name} "docker://${full_image_name}"
+}
+
 function main() {
   if [ "$PHASES" == "linux" ]; then
     publish_node_base_image
+    if [ $ARCH == "s390x" ]; then
+      publish_manifest "centos9" $KUBEVIRTCI_TAG
+      echo "${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}" > cluster-provision/k8s/base-image
+    fi
     exit 0
   fi
+
   build_gocli
   run_provision_manager
   publish_clusters
-  publish_alpine_container_disk
+  for i in "${IMAGES_TO_BUILD[@]}"; do
+    if [ $ARCH == "s390x" ]; then
+      echo "INFO: publish manifests of $i"
+      publish_manifest k8s-$i $KUBEVIRTCI_TAG
+      publish_manifest k8s-$i ${KUBEVIRTCI_TAG}-slim
+    fi
+  done
+  
+  # Currently the underlying build tool alpine-make-vm-image supports only x86_64 and aarch64
+  if [ $ARCH == "amd64" ]; then
+    publish_alpine_container_disk
+  fi
+
   push_gocli
-  create_git_tag
+  if [ $ARCH == "s390x" ]; then
+    publish_manifest "gocli" $KUBEVIRTCI_TAG
+  fi
+
+  if [ $ARCH == "amd64" ]; then
+    create_git_tag
+  fi
 }
 
 main "$@"

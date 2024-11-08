@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -79,6 +80,8 @@ EOF
 	etcdDataDir         = "/var/lib/etcd"
 	nvmeDiskImagePrefix = "/nvme"
 	scsiDiskImagePrefix = "/scsi"
+	QEMU_DEVICE_S390X  = "virtio-net-ccw"
+	QEMU_DEVICE_X86_64 = "virtio-net-pci"
 )
 
 var soundcardPCIIDs = []string{"8086:2668", "8086:2415"}
@@ -574,6 +577,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	// the VM console from the container without ssh
 	qemuArgs += " -serial pty"
 
+	var qemuNetDevice = getNetDeviceByArch()
+	
 	wg := sync.WaitGroup{}
 	wg.Add(int(nodes))
 	// start one vm after each other
@@ -581,12 +586,20 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	for x := 0; x < int(nodes); x++ {
 
 		nodeQemuArgs := qemuArgs
+		nodeQemuMonitorArgs := ""
 
 		for i := 0; i < int(secondaryNics); i++ {
 			netSuffix := fmt.Sprintf("%d-%d", x, i)
 			macSuffix := fmt.Sprintf("%02x", macCounter)
 			macCounter++
-			nodeQemuArgs = fmt.Sprintf("%s -device virtio-net-pci,netdev=secondarynet%s,mac=52:55:00:d1:56:%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, netSuffix, macSuffix, netSuffix, netSuffix)
+			// Secondary network devices are added after VM is started (hot-plug) using qemu monitor to avoid 
+			// primary network interface to be named other than eth0. This is mainly required for s390x, as 
+			// otherwise if primary interface is other than eth0, it can't get the IP from dhcp server.
+			if qemuNetDevice == QEMU_DEVICE_S390X {
+				nodeQemuMonitorArgs = fmt.Sprintf("%s netdev_add tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no; device_add %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s;", nodeQemuMonitorArgs, netSuffix, netSuffix, qemuNetDevice, netSuffix, macSuffix)
+			} else { //devices like virtio-net-pci doesn't support hot-plug
+				nodeQemuArgs = fmt.Sprintf("%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, qemuNetDevice, netSuffix, macSuffix, netSuffix, netSuffix)
+			}
 		}
 
 		nodeName := nodeNameFromIndex(x + 1)
@@ -684,6 +697,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			additionalArgs = append(additionalArgs, "--qemu-args", shellescape.Quote(nodeQemuArgs))
 		}
 
+		if len(nodeQemuMonitorArgs) > 0 {
+			additionalArgs = append(additionalArgs, "--qemu-monitor-args", shellescape.Quote(nodeQemuMonitorArgs))
+		}
+
 		if hugepages2Mcount > 0 {
 			kernelArgs += fmt.Sprintf(" hugepagesz=2M hugepages=%d", hugepages2Mcount)
 		}
@@ -769,7 +786,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return fmt.Errorf("checking for ssh.sh script for node %s failed", nodeName)
 		}
 
-		err = waitForVMToBeUp(prefix, nodeName)
+		err = waitForVMToBeUp(cli, prefix, nodeName)
 		if err != nil {
 			return err
 		}
@@ -933,7 +950,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 				return fmt.Errorf("Starting fips mode failed: %s", err)
 			}
 		}
-		err := waitForVMToBeUp(n.K8sVersion, nodeName)
+		err := waitForVMToBeUp(cli, n.K8sVersion, nodeName)
 		if err != nil {
 			return err
 		}
@@ -956,14 +973,17 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 		opts = append(opts, realtimeOpt)
 	}
 
-	for _, s := range soundcardPCIIDs {
-		// move the VM sound cards to a vfio-pci driver to prepare for assignment
-		bvfio := bindvfio.NewBindVfioOpt(sshClient, s)
-		opts = append(opts, bvfio)
+	// sound cards are not supported on s390x.
+	if runtime.GOARCH != "s390x" {
+		for _, s := range soundcardPCIIDs {
+			// move the VM sound cards to a vfio-pci driver to prepare for assignment
+			bvfio := bindvfio.NewBindVfioOpt(sshClient, s)
+			opts = append(opts, bvfio)
+		}
 	}
 
 	if n.EnableAudit {
-		if err := sshClient.Command("touch /home/vagrant/enable_audit"); err != nil {
+		if err := sshClient.Command(fmt.Sprintf("touch /home/%s/enable_audit", libssh.GetUserByArchitecture(runtime.GOARCH))); err != nil {
 			return fmt.Errorf("provisioning node %d failed (setting enableAudit phase): %s", n.NodeIdx, err)
 		}
 	}
@@ -1010,7 +1030,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 	return nil
 }
 
-func waitForVMToBeUp(prefix string, nodeName string) error {
+func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
 	var err error
 	// Wait for the VM to be up
 	for x := 0; x < 10; x++ {
@@ -1081,4 +1101,12 @@ func getDevicePCIID(pciAddress string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("no pci_id is found")
+}
+
+func getNetDeviceByArch() string {
+	if runtime.GOARCH == "s390x" {
+		return QEMU_DEVICE_S390X
+	} else {
+		return QEMU_DEVICE_X86_64
+	}
 }

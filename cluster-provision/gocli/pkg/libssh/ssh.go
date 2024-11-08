@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"runtime"
 
 	"github.com/bramvdbogaerde/go-scp"
 	"github.com/sirupsen/logrus"
@@ -44,7 +45,7 @@ func NewSSHClient(port uint16, idx int, root bool) (*SSHClientImpl, error) {
 	if err != nil {
 		return nil, err
 	}
-	u := "vagrant"
+	u := GetUserByArchitecture(runtime.GOARCH)
 	if root {
 		u = "root"
 	}
@@ -62,6 +63,13 @@ func NewSSHClient(port uint16, idx int, root bool) (*SSHClientImpl, error) {
 		initMutex: sync.Mutex{},
 		nodeIdx:   idx,
 	}, nil
+}
+
+func GetUserByArchitecture(arch string) string {
+	if arch == "s390x" {
+		return "cloud-user"
+	}
+	return "vagrant"
 }
 
 func (s *SSHClientImpl) Command(cmd string) error {
