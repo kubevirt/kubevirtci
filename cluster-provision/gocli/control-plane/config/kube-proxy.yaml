@@ -20,38 +20,69 @@ data:
   config: |-
     apiVersion: kubeproxy.config.k8s.io/v1alpha1
     bindAddress: 0.0.0.0
+    bindAddressHardFail: false
     clientConnection:
       acceptContentTypes: ""
-      burst: 10
-      contentType: application/vnd.kubernetes.protobuf
-      kubeconfig: /var/lib/kube-proxy/kubeconfig
-      qps: 5
-    clusterCIDR: ""
-    configSyncPeriod: 15m0s
+      burst: 0
+      contentType: ""
+      kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+      qps: 0
+    clusterCIDR: 10.244.0.0/16,fd10:244::/112
+    configSyncPeriod: 0s
     conntrack:
-      maxPerCore: 32768
-      min: 131072
-      tcpCloseWaitTimeout: 1h0m0s
-      tcpEstablishedTimeout: 24h0m0s
+      maxPerCore: null
+      min: null
+      tcpBeLiberal: false
+      tcpCloseWaitTimeout: null
+      tcpEstablishedTimeout: null
+      udpStreamTimeout: 0s
+      udpTimeout: 0s
+    detectLocal:
+      bridgeInterface: ""
+      interfaceNamePrefix: ""
+    detectLocalMode: ""
     enableProfiling: false
-    healthzBindAddress: 0.0.0.0:10256
+    healthzBindAddress: ""
     hostnameOverride: ""
     iptables:
+      localhostNodePorts: null
       masqueradeAll: false
-      masqueradeBit: 14
+      masqueradeBit: null
       minSyncPeriod: 0s
-      syncPeriod: 30s
+      syncPeriod: 0s
     ipvs:
       excludeCIDRs: null
       minSyncPeriod: 0s
       scheduler: ""
-      syncPeriod: 30s
+      strictARP: false
+      syncPeriod: 0s
+      tcpFinTimeout: 0s
+      tcpTimeout: 0s
+      udpTimeout: 0s
     kind: KubeProxyConfiguration
-    metricsBindAddress: 0.0.0.0:10205
+    logging:
+      flushFrequency: 0
+      options:
+        json:
+          infoBufferSize: "0"
+      verbosity: 0
+    metricsBindAddress: ""
     mode: iptables
+    nftables:
+      masqueradeAll: false
+      masqueradeBit: null
+      minSyncPeriod: 0s
+      syncPeriod: 0s
     nodePortAddresses: null
-    oomScoreAdj: -999
+    oomScoreAdj: null
     portRange: ""
+    showHiddenMetricsForVersion: ""
+    winkernel:
+      enableDSR: false
+      forwardHealthCheckVip: false
+      networkName: ""
+      rootHnsEndpointName: ""
+      sourceVip: ""
   kubeconfig: |-
     kind: Config
     apiVersion: v1
