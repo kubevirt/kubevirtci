@@ -25,7 +25,7 @@ data:
       acceptContentTypes: ""
       burst: 0
       contentType: ""
-      kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+      kubeconfig: /var/lib/kube-proxy/kubeconfig
       qps: 0
     clusterCIDR: 10.244.0.0/16,fd10:244::/112
     configSyncPeriod: 0s
