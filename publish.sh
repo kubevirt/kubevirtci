@@ -57,9 +57,6 @@ function build_gocli() {
 function build_centos9_base_image_with_deps() {
   (cd cluster-provision/centos9 && ./build.sh)
   IMAGE_TO_BUILD="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | head -1)"
-  if [ $ARCH == "s390x" ]; then
-    IMAGE_TO_BUILD="1.30"
-  fi
   (cd cluster-provision/k8s/${IMAGE_TO_BUILD} && ../provision.sh)
 }
 
@@ -72,7 +69,7 @@ function build_clusters() {
 
       cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim
-    elif [ $ARCH == "s390x" ] && [ $i == "1.30" ]; then
+    elif [[ "$ARCH" == "s390x" && ( "$i" == "1.30" || "$i" == "1.31" ) ]]; then
       echo "INFO: building $i slim"
       cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}
@@ -100,7 +97,7 @@ function push_cluster_images() {
 
       TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
       podman push "$TARGET_IMAGE"
-    elif [ $ARCH == "s390x" ] && [ $i == "1.30" ]; then
+    elif [[ "$ARCH" == "s390x" && ( "$i" == "1.30" || "$i" == "1.31" ) ]]; then
       echo "INFO: push $i slim"
       TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
       podman push "$TARGET_IMAGE"
@@ -113,7 +110,7 @@ function push_cluster_images() {
     if [ $ARCH == "amd64" ]; then 
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
-    elif [ $ARCH == "s390x" ] && [ $i == "1.30" ]; then
+    elif [[ "$ARCH" == "s390x" && ( "$i" == "1.30" || "$i" == "1.31" ) ]]; then
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-${ARCH}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-${ARCH}"
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim-${ARCH}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
     fi
@@ -177,7 +174,7 @@ publish_manifest() {
   local image_name="${1:?}"
   local image_tag="${2:?}"
   local full_image_name="${TARGET_REPO}/${image_name}:${image_tag}"
-  if [[ "$image_name" != "centos9" && "$image_name" != "gocli" && ! ( "$image_name" == "k8s-1.30" && "$image_tag" =~ "slim" ) ]]; then
+  if [[ "$image_name" != "centos9" && "$image_name" != "gocli" && ! ( ( "$image_name" == "k8s-1.30" || "$image_name" == "k8s-1.31" ) && "$image_tag" =~ "slim" ) ]]; then
     unset 'cur_archs[1]'
   fi
   for arch in ${cur_archs[*]};do
