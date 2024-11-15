@@ -56,7 +56,7 @@ function build_gocli() {
 
 function build_centos9_base_image_with_deps() {
   (cd cluster-provision/centos9 && ./build.sh)
-  IMAGE_TO_BUILD="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | head -1)"
+  IMAGE_TO_BUILD="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | tail -1)"
   (cd cluster-provision/k8s/${IMAGE_TO_BUILD} && ../provision.sh)
 }
 
