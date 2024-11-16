@@ -23,7 +23,7 @@ func NewKonnectivityAgentPhase(client k8s.K8sDynamicClient) *KonnectivityAgentPh
 }
 
 func (k *KonnectivityAgentPhase) Run() error {
-	yamlDocs := bytes.Split(kp, []byte("---\n"))
+	yamlDocs := bytes.Split(ka, []byte("---\n"))
 	for _, yamlDoc := range yamlDocs {
 		if len(yamlDoc) == 0 {
 			continue
