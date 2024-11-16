@@ -46,7 +46,7 @@ else
 fi
 
 _cli_container="${KUBEVIRTCI_GOCLI_CONTAINER:-quay.io/kubevirtci/gocli:${KUBEVIRTCI_TAG}}"
-_cli="${_cri_bin} run --privileged --net=host --rm ${USE_TTY} -v ${_cri_socket}:/var/run/docker.sock -v /lib:/lib -v /lib64:/lib64 -v /usr/lib:/usr/lib -v /usr/bin:/usr/bin"
+_cli="${_cri_bin} run --privileged --net=host --rm ${USE_TTY} -v ${_cri_socket}:/var/run/docker.sock -v /lib:/lib -v /etc:/etc:ro -v /lib64:/lib64 -v /usr/lib:/usr/lib -v /usr/bin:/usr/bin"
 echo $_cli
 # gocli will try to mount /lib/modules to make it accessible to dnsmasq in
 # in case it exists
