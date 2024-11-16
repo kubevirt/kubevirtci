@@ -3,7 +3,7 @@
 set -ex
 
 NUM_NODES=${NUM_NODES-1}
-NUM_SECONDARY_NICS=0
+NUM_SECONDARY_NICS=${NUM_SECONDARY_NICS:-0}
 SEQ_START=1
 
 ip link add br0 type bridge
