@@ -1,5 +1,25 @@
 package controlplane
 
+func buildKonnectivityArgs() map[string]string {
+	return map[string]string{
+		"--uds-name":                "/etc/kubernetes/pki/konnectivity/konnectivity-server.sock",
+		"--cluster-cert":            "/etc/kubernetes/pki/apiserver.pem",
+		"--cluster-key":             "/etc/kubernetes/pki/apiserver-key.pem",
+		"--mode":                    "grpc",
+		"--proxy-strategies":        "default",
+		"--logtostderr":             "true",
+		"--v":                       "4",
+		"--agent-port":              "8132",
+		"--admin-port":              "8133",
+		"--health-port":             "8134",
+		"--advertise-address":       "192.168.66.110",
+		"--authentication-audience": "system:konnectivity-server",
+		"--kubeconfig":              "/etc/kubernetes/pki/konnectivity/.kubeconfig",
+		"--agent-namespace":         "kube-system",
+		"--agent-service-account":   "konnectivity-agent",
+	}
+}
+
 func buildEtcdCmdArgs() map[string]string {
 	return map[string]string{
 		"--advertise-client-urls":                       "https://0.0.0.0:2379",
@@ -64,6 +84,7 @@ func buildApiServerCmdArgs() map[string]string {
 		"--service-account-key-file":           "/etc/kubernetes/pki/service-accounts.pem",
 		"--service-account-signing-key-file":   "/etc/kubernetes/pki/service-accounts.pem",
 		"--service-cluster-ip-range":           "10.96.0.0/24",
+		"--egress-selector-config-file":        "/etc/kubernetes/pki/egress-selector.yaml",
 		"--tls-cert-file":                      "/etc/kubernetes/pki/apiserver.crt",
 		"--tls-private-key-file":               "/etc/kubernetes/pki/apiserver.pem",
 		"--requestheader-client-ca-file":       "/etc/kubernetes/pki/ca.crt",

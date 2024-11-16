@@ -27,6 +27,7 @@ func GetAllCertificates() Certificates {
 		KubeletClientCert(),
 		ServiceAccountsCert(),
 		AdminCert(),
+		KonnectivityCert(),
 	}
 }
 
@@ -79,6 +80,20 @@ func ControllerMgrCert() *Cert {
 				IPs:      []net.IP{net.ParseIP("127.0.0.1")},
 			},
 			Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		},
+	}
+}
+
+func KonnectivityCert() *Cert {
+	return &Cert{
+		Name:     "konnectivity",
+		LongName: "certificate for the konnectivity proxy",
+		BaseName: "konnectivity",
+		CAName:   "ca",
+		Config: cert.Config{
+			CommonName:   "system:konnectivity-server",
+			Organization: []string{"system:konnectivity-server"},
+			Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		},
 	}
 }

@@ -1,10 +1,16 @@
 package controlplane
 
 import (
+	_ "embed"
+	"os"
+	"path"
 	"time"
 
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cri"
 )
+
+//go:embed config/egress-selector.yaml
+var eg []byte
 
 var versionMap = map[string]string{
 	"1.30": "v1.30.2",
@@ -46,6 +52,15 @@ func (p *RunControlPlaneComponentsPhase) runApiServer() error {
 	apiServerImage := registry + "/" + apiServer + ":" + versionMap[p.k8sVersion]
 	err := p.containerRuntime.ImagePull(apiServerImage)
 	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(path.Join(p.pkiPath, "egress-selector.yaml"))
+	if err != nil {
+		return err
+	}
+
+	if _, err = f.Write(eg); err != nil {
 		return err
 	}
 
@@ -100,12 +115,12 @@ func (p *RunControlPlaneComponentsPhase) runControllerMgr() error {
 		Command: cmd,
 	}
 
-	apiserverContainer, err := p.containerRuntime.Create(ctrlMgrImage, createOpts) // todo: variable names
+	ctrlMgr, err := p.containerRuntime.Create(ctrlMgrImage, createOpts) // todo: variable names
 	if err != nil {
 		return err
 	}
 
-	err = p.containerRuntime.Start(apiserverContainer)
+	err = p.containerRuntime.Start(ctrlMgr)
 	if err != nil {
 		return err
 	}
@@ -130,12 +145,12 @@ func (p *RunControlPlaneComponentsPhase) runScheduler() error {
 		Command: cmd,
 	}
 
-	apiserverContainer, err := p.containerRuntime.Create(schedulerImage, createOpts)
+	sched, err := p.containerRuntime.Create(schedulerImage, createOpts)
 	if err != nil {
 		return err
 	}
 
-	err = p.containerRuntime.Start(apiserverContainer)
+	err = p.containerRuntime.Start(sched)
 	if err != nil {
 		return err
 	}

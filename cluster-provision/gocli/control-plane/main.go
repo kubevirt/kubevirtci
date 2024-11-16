@@ -18,6 +18,7 @@ const (
 	scheduler         = "kube-scheduler"
 	registry          = "registry.k8s.io"
 	defaultPkiPath    = "/etc/kubevirtci/pki"
+	konnectivityImage = "kas-network-proxy/proxy-server:v0.28.6"
 )
 
 type ControlPlaneRunner struct {
@@ -60,6 +61,10 @@ func (cp *ControlPlaneRunner) Start() (*rest.Config, error) {
 	}
 
 	if err := NewKubeConfigPhase(defaultPkiPath).Run(); err != nil {
+		return nil, err
+	}
+
+	if err := NewKonnectivityPhase(cp.containerRuntime, defaultPkiPath, konnectivityImage, cp.dnsmasqID, cp.k8sVersion).Run(); err != nil {
 		return nil, err
 	}
 
