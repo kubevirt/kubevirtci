@@ -10,6 +10,7 @@ func buildKonnectivityArgs() map[string]string {
 		"--logtostderr":             "true",
 		"--v":                       "4",
 		"--agent-port":              "8132",
+		"--server-port":             "0",
 		"--admin-port":              "8133",
 		"--health-port":             "8134",
 		"--authentication-audience": "system:konnectivity-server",
