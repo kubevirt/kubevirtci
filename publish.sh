@@ -193,6 +193,7 @@ function main() {
     publish_node_base_image
     if [ $ARCH == "s390x" ]; then
       publish_manifest "centos9" $KUBEVIRTCI_TAG
+    elif [ $ARCH == "amd64" ]; then
       echo "${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}" > cluster-provision/k8s/base-image
     fi
     exit 0
