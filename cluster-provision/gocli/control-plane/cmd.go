@@ -3,8 +3,8 @@ package controlplane
 func buildKonnectivityArgs() map[string]string {
 	return map[string]string{
 		"--uds-name":                "/etc/kubernetes/pki/konnectivity/konnectivity-server.sock",
-		"--cluster-cert":            "/etc/kubernetes/pki/apiserver.pem",
-		"--cluster-key":             "/etc/kubernetes/pki/apiserver-key.pem",
+		"--cluster-cert":            "/etc/kubernetes/pki/apiserver.crt",
+		"--cluster-key":             "/etc/kubernetes/pki/apiserver.pem",
 		"--mode":                    "grpc",
 		"--proxy-strategies":        "default",
 		"--logtostderr":             "true",
@@ -12,7 +12,6 @@ func buildKonnectivityArgs() map[string]string {
 		"--agent-port":              "8132",
 		"--admin-port":              "8133",
 		"--health-port":             "8134",
-		"--advertise-address":       "192.168.66.110",
 		"--authentication-audience": "system:konnectivity-server",
 		"--kubeconfig":              "/etc/kubernetes/pki/konnectivity/.kubeconfig",
 		"--agent-namespace":         "kube-system",
