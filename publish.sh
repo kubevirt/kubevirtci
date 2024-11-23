@@ -23,8 +23,8 @@ IMAGES_TO_BUILD=()
 IMAGES_TO_RETAG=()
 
 function run_provision_manager() {
-  if [ $BYPASS_PMAN == true ]; then
-      IMAGES_TO_BUILD="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n')"
+  if [ "$BYPASS_PMAN" == "true" ]; then
+      IMAGES_TO_BUILD=($(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n'))
       echo "INFO: Provision manager bypassed, rebuilding all vm based providers"
       echo "IMAGES_TO_BUILD: $(echo ${IMAGES_TO_BUILD[@]})"
       return
@@ -106,12 +106,13 @@ function push_cluster_images() {
 
   # images that the change doesn't affect can be retagged from previous tag
   for i in ${IMAGES_TO_RETAG[@]}; do
-    echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG)"
     if [ $ARCH == "amd64" ]; then 
+      echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG)"
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
+      echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG-slim)"
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
     elif [[ "$ARCH" == "s390x" && ( "$i" == "1.30" || "$i" == "1.31" ) ]]; then
-      skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-${ARCH}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-${ARCH}"
+      echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG-slim-$ARCH)"
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim-${ARCH}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
     fi
   done
