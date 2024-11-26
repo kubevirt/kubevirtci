@@ -23,7 +23,7 @@ var istioWithCnao []byte
 //go:embed manifests/istio-operator.cr.yaml
 var istioNoCnao []byte
 
-const istioVersion = "1.15.0"
+const istioVersion = "1.24.1"
 
 type istioOpt struct {
 	cnaoEnabled bool
