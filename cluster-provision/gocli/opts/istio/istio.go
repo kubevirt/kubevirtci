@@ -23,7 +23,7 @@ var istioWithCnao []byte
 //go:embed manifests/istio-operator.cr.yaml
 var istioNoCnao []byte
 
-const istioVersion = "1.15.0"
+const istioVersion = "1.24.1"
 
 type istioOpt struct {
 	cnaoEnabled bool
@@ -51,7 +51,7 @@ func (o *istioOpt) Exec() error {
 
 	cmds := []string{
 		"source /var/lib/kubevirtci/shared_vars.sh",
-		"PATH=/opt/istio-" + istioVersion + "/bin:$PATH istioctl --kubeconfig /etc/kubernetes/admin.conf --hub quay.io/kubevirtci operator init",
+		"PATH=/opt/istio-" + istioVersion + "/bin:$PATH istioctl --kubeconfig /etc/kubernetes/admin.conf install -y",
 	}
 	for _, cmd := range cmds {
 		if err := o.sshClient.Command(cmd); err != nil {
