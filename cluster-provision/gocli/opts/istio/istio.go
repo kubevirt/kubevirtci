@@ -70,6 +70,10 @@ func (o *istioOpt) Exec() error {
 			obj, err := o.client.Get(schema.GroupVersionKind{Group: "apps",
 				Version: "v1",
 				Kind:    "DaemonSet"}, "istio-cni-node", "kube-system")
+			if err != nil {
+				return err
+			}
+
 			cniDaemonSet := &appsv1.DaemonSet{}
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, cniDaemonSet)
 			if err != nil {
