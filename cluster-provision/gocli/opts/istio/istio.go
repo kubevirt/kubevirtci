@@ -83,7 +83,7 @@ func (o *istioOpt) Exec() error {
 				return err
 			}
 
-			var privileged = true
+			privileged := true
 			cniDaemonSet.Spec.Template.Spec.Containers[0].SecurityContext.Privileged = &privileged
 			newCniDaemonSet, err := runtime.DefaultUnstructuredConverter.ToUnstructured(cniDaemonSet)
 			if err != nil {
