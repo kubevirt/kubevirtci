@@ -2,6 +2,7 @@ package istio
 
 import (
 	_ "embed"
+	"fmt"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -71,12 +72,14 @@ func (o *istioOpt) Exec() error {
 				Version: "v1",
 				Kind:    "DaemonSet"}, "istio-cni-node", "kube-system")
 			if err != nil {
+				fmt.Printf("Error getting the CNI DaemonSet: %s\n", err.Error())
 				return err
 			}
 
 			cniDaemonSet := &appsv1.DaemonSet{}
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, cniDaemonSet)
 			if err != nil {
+				fmt.Printf("Error converting the CNI DaemonSet: %s\n", err.Error())
 				return err
 			}
 
@@ -84,11 +87,13 @@ func (o *istioOpt) Exec() error {
 			cniDaemonSet.Spec.Template.Spec.Containers[0].SecurityContext.Privileged = &privileged
 			newCniDaemonSet, err := runtime.DefaultUnstructuredConverter.ToUnstructured(cniDaemonSet)
 			if err != nil {
+				fmt.Printf("Error converting the CNI DaemonSet: %s\n", err.Error())
 				return err
 			}
 
-			err = o.client.Apply(&unstructured.Unstructured{Object: newCniDaemonSet})
+			err = o.client.Update(&unstructured.Unstructured{Object: newCniDaemonSet})
 			if err != nil {
+				fmt.Printf("Error patching the CNI DaemonSet: %s\n", err.Error())
 				return err
 			}
 			return nil
@@ -98,7 +103,7 @@ func (o *istioOpt) Exec() error {
 		backoffStrategy.InitialInterval = 10 * time.Second
 		backoffStrategy.MaxElapsedTime = 3 * time.Minute
 
-		err = backoff.Retry(operation, backoffStrategy)
+		_ = backoff.Retry(operation, backoffStrategy)
 	}()
 
 	istioInstallCmd := "PATH=/opt/istio-" + istioVersion + "/bin:$PATH istioctl --kubeconfig /etc/kubernetes/admin.conf install -y -f " + istioFile
