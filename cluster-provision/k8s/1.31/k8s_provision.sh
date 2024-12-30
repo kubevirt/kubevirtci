@@ -74,8 +74,7 @@ gpgcheck=0
 enabled=1
 EOF
 
-#FIXME: Pinned to cri-o v1.31.1 due to issue with conformance tests with v1.31.2
-dnf install -y cri-o-1.31.1
+dnf install -y cri-o
 
 systemctl enable --now crio
 
