@@ -93,7 +93,11 @@ function _insecure-registry-config-cmd() {
 
 # this works since the nodes use the same names as containers
 function _ssh_into_node() {
-    ${CRI_BIN} exec -it "$1" bash
+    if [[ $2 != "" ]]; then
+        ${CRI_BIN} exec "$@"
+    else
+        ${CRI_BIN} exec -it "$1" bash
+    fi    
 }
 
 function _run_registry() {
