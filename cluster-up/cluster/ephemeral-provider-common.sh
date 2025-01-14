@@ -234,6 +234,14 @@ function _add_common_params() {
         params=" --ksm-page-count=$KUBEVIRT_KSM_PAGES_TO_SCAN $params"
     fi
 
+    if [ ! -z $K8S_FEATURE_GATES  ]; then
+        params=" --feature-gates=$K8S_FEATURE_GATES $params"
+    fi
+
+    if [ ! -z $K8S_API_RUNTIME_CONFIG  ]; then
+        params=" --runtime-config=$K8S_API_RUNTIME_CONFIG $params"
+    fi
+
     if [ "$KUBEVIRT_SWAP_ON" == "true" ]; then
         params=" --enable-swap $params"
     fi
