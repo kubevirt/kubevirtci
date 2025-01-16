@@ -65,6 +65,13 @@ export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
 export KUBEVIRT_DEPLOY_GRAFANA=true
 ```
 
+#### start cluster with Kubernetes feature gates
+To enable Kubernetes feature gates, export the following variable before running `make cluster-up`:
+
+```bash
+export K8S_FEATURE_GATES="<FeatureGate1>,<FeatureGate2>"
+```
+
 #### start cluster with swap enabled
 To enable swap, please also export the following variables before running `make cluster-up`:
 ```bash
