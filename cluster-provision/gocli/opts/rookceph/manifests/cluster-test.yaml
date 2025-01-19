@@ -7,17 +7,17 @@
 #   kubectl create -f crds.yaml -f common.yaml -f operator.yaml
 #   kubectl create -f cluster-test.yaml
 #################################################################################################################
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: rook-config-override
-  namespace: rook-ceph # namespace:cluster
-data:
-  config: |
-    [global]
-    osd_pool_default_size = 1
-    mon_warn_on_pool_no_redundancy = false
----
+# kind: ConfigMap
+# apiVersion: v1
+# metadata:
+#   name: rook-config-override
+#   namespace: rook-ceph # namespace:cluster
+# data:
+#   config: |
+#     [global]
+#     osd_pool_default_size = 1
+#     mon_warn_on_pool_no_redundancy = false
+# ---
 apiVersion: ceph.rook.io/v1
 kind: CephCluster
 metadata:
@@ -26,11 +26,17 @@ metadata:
 spec:
   dataDirHostPath: /var/lib/rook
   cephVersion:
-    image: quay.io/ceph/ceph:v17
+    image: quay.io/ceph/ceph:v19
     allowUnsupported: true
   mon:
     count: 1
     allowMultiplePerNode: true
+  mgr:
+    count: 1
+    allowMultiplePerNode: true
+    modules:
+      - name: rook
+        enabled: true
   dashboard:
     enabled: true
   crashCollector:
@@ -38,7 +44,13 @@ spec:
   storage:
     useAllNodes: true
     useAllDevices: true
+    allowDeviceClassUpdate: true
+    allowOsdCrushWeightUpdate: false
     #deviceFilter:
+    #config:
+    #  deviceClass: testclass
+  monitoring:
+    enabled: false
   healthCheck:
     daemonHealth:
       mon:
@@ -46,5 +58,13 @@ spec:
         timeout: 600s
   priorityClassNames:
     all: system-node-critical
+    mgr: system-cluster-critical
   disruptionManagement:
     managePodBudgets: true
+  cephConfig:
+    global:
+      osd_pool_default_size: "1"
+      mon_warn_on_pool_no_redundancy: "false"
+      bdev_flock_retry: "20"
+      bluefs_buffered_io: "false"
+      mon_data_avail_warn: "10"
