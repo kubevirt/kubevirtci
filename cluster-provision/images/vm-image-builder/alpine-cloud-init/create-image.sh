@@ -5,22 +5,32 @@ set -ex
 # So we disable build for non-x86 architectures
 # https://github.com/alpinelinux/alpine-make-vm-image/issues/10
 if [[ ${ARCHITECTURE} != "" && ${ARCHITECTURE} != "amd64" || $(uname -m) != "x86_64" ]]; then
-   echo "only support native build for amd64 platform"
-   exit 1
+  echo "only support native build for amd64 platform"
+  exit 1
 fi
 
-if [ "${ARCHITECTURE}" != ""  ]; then
-    PLATFORM=linux/$ARCHITECTURE
+if [ "${ARCHITECTURE}" != "" ]; then
+  PLATFORM=linux/$ARCHITECTURE
 fi
 
-docker run --rm --privileged docker.io/multiarch/qemu-user-static --reset -p yes
+container_runtime=""
+if command -v podman >/dev/null 2>&1; then
+  container_runtime="podman"
+elif command -v docker >/dev/null 2>&1; then
+  container_runtime="docker"
+else
+  echo "Error: No container runtime found. Install podman or docker first." >&2
+  exit 1
+fi
+
+$container_runtime run --rm --privileged docker.io/multiarch/qemu-user-static --reset -p yes
 
 if [ ! -f alpine-make-vm-image ]; then
-    curl  https://raw.githubusercontent.com/alpinelinux/alpine-make-vm-image/master/alpine-make-vm-image -o alpine-make-vm-image
-    chmod 755 alpine-make-vm-image
+  curl https://raw.githubusercontent.com/alpinelinux/alpine-make-vm-image/master/alpine-make-vm-image -o alpine-make-vm-image
+  chmod 755 alpine-make-vm-image
 fi
 
-docker run --rm --platform=$PLATFORM -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
+$container_runtime run --rm --platform=$PLATFORM -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
 ./alpine-make-vm-image \
     --image-format qcow2 \
     --image-size 200M \
