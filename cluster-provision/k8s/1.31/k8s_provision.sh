@@ -122,9 +122,6 @@ fi
 
 kubeadm config images pull --kubernetes-version ${version}
 
-kubectl kustomize /tmp/prometheus/grafana > /tmp/grafana-deployment.yaml.tmp
-mv -f /tmp/grafana-deployment.yaml.tmp /tmp/prometheus/grafana/grafana-deployment.yaml
-
 if [[ ${slim} == false ]]; then
     # Pre pull all images from the manifests
     for image in $(/tmp/fetch-images.sh /tmp); do
