@@ -348,23 +348,6 @@ chmod -R 777 /var/local/kubevirt-storage/local-volume
 # Setup selinux permissions to local volume directories.
 chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
 
-# copy network addons operator manifests
-# so we can use them at cluster-up
-cp -rf /tmp/cnao/ /opt/
-
-# copy whereabouts manifests
-# so we can use them at cluster-up
-cp -rf /tmp/whereabouts/ /opt/
-
-# copy Multus CNI manifests so we can use them at cluster-up
-cp -rf /tmp/multus /opt/
-
-# copy cdi manifests
-cp -rf /tmp/cdi*.yaml /opt/
-
-# copy aaq manifests
-cp -rf /tmp/aaq/ /opt/
-
 # copy kwok manifests
 cp -rf /tmp/kwok /opt/
 
