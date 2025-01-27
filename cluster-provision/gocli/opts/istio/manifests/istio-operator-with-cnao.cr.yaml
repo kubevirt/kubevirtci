@@ -1,11 +1,9 @@
-apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 metadata:
   namespace: istio-system
   name: istio-operator
 spec:
   profile: demo
-  hub: quay.io/kubevirtci
   components:
     cni:
       enabled: true
@@ -22,3 +20,10 @@ spec:
        - istio-system
        - kube-system
       logLevel: debug
+    pilot:
+      cni:
+        enabled: true
+        provider: "multus"
+    sidecarInjectorWebhook:
+      injectedAnnotations:
+        k8s.v1.cni.cncf.io/networks: istio-cni
