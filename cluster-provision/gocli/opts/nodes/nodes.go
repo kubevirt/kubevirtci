@@ -34,10 +34,10 @@ func (n *nodesProvisioner) Exec() error {
 		nodeIP = "--node-ip=::"
 	}
 
-	kubeletCpuManagerArgs := ",CPUManager=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m"
+	kubeletCpuManagerArgs := " --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m"
 	if runtime.GOARCH == "s390x" {
-			// CPU Manager feature is not yet supported on s390x.
-			kubeletCpuManagerArgs = ""
+		// CPU Manager feature is not yet supported on s390x.
+		kubeletCpuManagerArgs = ""
 	}
 	cmds := []string{
 		"source /var/lib/kubevirtci/shared_vars.sh",
