@@ -6,7 +6,7 @@ resources:
 - sriov-cni-daemonset.yaml
 - sriovdp-daemonset.yaml
 - sriovdp-config.yaml
-patchesJson6902:
+patches:
 - target:
     group: apps
     version: v1
