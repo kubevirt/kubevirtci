@@ -11,9 +11,9 @@ quay.io/kubevirt/cdi-apiserver:v1.58.1
 quay.io/kubevirt/cdi-controller:v1.58.1
 quay.io/kubevirt/cdi-operator:v1.58.1
 quay.io/kubevirt/cdi-uploadproxy:v1.58.1
-docker.io/istio/install-cni:1.24.1
-docker.io/istio/pilot:1.24.1
-docker.io/istio/proxyv2:1.24.1
+docker.io/istio/install-cni:1.23.1
+docker.io/istio/pilot:1.23.1
+docker.io/istio/proxyv2:1.23.1
 quay.io/kubevirt/cluster-network-addons-operator:v0.87.0
 quay.io/kubevirt/cni-default-plugins@sha256:825e3f9fec1996c54a52cec806154945b38f76476b160d554c36e38dfffe5e61
 quay.io/kubevirt/kubemacpool@sha256:afba7d0c4a95d2d4924f6ee6ef16bbe59117877383819057f01809150829cb0c
