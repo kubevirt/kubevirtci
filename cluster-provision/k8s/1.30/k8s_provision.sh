@@ -122,9 +122,6 @@ fi
 
 kubeadm config images pull --kubernetes-version ${version}
 
-kubectl kustomize /tmp/prometheus/grafana > /tmp/grafana-deployment.yaml.tmp
-mv -f /tmp/grafana-deployment.yaml.tmp /tmp/prometheus/grafana/grafana-deployment.yaml
-
 if [[ ${slim} == false ]]; then
     # Pre pull all images from the manifests
     for image in $(/tmp/fetch-images.sh /tmp); do
@@ -151,9 +148,24 @@ patch $cni_manifest_ipv6 $cni_ipv6_diff
 
 cp /tmp/local-volume.yaml /provision/local-volume.yaml
 
-# TODO use config file! this is deprecated
+# Create drop-in config files for kubelet
+# https://kubernetes.io/docs/tasks/administer-cluster/kubelet-config-file/#kubelet-conf-d
+kubelet_conf_d="/etc/kubernetes/kubelet.conf.d"
+mkdir -m 644 $kubelet_conf_d
+
+# Set our custom initializations to kubelet
+kubevirt_kubelet_conf="$kubelet_conf_d/50-kubevirt.conf"
+cat <<EOF >$kubevirt_kubelet_conf
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+failSwapOn: false
+kubeletCgroups: /systemd/system.slice
+EOF
+
+# Set only command line options not supported by config
 cat <<EOT >/etc/sysconfig/kubelet
-KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice  --fail-swap-on=false --kubelet-cgroups=/systemd/system.slice
+KUBELET_EXTRA_ARGS=--runtime-cgroups=/systemd/system.slice --config-dir=$kubelet_conf_d
 EOT
 
 # Enable userfaultfd for centos9 to support post-copy live migration.
@@ -350,23 +362,6 @@ chmod -R 777 /var/local/kubevirt-storage/local-volume
 
 # Setup selinux permissions to local volume directories.
 chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
-
-# copy network addons operator manifests
-# so we can use them at cluster-up
-cp -rf /tmp/cnao/ /opt/
-
-# copy whereabouts manifests
-# so we can use them at cluster-up
-cp -rf /tmp/whereabouts/ /opt/
-
-# copy Multus CNI manifests so we can use them at cluster-up
-cp -rf /tmp/multus /opt/
-
-# copy cdi manifests
-cp -rf /tmp/cdi*.yaml /opt/
-
-# copy aaq manifests
-cp -rf /tmp/aaq/ /opt/
 
 # copy kwok manifests
 cp -rf /tmp/kwok /opt/
