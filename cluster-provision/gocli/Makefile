@@ -36,7 +36,7 @@ container: cli
 
 .PHONY: container-run
 container-run: container
-	docker run ${KUBEVIRTCI_IMAGE_REPO}/gocli
+	docker run --rm ${KUBEVIRTCI_IMAGE_REPO}/gocli
 
 .PHONY: vendor
 vendor:
