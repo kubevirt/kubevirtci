@@ -320,8 +320,11 @@ envsubst < $kubeadm_raw_ipv6 > $kubeadm_manifest_ipv6
 
 until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
 
-# 1.23 has deprecated --experimental-patches /provision/kubeadm-patches/, we now mention the patch directory in kubeadm.conf
-kubeadm init --config $kubeadm_manifest -v5
+if ! kubeadm init --config $kubeadm_manifest -v5; then
+    kubeadm reset --force
+    rm -rf /etc/cni/net.d/* /var/lib/cni /var/lib/kubelet
+    kubeadm init --config $kubeadm_manifest -v5
+fi
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
 kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
