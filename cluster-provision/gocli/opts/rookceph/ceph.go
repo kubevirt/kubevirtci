@@ -95,7 +95,7 @@ func (o *cephOpt) Exec() error {
 
 	backoffStrategy := backoff.NewExponentialBackOff()
 	backoffStrategy.InitialInterval = 30 * time.Second
-	backoffStrategy.MaxElapsedTime = 6 * time.Minute
+	backoffStrategy.MaxElapsedTime = 10 * time.Minute
 
 	err = backoff.Retry(operation, backoffStrategy)
 	if err != nil {
