@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -16,6 +17,7 @@ import (
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 
 	"github.com/cenkalti/backoff/v4"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,6 +41,7 @@ type K8sDynamicClient interface {
 	Apply(obj *unstructured.Unstructured) error
 	List(gvk schema.GroupVersionKind, ns string) (*unstructured.UnstructuredList, error)
 	Delete(gvk schema.GroupVersionKind, name, ns string) error
+	Update(newResource *unstructured.Unstructured) error
 }
 
 type k8sDynamicClientImpl struct {
@@ -103,7 +106,30 @@ func (c *k8sDynamicClientImpl) Get(gvk schema.GroupVersionKind, name, ns string)
 	if err != nil {
 		return nil, err
 	}
+
 	return obj, nil
+}
+
+func (c *k8sDynamicClientImpl) Update(newResource *unstructured.Unstructured) error {
+	gv := strings.Split(newResource.GetAPIVersion(), "/")
+	if len(gv) != 2 {
+		return fmt.Errorf("Resource has no proper group and version. Got: %s\n", newResource.GetAPIVersion())
+	}
+
+	resourceClient, err := c.initResourceClientForGVKAndNamespace(schema.GroupVersionKind{
+		Group:   gv[0],
+		Version: gv[1],
+		Kind:    newResource.GetKind(),
+	}, newResource.GetNamespace())
+	if err != nil {
+		return err
+	}
+
+	_, err = resourceClient.Update(context.TODO(), newResource, v1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *k8sDynamicClientImpl) List(gvk schema.GroupVersionKind, ns string) (*unstructured.UnstructuredList, error) {
@@ -192,6 +218,7 @@ func initSchema() *runtime.Scheme {
 	_ = cdiv1beta1.AddToScheme(s)
 	_ = aaqv1alpha1.AddToScheme(s)
 	_ = corev1.AddToScheme(s)
+	_ = appsv1.AddToScheme(s)
 	return s
 }
 
