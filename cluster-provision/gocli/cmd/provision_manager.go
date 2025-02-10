@@ -314,21 +314,36 @@ func getKubevirtciTag() (string, error) {
 }
 
 func runCommand(command string, args []string) (string, error) {
-	var stdout, stderr bytes.Buffer
+	var stderr1 bytes.Buffer
+	remoteAddCmd := exec.Command("git", "remote", "add", "upstream", "https://github.com/kubevirt/kubevirtci.git")
+	remoteAddCmd.Stderr = &stderr1
+	if err := remoteAddCmd.Run(); err != nil {
+		logrus.Debugf("Failed to add remote named upstream: %v, stderr: %s", err, stderr1.String()) //upstream remote already may exist
+	} else {
+		logrus.Debug("Successfully added remote named upstream.")
+	}
 
+	var stderr2 bytes.Buffer
+	fetchCmd := exec.Command("git", "fetch", "upstream", "main", "--tags")
+	fetchCmd.Stderr = &stderr2
+	if err := fetchCmd.Run(); err != nil {
+		logrus.Debugf("Failed to fetch tags from upstream: %v, stderr: %s", err, stderr2.String())
+	}
+
+	var stdout3, stderr3 bytes.Buffer
 	cmd := exec.Command(command, args...)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	cmd.Stdout = &stdout3
+	cmd.Stderr = &stderr3
 	err := cmd.Run()
 	if err != nil {
-		if strings.Contains(stderr.String(), "unknown revision or path not in the working tree") {
+		if strings.Contains(stderr3.String(), "unknown revision or path not in the working tree") {
 			logrus.Error("Tag not found, please run 'git fetch upstream main --tags'")
 		}
 		return "", errors.Wrapf(err, "Failed to run command: %s %s\nStdout:\n%s\nStderr:\n%s",
 			command, strings.Join(args, " "), cmd.Stdout, cmd.Stderr)
 	}
 
-	return stdout.String(), nil
+	return stdout3.String(), nil
 }
 
 func buildRulesDBfromFile(rulesFile string, targets []string) (map[string][]string, error) {
