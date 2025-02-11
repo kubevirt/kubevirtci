@@ -8,6 +8,12 @@ ARCH=$(uname -m | grep -q s390x && echo s390x || echo amd64)
 export KUBEVIRTCI_TAG=${KUBEVIRTCI_TAG:-$(date +"%y%m%d%H%M")-$(git rev-parse --short HEAD)}
 PREV_KUBEVIRTCI_TAG=$(curl -sL https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirtci/latest?ignoreCache=1)
 BYPASS_PMAN=${BYPASS_PMAN:-false}
+# As of now, we are updating kubevirt-prow/release/kubevirt/kubevirtci/latest after amd64 images are published, independent of s390x image publish failure.
+# Provision manager assumes s390x images are available with the tag in the latest file and tries to retag them when no diffs between the current code and the tag.
+# This workaround is required till we make tag in latest file be updated after s390x image is published as well.
+if [ $ARCH == "s390x" ]; then
+  BYPASS_PMAN=true
+fi
 PHASES=${PHASES:-k8s}
 
 function detect_cri() {
