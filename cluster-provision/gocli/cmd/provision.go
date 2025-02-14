@@ -24,8 +24,8 @@ import (
 	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
 
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
-	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 )
 
 // NewProvisionCommand provision given cluster
@@ -259,7 +259,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		if err != nil {
 			return err
 		}
-		err = _cmd(cli, nodeContainer(prefix, nodeName), fmt.Sprintf("if [ -f /scripts/fetch-images.sh ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/fetch-images.sh %s@192.168.66.101:/tmp/fetch-images.sh; fi", sshUser), "copying /scripts/fetch-images.sh if existing")
+		err = _cmd(cli, nodeContainer(prefix, nodeName), fmt.Sprintf("if [ -f /scripts/pre-pull-images ]; then scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i vagrant.key -P 22 /scripts/pre-pull-images %s@192.168.66.101:/tmp/pre-pull-images; fi", sshUser), "copying /scripts/pre-pull-images if existing")
 		if err != nil {
 			return err
 		}
