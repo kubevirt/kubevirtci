@@ -1,3 +1,4 @@
+apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 metadata:
   namespace: istio-system
@@ -8,14 +9,17 @@ spec:
     cni:
       enabled: true
       namespace: kube-system
+      k8s:
+        securityContext:
+          seLinuxOptions:
+            type: spc_t
   values:
     global:
-      jwtPolicy: first-party-jwt
+      jwtPolicy: third-party-jwt
     cni:
       chained: false
       cniBinDir: /opt/cni/bin
       cniConfDir: /etc/cni/multus/net.d
-      privileged: true
       excludeNamespaces:
        - istio-system
        - kube-system
