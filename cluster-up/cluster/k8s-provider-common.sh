@@ -54,15 +54,22 @@ function up() {
     fi
 
     ${_cli} scp --prefix $provider_prefix /etc/kubernetes/admin.conf ${scp_suffix}/.kubeconfig
+    ${_cli} scp --prefix ${provider_prefix:?} /usr/bin/kubectl ${scp_suffix}/.kubectl
+    if [[ ${_cri_bin} = podman* ]]; then
+        args="-v ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER:/kubevirtci_config"
+    fi
+    # Fix permissions for kubeconfig and kubectl
+    ${_cri_bin} run --privileged --rm $args \
+        --entrypoint /bin/sh ${_cli_container} \
+        -c "chmod 755 ${scp_suffix}/.kubectl"
+    ${_cri_bin} run --privileged --rm $args \
+        --entrypoint /bin/sh ${_cli_container} \
+        -c "chmod 766 ${scp_suffix}/.kubeconfig"
 
     # Set server and disable tls check
     export KUBECONFIG=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
-    kubectl config set-cluster kubernetes --server="https://$(_main_ip):$(_port k8s)"
-    kubectl config set-cluster kubernetes --insecure-skip-tls-verify=true
-
-    ${_cli} scp --prefix ${provider_prefix:?} /usr/bin/kubectl ${scp_suffix}/.kubectl
-    
-    chmod u+x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+    _kubectl config set-cluster kubernetes --server="https://$(_main_ip):$(_port k8s)"
+    _kubectl config set-cluster kubernetes --insecure-skip-tls-verify=true
 
     # Make sure that local config is correct
     prepare_config
