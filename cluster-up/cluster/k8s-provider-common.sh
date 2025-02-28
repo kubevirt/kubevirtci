@@ -47,14 +47,14 @@ function up() {
     fi
     eval ${_cli:?} run $params
 
-    ${_cli} scp --prefix $provider_prefix /etc/kubernetes/admin.conf - >${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+    cli_scp_command "${_cli} scp --prefix $provider_prefix /etc/kubernetes/admin.conf" ".kubeconfig"
 
     # Set server and disable tls check
     export KUBECONFIG=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
     kubectl config set-cluster kubernetes --server="https://$(_main_ip):$(_port k8s)"
     kubectl config set-cluster kubernetes --insecure-skip-tls-verify=true
 
-    ${_cli} scp --prefix ${provider_prefix:?} /usr/bin/kubectl - >${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
+    cli_scp_command "${_cli} scp --prefix ${provider_prefix:?} /usr/bin/kubectl" ".kubectl"
     
     chmod u+x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
 
@@ -85,4 +85,16 @@ function up() {
     # [1] https://github.com/kubevirt/kubevirtci/issues/906
     # [2] https://github.com/k8snetworkplumbingwg/multus-cni/issues/982
     copy_istio_cni_conf_files
+}
+
+# The scp command for docker and podman is different, in order to avoid segmentation fault
+function cli_scp_command() {
+    prefix_cli="$1"
+    destination_file="$2"
+    # Workaround https://github.com/containers/conmon/issues/315 by not dumping file content to stdout
+    if [[ ${_cri_bin} = podman* ]]; then
+        $prefix_cli /kubevirtci_config/$destination_file
+    else
+        $prefix_cli - >${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/$destination_file
+    fi
 }
