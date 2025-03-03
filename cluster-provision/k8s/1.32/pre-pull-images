@@ -1,6 +1,7 @@
 docker.io/calico/cni:v3.26.5
 docker.io/calico/kube-controllers:v3.26.5
 docker.io/calico/node:v3.26.5
+docker.io/grafana/grafana:11.1.0
 docker.io/rook/ceph:master
 ghcr.io/k8snetworkplumbingwg/multus-cni:v3.8
 ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:c8bfe5bad3b5371a5677feb9e8e162da91b61bcac409c244f6f1b18c801ad006
@@ -10,7 +11,6 @@ ghcr.io/k8snetworkplumbingwg/whereabouts:v0.8.0
 ghcr.io/kubevirt/ipam-controller@sha256:aad40edd34f65cf0e087969853d47065aaf411dccf618d196152b583d40300ba
 ghcr.io/kubevirt/kubesecondarydns@sha256:44489bdf8affb0e82b68a7100bbee7d289151ada54ab2e76a9d3afef769a1f54
 ghcr.io/kubevirt/passt-binding-cni@sha256:981c01e0b94ae691ba8ced43c486930085186e9c40b22525c8f0229d1556ee69
-grafana/grafana:11.1.0
 quay.io/brancz/kube-rbac-proxy:v0.18.0
 quay.io/brancz/kube-rbac-proxy:v0.8.0
 quay.io/ceph/ceph:v19

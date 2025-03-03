@@ -52,7 +52,9 @@ function main() {
         grep -v -f ${BASEDIR}/fetch-images-exclude-patterns \
             >>"${temp_file}"
 
-    sed -E 's/"//g' "${temp_file}" | sort | uniq
+    sed -E 's/"//g' "${temp_file}" |
+        sed -E 's#^([^\/]+\/[^\/]+[:@].*)#docker.io/\1#g' |
+        sort | uniq
 }
 
 main "$@"
