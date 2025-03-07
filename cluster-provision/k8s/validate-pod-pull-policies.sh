@@ -18,6 +18,17 @@ Usage: $0
 EOF
 }
 
+function detect_container_runtime() {
+  if command -v podman &>/dev/null; then
+    echo "podman"
+  elif command -v docker &>/dev/null; then
+    echo "docker"
+  else
+    echo "Error: Neither podman nor docker is available." >&2
+    exit 1
+  fi
+}
+
 function main() {
 
     manifest_dir=$(mktemp -d)
@@ -34,7 +45,9 @@ function main() {
 
     echo "Checking $manifest_dir"
     # TODO: for now we disable (via --dry-run) the non zero exit code in case of failure here to give the teams some time to fix the policies
-    docker run --rm -v "$manifest_dir:/manifests:Z" \
+
+    container_runtime=$(detect_container_runtime)
+    $container_runtime run --rm -v "$manifest_dir:/manifests:Z" \
       quay.io/kubevirtci/check-image-pull-policies@sha256:c942d3a4a17f1576f81eba0a5844c904d496890677c6943380b543bbf2d9d1be \
         --manifest-source=/manifests \
         --dry-run=true \
