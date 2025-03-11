@@ -53,8 +53,13 @@ if is_enabled "$KVM_NESTED"; then
 	echo "[ OK ] $KVM_ARCH nested virtualization enabled"
 else
 	echo "[ERR ] $KVM_ARCH nested virtualization not enabled"
+	# Exits early only in s390x. There may be some use cases with emulation for another architectures.
+	if [ "$KVM_ARCH" == "s390x" ]; then
+		exit 1
+	fi
 fi
 
 if is_enabled "$KVM_HPAGE" && [ "$(uname -m)" = "s390x" ]; then
 	echo "[ERR ] $KVM_HPAGE KVM hugepage enabled. It needs to be disabled while nested virtualization is enabled for s390x"
+	exit 1
 fi
