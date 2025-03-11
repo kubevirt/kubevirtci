@@ -324,7 +324,7 @@ func runCommand(command string, args []string) (string, error) {
 	}
 
 	var stderr2 bytes.Buffer
-	fetchCmd := exec.Command("git", "fetch", "upstream", "main", "--tags")
+	fetchCmd := exec.Command("git", "fetch", "upstream", "--tags")
 	fetchCmd.Stderr = &stderr2
 	if err := fetchCmd.Run(); err != nil {
 		logrus.Debugf("Failed to fetch tags from upstream: %v, stderr: %s", err, stderr2.String())
@@ -337,7 +337,7 @@ func runCommand(command string, args []string) (string, error) {
 	err := cmd.Run()
 	if err != nil {
 		if strings.Contains(stderr3.String(), "unknown revision or path not in the working tree") {
-			logrus.Error("Tag not found, please run 'git fetch upstream main --tags'")
+			logrus.Error("Tag not found, please run 'git fetch upstream --tags'")
 		}
 		return "", errors.Wrapf(err, "Failed to run command: %s %s\nStdout:\n%s\nStderr:\n%s",
 			command, strings.Join(args, " "), cmd.Stdout, cmd.Stderr)
