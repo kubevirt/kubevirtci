@@ -13,7 +13,7 @@ function getKubernetesClosestStableVersion() {
     kubernetes_minor_version=$(echo $kubernetes_version | cut -d. -f2)
     packages_major_version=$(echo $kubernetes_version | cut -d. -f1)
     packages_minor_version=$((kubernetes_minor_version-1))
-    packages_version="$(curl --fail -L "https://storage.googleapis.com/kubernetes-release/release/stable-${packages_major_version}.${packages_minor_version}.txt" | sed 's/^v//')"
+    packages_version="$(curl --fail -L "https://cdn.dl.k8s.io/release/stable-${packages_major_version}.${packages_minor_version}.txt" | sed 's/^v//')"
   fi
   echo $packages_version
 }
