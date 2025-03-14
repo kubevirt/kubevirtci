@@ -88,6 +88,18 @@ func WithSwap(swap bool) LinuxConfigFunc {
 	}
 }
 
+func WithFeatureGates(featureGates string) LinuxConfigFunc {
+	return func(n *NodeLinuxConfig) {
+		n.FeatureGates = featureGates
+	}
+}
+
+func WithRuntimeConfig(runtimeConfig string) LinuxConfigFunc {
+	return func(n *NodeLinuxConfig) {
+		n.RuntimeConfig = runtimeConfig
+	}
+}
+
 func WithKsmEnabled(ksmEnabled bool) LinuxConfigFunc {
 	return func(n *NodeLinuxConfig) {
 		n.KsmEnabled = ksmEnabled
