@@ -5,7 +5,6 @@ metadata:
   name: istio-operator
 spec:
   profile: demo
-  hub: quay.io/kubevirtci
   components:
     cni:
       enabled: true
