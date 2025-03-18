@@ -109,9 +109,9 @@ Steps:
 
 ```bash
 # sync _ci-configs folder (mandatory, since it has data about the current running cluster).
-rsync -av $KUBEVIRTCI_DIR/_ci-configs/ $KUBEVIRT_DIR/_ci-configs
+rsync -av $KUBEVIRTCI_DIR/_ci-configs/ $KUBEVIRT_DIR/kubevirtci/_ci-configs
 # sync cluster-up folder if it has changed.
-rsync -av $KUBEVIRTCI_DIR/cluster-up/ $KUBEVIRT_DIR/cluster-up
+rsync -av $KUBEVIRTCI_DIR/cluster-up/ $KUBEVIRT_DIR/kubevirtci/cluster-up
 ```
 
 ```bash
