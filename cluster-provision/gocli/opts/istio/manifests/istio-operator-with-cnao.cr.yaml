@@ -5,6 +5,7 @@ metadata:
   name: istio-operator
 spec:
   profile: demo
+  hub: quay.io/kubevirtci
   components:
     cni:
       enabled: true
@@ -28,6 +29,8 @@ spec:
       cni:
         enabled: true
         provider: "multus"
+    # override the injected annotation to mitigate the issue https://github.com/kubevirt/kubevirt/issues/13927
+    # Once the issue is resolved this configuration should be removed.
     sidecarInjectorWebhook:
       injectedAnnotations:
         k8s.v1.cni.cncf.io/networks: istio-cni
