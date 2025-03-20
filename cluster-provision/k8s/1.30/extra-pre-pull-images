@@ -6,6 +6,7 @@ quay.io/kubevirtci/proxyv2:1.15.0
 quay.io/calico/cni:v3.26.5
 quay.io/calico/kube-controllers:v3.26.5
 quay.io/calico/node:v3.26.5
+quay.io/cephcsi/cephcsi:v3.13.1
 quay.io/kubevirtci/install-cni:1.24.4
 quay.io/kubevirtci/pilot:1.24.4
 quay.io/kubevirtci/proxyv2:1.24.4

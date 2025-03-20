@@ -35,8 +35,8 @@ if [ ! -f "/tmp/extra-pre-pull-images" ]; then
     echo "ERROR: extra-pre-pull-images list missing"
     exit 1
 fi
-if [ ! -f "/tmp/fetch-images.sh" ]; then
-    echo "ERROR: fetch-images.sh missing"
+if [ ! -f "/tmp/pre-pull-images" ]; then
+    echo "ERROR: pre-pull-images missing"
     exit 1
 fi
 
@@ -123,7 +123,7 @@ kubeadm config images pull --kubernetes-version ${version}
 
 if [[ ${slim} == false ]]; then
     # Pre pull all images from the manifests
-    for image in $(/tmp/fetch-images.sh /tmp); do
+    for image in $(cat "/tmp/pre-pull-images" "/tmp/extra-pre-pull-images"); do
         pull_container_retry "${image}"
     done
 

@@ -34,7 +34,8 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRTCI_PROVISION_CHECK=1
     export KUBEVIRT_PROVIDER="k8s-${provider}"
     export KUBEVIRT_NUM_NODES=2
-    export KUBEVIRT_MEMORY_SIZE=5520M
+    # Give the nodes enough memory to run tests in parallel, including tests which involve fedora
+    export KUBEVIRT_MEMORY_SIZE=${KUBEVIRT_MEMORY_SIZE:-9216M}
     export KUBEVIRT_NUM_SECONDARY_NICS=2
 
     # all extras need to get deployed now so that we can make sure whether any
