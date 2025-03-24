@@ -52,7 +52,8 @@ export PATH="$ISTIO_BIN_DIR:$PATH"
 (
   set -E
   mkdir -p "$ISTIO_BIN_DIR"
-  curl "https://storage.googleapis.com/kubevirtci-istioctl-mirror/istio-${ISTIO_VERSION}/bin/istioctl" -o "$ISTIO_BIN_DIR/istioctl"
+  curl -L  https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux-amd64.tar.gz -O
+  tar -xvf ./istio-${ISTIO_VERSION}-linux-amd64.tar.gz --strip-components=2 -C ${ISTIO_BIN_DIR} istio-${ISTIO_VERSION}/bin/istioctl
   chmod +x "$ISTIO_BIN_DIR/istioctl"
 )
 
