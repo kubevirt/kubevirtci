@@ -26,8 +26,7 @@ var _ = Describe("IstioOpt", func() {
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		sshClient = kubevirtcimocks.NewMockSSHClient(mockCtrl)
-		r := k8s.NewReactorConfig("create", "istiooperators", IstioReactor)
-		k8sclient = k8s.NewTestClient(r)
+		k8sclient = k8s.NewTestClient()
 		opt = NewIstioOpt(sshClient, k8sclient, false)
 		AddExpectCalls(sshClient)
 	})

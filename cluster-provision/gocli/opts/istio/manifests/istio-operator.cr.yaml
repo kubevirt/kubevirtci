@@ -10,9 +10,13 @@ spec:
     cni:
       enabled: true
       namespace: kube-system
+      k8s:
+        securityContext:
+          seLinuxOptions:
+            type: spc_t
   values:
     global:
-      jwtPolicy: first-party-jwt
+      jwtPolicy: third-party-jwt
     cni:
       chained: true
       cniBinDir: /opt/cni/bin

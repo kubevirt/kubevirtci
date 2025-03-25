@@ -22,7 +22,9 @@ var IstioReactor = func(action k8stesting.Action) (bool, runtime.Object, error) 
 func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient) {
 	cmds := []string{
 		"source /var/lib/kubevirtci/shared_vars.sh",
-		"PATH=/opt/istio-1.15.0/bin:$PATH istioctl --kubeconfig /etc/kubernetes/admin.conf --hub quay.io/kubevirtci operator init",
+		`echo '` + string(istioWithCnao) + `' |  tee /opt/istio-operator-with-cnao.yaml > /dev/null`,
+		`echo '` + string(istioNoCnao) + `' |  tee /opt/istio-operator.cr.yaml > /dev/null`,
+		"PATH=/opt/istio-" + istioVersion + "/bin:$PATH istioctl --kubeconfig /etc/kubernetes/admin.conf install -y -f /opt/istio-operator.cr.yaml",
 	}
 
 	for _, cmd := range cmds {

@@ -10,15 +10,27 @@ spec:
     cni:
       enabled: true
       namespace: kube-system
+      k8s:
+        securityContext:
+          seLinuxOptions:
+            type: spc_t
   values:
     global:
-      jwtPolicy: first-party-jwt
+      jwtPolicy: third-party-jwt
     cni:
       chained: false
       cniBinDir: /opt/cni/bin
       cniConfDir: /etc/cni/multus/net.d
-      privileged: true
       excludeNamespaces:
        - istio-system
        - kube-system
       logLevel: debug
+    pilot:
+      cni:
+        enabled: true
+        provider: "multus"
+    # override the injected annotation to mitigate the issue https://github.com/kubevirt/kubevirt/issues/13927
+    # Once the issue is resolved this configuration should be removed.
+    sidecarInjectorWebhook:
+      injectedAnnotations:
+        k8s.v1.cni.cncf.io/networks: istio-cni
