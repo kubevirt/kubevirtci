@@ -39,12 +39,10 @@ registry.k8s.io/coredns/coredns@sha256:a0ead06651cf580044aeb0a0feba63591858fb2e4
 registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.1.0
 registry.k8s.io/sig-storage/csi-attacher:v4.8.0
 registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0
-registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.9.0
-registry.k8s.io/sig-storage/csi-provisioner:v3.6.1
 registry.k8s.io/sig-storage/csi-provisioner:v5.1.0
+registry.k8s.io/sig-storage/csi-provisioner:v5.2.0
 registry.k8s.io/sig-storage/csi-resizer:v1.13.1
-registry.k8s.io/sig-storage/csi-snapshotter:v6.3.1
 registry.k8s.io/sig-storage/csi-snapshotter:v8.2.0
-registry.k8s.io/sig-storage/livenessprobe:v2.11.0
-registry.k8s.io/sig-storage/nfsplugin:v4.5.0
+registry.k8s.io/sig-storage/livenessprobe:v2.15.0
+registry.k8s.io/sig-storage/nfsplugin:v4.11.0
 registry.k8s.io/sig-storage/snapshot-controller:v8.2.0
