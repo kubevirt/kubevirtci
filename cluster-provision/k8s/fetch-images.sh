@@ -14,6 +14,8 @@ Usage: $0 <k8s-cluster-dir> [source-image-list]
 EOF
 }
 
+BASEDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/" && echo "$(pwd)/")
+
 function check_args() {
     if [ "$#" -lt 1 ]; then
         usage
@@ -46,9 +48,13 @@ function main() {
         set -e
         # last `grep -v` is necessary to avoid trying to pre pull istio "images", as the regex also matches on values
         # from the generated istio deployment manifest
-    ) | grep -ioE "${image_regex_w_double_quotes}"'$' | grep -v '.svc:' >>"${temp_file}"
+    ) | grep -ioE "${image_regex_w_double_quotes}"'$' |
+        grep -v -f ${BASEDIR}/fetch-images-exclude-patterns \
+            >>"${temp_file}"
 
-    sed -E 's/"//g' "${temp_file}" | sort | uniq
+    sed -E 's/"//g' "${temp_file}" |
+        sed -E 's#^([^\/]+\/[^\/]+[:@].*)#docker.io/\1#g' |
+        sort | uniq
 }
 
 main "$@"
