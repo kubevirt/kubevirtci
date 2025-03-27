@@ -31,12 +31,14 @@ spec:
         cdi.kubevirt.io/testing: ""
     spec:
       containers:
-      - image: quay.io/kubevirtci/nfs-server-alpine:12
+      - image: quay.io/kubevirtci/gists-nfs-server:2.6.4
         imagePullPolicy: IfNotPresent
         name: nfs-server
         env:
-        - name: SHARED_DIRECTORY
+        - name: NFS_DIR
           value: /data/nfs
+        - name: NFS_OPTION
+          value: fsid=0,rw,sync,insecure,no_root_squash,no_subtree_check,nohide
         securityContext:
           privileged: true
         ports:
@@ -49,7 +51,7 @@ spec:
         volumeMounts:
         - mountPath: "/data/nfs"
           name: nfsdata
-        command: ["/bin/bash", "-c"]
+        command: ["sh", "-c"]
         args:
           - |
             chmod 777 /data/nfs;
@@ -77,7 +79,7 @@ spec:
             chmod 777 /data/nfs/extraDisk1;
             mkdir /data/nfs/extraDisk2;
             chmod 777 /data/nfs/extraDisk2;
-            /usr/bin/nfsd.sh
+            /bin/nfsd.sh
       volumes:
       - name: nfsdata
         persistentVolumeClaim:
