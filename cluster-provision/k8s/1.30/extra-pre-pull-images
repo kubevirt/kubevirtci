@@ -21,7 +21,7 @@ quay.io/kubevirt/cdi-importer:v1.61.0
 quay.io/kubevirt/cdi-operator:v1.61.0
 quay.io/kubevirt/cdi-uploadproxy:v1.61.0
 quay.io/kubevirt/cdi-uploadserver:v1.61.0
-quay.io/kubevirtci/nfs-server-alpine:12
+quay.io/kubevirtci/gists-nfs-server:2.6.4
 quay.io/kubevirt/cluster-network-addons-operator:v0.96.0
 quay.io/kubevirt/cni-default-plugins@sha256:0c354fa9d695b8cab97b459e8afea2f7662407a987e83f6f6f1a8af4b45726be
 quay.io/kubevirt/kubemacpool@sha256:677971a25ff3ce95d9e6ecc86090a09f0ae691ce67b8349384f1881562feed7b
