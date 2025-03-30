@@ -38,6 +38,7 @@ type NodeK8sConfig struct {
 	CDIVersion   string
 	AAQ          bool
 	AAQVersion   string
+	DNC          bool
 }
 
 func NewNodeK8sConfig(confs []K8sConfigFunc) *NodeK8sConfig {

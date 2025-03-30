@@ -194,6 +194,10 @@ function _add_common_params() {
         params=" --deploy-multus $params"
     fi
 
+    if [ "$KUBEVIRT_WITH_DNC" == "true" ]; then
+        params=" --deploy-dnc $params"
+    fi
+
     if [ "$KUBEVIRT_WITH_CNAO" == "true" ]; then
         params=" --enable-cnao $params"
     fi

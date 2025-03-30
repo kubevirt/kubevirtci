@@ -207,3 +207,9 @@ func WithAAQVersion(aaqVersion string) K8sConfigFunc {
 		n.AAQVersion = aaqVersion
 	}
 }
+
+func WithDNC(dnc bool) K8sConfigFunc {
+	return func(n *NodeK8sConfig) {
+		n.DNC = dnc
+	}
+}
