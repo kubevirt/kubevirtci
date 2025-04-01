@@ -14,6 +14,13 @@ spec:
       labels:
         app: csi-nfs-controller
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: nfs-server  # avoid loopback mounts
+            topologyKey: kubernetes.io/hostname
       hostNetwork: true  # controller also needs to mount nfs to create dir
       dnsPolicy: ClusterFirstWithHostNet  # available values: Default, ClusterFirstWithHostNet, ClusterFirst
       serviceAccountName: csi-nfs-controller-sa
