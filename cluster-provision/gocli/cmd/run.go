@@ -131,6 +131,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("reverse", false, "reverse node setup order")
 	run.Flags().Bool("enable-cnao", false, "enable network extensions with istio")
 	run.Flags().Bool("skip-cnao-cr", false, "skip deploying cnao custom resource. if true, only cnao CRDS will be deployed")
+	run.Flags().Bool("deploy-dnc", true, "deploy the dynamic networks controller with CNAO")
 	run.Flags().Bool("deploy-multus", false, "deploy multus")
 	run.Flags().Bool("deploy-cdi", false, "deploy cdi")
 	run.Flags().String("cdi-version", "", "cdi version")
@@ -164,7 +165,6 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("single-stack", false, "enable single stack IPv6")
 	run.Flags().Bool("no-etcd-fsync", false, "unsafe: disable fsyncs in etcd")
 	run.Flags().Bool("enable-audit", false, "enable k8s audit for all metadata events")
-	run.Flags().Bool("deploy-dnc", true, "deploy the dynamic networks controller with CNAO")
 	run.Flags().StringArrayVar(&usbDisks, "usb", []string{}, "size of the emulate USB disk to pass to the node")
 	run.Flags().StringArrayVar(&sharedDisks, "shared-block-device", []string{}, "size of block device to share between all nodes")
 
@@ -359,6 +359,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	if err != nil {
 		return err
 	}
+	deployDNC, err := cmd.Flags().GetBool("deploy-dnc")
+	if err != nil {
+		return err
+	}
 
 	deployCdi, err := cmd.Flags().GetBool("deploy-cdi")
 	if err != nil {
@@ -416,11 +420,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	ksmScanInterval, err := cmd.Flags().GetUint("ksm-scan-interval")
-	if err != nil {
-		return err
-	}
-
-	deployDNC, err := cmd.Flags().GetBool("deploy-dnc")
 	if err != nil {
 		return err
 	}
@@ -849,12 +848,12 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		nodesconfig.WithNfsCsi(nfsCsiEnabled),
 		nodesconfig.WithCnao(cnaoEnabled),
 		nodesconfig.WithCNAOSkipCR(cnaoSkipCR),
+		nodesconfig.WithDNC(deployDNC),
 		nodesconfig.WithMultus(deployMultus),
 		nodesconfig.WithCdi(deployCdi),
 		nodesconfig.WithCdiVersion(cdiVersion),
 		nodesconfig.WithAAQ(deployAaq),
 		nodesconfig.WithAAQVersion(aaqVersion),
-		nodesconfig.WithDNC(deployDNC),
 	}
 	n := nodesconfig.NewNodeK8sConfig(k8sConfs)
 

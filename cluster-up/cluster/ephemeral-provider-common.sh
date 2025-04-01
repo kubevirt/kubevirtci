@@ -194,7 +194,7 @@ function _add_common_params() {
         params=" --deploy-multus $params"
     fi
 
-    if [ "$KUBEVIRT_WITH_DNC" == "true" ]; then
+    if [ "$KUBEVIRT_WITH_DYN_NET_CTRL" == "true" ]; then
         params=" --deploy-dnc $params"
     fi
 

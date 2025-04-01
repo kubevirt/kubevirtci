@@ -172,12 +172,22 @@ func WithCnao(cnao bool) K8sConfigFunc {
 	}
 }
 
+// Skips creation of the CNAO custom resource. Just installs the CRD and the operator
 func WithCNAOSkipCR(skip bool) K8sConfigFunc {
 	return func(n *NodeK8sConfig) {
 		n.CNAOSkipCR = skip
 	}
 }
 
+// Whether or no to deploy the dynamic networks controller through CNAO
+func WithDNC(dnc bool) K8sConfigFunc {
+	return func(n *NodeK8sConfig) {
+		n.DNC = dnc
+	}
+}
+
+// If enabled. Multus V3 will be deployed standalone separate from CNAO.
+// Multus V4 that gets deployed with CNAO will be skipped in case CNAO is enabled
 func WithMultus(multus bool) K8sConfigFunc {
 	return func(n *NodeK8sConfig) {
 		n.Multus = multus
@@ -205,11 +215,5 @@ func WithAAQ(aaq bool) K8sConfigFunc {
 func WithAAQVersion(aaqVersion string) K8sConfigFunc {
 	return func(n *NodeK8sConfig) {
 		n.AAQVersion = aaqVersion
-	}
-}
-
-func WithDNC(dnc bool) K8sConfigFunc {
-	return func(n *NodeK8sConfig) {
-		n.DNC = dnc
 	}
 }
