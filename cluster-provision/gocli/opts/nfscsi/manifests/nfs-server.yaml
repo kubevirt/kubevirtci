@@ -30,6 +30,13 @@ spec:
         app: nfs-server
         cdi.kubevirt.io/testing: ""
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
       containers:
       - image: quay.io/kubevirtci/gists-nfs-server:2.6.4
         imagePullPolicy: IfNotPresent
