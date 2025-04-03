@@ -18,6 +18,7 @@ spec:
     global:
       jwtPolicy: third-party-jwt
     cni:
+      provider: multus
       chained: true
       cniBinDir: /opt/cni/bin
       cniConfDir: /etc/cni/net.d
