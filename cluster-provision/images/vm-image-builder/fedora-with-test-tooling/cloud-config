@@ -43,7 +43,7 @@ write_files:
         bind 'set enable-bracketed-paste off'
 runcmd:
   - sudo systemctl daemon-reload
-  - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress-ng virt-what vm-dump-metrics tpm2-tools nc sg3_utils iperf3 wget tcpdump
+  - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress-ng virt-what vm-dump-metrics tpm2-tools netcat sg3_utils iperf3 wget tcpdump
   # Download the busybox netcat and relpace it with the OpenBSD netcat
   # To align with the netcat tool used in the Alpine image for network e2e testing
   - if [ $(uname -m) == "aarch64" ]; then export CPUARCH="armv8l"; elif [ $(uname -m) == "s390x" ]; then export CPUARCH="s390x"; else export CPUARCH="x86_64"; fi
