@@ -28,7 +28,7 @@ var _ = Describe("SwapOpt", func() {
 
 	It("should execute SwapOpt successfully", func() {
 		cmds := []string{
-			"dd if=/dev/zero of=/swapfile count=" + fmt.Sprintf("%d", opt.size) + " bs=1G",
+			"fallocate -l " + fmt.Sprintf("%dG", opt.size) + " /swapfile",
 			"mkswap /swapfile",
 			"swapon -a",
 			"/bin/su -c \"echo vm.swappiness = " + fmt.Sprintf("%d", opt.swapiness) + " >> /etc/sysctl.conf\"",

@@ -24,7 +24,7 @@ func NewSwapOpt(sc libssh.Client, swapiness int, us bool, size int) *swapOpt {
 
 func (o *swapOpt) Exec() error {
 	if o.size != 0 {
-		if err := o.sshClient.Command("dd if=/dev/zero of=/swapfile count=" + fmt.Sprintf("%d", o.size) + " bs=1G"); err != nil {
+		if err := o.sshClient.Command("fallocate -l " + fmt.Sprintf("%dG", o.size) + " /swapfile"); err != nil {
 			return err
 		}
 		if err := o.sshClient.Command("mkswap /swapfile"); err != nil {
