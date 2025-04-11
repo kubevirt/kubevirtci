@@ -20,15 +20,17 @@ type cnaoOpt struct {
 	client        k8s.K8sDynamicClient
 	sshClient     libssh.Client
 	multusEnabled bool
+	dncEnabled    bool
 	skipCR        bool
 }
 
-func NewCnaoOpt(c k8s.K8sDynamicClient, sshClient libssh.Client, multusEnabled, skipCR bool) *cnaoOpt {
+func NewCnaoOpt(c k8s.K8sDynamicClient, sshClient libssh.Client, multusEnabled, dncEnabled, skipCR bool) *cnaoOpt {
 	return &cnaoOpt{
 		client:        c,
 		sshClient:     sshClient,
 		multusEnabled: multusEnabled,
 		skipCR:        skipCR,
+		dncEnabled:    dncEnabled,
 	}
 }
 
@@ -54,7 +56,13 @@ func (o *cnaoOpt) Exec() error {
 					}
 
 					if o.multusEnabled {
-						re := regexp.MustCompile("(?m)[\r\n]+^.*multus.*$")
+						re := regexp.MustCompile("(?m)[\r\n]+^.*multus:.*$")
+						res := re.ReplaceAllString(string(yamlDoc), "")
+						yamlDoc = []byte(res)
+					}
+
+					if !o.dncEnabled {
+						re := regexp.MustCompile("(?m)[\r\n]+^.*multusDynamicNetworks:.*$")
 						res := re.ReplaceAllString(string(yamlDoc), "")
 						yamlDoc = []byte(res)
 					}
