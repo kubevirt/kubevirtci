@@ -81,7 +81,7 @@ var _ = Describe("CnaoOpt", func() {
 	It("should execute create CNAO with dynamic networks controller", func() {
 		skipCR = false
 		dncEnabled = true
-		multusEnabled = true
+		multusEnabled = false
 
 		opt = NewCnaoOpt(client, sshClient, multusEnabled, dncEnabled, skipCR)
 		sshClient.EXPECT().Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf wait deployment -n cluster-network-addons cluster-network-addons-operator --for condition=Available --timeout=200s")
@@ -95,5 +95,6 @@ var _ = Describe("CnaoOpt", func() {
 		spec, ok := obj.Object["spec"].(map[string]interface{})
 		Expect(ok).To(Equal(true))
 		Expect(spec).To(HaveKey("multusDynamicNetworks"))
+		Expect(spec).To(HaveKey("multus"))
 	})
 })
