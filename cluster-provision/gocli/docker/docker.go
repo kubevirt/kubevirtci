@@ -273,7 +273,7 @@ func PrintProgress(progressReader io.ReadCloser, writer *os.File) error {
 		scanner := bufio.NewScanner(progressReader)
 		for scanner.Scan() {
 			line := scanner.Text()
-			if err := checkForError(line); err != nil {
+			if err := parseAndCheckForError(line, &PullStatus{}); err != nil {
 				return err
 			}
 			clearLength := w - len(line)
@@ -285,6 +285,7 @@ func PrintProgress(progressReader io.ReadCloser, writer *os.File) error {
 	} else {
 		fmt.Fprint(writer, "Downloading ...")
 		scanner := bufio.NewScanner(progressReader)
+		// Map to store which state was last printed for each ctr image layer
 		lastReportedState := make(map[string]PullStatus)
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -294,12 +295,8 @@ func PrintProgress(progressReader io.ReadCloser, writer *os.File) error {
 			}
 			// Parse the progress json message into PullStatus struct
 			pullStatus := &PullStatus{}
-			err := json.Unmarshal([]byte(line), pullStatus)
-			if err != nil {
+			if err := parseAndCheckForError(line, pullStatus); err != nil {
 				return err
-			}
-			if pullStatus.Error != "" {
-				return fmt.Errorf("%s", pullStatus.Error)
 			}
 
 			lastStatus, ok := lastReportedState[pullStatus.Id]
@@ -333,8 +330,7 @@ func PrintProgress(progressReader io.ReadCloser, writer *os.File) error {
 	return nil
 }
 
-func checkForError(line string) error {
-	pullStatus := &PullStatus{}
+func parseAndCheckForError(line string, pullStatus *PullStatus) error {
 	if line != "" {
 		err := json.Unmarshal([]byte(line), pullStatus)
 		if err != nil {
