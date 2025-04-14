@@ -285,14 +285,50 @@ func PrintProgress(progressReader io.ReadCloser, writer *os.File) error {
 	} else {
 		fmt.Fprint(writer, "Downloading ...")
 		scanner := bufio.NewScanner(progressReader)
+		lastReportedState := make(map[string]PullStatus)
 		for scanner.Scan() {
 			line := scanner.Text()
-			if err := checkForError(line); err != nil {
+			// Discard empty lines
+			if line == "" {
+				continue
+			}
+			// Parse the progress json message into PullStatus struct
+			pullStatus := &PullStatus{}
+			err := json.Unmarshal([]byte(line), pullStatus)
+			if err != nil {
 				return err
 			}
-			fmt.Print(".")
+			if pullStatus.Error != "" {
+				return fmt.Errorf("%s", pullStatus.Error)
+			}
+
+			lastStatus, ok := lastReportedState[pullStatus.Id]
+			toReport := false
+			if ok {
+				// This later was seen before
+				if pullStatus.Status != lastStatus.Status {
+					toReport = true
+				} else {
+					// Current status is same as last seen status
+					// This is true only for Downloading and Extracting states
+					lastProgress := float64(lastStatus.ProgressDetail.Current) / float64(lastStatus.ProgressDetail.Total)
+					currProgress := float64(pullStatus.ProgressDetail.Current) / float64(pullStatus.ProgressDetail.Total)
+					if currProgress-lastProgress >= 0.1 { // 10% progress
+						toReport = true
+					}
+				}
+			} else {
+				// If this layer hasn't been seen before, print its status
+				toReport = true
+			}
+
+			if toReport {
+				fmt.Fprintf(writer, "%s\t%s\t%s\n", pullStatus.Id, pullStatus.Status, pullStatus.Progress)
+				// Update the last reported status for this layer
+				lastReportedState[pullStatus.Id] = *pullStatus
+			}
+
 		}
-		fmt.Print("\n")
 	}
 	return nil
 }
@@ -311,7 +347,15 @@ func checkForError(line string) error {
 	return nil
 }
 
+type PullProgressDetail struct {
+	Current int64 `json:"current"`
+	Total   int64 `json:"total"`
+}
+
 type PullStatus struct {
-	Status string `json:"status,omitempty"`
-	Error  string `json:"error,omitempty"`
+	Id             string             `json:"id,omitempty"`
+	Status         string             `json:"status,omitempty"`
+	ProgressDetail PullProgressDetail `json:"progressDetail,omitempty"`
+	Progress       string             `json:"progress,omitempty"`
+	Error          string             `json:"error,omitempty"`
 }
