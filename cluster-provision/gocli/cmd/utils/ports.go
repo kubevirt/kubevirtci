@@ -32,9 +32,10 @@ const (
 	PortGrafana = 30008
 	//PortUploadProxy contains CDI UploadProxy port
 	PortUploadProxy = 31001
+	//PortUploadProxyLowerBand contains CDI UploadProxy port from lower-band range
+	PortUploadProxyLowerBand = 30085
 	//PortDNS contains DNS port
 	PortDNS = 31111
-
 	// PortNameSSH contains control-plane node SSH port name
 	PortNameSSH = "ssh"
 	// PortNameSSHWorker contains worker node SSH port name
@@ -60,6 +61,8 @@ const (
 	PortNameGrafana = "grafana"
 	// PortNameUploadProxy contains CDI UploadProxy port
 	PortNameUploadProxy = "uploadproxy"
+	// PortNameUploadProxyLowerBand contains CDI UploadProxy port lower-band range
+	PortNameUploadProxyLowerBand = "uploadproxy-lowerband"
 	// PortNameDNS contains UDP port
 	PortNameDNS = "dns"
 )

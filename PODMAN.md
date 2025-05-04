@@ -15,7 +15,7 @@ instead of eth0.
 The current rules - [ssh](https://github.com/kubevirt/kubevirtci/blob/962d90cead28fc2aadcc07388b18d2479b2b6714/cluster-provision/centos8/scripts/vm.sh#L73), [restricted ports](https://github.com/kubevirt/kubevirtci/blob/962d90cead28fc2aadcc07388b18d2479b2b6714/cluster-provision/centos8/scripts/vm.sh#L83) - allow `make cluster-up` to run successfully, but
 unfortunately they break the cluster's network connectivity in a subtle way:
 image pulling fails because outgoing traffic to ports 22 6443 8443 80 443 30007
-30008 31001 is redirected to the VM in the respective node container (i.e.
+30008 31001 30085 is redirected to the VM in the respective node container (i.e.
 itself) instead of going to the specified host (e.g. quay.io).
 
 This will use `fuse-overlayfs` as storage layer. If the performance is not

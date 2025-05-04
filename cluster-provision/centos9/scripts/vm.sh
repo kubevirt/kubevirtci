@@ -104,7 +104,7 @@ function create_ip_rules {
 
 # Route ports from container to VM for first node
 if [ "$n" = "01" ] ; then
-  tcp_ports=( 6443 8443 80 443 30007 30008 31001 )
+  tcp_ports=( 6443 8443 80 443 30007 30008 31001 30085)
   create_ip_rules "tcp" "${tcp_ports[@]}"
 
   udp_ports=( 31111 )
