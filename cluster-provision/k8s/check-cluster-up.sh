@@ -34,6 +34,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         export KUBEVIRT_WITH_CNAO=true
         export KUBEVIRT_WITH_MULTUS_V3=true
         export KUBEVIRT_DEPLOY_ISTIO=true
+        export KUBEVIRT_STORAGE="rook-ceph-default"
         export KUBEVIRT_DEPLOY_PROMETHEUS=true
         export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
         export KUBEVIRT_DEPLOY_GRAFANA=true
