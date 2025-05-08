@@ -80,8 +80,8 @@ EOF
 	etcdDataDir         = "/var/lib/etcd"
 	nvmeDiskImagePrefix = "/nvme"
 	scsiDiskImagePrefix = "/scsi"
-	QEMU_DEVICE_S390X  = "virtio-net-ccw"
-	QEMU_DEVICE_X86_64 = "virtio-net-pci"
+	QEMU_DEVICE_S390X   = "virtio-net-ccw"
+	QEMU_DEVICE_X86_64  = "virtio-net-pci"
 )
 
 var soundcardPCIIDs = []string{"8086:2668", "8086:2415"}
@@ -131,6 +131,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("reverse", false, "reverse node setup order")
 	run.Flags().Bool("enable-cnao", false, "enable network extensions with istio")
 	run.Flags().Bool("skip-cnao-cr", false, "skip deploying cnao custom resource. if true, only cnao CRDS will be deployed")
+	run.Flags().Bool("deploy-dnc", false, "deploy the dynamic networks controller with CNAO")
 	run.Flags().Bool("deploy-multus", false, "deploy multus")
 	run.Flags().Bool("deploy-cdi", false, "deploy cdi")
 	run.Flags().String("cdi-version", "", "cdi version")
@@ -358,6 +359,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	if err != nil {
 		return err
 	}
+	deployDNC, err := cmd.Flags().GetBool("deploy-dnc")
+	if err != nil {
+		return err
+	}
 
 	deployCdi, err := cmd.Flags().GetBool("deploy-cdi")
 	if err != nil {
@@ -578,7 +583,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	qemuArgs += " -serial pty"
 
 	var qemuNetDevice = getNetDeviceByArch()
-	
+
 	wg := sync.WaitGroup{}
 	wg.Add(int(nodes))
 	// start one vm after each other
@@ -592,8 +597,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			netSuffix := fmt.Sprintf("%d-%d", x, i)
 			macSuffix := fmt.Sprintf("%02x", macCounter)
 			macCounter++
-			// Secondary network devices are added after VM is started (hot-plug) using qemu monitor to avoid 
-			// primary network interface to be named other than eth0. This is mainly required for s390x, as 
+			// Secondary network devices are added after VM is started (hot-plug) using qemu monitor to avoid
+			// primary network interface to be named other than eth0. This is mainly required for s390x, as
 			// otherwise if primary interface is other than eth0, it can't get the IP from dhcp server.
 			if qemuNetDevice == QEMU_DEVICE_S390X {
 				nodeQemuMonitorArgs = fmt.Sprintf("%s netdev_add tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no; device_add %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s;", nodeQemuMonitorArgs, netSuffix, netSuffix, qemuNetDevice, netSuffix, macSuffix)
@@ -843,6 +848,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		nodesconfig.WithNfsCsi(nfsCsiEnabled),
 		nodesconfig.WithCnao(cnaoEnabled),
 		nodesconfig.WithCNAOSkipCR(cnaoSkipCR),
+		nodesconfig.WithDNC(deployDNC),
 		nodesconfig.WithMultus(deployMultus),
 		nodesconfig.WithCdi(deployCdi),
 		nodesconfig.WithCdiVersion(cdiVersion),
@@ -903,7 +909,7 @@ func provisionK8sOptions(sshClient libssh.Client, k8sClient k8s.K8sDynamicClient
 	}
 
 	if n.CNAO {
-		cnaoOpt := cnao.NewCnaoOpt(k8sClient, sshClient, n.Multus, n.CNAOSkipCR)
+		cnaoOpt := cnao.NewCnaoOpt(k8sClient, sshClient, n.Multus, n.DNC, n.CNAOSkipCR)
 		opts = append(opts, cnaoOpt)
 	}
 
