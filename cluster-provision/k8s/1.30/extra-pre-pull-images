@@ -1,4 +1,4 @@
-docker.io/rook/ceph:master
+quay.io/kubevirtci/rook-ceph:v1.16.6
 ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:c8bfe5bad3b5371a5677feb9e8e162da91b61bcac409c244f6f1b18c801ad006
 ghcr.io/k8snetworkplumbingwg/multus-cni:v3.8
 ghcr.io/k8snetworkplumbingwg/multus-dynamic-networks-controller@sha256:0bdf7dc9c15bdf7e5760955f05077c23868f3421141e8e623d75cf6b8cf36247
