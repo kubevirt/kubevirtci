@@ -116,7 +116,15 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 
         echo "Sanity check cluster-up of single stack cluster"
         make cluster-down
+        export KUBEVIRT_WITH_CNAO=false
+        export KUBEVIRT_WITH_MULTUS_V3=false
+        export KUBEVIRT_DEPLOY_ISTIO=false
+        export KUBEVIRT_DEPLOY_PROMETHEUS=false
+        export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=false
+        export KUBEVIRT_DEPLOY_GRAFANA=false
         export KUBEVIRT_SINGLE_STACK=true
+        export KUBEVIRT_DEPLOY_CDI=false
+        unset KUBEVIRT_STORAGE
         make cluster-up
     fi
 )
