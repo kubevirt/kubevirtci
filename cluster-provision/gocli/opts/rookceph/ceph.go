@@ -50,11 +50,11 @@ func (o *cephOpt) Exec() error {
 
 				obj, err := k8s.SerializeIntoObject(yamlDoc)
 				if err != nil {
-					logrus.Info(err.Error())
+					logrus.WithField("path", path).Info(err.Error())
 					continue
 				}
 				if err := o.client.Apply(obj); err != nil {
-					return fmt.Errorf("error applying manifest %s", err)
+					return fmt.Errorf("error applying manifest %q: %v", path, err)
 				}
 			}
 		}
@@ -84,22 +84,31 @@ func (o *cephOpt) Exec() error {
 			return err
 		}
 
-		if blockpool.Status == nil || blockpool.Status.Phase != "Ready" {
-			err := fmt.Errorf("Ceph pool block didn't move to ready status")
+		if blockpool.Status == nil {
+			err := fmt.Errorf("ceph block pool: no status yet")
 			logrus.Info(err)
 			return err
 		}
 
+		if blockpool.Status.Phase != "Ready" {
+			err := fmt.Errorf("ceph block pool phase=%q: CephBlockPool=%+v", blockpool.Status.Phase, blockpool)
+			logrus.Info(err)
+			return err
+		}
+
+		logrus.Infof("ceph block pool phase=%q: CephBlockPool=%+v", blockpool.Status.Phase, blockpool)
+
 		return nil
 	}
 
-	backoffStrategy := backoff.NewExponentialBackOff()
-	backoffStrategy.InitialInterval = 30 * time.Second
-	backoffStrategy.MaxElapsedTime = 10 * time.Minute
-
-	err = backoff.Retry(operation, backoffStrategy)
+	maxElapsedTime := 10 * time.Minute
+	err = backoff.Retry(operation, backoff.NewExponentialBackOff(
+		backoff.WithInitialInterval(45*time.Second),
+		backoff.WithMaxInterval(90*time.Second),
+		backoff.WithMaxElapsedTime(maxElapsedTime),
+	))
 	if err != nil {
-		return fmt.Errorf("Operation failed after maximum retries: %v", err)
+		return fmt.Errorf("operation timed out after %s: %w", maxElapsedTime, err)
 	}
 
 	cmds := []string{
