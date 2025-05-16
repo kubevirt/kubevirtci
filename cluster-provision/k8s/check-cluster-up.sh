@@ -13,6 +13,13 @@ RUN_KUBEVIRT_CONFORMANCE=${RUN_KUBEVIRT_CONFORMANCE:-"true"}
 provision_dir="$1"
 provider="${provision_dir}"
 
+if [ "${SLIM}" != "true" ]; then
+    ${DIR}/update-pre-pull-images.sh "${provision_dir}"
+    git diff --exit-code || (
+        echo "ERROR: Unapplied changes detected - please run update-pre-pull-images.sh and commit changes!" && exit 1
+    )
+fi
+
 function cleanup() {
     cd "$DIR" && cd ../..
     make cluster-down
@@ -27,9 +34,12 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRTCI_PROVISION_CHECK=1
     export KUBEVIRT_PROVIDER="k8s-${provider}"
     export KUBEVIRT_NUM_NODES=2
-    export KUBEVIRT_MEMORY_SIZE=5520M
+    # Give the nodes enough memory to run tests in parallel, including tests which involve fedora
+    export KUBEVIRT_MEMORY_SIZE=${KUBEVIRT_MEMORY_SIZE:-9216M}
     export KUBEVIRT_NUM_SECONDARY_NICS=2
 
+    # all extras need to get deployed now so that we can make sure whether any
+    # images are missing from the pre-pull mechanism
     if [ "${SLIM}" != "true" ]; then
         export KUBEVIRT_WITH_CNAO=true
         export KUBEVIRT_WITH_MULTUS_V3=true
@@ -38,7 +48,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
         export KUBEVIRT_DEPLOY_GRAFANA=true
         export KUBEVIRT_DEPLOY_CDI=true
-        export KUBEVIRT_DEPLOY_KWOK=true
+        export KUBEVIRT_STORAGE="rook-ceph-default"
     fi
 
     trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
@@ -62,19 +72,14 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         # Verify Multus v3 image is used
         ${ksh} get ds -n kube-system kube-multus-ds -o yaml | grep multus-cni:v3
 
-        # Sanity check that Multus able to connect secondary networks
+        # Sanity check that Multus is able to connect secondary networks
         ${ksh} create -f "$DIR/test-multi-net.yaml"
         ${ksh} wait pod test-multi-net --for condition=ready=true
         ${ksh} delete -f "$DIR/test-multi-net.yaml"
 
-        pre_pull_image_file="$DIR/${provision_dir}/extra-pre-pull-images"
-        if [ -f "${pre_pull_image_file}" ]; then
-            bash -x "$DIR/deploy-manifests.sh" "${provision_dir}"
-            bash -x "$DIR/validate-pod-pull-policies.sh"
-            if [[ ${SLIM} == false ]]; then
-                bash -x "$DIR/check-pod-images.sh" "${provision_dir}"
-            fi
-        fi
+        # check whether all is good wrt pull policies and pre-pulled images
+        bash -x "$DIR/validate-pod-pull-policies.sh"
+        bash -x "$DIR/check-pod-images.sh" "${provision_dir}"
     fi
 
     # Run conformance test only at CI and if the provider has them activated
@@ -111,7 +116,15 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 
         echo "Sanity check cluster-up of single stack cluster"
         make cluster-down
+        export KUBEVIRT_WITH_CNAO=false
+        export KUBEVIRT_WITH_MULTUS_V3=false
+        export KUBEVIRT_DEPLOY_ISTIO=false
+        export KUBEVIRT_DEPLOY_PROMETHEUS=false
+        export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=false
+        export KUBEVIRT_DEPLOY_GRAFANA=false
         export KUBEVIRT_SINGLE_STACK=true
+        export KUBEVIRT_DEPLOY_CDI=false
+        unset KUBEVIRT_STORAGE
         make cluster-up
     fi
 )
