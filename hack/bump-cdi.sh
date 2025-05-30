@@ -52,6 +52,14 @@ if [ -d "$cdi_dir" ]; then
     else
         echo "Updated cdi manifests for $cdi_dir"
     fi
+    for k8s_provider in $(cd ./cluster-provision/k8s && ls -rd [0-9]\.[0-9][0-9]); do
+        if ! ./cluster-provision/k8s/update-pre-pull-images.sh "${k8s_provider}"; then
+            echo "Failed to update pre-pull-images for ${k8s_provider}"
+            exit 1
+        else
+            echo "Updated pre-pull-images for ${k8s_provider}"
+        fi
+    done
 else
     echo "Directory $cdi_dir does not exist."
     exit 1
