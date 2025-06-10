@@ -64,12 +64,12 @@ function pull_container_retry() {
     fi
 }
 
-export CRIO_VERSION=1.32
+export CRIO_VERSION=1.33
 cat << EOF >/etc/yum.repos.d/devel_kubic_libcontainers_stable_cri-o_${CRIO_VERSION}.repo
-[isv_kubernetes_addons_cri-o_stable_v${CRIO_VERSION}]
+[isv_cri-o_stable_v${CRIO_VERSION}]
 name=CRI-O v${CRIO_VERSION} (Stable) (rpm)
 type=rpm-md
-baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/isv_kubernetes_addons_cri-o_stable_v${CRIO_VERSION}
+baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/isv_cri-o_stable_v${CRIO_VERSION}
 gpgcheck=0
 enabled=1
 EOF
