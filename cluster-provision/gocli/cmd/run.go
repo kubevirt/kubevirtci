@@ -38,6 +38,7 @@ import (
 	dockerproxy "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/docker-proxy"
 	etcdinmemory "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/etcd"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/istio"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/k8scomponents"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/ksm"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/multus"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nfscsi"
@@ -112,6 +113,8 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().UintP("secondary-nics", "", 0, "number of secondary nics to add")
 	run.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	run.Flags().String("kernel-args", "", "additional kernel args to pass through to the nodes")
+	run.Flags().String("feature-gates", "", "k8s feature gates to enable")
+	run.Flags().String("runtime-config", "", "k8s api runtime config")
 	run.Flags().BoolP("background", "b", true, "go to background after nodes are up")
 	run.Flags().Bool("random-ports", true, "expose all ports on random localhost ports")
 	run.Flags().Bool("slim", false, "use the slim flavor")
@@ -222,6 +225,16 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	kernelArgs, err := cmd.Flags().GetString("kernel-args")
+	if err != nil {
+		return err
+	}
+
+	featureGates, err := cmd.Flags().GetString("feature-gates")
+	if err != nil {
+		return err
+	}
+
+	runtimeConfig, err := cmd.Flags().GetString("runtime-config")
 	if err != nil {
 		return err
 	}
@@ -820,6 +833,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodesconfig.WithSwapiness(int(swapiness)),
 			nodesconfig.WithSwapSize(int(swapSize)),
 			nodesconfig.WithUnlimitedSwap(unlimitedSwap),
+			nodesconfig.WithFeatureGates(featureGates),
+			nodesconfig.WithRuntimeConfig(runtimeConfig),
 		}
 
 		n := nodesconfig.NewNodeLinuxConfig(x+1, prefix, linuxConfigFuncs)
@@ -1025,6 +1040,11 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 	if n.SwapEnabled {
 		swapOpt := swap.NewSwapOpt(sshClient, n.Swappiness, n.UnlimitedSwap, n.SwapSize)
 		opts = append(opts, swapOpt)
+	}
+
+	if n.FeatureGates != "" || n.RuntimeConfig != "" {
+		featureGatesOpt := k8scomponents.NewK8sComponentsOpt(sshClient, n.FeatureGates, n.RuntimeConfig)
+		opts = append(opts, featureGatesOpt)
 	}
 
 	for _, o := range opts {
