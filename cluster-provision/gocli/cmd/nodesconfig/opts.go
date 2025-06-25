@@ -10,12 +10,6 @@ func WithNodeIdx(nodeIdx int) LinuxConfigFunc {
 	}
 }
 
-func WithK8sVersion(k8sVersion string) LinuxConfigFunc {
-	return func(n *NodeLinuxConfig) {
-		n.K8sVersion = k8sVersion
-	}
-}
-
 func WithFipsEnabled(fipsEnabled bool) LinuxConfigFunc {
 	return func(n *NodeLinuxConfig) {
 		n.FipsEnabled = fipsEnabled
