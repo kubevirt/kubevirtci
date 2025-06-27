@@ -20,6 +20,12 @@
 
 set -exuo pipefail
 
+auto_update=
+if [ $# -gt 1 ] && [ "$1" == "--auto-update" ]; then
+    auto_update=true
+    shift
+fi
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ksh="$(cd "$DIR/../.." && pwd)/cluster-up/kubectl.sh"
 provision_dir="$1"
@@ -49,8 +55,14 @@ for image in $(${ksh} get pods --all-namespaces -o jsonpath="{..image}" | tr -s 
 done
 if [ -s "${images_not_in_list}" ]; then
     echo "Images found in cluster that are not in list!"
-    cat "${images_not_in_list}" >>"${extra_pre_pull_image_file}"
-    echo "${extra_pre_pull_image_file} updated with images not in list."
+    if [[ "$auto_update" != "true" ]]; then
+        cat "${images_not_in_list}"
+        echo "(Please add them to file ${extra_pre_pull_image_file})"
+        exit 1
+    else
+        cat "${images_not_in_list}" >>"${extra_pre_pull_image_file}"
+        echo "${extra_pre_pull_image_file} updated with images not in list."
+    fi
 else
     echo "No images found in cluster that are not in list."
 fi
