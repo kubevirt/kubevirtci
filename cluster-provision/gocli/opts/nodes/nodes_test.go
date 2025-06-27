@@ -14,26 +14,38 @@ func TestNodeProvisionerOpt(t *testing.T) {
 	RunSpecs(t, "NodesProvisioner Suite")
 }
 
-var _ = Describe("NodesProvisioner", func() {
-	var (
-		mockCtrl  *gomock.Controller
-		sshClient *kubevirtcimocks.MockSSHClient
-		opt       *nodesProvisioner
+var _ = Describe("nodes", func() {
+	When("NodesProvisioner", func() {
+		var (
+			mockCtrl  *gomock.Controller
+			sshClient *kubevirtcimocks.MockSSHClient
+			opt       *nodesProvisioner
+		)
+
+		BeforeEach(func() {
+			mockCtrl = gomock.NewController(GinkgoT())
+			sshClient = kubevirtcimocks.NewMockSSHClient(mockCtrl)
+			opt = NewNodesProvisioner("k8s-1.32", sshClient, false)
+			AddExpectCalls(sshClient)
+		})
+
+		AfterEach(func() {
+			mockCtrl.Finish()
+		})
+
+		It("should execute NodesProvisioner successfully", func() {
+			err := opt.Exec()
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	DescribeTable("calling featureGateFlag",
+		func(k8sVersion, expectedValue string) {
+			np := NewNodesProvisioner(k8sVersion, nil, false)
+			Expect(np.featureGatesFlag()).To(BeEquivalentTo(expectedValue))
+		},
+		Entry("should not add new fg if 1.32", "k8s-1.32", "--feature-gates=NodeSwap=true"),
+		Entry("should add new fg if 1.33", "k8s-1.33", "--feature-gates=NodeSwap=true,DisableCPUQuotaWithExclusiveCPUs=false"),
+		Entry("should add new fg if 1.37", "k8s-1.37", "--feature-gates=NodeSwap=true,DisableCPUQuotaWithExclusiveCPUs=false"),
 	)
-
-	BeforeEach(func() {
-		mockCtrl = gomock.NewController(GinkgoT())
-		sshClient = kubevirtcimocks.NewMockSSHClient(mockCtrl)
-		opt = NewNodesProvisioner(sshClient, false)
-		AddExpectCalls(sshClient)
-	})
-
-	AfterEach(func() {
-		mockCtrl.Finish()
-	})
-
-	It("should execute NodesProvisioner successfully", func() {
-		err := opt.Exec()
-		Expect(err).NotTo(HaveOccurred())
-	})
 })

@@ -160,8 +160,6 @@ kind: KubeletConfiguration
 cgroupDriver: systemd
 failSwapOn: false
 kubeletCgroups: /systemd/system.slice
-featureGates:
-  DisableCPUQuotaWithExclusiveCPUs: false
 EOF
 
 cat <<EOT >/etc/sysconfig/kubelet

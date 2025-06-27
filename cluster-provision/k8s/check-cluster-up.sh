@@ -63,6 +63,10 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     ${ksh} get node node01
     ${ksh} get node node02
 
+    # print kubelet config
+    ${ssh} node01 -- cat /etc/sysconfig/kubelet
+    ${ssh} node02 -- cat /etc/sysconfig/kubelet
+
     if [ "${SLIM}" != "true" ]; then
         ${ssh} node01 -- ip l show eth1
         ${ssh} node01 -- ip l show eth2
@@ -106,7 +110,6 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
             export LABEL_FILTER="(conformance)&&(sig-network)"
 
             export SONOBUOY_EXTRA_ARGS="--plugin https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/conformance${arch_suffix}.yaml --plugin-env kubevirt-conformance.E2E_LABEL=${LABEL_FILTER}"
-
 
             hack/conformance.sh $conformance_config
         fi
