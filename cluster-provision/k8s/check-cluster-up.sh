@@ -42,7 +42,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     # images are missing from the pre-pull mechanism
     if [ "${SLIM}" != "true" ]; then
         export KUBEVIRT_WITH_CNAO=true
-        export KUBEVIRT_WITH_MULTUS_V3=true
+        export KUBEVIRT_WITH_MULTUS=true
         export KUBEVIRT_DEPLOY_ISTIO=true
         export KUBEVIRT_DEPLOY_PROMETHEUS=true
         export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
@@ -120,7 +120,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         echo "Sanity check cluster-up of single stack cluster"
         make cluster-down
         export KUBEVIRT_WITH_CNAO=false
-        export KUBEVIRT_WITH_MULTUS_V3=false
+        export KUBEVIRT_WITH_MULTUS=false
         export KUBEVIRT_DEPLOY_ISTIO=false
         export KUBEVIRT_DEPLOY_PROMETHEUS=false
         export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=false
