@@ -16,7 +16,7 @@
 # Copyright 2024 Red Hat, Inc.
 #
 
-KIND_VERSION=0.19.0
+KIND_VERSION=0.27.0
 export KIND_IMAGE=kindest/node
 export K8S_VERSION=v1.28.0@sha256:dad5a6238c5e41d7cac405fae3b5eda2ad1de6f1190fa8bfc64ff5bb86173213
 
