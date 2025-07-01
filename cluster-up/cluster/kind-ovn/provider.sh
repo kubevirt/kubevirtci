@@ -88,6 +88,7 @@ function up() {
 
     cp ~/$CLUSTER_NAME.conf "${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
     prepare_config
+    echo "cluster is ready"
 }
 
 function down() {
