@@ -75,7 +75,15 @@ function up() {
     pushd $CLUSTER_PATH/contrib
       args=""
       podman ps &> /dev/null && args+="-ep podman"
-      ./kind.sh --cluster-name $CLUSTER_NAME --multi-network-enable --network-segmentation-enable -mtu $MTU --local-kind-registry --enable-interconnect ${args}
+      ./kind.sh \
+        --cluster-name $CLUSTER_NAME \
+        -mtu $MTU \
+        --local-kind-registry \
+        --enable-interconnect \
+        --multi-network-enable \
+        --network-segmentation-enable \
+        ${args} \
+        ${NULL}
     popd
 
     cp ~/$CLUSTER_NAME.conf "${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
