@@ -259,6 +259,9 @@ function setup_kind() {
 }
 
 function _add_extra_mounts() {
+  if [ ! -d "/var/log/audit" ]; then
+      mkdir -p /var/log/audit
+  fi
   cat <<EOF >> ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/kind.yaml
   extraMounts:
   - containerPath: /var/log/audit
