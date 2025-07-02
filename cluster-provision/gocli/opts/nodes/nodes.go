@@ -3,21 +3,26 @@ package nodes
 import (
 	_ "embed"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
-	"github.com/sirupsen/logrus"
+	"os"
 	"regexp"
 	"runtime"
 
+	"github.com/Masterminds/semver/v3"
+	"github.com/sirupsen/logrus"
+
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
+)
+
+const (
+	kubevirtProviderEnv = "KUBEVIRT_PROVIDER"
 )
 
 var (
 	//go:embed conf/00-cgroupv2.conf
 	cgroupv2 []byte
 
-	versionRegex *regexp.Regexp
-
-	v1_32 *semver.Version
+	versionRegex = regexp.MustCompile(`.*([0-9]+\.[0-9]+)`)
+	v1_32        = semver.MustParse("v1.32")
 )
 
 type nodesProvisioner struct {
@@ -27,19 +32,18 @@ type nodesProvisioner struct {
 	version     *semver.Version
 }
 
-func init() {
-	versionRegex = regexp.MustCompile(`.*([0-9]+\.[0-9]+)`)
-	var err error
-	v1_32, err = semver.NewVersion("v1.32")
-	if err != nil {
-		logrus.Fatalf("not a parseable semver contained in %q", "v1.32")
-	}
-}
-
 func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack bool) *nodesProvisioner {
 	submatches := versionRegex.FindStringSubmatch(k8sVersion)
 	if len(submatches) != 2 {
-		logrus.Fatalf("not a parseable semver contained in %q", k8sVersion)
+		logrus.Infof("not a parseable semver contained in %q. Trying the %q environment variable", k8sVersion, kubevirtProviderEnv)
+		kubevirtProvider, defined := os.LookupEnv(kubevirtProviderEnv)
+		if !defined {
+			logrus.Fatalf("not a parseable semver contained in %q and %q is not defined", k8sVersion, kubevirtProviderEnv)
+		}
+		submatches = versionRegex.FindStringSubmatch(kubevirtProvider)
+		if len(submatches) != 2 {
+			logrus.Fatalf("not a parseable semver contained in the %q environment variable", kubevirtProviderEnv)
+		}
 	}
 	version, err := semver.NewVersion("v" + submatches[1])
 	if err != nil {
