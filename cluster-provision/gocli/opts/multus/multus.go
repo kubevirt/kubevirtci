@@ -10,7 +10,7 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 )
 
-//go:embed manifests/multus.yaml
+//go:embed manifests/multus-daemonset-thick.yaml
 var multus []byte
 
 type multusOpt struct {
