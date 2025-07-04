@@ -3,7 +3,7 @@ docker.io/calico/kube-controllers:v3.26.5
 docker.io/calico/node:v3.26.5
 docker.io/grafana/grafana:11.1.0
 docker.io/rook/ceph:master
-ghcr.io/k8snetworkplumbingwg/multus-cni:v3.8
+ghcr.io/k8snetworkplumbingwg/multus-cni:v4.2.1-thick
 ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:c8bfe5bad3b5371a5677feb9e8e162da91b61bcac409c244f6f1b18c801ad006
 ghcr.io/k8snetworkplumbingwg/multus-dynamic-networks-controller@sha256:0bdf7dc9c15bdf7e5760955f05077c23868f3421141e8e623d75cf6b8cf36247
 ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin@sha256:54be8fcacee50af64deafa9e99f3fe079033630c00c4ed9f74d17b0d91009f10
