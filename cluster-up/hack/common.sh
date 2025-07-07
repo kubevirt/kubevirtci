@@ -48,9 +48,7 @@ if [ -z "${JOB_NAME}" ]; then
     KUBEVIRT_PROVIDER_EXTRA_ARGS="${KUBEVIRT_PROVIDER_EXTRA_ARGS} --ocp-port 8443"
 fi
 
-#If run on jenkins, let us create isolated environments based on the job and
-# the executor number
-provider_prefix=${JOB_NAME:-${KUBEVIRT_PROVIDER}}${EXECUTOR_NUMBER}
+provider_prefix=${KUBEVIRT_PROVIDER}
 job_prefix=${JOB_NAME:-kubevirt}${EXECUTOR_NUMBER}
 
 mkdir -p $KUBEVIRTCI_CONFIG_PATH/$KUBEVIRT_PROVIDER
