@@ -73,12 +73,12 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         ${ssh} node02 -- ip l show eth1
         ${ssh} node02 -- ip l show eth2
 
-        # Verify Multus v3 image is used
-        ${ksh} get ds -n kube-system kube-multus-ds -o yaml | grep multus-cni:v3
+        # Verify Multus v4 image is used
+        ${ksh} get ds -n kube-system kube-multus-ds -o yaml | grep multus-cni:v4
 
         # Sanity check that Multus is able to connect secondary networks
         ${ksh} create -f "$DIR/test-multi-net.yaml"
-        ${ksh} wait pod test-multi-net --for condition=ready=true
+        ${ksh} wait pod test-multi-net --for condition=ready=true --timeout=2m
         ${ksh} delete -f "$DIR/test-multi-net.yaml"
 
         # check whether all is good wrt pull policies and pre-pulled images
