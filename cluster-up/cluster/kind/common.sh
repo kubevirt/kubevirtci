@@ -54,7 +54,7 @@ KUBECTL="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl --kubeconfig=${KU
 
 REGISTRY_NAME=${CLUSTER_NAME}-registry
 
-MASTER_NODES_PATTERN="control-plane"
+CONTROL_PLANE_NODES_PATTERN="control-plane"
 WORKER_NODES_PATTERN="worker"
 
 KUBEVIRT_WITH_KIND_ETCD_IN_MEMORY=${KUBEVIRT_WITH_KIND_ETCD_IN_MEMORY:-"true"}
@@ -62,12 +62,7 @@ ETCD_IN_MEMORY_DATA_DIR="/tmp/kind-cluster-etcd"
 
 function _wait_kind_up {
     echo "Waiting for kind to be ready ..."
-    if [[ $KUBEVIRT_PROVIDER =~ kind-.*1\.1.* ]]; then
-        selector="master"
-    else
-        selector="control-plane"
-    fi
-    while [ -z "$(${CRI_BIN} exec --privileged ${CLUSTER_NAME}-control-plane kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --selector=node-role.kubernetes.io/${selector} -o=jsonpath='{.items..status.conditions[-1:].status}' | grep True)" ]; do
+    while [ -z "$(${CRI_BIN} exec --privileged ${CLUSTER_NAME}-control-plane kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --selector=node-role.kubernetes.io/control-plane -o=jsonpath='{.items..status.conditions[-1:].status}' | grep True)" ]; do
         echo "Waiting for kind to be ready ..."
         sleep 10
     done
@@ -185,10 +180,10 @@ function _fix_node_labels() {
     # it is nessecery to remove taint NoSchedule and set role labels manualy:
     #   Control-plane nodes might lack 'scheduable=true' label and have NoScheduable taint.
     #   Worker nodes might lack worker role label.
-    master_nodes=$(_get_nodes | grep -i $MASTER_NODES_PATTERN | awk '{print $1}')
-    for node in ${master_nodes[@]}; do
+    control_plane_nodes=$(_get_nodes | grep -i $CONTROL_PLANE_NODES_PATTERN | awk '{print $1}')
+    for node in ${control_plane_nodes[@]}; do
         # removing NoSchedule taint if is there
-        if _kubectl taint nodes $node node-role.kubernetes.io/master:NoSchedule- || _kubectl taint nodes $node node-role.kubernetes.io/control-plane:NoSchedule-; then
+        if _kubectl taint nodes $node node-role.kubernetes.io/control-plane:NoSchedule-; then
             _kubectl label node $node kubevirt.io/schedulable=true
         fi
     done
