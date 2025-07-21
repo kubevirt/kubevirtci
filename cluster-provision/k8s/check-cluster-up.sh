@@ -21,6 +21,7 @@ if [ "${SLIM}" != "true" ]; then
 fi
 
 function cleanup() {
+    ${ksh} get pods -A
     cd "$DIR" && cd ../..
     make cluster-down
 }
@@ -35,7 +36,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRT_PROVIDER="k8s-${provider}"
     export KUBEVIRT_NUM_NODES=2
     # Give the nodes enough memory to run tests in parallel, including tests which involve fedora
-    export KUBEVIRT_MEMORY_SIZE=${KUBEVIRT_MEMORY_SIZE:-9216M}
+    export KUBEVIRT_MEMORY_SIZE=${KUBEVIRT_MEMORY_SIZE:-16384M}
     export KUBEVIRT_NUM_SECONDARY_NICS=2
 
     # all extras need to get deployed now so that we can make sure whether any
@@ -99,7 +100,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
             ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-operator${arch_suffix}.yaml"
             ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-cr${arch_suffix}.yaml"
 
-            ${ksh} wait -n kubevirt kv kubevirt --for condition=Available --timeout 15m
+            ${ksh} wait -n kubevirt kv kubevirt --for condition=Available --timeout 50m
 
             if [ "${KUBEVIRT_PSA:-"false"}" == "true" ]; then
                 # Enable Kubevirt profile
