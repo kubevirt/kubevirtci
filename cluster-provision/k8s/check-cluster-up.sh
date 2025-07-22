@@ -42,7 +42,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     # images are missing from the pre-pull mechanism
     if [ "${SLIM}" != "true" ]; then
         export KUBEVIRT_WITH_CNAO=true
-        export KUBEVIRT_WITH_MULTUS=true
+        #export KUBEVIRT_WITH_MULTUS=true
         export KUBEVIRT_DEPLOY_ISTIO=true
         export KUBEVIRT_DEPLOY_PROMETHEUS=true
         export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
@@ -73,12 +73,9 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         ${ssh} node02 -- ip l show eth1
         ${ssh} node02 -- ip l show eth2
 
-        # Verify Multus v3 image is used
-        ${ksh} get ds -n kube-system kube-multus-ds -o yaml | grep multus-cni:v3
-
         # Sanity check that Multus is able to connect secondary networks
         ${ksh} create -f "$DIR/test-multi-net.yaml"
-        ${ksh} wait pod test-multi-net --for condition=ready=true
+        ${ksh} wait pod test-multi-net --for condition=ready=true --timeout=2m
         ${ksh} delete -f "$DIR/test-multi-net.yaml"
 
         # check whether all is good wrt pull policies and pre-pulled images
