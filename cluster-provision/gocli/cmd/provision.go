@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alessio/shellescape"
 	"github.com/docker/docker/api/types"
@@ -296,13 +297,19 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	logrus.Info("waiting for the node to stop")
-	okChan, errChan := cli.ContainerWait(ctx, nodeContainer(prefix, nodeName), container.WaitConditionNotRunning)
+	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	okChan, errChan := cli.ContainerWait(waitCtx, nodeContainer(prefix, nodeName), container.WaitConditionNotRunning)
 	select {
 	case <-okChan:
+		logrus.Info("node stopped successfully")
 	case err := <-errChan:
 		if err != nil {
-			return fmt.Errorf("waiting for the node to stop failed: %v", err)
+			return fmt.Errorf("error: waiting for the node to stop failed: %v", err)
 		}
+	case <-waitCtx.Done():
+		return fmt.Errorf("error: timeout waiting for node to stop")
 	}
 
 	logrus.Info("preparing additional persistent kernel arguments after initial provision")
