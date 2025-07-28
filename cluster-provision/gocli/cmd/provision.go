@@ -280,15 +280,21 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		}
 	}
 
-	_cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh sudo shutdown now -h", "shutting down the node")
-	err = _cmd(cli, nodeContainer(prefix, nodeName), "rm /usr/local/bin/ssh.sh", "removing the ssh.sh script")
-	if err != nil {
-		return err
-	}
 	err = _cmd(cli, nodeContainer(prefix, nodeName), "rm /ssh_ready", "removing the ssh_ready mark")
 	if err != nil {
 		return err
 	}
+
+	err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh sudo systemd-run --on-active=10s --unit=delayed-shutdown shutdown -h now", "shutting down the node")
+	if err != nil {
+		return err
+	}
+
+	err = _cmd(cli, nodeContainer(prefix, nodeName), "rm /usr/local/bin/ssh.sh", "removing the ssh.sh script")
+	if err != nil {
+		return err
+	}
+
 	logrus.Info("waiting for the node to stop")
 	okChan, errChan := cli.ContainerWait(ctx, nodeContainer(prefix, nodeName), container.WaitConditionNotRunning)
 	select {
