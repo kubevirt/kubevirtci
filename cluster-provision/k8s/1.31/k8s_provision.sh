@@ -121,12 +121,12 @@ fi
 
 kubeadm config images pull --kubernetes-version ${version}
 
-if [[ ${slim} == false ]]; then
-    # Pre pull all images from the lists
-    for image in $(cat "/tmp/pre-pull-images" "/tmp/extra-pre-pull-images"); do
-        pull_container_retry "${image}"
-    done
-fi
+# if [[ ${slim} == false ]]; then
+#     # Pre pull all images from the lists
+#     for image in $(cat "/tmp/pre-pull-images" "/tmp/extra-pre-pull-images"); do
+#         pull_container_retry "${image}"
+#     done
+# fi
 
 mkdir -p /provision
 
