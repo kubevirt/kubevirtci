@@ -23,7 +23,7 @@ RUN if test "$BUILDARCH" != "s390x"; then \
       /download_box.sh https://cloud.centos.org/centos/9-stream/s390x/images/CentOS-Stream-GenericCloud-9-$centos_version.s390x.qcow2 && \
       # Access virtual machine disk images directly by using LIBGUESTFS_BACKEND=direct, instead of libvirt
       export LIBGUESTFS_BACKEND=direct && \
-      guestfish --ro --add box.qcow2 --mount /dev/sda1:/ ls /boot/ | grep -E '^vmlinuz-|^initramfs-' | xargs -I {} guestfish --ro --add box.qcow2 -i copy-out /boot/{} / ; \
+      guestfish --ro --add box.qcow2 --mount /dev/vda1:/ ls /boot/ | grep -E '^vmlinuz-|^initramfs-' | xargs -I {} guestfish --ro --add box.qcow2 -i copy-out /boot/{} / ; \
     fi
 
 
