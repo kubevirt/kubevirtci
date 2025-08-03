@@ -3,6 +3,8 @@ docker.io/calico/kube-controllers:v3.26.5
 docker.io/calico/node:v3.26.5
 docker.io/grafana/grafana:11.1.0
 docker.io/rook/ceph:master
+ghcr.io/flannel-io/flannel-cni-plugin:v1.7.1-flannel1
+ghcr.io/flannel-io/flannel:v0.27.2
 ghcr.io/k8snetworkplumbingwg/multus-cni:v3.8
 ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:9c8f6b79653d783dd26caf30b1374368e89c4ff265ddf064941feae5c18aa2d9
 ghcr.io/k8snetworkplumbingwg/multus-dynamic-networks-controller@sha256:2a2bb32c0ea8b232b3dbe81c0323a107e8b05f8cad06704fca2efd0d993a87be
@@ -35,6 +37,7 @@ quay.io/prometheus/node-exporter:v1.8.1
 quay.io/prometheus/prometheus:v2.53.0
 registry.k8s.io/coredns/coredns@sha256:a0ead06651cf580044aeb0a0feba63591858fb2e43ade8c9dea45a6a89ae7e5e
 registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.1.0
+registry.k8s.io/networking/kube-network-policies:v0.7.0
 registry.k8s.io/sig-storage/csi-attacher:v4.8.0
 registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0
 registry.k8s.io/sig-storage/csi-provisioner:v5.1.0
