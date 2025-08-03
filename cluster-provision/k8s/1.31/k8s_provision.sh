@@ -134,11 +134,19 @@ cni_manifest="/provision/cni.yaml"
 cni_diff="/tmp/cni.diff"
 cni_manifest_ipv6="/provision/cni_ipv6.yaml"
 cni_ipv6_diff="/tmp/cni_ipv6.diff"
+flannel_manifest="/etc/kubernetes/flannel.yaml"
+flannel_diff="/tmp/flannel.diff"
+knp_manifest="/etc/kubernetes/knp.yaml"
 
 cp /tmp/cni.do-not-change.yaml $cni_manifest
 mv /tmp/cni.do-not-change.yaml $cni_manifest_ipv6
 patch $cni_manifest $cni_diff
 patch $cni_manifest_ipv6 $cni_ipv6_diff
+
+cp /tmp/flannel.do-not-change.yaml $flannel_manifest
+patch $flannel_manifest $flannel_diff
+
+cp /tmp/knp.do-not-change.yaml $knp_manifest
 
 cp /tmp/local-volume.yaml /provision/local-volume.yaml
 
@@ -308,8 +316,13 @@ kubeadm_raw_ipv6=/tmp/kubeadm_ipv6.conf
 kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
 kubeadm_manifest_ipv6="/etc/kubernetes/kubeadm_ipv6.conf"
 
+kubeadm_flannel_raw="/tmp/kubeadm_flannel.conf"
+kubeadm_flannel="/etc/kubernetes/kubeadm_flannel.conf"
+
 envsubst < $kubeadm_raw > $kubeadm_manifest
 envsubst < $kubeadm_raw_ipv6 > $kubeadm_manifest_ipv6
+
+envsubst < $kubeadm_flannel_raw > $kubeadm_flannel
 
 until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
 
@@ -346,6 +359,7 @@ done
 kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
 
 kubeadm reset --force
+rm -rf /etc/cni/net.d/* /var/lib/cni /var/lib/kubelet
 
 # Create local-volume directories
 for i in {1..10}
