@@ -122,13 +122,8 @@ fi
 kubeadm config images pull --kubernetes-version ${version}
 
 if [[ ${slim} == false ]]; then
-    # Pre pull all images from the manifests
+    # Pre pull all images from the lists
     for image in $(cat "/tmp/pre-pull-images" "/tmp/extra-pre-pull-images"); do
-        pull_container_retry "${image}"
-    done
-
-    # Pre pull additional images from list
-    for image in $(cat "/tmp/extra-pre-pull-images"); do
         pull_container_retry "${image}"
     done
 fi
