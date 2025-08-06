@@ -4,7 +4,7 @@ docker.io/calico/node:v3.26.5
 docker.io/grafana/grafana:11.1.0
 docker.io/rook/ceph:master
 ghcr.io/k8snetworkplumbingwg/multus-cni:v3.8
-ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:9c8f6b79653d783dd26caf30b1374368e89c4ff265ddf064941feae5c18aa2d9
+ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:a60a21ee1d00c9f215b0b2fa03b3d5e384ab7ddb9ea0d231d36aef220e95a69c
 ghcr.io/k8snetworkplumbingwg/multus-dynamic-networks-controller@sha256:2a2bb32c0ea8b232b3dbe81c0323a107e8b05f8cad06704fca2efd0d993a87be
 ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin@sha256:435f374b434b3bc70a5cfaba0011fdcf5f433d96b98b06d29306cbd8db3a8c21
 ghcr.io/k8snetworkplumbingwg/whereabouts:v0.8.0
@@ -25,9 +25,9 @@ quay.io/kubevirt/cdi-importer:v1.62.0
 quay.io/kubevirt/cdi-operator:v1.62.0
 quay.io/kubevirt/cdi-uploadproxy:v1.62.0
 quay.io/kubevirt/cdi-uploadserver:v1.62.0
-quay.io/kubevirt/cluster-network-addons-operator:v0.100.0-rc0
+quay.io/kubevirt/cluster-network-addons-operator:v0.100.0
 quay.io/kubevirt/cni-default-plugins@sha256:976a24392c2a096c38c2663d234b2d3131f5c24558889196d30b9ac1b6716788
-quay.io/kubevirt/kubemacpool@sha256:ec055657b40235c7b9672baeebd0f3b432a9eb0eaf0e91f7acc69765b946d012
+quay.io/kubevirt/kubemacpool@sha256:bc1c0b05cd71fd9cc3c15a4a90df7e8581bd19f69256895f6a711b412ba02a85
 quay.io/kubevirt/macvtap-cni@sha256:af31faae20c0128a469dd4c1aa866d6bf78d1d2f5972127adf4c9438dcde10f4
 quay.io/prometheus-operator/prometheus-operator:v0.75.1
 quay.io/prometheus/alertmanager:v0.27.0
