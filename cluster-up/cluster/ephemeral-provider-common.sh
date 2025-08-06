@@ -143,6 +143,10 @@ function _add_common_params() {
         params=" --flannel $params"
     fi
 
+    if [ $KUBEVIRT_KINDNET == "true" ]; then
+        params=" --kindnet $params"
+    fi
+
     if [ $KUBEVIRT_NO_ETCD_FSYNC == "true" ]; then
         params=" --no-etcd-fsync $params"
     fi

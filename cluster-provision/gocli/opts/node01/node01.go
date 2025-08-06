@@ -18,14 +18,16 @@ type node01Provisioner struct {
 	sshClient   libssh.Client
 	singleStack bool
 	flannel     bool
+	kindnet     bool
 	etcdNoFsync bool
 }
 
-func NewNode01Provisioner(sc libssh.Client, singleStack, flannel, etcdNoFsync bool) *node01Provisioner {
+func NewNode01Provisioner(sc libssh.Client, singleStack, flannel, kindnet, etcdNoFsync bool) *node01Provisioner {
 	return &node01Provisioner{
 		sshClient:   sc,
 		singleStack: singleStack,
 		flannel:     flannel,
+		kindnet:     kindnet,
 		etcdNoFsync: etcdNoFsync,
 	}
 }
@@ -41,9 +43,17 @@ func (n *node01Provisioner) Exec() error {
 		cniManifest = "/etc/kubernetes/flannel.yaml"
 	}
 
+	if n.kindnet {
+		kubeadmConf = "/etc/kubernetes/kubeadm_kindnet.conf"
+		cniManifest = "/etc/kubernetes/kindnet.yaml"
+	}
+
 	if n.singleStack {
 		if n.flannel {
 			return fmt.Errorf("error: flannel single stack is not supported yet")
+		}
+		if n.kindnet {
+			return fmt.Errorf("error: kindnet single stack is not supported yet")
 		}
 		kubeadmConf = "/etc/kubernetes/kubeadm_ipv6.conf"
 		cniManifest = "/provision/cni_ipv6.yaml"
@@ -77,12 +87,13 @@ func (n *node01Provisioner) Exec() error {
 		}
 	}
 
-	if n.flannel {
+	if n.flannel || n.kindnet {
 		cmd := `kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /etc/kubernetes/knp.yaml`
 		err := n.sshClient.Command(cmd)
 		if err != nil {
 			return fmt.Errorf("error executing %s: %s", cmd, err)
 		}
 	}
+
 	return nil
 }

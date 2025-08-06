@@ -46,6 +46,12 @@ func WithFlannel(flannel bool) LinuxConfigFunc {
 	}
 }
 
+func WithKindnet(kindnet bool) LinuxConfigFunc {
+	return func(n *NodeLinuxConfig) {
+		n.Kindnet = kindnet
+	}
+}
+
 func WithNoEtcdFsync(noEtcdFsync bool) LinuxConfigFunc {
 	return func(n *NodeLinuxConfig) {
 		n.NoEtcdFsync = noEtcdFsync

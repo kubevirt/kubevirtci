@@ -3,6 +3,7 @@ docker.io/calico/kube-controllers:v3.26.5
 docker.io/calico/node:v3.26.5
 docker.io/grafana/grafana:11.1.0
 docker.io/rook/ceph:master
+ghcr.io/aojea/kindnetd:stable
 ghcr.io/flannel-io/flannel-cni-plugin:v1.7.1-flannel1
 ghcr.io/flannel-io/flannel:v0.27.2
 ghcr.io/k8snetworkplumbingwg/multus-cni:v3.8

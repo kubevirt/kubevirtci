@@ -136,6 +136,7 @@ cni_manifest_ipv6="/provision/cni_ipv6.yaml"
 cni_ipv6_diff="/tmp/cni_ipv6.diff"
 flannel_manifest="/etc/kubernetes/flannel.yaml"
 flannel_diff="/tmp/flannel.diff"
+kindnet_manifest="/etc/kubernetes/kindnet.yaml"
 knp_manifest="/etc/kubernetes/knp.yaml"
 knp_diff="/tmp/knp.diff"
 
@@ -146,6 +147,8 @@ patch $cni_manifest_ipv6 $cni_ipv6_diff
 
 cp /tmp/flannel.do-not-change.yaml $flannel_manifest
 patch $flannel_manifest $flannel_diff
+
+cp /tmp/kindnet.do-not-change.yaml $kindnet_manifest
 
 cp /tmp/knp.do-not-change.yaml $knp_manifest
 patch $knp_manifest $knp_diff
@@ -321,10 +324,15 @@ kubeadm_manifest_ipv6="/etc/kubernetes/kubeadm_ipv6.conf"
 kubeadm_flannel_raw="/tmp/kubeadm_flannel.conf"
 kubeadm_flannel="/etc/kubernetes/kubeadm_flannel.conf"
 
+kubeadm_kindnet_raw="/tmp/kubeadm_kindnet.conf"
+kubeadm_kindnet="/etc/kubernetes/kubeadm_kindnet.conf"
+
 envsubst < $kubeadm_raw > $kubeadm_manifest
 envsubst < $kubeadm_raw_ipv6 > $kubeadm_manifest_ipv6
 
 envsubst < $kubeadm_flannel_raw > $kubeadm_flannel
+
+envsubst < $kubeadm_kindnet_raw > $kubeadm_kindnet
 
 until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
 

@@ -10,6 +10,7 @@ type NodeLinuxConfig struct {
 	EtcdSize        string
 	SingleStack     bool
 	Flannel         bool
+	Kindnet         bool
 	NoEtcdFsync     bool
 	EnableAudit     bool
 	GpuAddress      string
