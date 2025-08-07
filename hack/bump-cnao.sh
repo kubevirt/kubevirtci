@@ -24,10 +24,10 @@ CNAO_RELEASES="https://github.com/kubevirt/cluster-network-addons-operator/relea
 # ./hack/bump-cnao.sh <CNAO_VERSION>
 
 # usage example
-# ./hack/bump-cnao.sh v0.54.0
+# ./hack/bump-cnao.sh v0.100.0
 
 function main() {
-    cnao_version="${2:?cnao version not set or empty}"
+    cnao_version="${1:?cnao version not set or empty}"
 
     declare -a manifests_url
     manifests_url+=("${CNAO_RELEASES}/${cnao_version}/namespace.yaml")
@@ -37,12 +37,6 @@ function main() {
 
     declare -a manifests
     for url in "${manifests_url[@]}"; do
-        file="${url##*/}"
-        if ! ls "./cluster-provision/gocli/opts/cnao/manifests/${file}" > /dev/null; then
-            echo "${file} not found at kubevirtci folder"
-            exit 1
-        fi
-
         manifest=$(curl -Ls "${url}")
         if [[ "${manifest}" == "Not Found" ]]; then
             echo "${url} not found"
@@ -60,9 +54,17 @@ function main() {
             sed -i '/ovs:/d' ./cluster-provision/gocli/opts/cnao/manifests/${file}
             sed -i '/kubevirtIpamController:/d' ./cluster-provision/gocli/opts/cnao/manifests/${file}
         fi
+
+        if [[ $file == "network-addons-config.crd.yaml" ]]; then
+            mv "./cluster-provision/gocli/opts/cnao/manifests/${file}" "./cluster-provision/gocli/opts/cnao/manifests/crd.yaml"
+        fi
     done
 
-    echo "cnao, provision, Bump k8s-${provider} cnao to ${cnao_version}"
+    for k8s_provider in $(cd ./cluster-provision/k8s && ls -rd [0-9]\.[0-9][0-9]); do
+    ./cluster-provision/k8s/update-pre-pull-images.sh "${k8s_provider}"
+    done
+
+    echo "cnao, provision, Bump CNAO to ${cnao_version}"
 }
 
 main "$@"

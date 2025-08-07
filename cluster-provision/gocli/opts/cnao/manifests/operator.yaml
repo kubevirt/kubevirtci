@@ -418,7 +418,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    networkaddonsoperator.network.kubevirt.io/version: 0.100.0-rc0
+    networkaddonsoperator.network.kubevirt.io/version: 0.100.0
   labels:
     prometheus.cnao.io: "true"
   name: cluster-network-addons-operator
@@ -444,7 +444,7 @@ spec:
       containers:
       - env:
         - name: MULTUS_IMAGE
-          value: ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:9c8f6b79653d783dd26caf30b1374368e89c4ff265ddf064941feae5c18aa2d9
+          value: ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:a60a21ee1d00c9f215b0b2fa03b3d5e384ab7ddb9ea0d231d36aef220e95a69c
         - name: MULTUS_DYNAMIC_NETWORKS_CONTROLLER_IMAGE
           value: ghcr.io/k8snetworkplumbingwg/multus-dynamic-networks-controller@sha256:2a2bb32c0ea8b232b3dbe81c0323a107e8b05f8cad06704fca2efd0d993a87be
         - name: LINUX_BRIDGE_IMAGE
@@ -454,7 +454,7 @@ spec:
         - name: OVS_CNI_IMAGE
           value: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin@sha256:435f374b434b3bc70a5cfaba0011fdcf5f433d96b98b06d29306cbd8db3a8c21
         - name: KUBEMACPOOL_IMAGE
-          value: quay.io/kubevirt/kubemacpool@sha256:ec055657b40235c7b9672baeebd0f3b432a9eb0eaf0e91f7acc69765b946d012
+          value: quay.io/kubevirt/kubemacpool@sha256:bc1c0b05cd71fd9cc3c15a4a90df7e8581bd19f69256895f6a711b412ba02a85
         - name: MACVTAP_CNI_IMAGE
           value: quay.io/kubevirt/macvtap-cni@sha256:af31faae20c0128a469dd4c1aa866d6bf78d1d2f5972127adf4c9438dcde10f4
         - name: KUBE_RBAC_PROXY_IMAGE
@@ -466,11 +466,11 @@ spec:
         - name: KUBEVIRT_IPAM_CONTROLLER_IMAGE
           value: ghcr.io/kubevirt/ipam-controller@sha256:4fdc9c77b9e683f274a31fcb7f6dbcf765799596efd93bc37512fb860f07b02f
         - name: OPERATOR_IMAGE
-          value: quay.io/kubevirt/cluster-network-addons-operator:v0.100.0-rc0
+          value: quay.io/kubevirt/cluster-network-addons-operator:v0.100.0
         - name: OPERATOR_NAME
           value: cluster-network-addons-operator
         - name: OPERATOR_VERSION
-          value: 0.100.0-rc0
+          value: 0.100.0
         - name: OPERATOR_NAMESPACE
           valueFrom:
             fieldRef:
@@ -490,7 +490,7 @@ spec:
           value: prometheus-k8s
         - name: RUNBOOK_URL_TEMPLATE
           value: https://kubevirt.io/monitoring/runbooks/%s
-        image: quay.io/kubevirt/cluster-network-addons-operator:v0.100.0-rc0
+        image: quay.io/kubevirt/cluster-network-addons-operator:v0.100.0
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
