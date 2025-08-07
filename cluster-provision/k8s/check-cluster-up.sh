@@ -37,6 +37,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     # Give the nodes enough memory to run tests in parallel, including tests which involve fedora
     export KUBEVIRT_MEMORY_SIZE=${KUBEVIRT_MEMORY_SIZE:-9216M}
     export KUBEVIRT_NUM_SECONDARY_NICS=2
+    export KUBEVIRT_KINDNET=true
 
     # all extras need to get deployed now so that we can make sure whether any
     # images are missing from the pre-pull mechanism

@@ -98,7 +98,7 @@ spec:
         command:
         - /bin/kindnetd
         - --hostname-override=$(NODE_NAME)
-        - --network-policy=true
+        - --network-policy=false
         - --admin-network-policy=false
         - --baseline-admin-network-policy=false
         - --masquerading=true
