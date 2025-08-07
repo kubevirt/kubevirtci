@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -139,7 +140,7 @@ func Terminal(cli *client.Client, container string, args []string, file *os.File
 	ctx := context.Background()
 	id, err := cli.ContainerExecCreate(ctx, container, types.ExecConfig{
 		Privileged:   true,
-		Tty:          terminal.IsTerminal(int(file.Fd())),
+		Tty:          true,
 		Detach:       false,
 		Cmd:          args,
 		AttachStdout: true,
@@ -153,7 +154,7 @@ func Terminal(cli *client.Client, container string, args []string, file *os.File
 
 	attached, err := cli.ContainerExecAttach(ctx, id.ID, types.ExecStartCheck{
 		Detach: false,
-		Tty:    terminal.IsTerminal(int(file.Fd())),
+		Tty:    true,
 	})
 	if err != nil {
 		return -1, err
@@ -164,6 +165,16 @@ func Terminal(cli *client.Client, container string, args []string, file *os.File
 	if err != nil {
 		return -1, err
 	}
+
+	resizeCh := make(chan os.Signal, 1)
+	signal.Notify(resizeCh, syscall.SIGWINCH)
+	resizeTerminal(ctx, cli, id.ID, file)
+	go func() {
+		for range resizeCh {
+			resizeTerminal(ctx, cli, id.ID, file)
+		}
+	}()
+	defer signal.Stop(resizeCh)
 
 	errChan := make(chan error)
 
@@ -314,4 +325,13 @@ func checkForError(line string) error {
 type PullStatus struct {
 	Status string `json:"status,omitempty"`
 	Error  string `json:"error,omitempty"`
+}
+
+func resizeTerminal(ctx context.Context, cli *client.Client, execID string, file *os.File) {
+	if w, h, err := terminal.GetSize(int(file.Fd())); err == nil {
+		cli.ContainerExecResize(ctx, execID, container.ResizeOptions{
+			Height: uint(h),
+			Width:  uint(w),
+		})
+	}
 }
