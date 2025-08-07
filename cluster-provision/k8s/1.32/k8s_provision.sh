@@ -137,6 +137,7 @@ cni_ipv6_diff="/tmp/cni_ipv6.diff"
 flannel_manifest="/etc/kubernetes/flannel.yaml"
 flannel_diff="/tmp/flannel.diff"
 knp_manifest="/etc/kubernetes/knp.yaml"
+knp_diff="/tmp/knp.diff"
 
 cp /tmp/cni.do-not-change.yaml $cni_manifest
 mv /tmp/cni.do-not-change.yaml $cni_manifest_ipv6
@@ -147,6 +148,7 @@ cp /tmp/flannel.do-not-change.yaml $flannel_manifest
 patch $flannel_manifest $flannel_diff
 
 cp /tmp/knp.do-not-change.yaml $knp_manifest
+patch $knp_manifest $knp_diff
 
 cp /tmp/local-volume.yaml /provision/local-volume.yaml
 
