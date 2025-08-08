@@ -22,7 +22,19 @@ dnf install -y "kernel-modules-$(uname -r)"
 # Resize root partition
 dnf install -y cloud-utils-growpart
 if growpart /dev/vda 1; then
-    resize2fs /dev/vda1
+    DEVICE="/dev/vda1"
+    MOUNTPOINT=$(findmnt -n -o TARGET "$DEVICE")
+    FSTYPE=$(lsblk -no FSTYPE "$DEVICE")
+    if [[ "$FSTYPE" == ext2 || "$FSTYPE" == ext3 || "$FSTYPE" == ext4 ]]; then
+        echo "Resizing ext2/3/4 filesystem on $DEVICE..."
+        resize2fs "$DEVICE"
+    elif [[ "$FSTYPE" == xfs ]]; then
+        echo "Resizing XFS filesystem on $DEVICE..."
+        xfs_growfs "$MOUNTPOINT"
+    else
+        echo "Unsupported filesystem type: $FSTYPE"
+        exit 1
+    fi
 fi
 
 dnf install -y patch
