@@ -1,9 +1,9 @@
 module kubevirt.io/kubevirtci/cluster-provision/gocli
 
-go 1.21
-toolchain go1.22.5
+go 1.23.0
 
 require (
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/alessio/shellescape v1.4.2
 	github.com/bramvdbogaerde/go-scp v1.2.0
 	github.com/cenkalti/backoff/v4 v4.3.0
@@ -36,7 +36,6 @@ require (
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
-	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/Microsoft/hcsshim v0.12.3 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/containerd/log v0.1.0 // indirect
@@ -96,7 +95,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.20.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/oauth2 v0.21.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/grpc v1.62.1 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
