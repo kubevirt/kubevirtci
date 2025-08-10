@@ -25,13 +25,23 @@ cluster-up/kubectl.sh get pods --all-namespaces
 ```                                                                        
                                                                            
 Use your own kubectl client by defining the KUBECONFIG environment variable
-```                                                                        
-export KUBECONFIG=$(cluster-up/kubeconfig.sh)                              
-                                                                           
-kubectl get nodes                                                          
-kubectl apply -f <some file>                                               
-```                                                                        
-                                                                           
+```
+export KUBECONFIG=$(cluster-up/kubeconfig.sh)
+
+kubectl get nodes
+kubectl apply -f <some file>
+```
+
+## Global kubeconfig location
+
+If you want the kubeconfig to be automatically copied to a specific location after cluster startup,
+you can set the `GLOBAL_KUBECONFIG` environment variable:
+
+```bash
+export GLOBAL_KUBECONFIG=/path/to/your/kubeconfig
+make cluster-up
+```
+
 SSH into a node                                                            
 ```                                                                        
 cluster-up/ssh.sh node01                                                   
