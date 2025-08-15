@@ -1,0 +1,15 @@
+--- a/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml	2025-08-12 14:42:35.639484795 +0300
++++ b/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml	2025-08-12 14:42:42.534509764 +0300
+@@ -81,8 +81,10 @@
+     }
+   net-conf.json: |
+     {
+-      "Network": "10.244.0.0/16",
+-      "EnableNFTables": false,
++      "IPv6Network": "fd10:244::/56",
++      "EnableNFTables": true,
++      "EnableIPv4": false,
++      "EnableIPv6": true,
+       "Backend": {
+         "Type": "vxlan"
+       }

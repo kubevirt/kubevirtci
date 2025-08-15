@@ -1,0 +1,16 @@
+diff --git a/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml b/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml
+index 48b541c3..1058133e 100644
+--- a/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml
++++ b/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml
+@@ -82,7 +82,10 @@ data:
+   net-conf.json: |
+     {
+       "Network": "10.244.0.0/16",
+-      "EnableNFTables": false,
++      "IPv6Network": "fd10:244::/56",
++      "EnableNFTables": true,
++      "EnableIPv4": true,
++      "EnableIPv6": true,
+       "Backend": {
+         "Type": "vxlan"
+       }
