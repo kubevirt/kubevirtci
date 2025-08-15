@@ -253,6 +253,15 @@ function setup_kind() {
         _configure_network "$node"
     done
     prepare_config
+
+    if [[ $KUBEVIRT_DEPLOY_CDI == "true" ]]; then
+      if [[ -z $KUBEVIRT_CUSTOM_CDI_VERSION ]]; then
+        KUBEVIRT_CUSTOM_CDI_VERSION=$(curl -s https://api.github.com/repos/kubevirt/containerized-data-importer/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+      fi
+      _kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/"$KUBEVIRT_CUSTOM_CDI_VERSION"/cdi-operator.yaml
+      _kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/"$KUBEVIRT_CUSTOM_CDI_VERSION"/cdi-cr.yaml
+    fi
+
 }
 
 function _add_extra_mounts() {
