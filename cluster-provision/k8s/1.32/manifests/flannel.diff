@@ -1,8 +1,6 @@
-diff --git a/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml b/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml
-index 48b541c3..1058133e 100644
---- a/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml
-+++ b/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml
-@@ -82,7 +82,10 @@ data:
+--- flannel.do-not-change.yaml	2025-08-18 10:36:12.700182651 +0300
++++ flannel-dual-stack.yaml	2025-08-19 09:16:08.103844196 +0300
+@@ -82,9 +82,13 @@
    net-conf.json: |
      {
        "Network": "10.244.0.0/16",
@@ -12,5 +10,9 @@ index 48b541c3..1058133e 100644
 +      "EnableIPv4": true,
 +      "EnableIPv6": true,
        "Backend": {
-         "Type": "vxlan"
+-        "Type": "vxlan"
++        "Type": "vxlan",
++        "MTU": 1480
        }
+     }
+ kind: ConfigMap

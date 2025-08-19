@@ -1,6 +1,6 @@
---- a/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml	2025-08-12 14:42:35.639484795 +0300
-+++ b/cluster-provision/k8s/1.33/manifests/flannel.do-not-change.yaml	2025-08-12 14:42:42.534509764 +0300
-@@ -81,8 +81,10 @@
+--- flannel.do-not-change.yaml	2025-08-18 10:36:12.702182663 +0300
++++ flannel-ipv6-only.yaml	2025-08-19 09:19:50.465695334 +0300
+@@ -81,10 +81,13 @@
      }
    net-conf.json: |
      {
@@ -11,5 +11,9 @@
 +      "EnableIPv4": false,
 +      "EnableIPv6": true,
        "Backend": {
-         "Type": "vxlan"
+-        "Type": "vxlan"
++        "Type": "vxlan",
++        "MTU": 1480
        }
+     }
+ kind: ConfigMap
