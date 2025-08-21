@@ -255,7 +255,7 @@ function setup_kind() {
     prepare_config
 
     if [[ $KUBEVIRT_DEPLOY_CDI == "true" ]]; then
-       KUBEVIRT_CUSTOM_CDI_VERSION=${KUBEVIRT_CUSTOM_CDI_VERSION:-"v1.62.0"}
+       KUBEVIRT_CUSTOM_CDI_VERSION=${KUBEVIRT_CUSTOM_CDI_VERSION:-"v1.63.0"}
       _kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/"$KUBEVIRT_CUSTOM_CDI_VERSION"/cdi-operator.yaml
       _kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/"$KUBEVIRT_CUSTOM_CDI_VERSION"/cdi-cr.yaml
     fi
