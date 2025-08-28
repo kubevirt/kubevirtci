@@ -40,6 +40,12 @@ func WithSingleStack(singleStack bool) LinuxConfigFunc {
 	}
 }
 
+func WithFlannel(flannel bool) LinuxConfigFunc {
+	return func(n *NodeLinuxConfig) {
+		n.Flannel = flannel
+	}
+}
+
 func WithNoEtcdFsync(noEtcdFsync bool) LinuxConfigFunc {
 	return func(n *NodeLinuxConfig) {
 		n.NoEtcdFsync = noEtcdFsync

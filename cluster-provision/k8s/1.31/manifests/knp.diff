@@ -1,0 +1,11 @@
+--- a/cluster-provision/k8s/1.31/manifests/knp.do-not-change.yaml
++++ b/cluster-provision/k8s/1.31/manifests/knp.do-not-change.yaml
+@@ -69,7 +69,7 @@ spec:
+       serviceAccountName: kube-network-policies
+       containers:
+       - name: kube-network-policies
+-        image: registry.k8s.io/networking/kube-network-policies:v0.7.0
++        image: registry.k8s.io/networking/kube-network-policies:v0.8.1
+         args:
+         - /bin/netpol
+         - --hostname-override=$(MY_NODE_NAME)
