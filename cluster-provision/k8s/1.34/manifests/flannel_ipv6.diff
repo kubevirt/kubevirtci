@@ -1,0 +1,19 @@
+--- flannel.do-not-change.yaml	2025-08-18 10:36:12.702182663 +0300
++++ flannel-ipv6-only.yaml	2025-08-19 09:19:50.465695334 +0300
+@@ -81,10 +81,13 @@
+     }
+   net-conf.json: |
+     {
+-      "Network": "10.244.0.0/16",
+-      "EnableNFTables": false,
++      "IPv6Network": "fd10:244::/56",
++      "EnableNFTables": true,
++      "EnableIPv4": false,
++      "EnableIPv6": true,
+       "Backend": {
+-        "Type": "vxlan"
++        "Type": "vxlan",
++        "MTU": 1480
+       }
+     }
+ kind: ConfigMap
