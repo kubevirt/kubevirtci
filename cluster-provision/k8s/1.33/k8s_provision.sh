@@ -327,18 +327,19 @@ envsubst < $kubeadm_flannel_ipv6_raw > $kubeadm_flannel_ipv6_manifest
 
 until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
 
-if ! kubeadm init --config $kubeadm_manifest -v5; then
+if ! kubeadm init --config $kubeadm_flannel -v5; then
     kubeadm reset --force
     rm -rf /etc/cni/net.d/* /var/lib/cni /var/lib/kubelet
-    kubeadm init --config $kubeadm_manifest -v5
+    kubeadm init --config $kubeadm_flannel -v5
 fi
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$flannel_manifest"
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$knp_manifest"
 
 # Wait at least for 7 pods
-while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
-    echo "Waiting for at least 7 pods to appear ..."
+while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 8 ]]; do
+    echo "Waiting for at least 8 pods to appear ..."
     kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
     sleep 10
 done
@@ -351,13 +352,13 @@ while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-s
 done
 
 # Make sure all containers are ready
-while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
+while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -A -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
     echo "Waiting for all containers to become ready ..."
-    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -A -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
     sleep 10
 done
 
-kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
+kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -A
 
 kubeadm reset --force
 rm -rf /etc/cni/net.d/* /var/lib/cni /var/lib/kubelet
