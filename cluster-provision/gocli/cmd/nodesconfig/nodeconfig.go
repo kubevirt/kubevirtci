@@ -4,6 +4,8 @@ package nodesconfig
 type NodeLinuxConfig struct {
 	NodeIdx         int
 	K8sVersion      string
+	FeatureGates    string
+	RuntimeConfig   string
 	FipsEnabled     bool
 	DockerProxy     string
 	EtcdInMemory    bool
