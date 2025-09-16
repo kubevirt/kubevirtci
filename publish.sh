@@ -73,7 +73,7 @@ function build_clusters() {
 
       cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim
-    elif [[ "$ARCH" == "s390x" && ( "$i" == "1.30" || "$i" == "1.31" ) ]]; then
+    elif [[ "$ARCH" == "s390x" && "$i" == "1.34" ]]; then
       echo "INFO: building $i slim"
       cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}
@@ -101,7 +101,7 @@ function push_cluster_images() {
 
       TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
       podman push "$TARGET_IMAGE"
-    elif [[ "$ARCH" == "s390x" && ( "$i" == "1.30" || "$i" == "1.31" ) ]]; then
+    elif [[ "$ARCH" == "s390x" && "$i" == "1.34" ]]; then
       echo "INFO: push $i slim"
       TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
       podman push "$TARGET_IMAGE"
@@ -115,7 +115,7 @@ function push_cluster_images() {
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
       echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG-slim)"
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
-    elif [[ "$ARCH" == "s390x" && ( "$i" == "1.30" || "$i" == "1.31" ) ]]; then
+    elif [[ "$ARCH" == "s390x" && "$i" == "1.34" ]]; then
       echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG-slim-$ARCH)"
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim-${ARCH}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
     fi
@@ -179,7 +179,7 @@ publish_manifest() {
   local image_name="${1:?}"
   local image_tag="${2:?}"
   local full_image_name="${TARGET_REPO}/${image_name}:${image_tag}"
-  if [[ "$image_name" != "centos9" && "$image_name" != "gocli" && ! ( ( "$image_name" == "k8s-1.30" || "$image_name" == "k8s-1.31" ) && "$image_tag" =~ "slim" ) ]]; then
+  if [[ "$image_name" != "centos9" && "$image_name" != "gocli" && ! ( "$image_name" == "k8s-1.34" && "$image_tag" =~ "slim" ) ]]; then
     unset 'cur_archs[1]'
   fi
   for arch in ${cur_archs[*]};do
