@@ -74,6 +74,8 @@ if [ "$config_file" != "" ]; then
     run_cmd+=" --config $config_file"
 fi
 
+run_cmd+=" --sonobuoy-image quay.io/kubevirtci/sonobuoy:v0.56.9 --systemd-logs-image quay.io/kubevirtci/sonobuoy-systemd-logs:v0.4"
+
 SONOBUOY_EXTRA_ARGS=${SONOBUOY_EXTRA_ARGS:-}
 if [ -n "$SONOBUOY_EXTRA_ARGS" ]; then
     run_cmd+=" ${SONOBUOY_EXTRA_ARGS}"
