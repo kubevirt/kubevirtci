@@ -6,7 +6,7 @@ ARCH=$(uname -m)
 
 KUBEVIRTCI_SHARED_DIR=/var/lib/kubevirtci
 mkdir -p $KUBEVIRTCI_SHARED_DIR
-export ISTIO_VERSION=1.24.4
+export ISTIO_VERSION=1.26.4
 cat << EOF > $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 #!/bin/bash
 set -ex
