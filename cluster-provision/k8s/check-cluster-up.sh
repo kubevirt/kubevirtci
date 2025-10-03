@@ -25,6 +25,23 @@ function cleanup() {
     make cluster-down
 }
 
+function gather_cluster_state() {
+    echo "ERROR: Not all pods reached Ready state"
+    echo "=== Gathering cluster diagnostics ==="
+    for ns in $(${ksh} get namespaces -o jsonpath='{.items[*].metadata.name}'); do
+        echo "=== Namespace: ${ns} ==="
+        echo "--- Pod status ---"
+        ${ksh} get pods -n "${ns}" -o wide || true
+        echo "--- Events ---"
+        ${ksh} get events -n "${ns}" --sort-by='.lastTimestamp' || true
+        echo "--- Non-ready pods details ---"
+        ${ksh} get pods -n "${ns}" --field-selector=status.phase!=Running,status.phase!=Succeeded -o yaml || true
+    done
+    echo "--- Node status ---"
+    ${ksh} get nodes -o wide || true
+    ${ksh} describe nodes || true
+}
+
 export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 # check cluster-up
 (
@@ -53,8 +70,13 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
 
     trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
     bash -x ./cluster-up/up.sh
-    timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s --all -l app!=whereabouts; do sleep 1; done"
-    timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s -n kube-system --all -l app!=whereabouts; do sleep 1; done"
+
+
+    if ! { timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s --all -l app!=whereabouts; do sleep 1; done" && timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s -n kube-system --all -l app!=whereabouts; do sleep 1; done"; }; then
+        gather_cluster_state
+        exit 1
+    fi
+
     ${ksh} get nodes
     ${ksh} get pods -A -owide
 
