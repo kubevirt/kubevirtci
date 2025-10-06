@@ -285,7 +285,7 @@ func matcher(rulesDB map[string][]string, fileName string, status string) ([]str
 	}
 
 	if status != FILE_DELETED {
-		return nil, fmt.Errorf("Failed to find a rule for " + fileName)
+		return nil, fmt.Errorf("Failed to find a rule for %s", fileName)
 	}
 
 	return nil, nil
@@ -427,12 +427,12 @@ func addRegexRules(cfgRegex []string, targets []string, rulesDB map[string][]str
 	for _, path := range cfgRegex {
 		directories, _ := fsys.GlobDirectories(path)
 		if len(directories) == 0 {
-			return fmt.Errorf("No valid directories found for Regex rule: " + path)
+			return fmt.Errorf("No valid directories found for Regex rule: %s", path)
 		}
 		for _, dir := range directories {
 			target := strings.ReplaceAll(filepath.Base(dir), "k8s-", "")
 			if !isTargetValid(target, targets) {
-				return fmt.Errorf("Invalid target " + target + ", regex rule: " + path)
+				return fmt.Errorf("Invalid target %s, regex rule: %s", target, path)
 			}
 			rulesDB[dir+"/*"] = []string{target}
 		}
@@ -445,7 +445,7 @@ func addRegexNoneRules(cfgRegexNone []string, rulesDB map[string][]string) error
 	for _, path := range cfgRegexNone {
 		directories, _ := fsys.GlobDirectories(path)
 		if len(directories) == 0 {
-			return fmt.Errorf("No valid directories found for RegexNone rule: " + path)
+			return fmt.Errorf("No valid directories found for RegexNone rule: %s", path)
 		}
 		for _, dir := range directories {
 			rulesDB[dir+"/*"] = []string{TARGET_NONE}
@@ -464,12 +464,12 @@ func addExcludeRules(cfgExclude []Exclude, targets []string, rulesDB map[string]
 		ruleTargets := append([]string(nil), targets...)
 		for _, target := range e.Exclude {
 			if !isTargetValid(target, targets) {
-				return fmt.Errorf("Invalid target, exclude rule: " + target)
+				return fmt.Errorf("Invalid target, exclude rule: %s", target)
 			}
 			ruleTargets = excludeTarget(target, ruleTargets)
 		}
 		if len(ruleTargets) == 0 {
-			return fmt.Errorf("No valid targets left for exclude rule: " + e.Pattern)
+			return fmt.Errorf("No valid targets left for exclude rule: %s", e.Pattern)
 		}
 		rulesDB[e.Pattern] = ruleTargets
 	}
@@ -485,7 +485,7 @@ func addSpecificRules(cfgSpecific []Specific, targets []string, rulesDB map[stri
 		ruleTargets := []string{}
 		for _, target := range e.Targets {
 			if !isTargetValid(target, targets) {
-				return fmt.Errorf("Invalid target, specific rule: " + target)
+				return fmt.Errorf("Invalid target, specific rule: %s", target)
 			}
 			ruleTargets = append(ruleTargets, target)
 		}
