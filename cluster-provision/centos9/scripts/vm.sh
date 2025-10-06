@@ -12,7 +12,7 @@ KERNEL_ARGS=""
 NEXT_DISK=""
 BLOCK_DEV=""
 BLOCK_DEV_SIZE=""
-VM_USER=$( [ "$(uname -m)" = "s390x" ] && echo "cloud-user" || echo "vagrant" )
+VM_USER="cloud-user"
 VM_USER_SSH_KEY="vagrant.key"
 
 while true; do
@@ -44,11 +44,9 @@ function calc_next_disk {
   if [ "$last" = "00" ]; then
     last="box.qcow2"
     # Customize qcow2 image using virt-sysprep (with KVM accelerator)
-    if [ "$(uname -m)" = "s390x" ]; then
-      export LIBGUESTFS_BACKEND=direct
-      export LIBGUESTFS_BACKEND_SETTINGS=force_kvm
-      virt-sysprep -a box.qcow2 --run-command 'useradd -m cloud-user' --append '/etc/cloud/cloud.cfg:runcmd:' --append '/etc/cloud/cloud.cfg: - hostnamectl set-hostname ""' --root-password password:root --ssh-inject cloud-user:string:"ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
-    fi
+    export LIBGUESTFS_BACKEND=direct
+    export LIBGUESTFS_BACKEND_SETTINGS=force_kvm
+    virt-sysprep -a box.qcow2 --run-command 'useradd -m cloud-user' --append '/etc/cloud/cloud.cfg:runcmd:' --append '/etc/cloud/cloud.cfg: - hostnamectl set-hostname ""' --root-password password:root --ssh-inject cloud-user:string:"ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
   else
     last=$(printf "/disk%02d.qcow2" $last)
   fi

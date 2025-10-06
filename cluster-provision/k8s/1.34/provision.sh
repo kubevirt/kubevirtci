@@ -37,7 +37,7 @@ if growpart /dev/vda 1; then
     fi
 fi
 
-dnf install -y patch
+dnf install -y patch pciutils
 
 systemctl stop firewalld || :
 systemctl disable firewalld || :

@@ -995,7 +995,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 	}
 
 	if n.EnableAudit {
-		if err := sshClient.Command(fmt.Sprintf("touch /home/%s/enable_audit", libssh.GetUserByArchitecture(runtime.GOARCH))); err != nil {
+		if err := sshClient.Command(fmt.Sprintf("touch /home/%s/enable_audit", libssh.GetSSHUser())); err != nil {
 			return fmt.Errorf("provisioning node %d failed (setting enableAudit phase): %s", n.NodeIdx, err)
 		}
 	}

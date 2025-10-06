@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"os"
-	"runtime"
 
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
@@ -58,7 +57,7 @@ func NewSCPCommand() *cobra.Command {
 		Args:  cobra.MinimumNArgs(2),
 	}
 
-	sshUser := libssh.GetUserByArchitecture(runtime.GOARCH)
+	sshUser := libssh.GetSSHUser()
 	ssh.Flags().String("container-name", "dnsmasq", "the container name to SSH copy from")
 	ssh.Flags().String("ssh-user", sshUser, "the user that used to connect via SSH to the node")
 
