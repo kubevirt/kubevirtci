@@ -15,8 +15,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
@@ -473,7 +473,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	if len(containerRegistry) > 0 {
 		clusterImage = path.Join(containerRegistry, clusterImage)
 		fmt.Printf("Download the image %s\n", clusterImage)
-		err = docker.ImagePull(cli, ctx, clusterImage, types.ImagePullOptions{})
+		err = docker.ImagePull(cli, ctx, clusterImage, image.PullOptions{})
 		if err != nil {
 			panic(fmt.Sprintf("Failed to download cluster image %s, %s", clusterImage, err))
 		}
@@ -520,7 +520,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	apiServerPort, err := utils.GetPublicPort(utils.PortAPI, dm.NetworkSettings.Ports)
 
 	// Pull the registry image
-	err = docker.ImagePull(cli, ctx, utils.DockerRegistryImage, types.ImagePullOptions{})
+	err = docker.ImagePull(cli, ctx, utils.DockerRegistryImage, image.PullOptions{})
 	if err != nil {
 		panic(err)
 	}
@@ -546,7 +546,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return err
 		}
 		// Pull the ganesha image
-		err = docker.ImagePull(cli, ctx, utils.NFSGaneshaImage, types.ImagePullOptions{})
+		err = docker.ImagePull(cli, ctx, utils.NFSGaneshaImage, image.PullOptions{})
 		if err != nil {
 			panic(err)
 		}
