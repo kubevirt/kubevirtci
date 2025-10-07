@@ -1,10 +1,14 @@
 package node01
 
-import kubevirtcimocks "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/mock"
+import (
+	"fmt"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
+	kubevirtcimocks "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/mock"
+)
 
 func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient) {
 	cmds := []string{
-		`if [ -f /home/vagrant/enable_audit ]; then echo '` + string(advAudit) + `' | tee /etc/kubernetes/audit/adv-audit.yaml > /dev/null; fi`,
+		fmt.Sprintf(`if [ -f /home/%s/enable_audit ]; then echo '%s' | tee /etc/kubernetes/audit/adv-audit.yaml > /dev/null; fi`, libssh.GetSSHUser(), string(advAudit)),
 		`timeout=30; interval=5; while ! hostnamectl | grep Transient; do echo "Waiting for dhclient to set the hostname from dnsmasq"; sleep $interval; timeout=$((timeout - interval)); [ $timeout -le 0 ] && exit 1; done`,
 		"swapoff -a",
 		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
