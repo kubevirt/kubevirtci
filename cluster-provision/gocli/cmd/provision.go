@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/alessio/shellescape"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
@@ -149,7 +149,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}()
 
 	// Pull the base image
-	err = docker.ImagePull(cli, ctx, base, types.ImagePullOptions{})
+	err = docker.ImagePull(cli, ctx, base, image.PullOptions{})
 	if err != nil {
 		panic(err)
 	}
@@ -366,7 +366,7 @@ func copyDirectory(ctx context.Context, cli *client.Client, containerID string, 
 	}
 	defer preparedArchive.Close()
 
-	err = cli.CopyToContainer(ctx, containerID, dstDir, preparedArchive, types.CopyToContainerOptions{AllowOverwriteDirWithFile: false})
+	err = cli.CopyToContainer(ctx, containerID, dstDir, preparedArchive, container.CopyToContainerOptions{AllowOverwriteDirWithFile: false})
 	if err != nil {
 		return err
 	}
