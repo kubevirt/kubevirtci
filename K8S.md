@@ -58,7 +58,7 @@ make cluster-up
 # Attach to node01 console                           
 docker exec -it ${KUBEVIRT_PROVIDER}-node01 screen /dev/pts/0
 ```                                                 
-Use `vagrant:vagrant` for x86 and root:root for s390x to login.
+Use `cloud-user:cloud-user` or `root:root` to login.
 Note: it is sometimes `/dev/pts/1` or `/dev/pts/2`, try them in case you don't get a prompt.
 
 Make sure you don't leave open screens, else the next screen will be messed up.  

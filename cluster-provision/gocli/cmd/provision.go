@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -54,7 +53,7 @@ func NewProvisionCommand() *cobra.Command {
 
 func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	var base string
-	sshUser := libssh.GetUserByArchitecture(runtime.GOARCH)
+	sshUser := libssh.GetSSHUser()
 	packagePath := args[0]
 	versionBytes, err := os.ReadFile(filepath.Join(packagePath, "version"))
 	if err != nil {

@@ -224,14 +224,6 @@ sysctl --system
 
 systemctl restart NetworkManager
 
-# No need to modify the ethernet connection incase of s390x Architecture.
-if [ "$arch" != "s390x" ]; then
-  nmcli connection modify "System eth0" \
-    ipv6.method auto \
-    ipv6.addr-gen-mode eui64
-  nmcli connection up "System eth0"
-fi
-
 kubeadmn_patches_path="/provision/kubeadm-patches"
 mkdir -p $kubeadmn_patches_path
 
