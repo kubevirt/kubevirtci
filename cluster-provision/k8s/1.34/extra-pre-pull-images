@@ -10,4 +10,4 @@ quay.io/cephcsi/cephcsi:v3.15.0
 quay.io/kubevirtci/install-cni:1.26.4
 quay.io/kubevirtci/pilot:1.26.4
 quay.io/kubevirtci/proxyv2:1.26.4
-registry.k8s.io/networking/kube-network-policies:v0.8.1
+quay.io/oshoval/knp:v20251015-d3629b8-dirty

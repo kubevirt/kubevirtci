@@ -4,8 +4,8 @@
        serviceAccountName: kube-network-policies
        containers:
        - name: kube-network-policies
--        image: registry.k8s.io/networking/kube-network-policies:v0.7.0
-+        image: registry.k8s.io/networking/kube-network-policies:v0.8.1
+-        image: registry.k8s.io/networking/kube-network-policies:v0.9.2
++        image: quay.io/oshoval/knp:v20251015-d3629b8-dirty
          args:
          - /bin/netpol
          - --hostname-override=$(MY_NODE_NAME)

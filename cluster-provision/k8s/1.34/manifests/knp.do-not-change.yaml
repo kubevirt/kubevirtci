@@ -60,7 +60,6 @@ spec:
         k8s-app: kube-network-policies
     spec:
       hostNetwork: true
-      dnsPolicy: ClusterFirst
       nodeSelector:
         kubernetes.io/os: linux
       tolerations:
@@ -69,7 +68,7 @@ spec:
       serviceAccountName: kube-network-policies
       containers:
       - name: kube-network-policies
-        image: registry.k8s.io/networking/kube-network-policies:v0.7.0
+        image: registry.k8s.io/networking/kube-network-policies:v0.9.2
         args:
         - /bin/netpol
         - --hostname-override=$(MY_NODE_NAME)
