@@ -606,7 +606,9 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			// primary network interface to be named other than eth0. This is mainly required for s390x, as
 			// otherwise if primary interface is other than eth0, it can't get the IP from dhcp server.
 			if qemuNetDevice == QEMU_DEVICE_S390X {
-				nodeQemuMonitorArgs = fmt.Sprintf("%s netdev_add tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no; device_add %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s;", nodeQemuMonitorArgs, netSuffix, netSuffix, qemuNetDevice, netSuffix, macSuffix)
+				// For s390x, use pre-created TAP interfaces from dnsmasq setup
+				// The TAP interface stap%s should already exist and be configured
+				nodeQemuMonitorArgs = fmt.Sprintf("%s netdev_add tap,id=secondarynet%s,ifname=stap%s;device_add %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s;", nodeQemuMonitorArgs, netSuffix, netSuffix, qemuNetDevice, netSuffix, macSuffix)
 			} else { //devices like virtio-net-pci doesn't support hot-plug
 				nodeQemuArgs = fmt.Sprintf("%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, qemuNetDevice, netSuffix, macSuffix, netSuffix, netSuffix)
 			}

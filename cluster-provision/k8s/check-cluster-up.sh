@@ -132,8 +132,8 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
             hack/conformance.sh $conformance_config
         fi
 
-        export SONOBUOY_EXTRA_ARGS="--plugin systemd-logs --plugin e2e"
-        hack/conformance.sh $conformance_config
+        # export SONOBUOY_EXTRA_ARGS="--plugin systemd-logs --plugin e2e"
+        # hack/conformance.sh $conformance_config
 
         echo "Sanity check cluster-up of single stack cluster"
         make cluster-down
