@@ -10,4 +10,4 @@ quay.io/cephcsi/cephcsi:v3.15.0
 quay.io/kubevirtci/install-cni:1.26.4
 quay.io/kubevirtci/pilot:1.26.4
 quay.io/kubevirtci/proxyv2:1.26.4
-registry.k8s.io/networking/kube-network-policies:v0.8.1
+gcr.io/k8s-staging-networking/kube-network-policies:v20251016-11378f5@sha256:8c1f03ed7368803ec906014e5d22d54bb0cbb836af18e59de238861b7a85fdda
