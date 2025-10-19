@@ -602,14 +602,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			netSuffix := fmt.Sprintf("%d-%d", x, i)
 			macSuffix := fmt.Sprintf("%02x", macCounter)
 			macCounter++
-			// Secondary network devices are added after VM is started (hot-plug) using qemu monitor to avoid
-			// primary network interface to be named other than eth0. This is mainly required for s390x, as
-			// otherwise if primary interface is other than eth0, it can't get the IP from dhcp server.
-			if qemuNetDevice == QEMU_DEVICE_S390X {
-				nodeQemuMonitorArgs = fmt.Sprintf("%s netdev_add tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no; device_add %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s;", nodeQemuMonitorArgs, netSuffix, netSuffix, qemuNetDevice, netSuffix, macSuffix)
-			} else { //devices like virtio-net-pci doesn't support hot-plug
-				nodeQemuArgs = fmt.Sprintf("%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, qemuNetDevice, netSuffix, macSuffix, netSuffix, netSuffix)
-			}
+			nodeQemuArgs = fmt.Sprintf("%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, qemuNetDevice, netSuffix, macSuffix, netSuffix, netSuffix)
 		}
 
 		nodeName := nodeNameFromIndex(x + 1)

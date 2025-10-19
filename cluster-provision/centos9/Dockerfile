@@ -48,3 +48,6 @@ COPY --from=imageartifactdownload /vmlinuz-* /vmlinuz
 COPY --from=imageartifactdownload /initramfs-* /initrd.img
 
 COPY scripts/* /
+
+# Rebuild initramfs with custom udev rules for persistent interface naming
+RUN chmod +x /rebuild-initramfs.sh && /rebuild-initramfs.sh

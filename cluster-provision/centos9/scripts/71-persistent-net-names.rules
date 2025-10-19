@@ -1,0 +1,9 @@
+# Persistent network interface naming based on MAC address
+# This ensures that the primary interface gets eth0 regardless of enumeration order
+#
+# Primary interface (MAC pattern 52:55:00:d1:55:*) -> eth0
+# Secondary interfaces will automatically get eth1, eth2, etc. through normal enumeration
+
+# Match primary interface by MAC address pattern (supports wildcard)
+SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="52:55:00:d1:55:*", NAME="eth0"
+
