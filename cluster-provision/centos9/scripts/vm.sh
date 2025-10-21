@@ -271,7 +271,20 @@ while ! is_qemu_monitor_ready; do
 done
 echo "QEMU monitor socket is ready."
 
+# If we have secondary NICs to hotplug, wait for SSH to be ready first
+# This prevents network interface naming issues and SSH disruption during boot on s390x
 if [[ -n "$QEMU_MONITOR_ARGS" ]]; then
+  echo "Waiting for SSH to be ready before hotplugging secondary NICs..."
+  elapsed=0
+  while ! /usr/local/bin/ssh.sh echo "SSH is ready" &>/dev/null; do
+    if [ $elapsed -ge 300 ]; then
+      echo "SSH did not become available within 300 seconds"
+      exit 1
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+  done
+
   IFS=';' read -ra ADDR <<< "$QEMU_MONITOR_ARGS"
   for QEMU_MONITOR_CMD in "${ADDR[@]}"; do
       echo "$QEMU_MONITOR_CMD" | socat - UNIX-CONNECT:/tmp/qemu-monitor.sock
