@@ -79,7 +79,7 @@ func (n *nodesProvisioner) Exec() error {
 		`echo "KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --fail-swap-on=false ` + nodeIP + " " + n.featureGatesFlag() + kubeletCpuManagerArgs + `" | tee /etc/sysconfig/kubelet > /dev/null`,
 		"systemctl daemon-reload &&  service kubelet restart",
 		"swapoff -a",
-		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
+		`until PRIMARY_IFACE=$(ip -o addr show | awk '/192\.168\.66\./ {print $2; exit}'); [ -n "$PRIMARY_IFACE" ] && ip address show dev $PRIMARY_IFACE | grep global | grep inet6; do sleep 1; done`,
 		`timeout=60; interval=5; while ! systemctl status crio | grep -w "active"; do echo "Waiting for cri-o service to be ready"; sleep $interval; timeout=$((timeout - interval)); if [[ $timeout -le 0 ]]; then exit 1; fi; done`,
 		"kubeadm join --token abcdef.1234567890123456 " + controlPlaneIP + ":6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true",
 		"mkdir -p /var/lib/rook",

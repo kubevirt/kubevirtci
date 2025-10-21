@@ -325,7 +325,8 @@ envsubst < $kubeadm_raw_ipv6 > $kubeadm_manifest_ipv6
 envsubst < $kubeadm_flannel_raw > $kubeadm_flannel
 envsubst < $kubeadm_flannel_ipv6_raw > $kubeadm_flannel_ipv6_manifest
 
-until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
+# Wait for primary interface (with IPv6) - find by IP subnet instead of hardcoded name
+until PRIMARY_IFACE=$(ip -o addr show | awk '/192\.168\.66\./ {print $2; exit}'); [ -n "$PRIMARY_IFACE" ] && ip address show dev $PRIMARY_IFACE | grep global | grep inet6; do sleep 1; done
 
 if ! kubeadm init --config $kubeadm_manifest -v5; then
     kubeadm reset --force
@@ -385,7 +386,9 @@ echo "tmpfs /var/provision/kubevirt.io/tests tmpfs rw,context=system_u:object_r:
 # Cleanup the existing NetworkManager profiles so the VM instances will come
 # up with the default profiles. (Base VM image includes non default settings)
 rm -f /etc/sysconfig/network-scripts/ifcfg-*
-nmcli connection add con-name eth0 ifname eth0 type ethernet
+# Create connection for primary interface - detect by IP subnet
+PRIMARY_IFACE=$(ip -o addr show | awk '/192\.168\.66\./ {print $2; exit}')
+nmcli connection add con-name $PRIMARY_IFACE ifname $PRIMARY_IFACE type ethernet
 
 # Remove machine-id, allowing unique ID/s for its instances
 rm -f /etc/machine-id ; touch /etc/machine-id

@@ -1,1 +1,1 @@
-root=/dev/vda1 ro no_timer_check console=ttyS0,115200n8 net.ifnames=0 biosdevname=0 crashkernel=1G-4G:192M,4G-64G:256M,64G-:512M
+root=/dev/vda1 ro no_timer_check console=ttyS0,115200n8 net.ifnames=1 biosdevname=0 crashkernel=1G-4G:192M,4G-64G:256M,64G-:512M
