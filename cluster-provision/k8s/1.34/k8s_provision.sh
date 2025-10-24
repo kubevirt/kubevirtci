@@ -111,6 +111,19 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
     kubelet-${packages_version} \
     kubernetes-cni
 
+# Update CNI plugins to latest version to fix host-local IPAM issues on Flannel
+# kubernetes-cni comes with v1.1.1-calico+go-1.22.6
+CNI_PLUGINS_VERSION="v1.8.0"
+CNI_PLUGINS_ARCH="amd64"
+if [[ $arch == "aarch64" ]]; then
+    CNI_PLUGINS_ARCH="arm64"
+elif [[ $arch == "s390x" ]]; then
+    CNI_PLUGINS_ARCH="s390x"
+fi
+CNI_PLUGINS_URL="https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-${CNI_PLUGINS_ARCH}-${CNI_PLUGINS_VERSION}.tgz"
+mkdir -p /opt/cni/bin
+curl -L ${CNI_PLUGINS_URL} | tar -C /opt/cni/bin -xz
+
 # In case the version is unstable the package manager recognizes only the closest stable version
 # But it's unsafe using older kubeadm version than kubernetes version according to:
 # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#kubeadm-s-skew-against-the-kubernetes-version
@@ -327,18 +340,19 @@ envsubst < $kubeadm_flannel_ipv6_raw > $kubeadm_flannel_ipv6_manifest
 
 until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
 
-if ! kubeadm init --config $kubeadm_manifest -v5; then
+if ! kubeadm init --config $kubeadm_flannel -v5; then
     kubeadm reset --force
     rm -rf /etc/cni/net.d/* /var/lib/cni /var/lib/kubelet
-    kubeadm init --config $kubeadm_manifest -v5
+    kubeadm init --config $kubeadm_flannel -v5
 fi
 
 kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat $kubeadmn_patches_path/add-security-context-deployment-patch.yaml)"
-kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$cni_manifest"
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$flannel_manifest"
+kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f "$knp_manifest"
 
 # Wait at least for 7 pods
-while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 7 ]]; do
-    echo "Waiting for at least 7 pods to appear ..."
+while [[ "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system --no-headers | wc -l)" -lt 8 ]]; do
+    echo "Waiting for at least 8 pods to appear ..."
     kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
     sleep 10
 done
@@ -351,13 +365,13 @@ while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-s
 done
 
 # Make sure all containers are ready
-while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
+while [ -n "$(kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -A -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
     echo "Waiting for all containers to become ready ..."
-    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
+    kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -A -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
     sleep 10
 done
 
-kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -n kube-system
+kubectl --kubeconfig=/etc/kubernetes/admin.conf get pods -A
 
 kubeadm reset --force
 rm -rf /etc/cni/net.d/* /var/lib/cni /var/lib/kubelet
