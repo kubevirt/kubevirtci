@@ -111,6 +111,19 @@ dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y 
     kubelet-${packages_version} \
     kubernetes-cni
 
+# Update CNI plugins to latest version to fix host-local IPAM issues on Flannel
+# kubernetes-cni comes with v1.1.1-calico+go-1.22.6
+CNI_PLUGINS_VERSION="v1.8.0"
+CNI_PLUGINS_ARCH="amd64"
+if [[ $arch == "aarch64" ]]; then
+    CNI_PLUGINS_ARCH="arm64"
+elif [[ $arch == "s390x" ]]; then
+    CNI_PLUGINS_ARCH="s390x"
+fi
+CNI_PLUGINS_URL="https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-${CNI_PLUGINS_ARCH}-${CNI_PLUGINS_VERSION}.tgz"
+mkdir -p /opt/cni/bin
+curl -L ${CNI_PLUGINS_URL} | tar -C /opt/cni/bin -xz
+
 # In case the version is unstable the package manager recognizes only the closest stable version
 # But it's unsafe using older kubeadm version than kubernetes version according to:
 # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#kubeadm-s-skew-against-the-kubernetes-version
