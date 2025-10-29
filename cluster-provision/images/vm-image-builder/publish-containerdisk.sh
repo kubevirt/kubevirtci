@@ -15,5 +15,5 @@ fi
 export IMAGE_NAME=$1
 export FULL_IMAGE_NAME=$2
 
-docker tag "${IMAGE_NAME}:${TAG}" "${FULL_IMAGE_NAME}"
-docker push "${FULL_IMAGE_NAME}"
+podman tag "${IMAGE_NAME}:${TAG}" "${FULL_IMAGE_NAME}"
+podman push "${FULL_IMAGE_NAME}"

@@ -16,7 +16,7 @@ Use cases:
 
 The following RPM packages need to be present on your machine:
 - cloud-utils
-- docker-ce
+- podman
 - libguestfs
 - libguestfs-tools-c
 - libvirt

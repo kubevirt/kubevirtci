@@ -60,12 +60,11 @@ function build_container() {
     local -r image_name=$4
 
     if [[ $arch = $(go_style_local_arch) ]]; then
-        docker_build="docker build . -t ${image_name}:${arch}"
+        podman_build="podman build . -t ${image_name}:${arch}"
     else
-        echo "When performing cross builds, make sure 'docker buildx' is installed."
-        docker_build="docker buildx build --platform "linux/${arch}" . -t ${image_name}:${arch}"
+        podman_build="podman build --platform "linux/${arch}" . -t ${image_name}:${arch}"
     fi
-    DOCKER_CLI_EXPERIMENTAL=enabled $docker_build -f - <<END
+    $podman_build -f - <<END
 FROM scratch
 ADD --chown=107:107 ${build_directory}/${new_vm_image_name} /disk/
 END
@@ -97,7 +96,7 @@ if [ -f "${SCRIPT_PATH}/${IMAGE_NAME}/create-image.sh" ]; then
       ./create-image.sh "${build_directory}/${customized_image}"
 
       echo "Creating the containerdisk ..."
-      docker build . -t ${IMAGE_NAME}:${TAG} -f - <<END
+      podman build . -t ${IMAGE_NAME}:${TAG} -f - <<END
 FROM scratch
 ADD --chown=107:107 build/${customized_image} /disk/
 END
