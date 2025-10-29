@@ -28,3 +28,7 @@ rc-update add cloud-final default
 rc-update add networking default
 rc-update add sshd default
 rc-update add acpid default
+rc-update add udev sysinit
+rc-update add udev-trigger sysinit
+rc-update add udev-settle sysinit
+rc-update add udev-postmount default
