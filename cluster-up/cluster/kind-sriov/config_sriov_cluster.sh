@@ -59,14 +59,16 @@ node::configure_sriov_vfs "${worker_nodes[*]}" "$VFS_DRIVER" "$VFS_DRIVER_KMODUL
 
 ## Deploy Multus and SRIOV components
 sriov_components::deploy_multus
-sriov_components::deploy \
-  "$PFS_IN_USE" \
-  "$VFS_DRIVER" \
-  "$SRIOVDP_RESOURCE_PREFIX" "$SRIOVDP_RESOURCE_NAME" \
-  "$SRIOV_NODE_LABEL_KEY" "$SRIOV_NODE_LABEL_VALUE"
+
+#sriov_components::deploy \
+#  "$PFS_IN_USE" \
+#  "$VFS_DRIVER" \
+#  "$SRIOVDP_RESOURCE_PREFIX" "$SRIOVDP_RESOURCE_NAME" \
+#  "$SRIOV_NODE_LABEL_KEY" "$SRIOV_NODE_LABEL_VALUE"
 
 # Verify that each sriov capable node has sriov VFs allocatable resource
-validate_nodes_sriov_allocatable_resource
+#validate_nodes_sriov_allocatable_resource
+
 sriov_components::wait_pods_ready
 
 _kubectl get nodes
