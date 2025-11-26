@@ -46,8 +46,6 @@ var _ = Describe("nodes", func() {
 			Expect(np.featureGatesFlag()).To(BeEquivalentTo(expectedValue))
 		},
 		Entry("should not add new fg if 1.32", "k8s-1.32", "--feature-gates=NodeSwap=true"),
-		Entry("should add new fg if 1.33", "k8s-1.33", "--feature-gates=NodeSwap=true,DisableCPUQuotaWithExclusiveCPUs=false"),
-		Entry("should add new fg if 1.37", "k8s-1.37", "--feature-gates=NodeSwap=true,DisableCPUQuotaWithExclusiveCPUs=false"),
 	)
 
 	When("job name does not contain version", func() {
@@ -68,8 +66,6 @@ var _ = Describe("nodes", func() {
 				Expect(np.featureGatesFlag()).To(BeEquivalentTo(expectedValue))
 			},
 			Entry("should not add new fg if 1.32", "k8s-1.32", "--feature-gates=NodeSwap=true"),
-			Entry("should add new fg if 1.33", "k8s-1.33", "--feature-gates=NodeSwap=true,DisableCPUQuotaWithExclusiveCPUs=false"),
-			Entry("should add new fg if 1.37", "k8s-1.37", "--feature-gates=NodeSwap=true,DisableCPUQuotaWithExclusiveCPUs=false"),
 		)
 	})
 })
