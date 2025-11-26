@@ -1,7 +1,10 @@
 package docker
 
 import (
+	"io"
+	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/docker/docker/api/types"
@@ -55,5 +58,59 @@ func Test_filterByPrefix(t *testing.T) {
 func containerFromNames(names ...string) types.Container {
 	return types.Container{
 		Names: names,
+	}
+}
+
+func TestPrintProgress_NonTerminal_ShowsStatusAndPercent(t *testing.T) {
+	// Fake JSON stream similar to Docker pull output
+	jsonStream := `
+{"status":"Downloading","id":"sha256:abc","progressDetail":{"current":50,"total":100}}
+{"status":"Download complete","id":"sha256:abc"}
+`
+
+	// Reader simulates what cli.ImagePull returns
+	r := io.NopCloser(strings.NewReader(jsonStream))
+
+	// Writer is a temporary file (not a terminal), so we hit the non-terminal branch
+	f, err := os.CreateTemp("", "print-progress-test")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+
+	if err := PrintProgress(r, f); err != nil {
+		t.Fatalf("PrintProgress returned error: %v", err)
+	}
+
+	// Read back what was written
+	data, err := os.ReadFile(f.Name())
+	if err != nil {
+		t.Fatalf("failed to read temp file: %v", err)
+	}
+
+	out := strings.TrimSpace(string(data))
+	if out == "" {
+		t.Fatalf("expected some output, got none")
+	}
+
+	lines := strings.Split(out, "\n")
+	if len(lines) == 0 {
+		t.Fatalf("expected at least one line of output, got: %q", out)
+	}
+
+	// We expect at least one line with:
+	// - the status "Downloading"
+	// - the layer id "sha256:abc"
+	// - the computed percent "50%"
+	first := lines[0]
+	if !strings.Contains(first, "Downloading") {
+		t.Fatalf("expected first line to contain 'Downloading', got: %q", first)
+	}
+	if !strings.Contains(first, "sha256:abc") {
+		t.Fatalf("expected first line to contain 'sha256:abc', got: %q", first)
+	}
+	if !strings.Contains(first, "50%") {
+		t.Fatalf("expected first line to contain '50%%', got: %q", first)
 	}
 }
