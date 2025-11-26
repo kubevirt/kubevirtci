@@ -96,8 +96,5 @@ func (n *nodesProvisioner) Exec() error {
 }
 
 func (n *nodesProvisioner) featureGatesFlag() string {
-	if n.version.GreaterThan(v1_32) {
-		return "--feature-gates=NodeSwap=true,DisableCPUQuotaWithExclusiveCPUs=false"
-	}
 	return "--feature-gates=NodeSwap=true"
 }
