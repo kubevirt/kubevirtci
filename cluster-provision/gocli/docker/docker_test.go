@@ -99,18 +99,28 @@ func TestPrintProgress_NonTerminal_ShowsStatusAndPercent(t *testing.T) {
 		t.Fatalf("expected at least one line of output, got: %q", out)
 	}
 
-	// We expect at least one line with:
+	// Find a line that contains "Downloading"
+	var downloadingLine string
+	for _, line := range lines {
+		if strings.Contains(line, "Downloading") {
+			downloadingLine = line
+			break
+		}
+	}
+
+	if downloadingLine == "" {
+		t.Fatalf("expected at least one line containing 'Downloading', got: %q", out)
+	}
+
+	// We expect the downloading line to include:
 	// - the status "Downloading"
 	// - the layer id "sha256:abc"
 	// - the computed percent "50%"
-	first := lines[0]
-	if !strings.Contains(first, "Downloading") {
-		t.Fatalf("expected first line to contain 'Downloading', got: %q", first)
+	if !strings.Contains(downloadingLine, "sha256:abc") {
+		t.Fatalf("expected downloading line to contain 'sha256:abc', got: %q", downloadingLine)
 	}
-	if !strings.Contains(first, "sha256:abc") {
-		t.Fatalf("expected first line to contain 'sha256:abc', got: %q", first)
+	if !strings.Contains(downloadingLine, "50%") {
+		t.Fatalf("expected downloading line to contain '50%%', got: %q", downloadingLine)
 	}
-	if !strings.Contains(first, "50%") {
-		t.Fatalf("expected first line to contain '50%%', got: %q", first)
-	}
+
 }

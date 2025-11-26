@@ -296,12 +296,12 @@ func PrintProgress(progressReader io.ReadCloser, writer *os.File) error {
 		}
 	} else {
 		// Non-interactive output (logs, CI, etc):
-		// print human-readable progress instead of just dots.
+		// print human-readable status/progress lines derived from the JSON stream.
 		scanner := bufio.NewScanner(progressReader)
 		for scanner.Scan() {
 			line := scanner.Text()
 
-			// keep existing error handling
+			// First, surface any error reported in the pull status.
 			if err := checkForError(line); err != nil {
 				return err
 			}
@@ -309,10 +309,10 @@ func PrintProgress(progressReader io.ReadCloser, writer *os.File) error {
 				continue
 			}
 
-			// parse more details for progress display
+			// Decode progress details from the JSON message for human-readable output.
 			var ps PullStatus
 			if err := json.Unmarshal([]byte(line), &ps); err != nil {
-				// if we can't parse, just print the raw line and continue
+				// If parsing fails, fall back to printing the raw line.
 				fmt.Fprintln(writer, line)
 				continue
 			}
