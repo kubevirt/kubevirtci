@@ -2,7 +2,6 @@ docker.io/calico/cni:v3.26.5
 docker.io/calico/kube-controllers:v3.26.5
 docker.io/calico/node:v3.26.5
 docker.io/grafana/grafana:11.1.0
-docker.io/rook/ceph:master
 ghcr.io/flannel-io/flannel-cni-plugin:v1.7.1-flannel1
 ghcr.io/flannel-io/flannel:v0.27.2
 ghcr.io/k8snetworkplumbingwg/multus-cni:v3.8
@@ -31,6 +30,7 @@ quay.io/kubevirt/cluster-network-addons-operator:v0.100.0
 quay.io/kubevirt/cni-default-plugins@sha256:976a24392c2a096c38c2663d234b2d3131f5c24558889196d30b9ac1b6716788
 quay.io/kubevirt/kubemacpool@sha256:bc1c0b05cd71fd9cc3c15a4a90df7e8581bd19f69256895f6a711b412ba02a85
 quay.io/kubevirt/macvtap-cni@sha256:af31faae20c0128a469dd4c1aa866d6bf78d1d2f5972127adf4c9438dcde10f4
+quay.io/kubevirtci/rook-ceph:v1.16.6
 quay.io/prometheus-operator/prometheus-operator:v0.75.1
 quay.io/prometheus/alertmanager:v0.27.0
 quay.io/prometheus/node-exporter:v1.8.1
