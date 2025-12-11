@@ -44,3 +44,8 @@ go_style_local_arch() {
    local arch=$(uname -m)
    go_style_arch_name $arch
 }
+
+linux_style_local_arch() {
+   local arch=$(uname -m)
+   linux_style_arch_name $arch
+}
