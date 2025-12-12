@@ -215,11 +215,10 @@ function main() {
     fi
   done
   
-  # Currently the underlying build tool alpine-make-vm-image supports only x86_64 and aarch64
-  # Disable alpine container disk publish - see https://github.com/kubevirt/kubevirtci/issues/1336
-  #if [ $ARCH == "amd64" ]; then
-  #  publish_alpine_container_disk
-  #fi
+  # Currently supported for amd64 only
+  if [ "$ARCH" == "amd64" ]; then
+   publish_alpine_container_disk
+  fi
 
   push_gocli
   if [ $ARCH == "s390x" ]; then
