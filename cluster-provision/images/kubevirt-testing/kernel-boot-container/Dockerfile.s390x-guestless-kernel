@@ -1,0 +1,4 @@
+FROM scratch
+# Kernel built using http://www.linux-kvm.org/page/KVM-unit-tests
+ARG KERNEL_URL=https://storage.googleapis.com/builddeps/s390x/s390x-guestless-kernel.bin
+ADD --chmod=755 ${KERNEL_URL} /boot/kernel
