@@ -5,6 +5,9 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ksh="$(cd "$DIR/../.." && pwd)/cluster-up/kubectl.sh"
 
+source "${DIR}/../../hack/detect_cri.sh"
+export CRI_BIN=${CRI_BIN:-$(detect_cri)}
+
 function usage() {
     cat <<EOF
 Usage: $0
@@ -34,7 +37,7 @@ function main() {
 
     echo "Checking $manifest_dir"
     # TODO: for now we disable (via --dry-run) the non zero exit code in case of failure here to give the teams some time to fix the policies
-    docker run --rm -v "$manifest_dir:/manifests:Z" \
+    ${CRI_BIN} run --rm -v "$manifest_dir:/manifests:Z" \
       quay.io/kubevirtci/check-image-pull-policies@sha256:c942d3a4a17f1576f81eba0a5844c904d496890677c6943380b543bbf2d9d1be \
         --manifest-source=/manifests \
         --dry-run=true \
