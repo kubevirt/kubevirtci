@@ -58,8 +58,9 @@ function build_gocli() {
   fi
 }
 
-function build_centos9_base_image_with_deps() {
-  (cd cluster-provision/centos9 && ./build.sh)
+function build_centos_base_image_with_deps() {
+  CENTOS_VERSION=${PROVISION_CENTOS_VERSION:-9}
+  (cd cluster-provision/centos${CENTOS_VERSION} && ./build.sh)
   IMAGE_TO_BUILD="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | tail -1)"
   (cd cluster-provision/k8s/${IMAGE_TO_BUILD} && ../provision.sh)
 }
@@ -82,12 +83,13 @@ function build_clusters() {
 }
 
 function push_node_base_image() {
+  CENTOS_VERSION=${PROVISION_CENTOS_VERSION:-9}
   if [ $ARCH == "amd64" ]; then
-    TARGET_IMAGE="${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}"
+    TARGET_IMAGE="${TARGET_REPO}/centos${CENTOS_VERSION}:${KUBEVIRTCI_TAG}"
   else
-    TARGET_IMAGE="${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}-${ARCH}"
+    TARGET_IMAGE="${TARGET_REPO}/centos${CENTOS_VERSION}:${KUBEVIRTCI_TAG}-${ARCH}"
   fi
-  podman tag ${TARGET_REPO}/centos9-base:latest ${TARGET_IMAGE}
+  podman tag ${TARGET_REPO}/centos${CENTOS_VERSION}-base:latest ${TARGET_IMAGE}
   echo "INFO: push $TARGET_IMAGE"
   podman push ${TARGET_IMAGE}
 }
@@ -133,7 +135,7 @@ function push_gocli() {
 }
 
 function publish_node_base_image() {
-  build_centos9_base_image_with_deps
+  build_centos_base_image_with_deps
   push_node_base_image
 }
 
