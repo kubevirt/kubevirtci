@@ -80,6 +80,35 @@ webconsole at `https://127.0.0.1:8443`. The login credentials are
 
 The two preconditions are necessary to make the authentication redirects work.
 
+## CentOS Stream Version Provisioning
+
+### PROVISION_CENTOS_VERSION
+
+Controls which CentOS Stream version is used for provisioning virtual nodes. Supported values are `9` and `10`.
+
+**Default:** `9` (CentOS Stream 9)
+
+**Usage:**
+
+Use CentOS Stream 9 (default):
+```bash
+cd cluster-provision/k8s/1.35
+../provision.sh
+```
+
+Use CentOS Stream 10:
+```bash
+export PROVISION_CENTOS_VERSION=10
+cd cluster-provision/k8s/1.35
+../provision.sh
+```
+
+For building and publishing base images with CentOS Stream 10:
+```bash
+export PROVISION_CENTOS_VERSION=10
+PHASES=linux ./publish.sh
+```
+
 ### Destroy the cluster
 
 ```bash
