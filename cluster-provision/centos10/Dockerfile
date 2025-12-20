@@ -11,11 +11,11 @@ ARG centos_version
 
 WORKDIR /
 
-RUN echo "Centos9 version $centos_version"
+RUN echo "Centos10 version $centos_version"
 
 COPY scripts/download_box.sh /
 
-RUN  /download_box.sh https://cloud.centos.org/centos/9-stream/$BUILDARCH/images/CentOS-Stream-GenericCloud-9-$centos_version.$BUILDARCH.qcow2 && \
+RUN  /download_box.sh https://cloud.centos.org/centos/10-stream/$BUILDARCH/images/CentOS-Stream-GenericCloud-10-$centos_version.$BUILDARCH.qcow2 && \
     # Access virtual machine disk images directly by using LIBGUESTFS_BACKEND=direct, instead of libvirt
     export LIBGUESTFS_BACKEND=direct && \
     guestfish --ro --add box.qcow2 --mount /dev/sda1:/ ls /boot/ | grep -E '^vmlinuz-|^initramfs-' | xargs -I {} guestfish --ro --add box.qcow2 -i copy-out /boot/{} / ; 
