@@ -181,7 +181,7 @@ publish_manifest() {
   local image_name="${1:?}"
   local image_tag="${2:?}"
   local full_image_name="${TARGET_REPO}/${image_name}:${image_tag}"
-  if [[ "$image_name" != "centos9" && "$image_name" != "gocli" && ! ( "$image_name" == "k8s-1.34" && "$image_tag" =~ "slim" ) ]]; then
+  if [[ "$image_name" != "centos9" && "$image_name" != "centos10" && "$image_name" != "gocli" && ! ( "$image_name" == "k8s-1.34" && "$image_tag" =~ "slim" ) ]]; then
     unset 'cur_archs[1]'
   fi
   for arch in ${cur_archs[*]};do
