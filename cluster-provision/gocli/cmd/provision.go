@@ -73,7 +73,13 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		base = fmt.Sprintf("quay.io/kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
 	} else {
 		k8sPath := fmt.Sprintf("%s/../", packagePath)
-		baseImageBytes, err := os.ReadFile(filepath.Join(k8sPath, "base-image"))
+		// Select base-image file based on PROVISION_CENTOS_VERSION
+		centosVersion := os.Getenv("PROVISION_CENTOS_VERSION")
+		baseImageFile := "base-image"
+		if centosVersion == "10" {
+			baseImageFile = "base-image-centos10"
+		}
+		baseImageBytes, err := os.ReadFile(filepath.Join(k8sPath, baseImageFile))
 		if err != nil {
 			return err
 		}

@@ -197,11 +197,16 @@ publish_manifest() {
 
 function main() {
   if [ "$PHASES" == "linux" ]; then
+    CENTOS_VERSION=${PROVISION_CENTOS_VERSION:-9}
     publish_node_base_image
     if [ $ARCH == "s390x" ]; then
-      publish_manifest "centos9" $KUBEVIRTCI_TAG
+      publish_manifest "centos${CENTOS_VERSION}" $KUBEVIRTCI_TAG
     elif [ $ARCH == "amd64" ]; then
-      echo "${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}" > cluster-provision/k8s/base-image
+      if [ "$CENTOS_VERSION" == "10" ]; then
+        echo "${TARGET_REPO}/centos10:${KUBEVIRTCI_TAG}" > cluster-provision/k8s/base-image-centos10
+      else
+        echo "${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}" > cluster-provision/k8s/base-image
+      fi
     fi
     exit 0
   fi
