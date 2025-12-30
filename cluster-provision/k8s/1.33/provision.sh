@@ -16,13 +16,24 @@ export ISTIO_BIN_DIR="/opt/istio-${ISTIO_VERSION}/bin"
 EOF
 source $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 
+if grep -q "CentOS Stream 9" /etc/os-release; then
+  release="centos9"
+  ROOT_PARTITION="1"
+elif grep -q "CentOS Stream 10" /etc/os-release; then
+  release="centos10"
+  ROOT_PARTITION="2"
+else
+  echo "ERROR: Could not recognize guest OS"
+  exit 1
+fi
+
 # Install modules of the initrd kernel
 dnf install -y "kernel-modules-$(uname -r)"
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
-if growpart /dev/vda 1; then
-    DEVICE="/dev/vda1"
+if growpart /dev/vda $ROOT_PARTITION; then
+    DEVICE="/dev/vda$ROOT_PARTITION"
     MOUNTPOINT=$(findmnt -n -o TARGET "$DEVICE")
     FSTYPE=$(lsblk -no FSTYPE "$DEVICE")
     if [[ "$FSTYPE" == ext2 || "$FSTYPE" == ext3 || "$FSTYPE" == ext4 ]]; then
@@ -79,7 +90,11 @@ if [ "$ARCH" == "s390x" ]; then
   systemctl enable openvswitch
 else
   dnf install -y centos-release-nfv-openvswitch
-  dnf install -y openvswitch2.16
+  if [ "$release" == "centos10" ]; then
+    dnf install -y openvswitch3.5
+  else
+    dnf install -y openvswitch2.16
+  fi
 fi 
 
 dnf install -y NetworkManager NetworkManager-ovs NetworkManager-config-server
