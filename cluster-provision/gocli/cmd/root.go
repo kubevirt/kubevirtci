@@ -9,7 +9,7 @@ import (
 
 func init() {
 	if os.Getenv("DOCKER_API_VERSION") == "" {
-		os.Setenv("DOCKER_API_VERSION", "1.24")
+		os.Setenv("DOCKER_API_VERSION", "1.44")
 	}
 }
 

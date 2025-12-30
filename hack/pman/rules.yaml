@@ -1,6 +1,7 @@
 all:
   - cluster-provision/gocli/*
   - cluster-provision/centos9/*
+  - cluster-provision/centos10/*
   - hack/kustomization/*
   - cluster-provision/k8s
   - cluster-provision

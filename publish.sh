@@ -58,8 +58,9 @@ function build_gocli() {
   fi
 }
 
-function build_centos9_base_image_with_deps() {
-  (cd cluster-provision/centos9 && ./build.sh)
+function build_centos_base_image_with_deps() {
+  CENTOS_VERSION=${PROVISION_CENTOS_VERSION:-9}
+  (cd cluster-provision/centos${CENTOS_VERSION} && ./build.sh)
   IMAGE_TO_BUILD="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | tail -1)"
   (cd cluster-provision/k8s/${IMAGE_TO_BUILD} && ../provision.sh)
 }
@@ -82,12 +83,13 @@ function build_clusters() {
 }
 
 function push_node_base_image() {
+  CENTOS_VERSION=${PROVISION_CENTOS_VERSION:-9}
   if [ $ARCH == "amd64" ]; then
-    TARGET_IMAGE="${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}"
+    TARGET_IMAGE="${TARGET_REPO}/centos${CENTOS_VERSION}:${KUBEVIRTCI_TAG}"
   else
-    TARGET_IMAGE="${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}-${ARCH}"
+    TARGET_IMAGE="${TARGET_REPO}/centos${CENTOS_VERSION}:${KUBEVIRTCI_TAG}-${ARCH}"
   fi
-  podman tag ${TARGET_REPO}/centos9-base:latest ${TARGET_IMAGE}
+  podman tag ${TARGET_REPO}/centos${CENTOS_VERSION}-base:latest ${TARGET_IMAGE}
   echo "INFO: push $TARGET_IMAGE"
   podman push ${TARGET_IMAGE}
 }
@@ -133,7 +135,7 @@ function push_gocli() {
 }
 
 function publish_node_base_image() {
-  build_centos9_base_image_with_deps
+  build_centos_base_image_with_deps
   push_node_base_image
 }
 
@@ -179,7 +181,7 @@ publish_manifest() {
   local image_name="${1:?}"
   local image_tag="${2:?}"
   local full_image_name="${TARGET_REPO}/${image_name}:${image_tag}"
-  if [[ "$image_name" != "centos9" && "$image_name" != "gocli" && ! ( "$image_name" == "k8s-1.34" && "$image_tag" =~ "slim" ) ]]; then
+  if [[ "$image_name" != "centos9" && "$image_name" != "centos10" && "$image_name" != "gocli" && ! ( "$image_name" == "k8s-1.34" && "$image_tag" =~ "slim" ) ]]; then
     unset 'cur_archs[1]'
   fi
   for arch in ${cur_archs[*]};do
@@ -195,11 +197,16 @@ publish_manifest() {
 
 function main() {
   if [ "$PHASES" == "linux" ]; then
+    CENTOS_VERSION=${PROVISION_CENTOS_VERSION:-9}
     publish_node_base_image
     if [ $ARCH == "s390x" ]; then
-      publish_manifest "centos9" $KUBEVIRTCI_TAG
+      publish_manifest "centos${CENTOS_VERSION}" $KUBEVIRTCI_TAG
     elif [ $ARCH == "amd64" ]; then
-      echo "${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}" > cluster-provision/k8s/base-image
+      if [ "$CENTOS_VERSION" == "10" ]; then
+        echo "${TARGET_REPO}/centos10:${KUBEVIRTCI_TAG}" > cluster-provision/k8s/base-image-centos10
+      else
+        echo "${TARGET_REPO}/centos9:${KUBEVIRTCI_TAG}" > cluster-provision/k8s/base-image
+      fi
     fi
     exit 0
   fi
