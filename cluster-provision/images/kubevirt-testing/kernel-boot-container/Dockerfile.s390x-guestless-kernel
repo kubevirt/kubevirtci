@@ -1,0 +1,5 @@
+FROM scratch
+# Kernel built using http://www.linux-kvm.org/page/KVM-unit-tests
+#TODO: Replace with the actual URL
+ARG KERNEL_URL=https://storage.googleapis.com/your-bucket/path/to/s390x-guestless-kernel.bin
+ADD ${KERNEL_URL} /boot/kernel
