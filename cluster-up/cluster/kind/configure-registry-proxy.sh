@@ -20,7 +20,18 @@
 
 set -ex
 
-CRI_BIN=${CRI_BIN:-docker}
+function detect_cri() {
+    if podman ps >/dev/null 2>&1; then
+        echo podman
+    elif docker ps >/dev/null 2>&1; then
+        echo docker
+    else
+        echo "Error: no container runtime detected. Please install Podman or Docker." >&2
+        exit 1
+    fi
+}
+
+export CRI_BIN=${CRI_BIN:-$(detect_cri)}
 
 KIND_BIN="${KIND_BIN:-./kind}"
 PROXY_HOSTNAME="${PROXY_HOSTNAME:-docker-registry-proxy}"
