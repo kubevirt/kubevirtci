@@ -9,6 +9,11 @@ function detect_cri() {
 export KUBEVIRTCI_TAG=${KUBEVIRTCI_TAG:-$(date +"%y%m%d%H%M")-$(git rev-parse --short HEAD)}
 export CRI_BIN=${CRI_BIN:-$(detect_cri)}
 
+if [ -z "${CRI_BIN}" ]; then
+    echo "ERROR: Neither podman nor docker is available." >&2
+    exit 1
+fi
+
 TARGET_REPO="quay.io/kubevirtci"
 TARGET_KUBEVIRT_REPO="quay.io/kubevirt"
 
