@@ -27,9 +27,9 @@ function build_alpine_container_disk() {
 function push_alpine_container_disk() {
   echo "INFO: push alpine container disk"
   TARGET_IMAGE="${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}"
-  podman push $TARGET_IMAGE
+  ${CRI_BIN} push $TARGET_IMAGE
   TARGET_KUBEVIRT_IMAGE="${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel"
-  podman push $TARGET_KUBEVIRT_IMAGE
+  ${CRI_BIN} push $TARGET_KUBEVIRT_IMAGE
 }
 
 function publish_alpine_container_disk() {
