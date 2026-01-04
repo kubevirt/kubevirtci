@@ -70,6 +70,12 @@ until ip link show tap${n}; do
   sleep 0.1
 done
 
+sleep 0.1
+until ip link show tap-sriov${n}; do
+  echo "Waiting for tap-sriov${n} to become ready"
+  sleep 0.1
+done
+
 ROOTLESS=0
 if [ -f /run/.containerenv ]; then
   ROOTLESS=$(sed -n 's/^rootless=//p' /run/.containerenv)
@@ -231,6 +237,8 @@ else
     -drive format=qcow2,file=${next},if=virtio,cache=unsafe ${block_dev_arg} \
     -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
     -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
+    -device igb,id=igb0,netdev=sriovnet0,mac=52:55:00:d1:57:${n} \
+    -netdev tap,id=sriovnet0,ifname=tap-sriov${n},script=no,downscript=no \
     -device virtio-rng-pci \
     -initrd /initrd.img \
     -kernel /vmlinuz \
