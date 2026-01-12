@@ -7,12 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	if os.Getenv("DOCKER_API_VERSION") == "" {
-		os.Setenv("DOCKER_API_VERSION", "1.24")
-	}
-}
-
 // NewRootCommand returns entrypoint command to interact with all other commands
 func NewRootCommand() *cobra.Command {
 
