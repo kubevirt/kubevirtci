@@ -11,7 +11,16 @@ BYPASS_PMAN_CHANGE_CHECK=${BYPASS_PMAN_CHANGE_CHECK:-false}
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 provision_dir="$(basename "$(pwd)")"
-base="$(cat base | tr -d '\n')"
+base_from_file="$(cat base | tr -d '\n')"
+
+PROVISION_CENTOS_VERSION="${PROVISION_CENTOS_VERSION:-9}"
+if [[ "$PROVISION_CENTOS_VERSION" == "10" ]]; then
+  base="centos10"
+elif [[ "$PROVISION_CENTOS_VERSION" == "9" ]]; then
+  base="centos9"
+else
+  base="$base_from_file"
+fi
 export base
 
 cd $DIR
