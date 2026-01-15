@@ -1,4 +1,4 @@
-FROM alpine:3.18.0
+FROM alpine:3.23.2
 
 RUN apk add git
 WORKDIR /workdir
