@@ -42,6 +42,8 @@ fi
 
 if grep -q "CentOS Stream 9" /etc/os-release; then
   release="centos9"
+elif grep -q "CentOS Stream 10" /etc/os-release; then
+  release="centos10"
 else
   echo "ERROR: Could not recognize guest OS"
   exit 1
