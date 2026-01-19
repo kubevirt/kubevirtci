@@ -217,3 +217,9 @@ func WithAAQVersion(aaqVersion string) K8sConfigFunc {
 		n.AAQVersion = aaqVersion
 	}
 }
+
+func WithNRI(nri bool) K8sConfigFunc {
+	return func(n *NodeK8sConfig) {
+		n.NRI = nri
+	}
+}

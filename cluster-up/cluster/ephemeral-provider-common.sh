@@ -259,6 +259,10 @@ function _add_common_params() {
         params=" --docker-proxy=$KUBEVIRTCI_PROXY $params"
     fi
 
+    if [ "$KUBEVIRT_DEPLOY_NRI" == "true" ]; then
+        params=" --deploy-nri $params"
+    fi
+
     echo $params
 }
 
