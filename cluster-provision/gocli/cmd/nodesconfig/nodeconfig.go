@@ -40,6 +40,7 @@ type NodeK8sConfig struct {
 	AAQ          bool
 	AAQVersion   string
 	DNC          bool
+	NRI          bool
 }
 
 func NewNodeK8sConfig(confs []K8sConfigFunc) *NodeK8sConfig {

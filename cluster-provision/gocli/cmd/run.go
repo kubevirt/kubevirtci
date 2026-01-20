@@ -43,6 +43,7 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nfscsi"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/node01"
 	nodesprovision "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nodes"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nri"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/prometheus"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/psa"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/realtime"
@@ -168,6 +169,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-audit", false, "enable k8s audit for all metadata events")
 	run.Flags().StringArrayVar(&usbDisks, "usb", []string{}, "size of the emulate USB disk to pass to the node")
 	run.Flags().StringArrayVar(&sharedDisks, "shared-block-device", []string{}, "size of block device to share between all nodes")
+	run.Flags().Bool("deploy-nri", false, "deploys Network Resources Injector")
 
 	return run
 }
@@ -425,6 +427,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	ksmScanInterval, err := cmd.Flags().GetUint("ksm-scan-interval")
+	if err != nil {
+		return err
+	}
+
+	deployNRI, err := cmd.Flags().GetBool("deploy-nri")
 	if err != nil {
 		return err
 	}
@@ -860,6 +867,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		nodesconfig.WithCdiVersion(cdiVersion),
 		nodesconfig.WithAAQ(deployAaq),
 		nodesconfig.WithAAQVersion(aaqVersion),
+		nodesconfig.WithNRI(deployNRI),
 	}
 	n := nodesconfig.NewNodeK8sConfig(k8sConfs)
 
@@ -941,6 +949,11 @@ func provisionK8sOptions(sshClient libssh.Client, k8sClient k8s.K8sDynamicClient
 		} else {
 			logrus.Info("AAQ was requested but k8s version is not k8s-1.30, skipping")
 		}
+	}
+
+	if n.NRI {
+		nriOpt := nri.NewNetworkResourcesInjectorOpt(sshClient, k8sClient)
+		opts = append(opts, nriOpt)
 	}
 
 	for _, opt := range opts {
