@@ -23,6 +23,10 @@ KUBECTL="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl --kubeconfig=${KU
 SRIOV_DRA_MANIFEST="${MANIFESTS_DIR}/dra/sriov_dra.yaml"
 SRIOV_DRA_NAMESPACE="dra-driver-sriov"
 
+NETWORK_RESOURCES_INJECTOR_AUTH_MANIFEST="${MANIFESTS_DIR}/network_resources_injector/auth.yaml"
+NETWORK_RESOURCES_INJECTOR_SERVICE_MANIFEST="${MANIFESTS_DIR}/network_resources_injector/service.yaml"
+NETWORK_RESOURCES_INJECTOR_SERVER_MANIFEST="${MANIFESTS_DIR}/network_resources_injector/server.yaml"
+
 function _kubectl() {
     ${KUBECTL} "$@"
 }
@@ -145,6 +149,13 @@ function sriov_components::deploy_dra() {
   _kubectl create namespace "$SRIOV_DRA_NAMESPACE"
   _kubectl apply -f "$SRIOV_DRA_MANIFEST"
 
+  return 0
+}
+
+function sriov_components::deploy_network_resources_injector() {
+  _kubectl apply -f "$NETWORK_RESOURCES_INJECTOR_AUTH_MANIFEST"
+  _kubectl apply -f "$NETWORK_RESOURCES_INJECTOR_SERVICE_MANIFEST"
+  _kubectl apply -f "$NETWORK_RESOURCES_INJECTOR_SERVER_MANIFEST"
   return 0
 }
 
