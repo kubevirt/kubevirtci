@@ -1,4 +1,4 @@
-package nri
+package network_resources_injector
 
 import (
 	"testing"
@@ -35,7 +35,7 @@ var _ = Describe("Network Resources Injector", func() {
 		mockCtrl.Finish()
 	})
 
-	It("should execute NRI successfully", func() {
+	It("should execute NetworkResourcesInjector successfully", func() {
 		err := opt.Exec()
 		Expect(err).NotTo(HaveOccurred())
 	})

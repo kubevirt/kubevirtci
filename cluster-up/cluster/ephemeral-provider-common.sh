@@ -259,8 +259,8 @@ function _add_common_params() {
         params=" --docker-proxy=$KUBEVIRTCI_PROXY $params"
     fi
 
-    if [ "$KUBEVIRT_DEPLOY_NRI" == "true" ]; then
-        params=" --deploy-nri $params"
+    if [ "$KUBEVIRT_DEPLOY_NETWORK_RESOURCES_INJECTOR" == "true" ]; then
+        params=" --deploy-network-resources-injector $params"
     fi
 
     echo $params
