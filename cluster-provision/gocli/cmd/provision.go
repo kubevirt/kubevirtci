@@ -55,12 +55,16 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	var base string
 	sshUser := libssh.GetSSHUser()
 	packagePath := args[0]
+	centosVersion := os.Getenv("PROVISION_CENTOS_VERSION")
+	if centosVersion == "" {
+		// default to Centos Stream 9
+		centosVersion = "9"
+	}
 	versionBytes, err := os.ReadFile(filepath.Join(packagePath, "version"))
 	if err != nil {
 		return err
 	}
 	version := strings.TrimSpace(string(versionBytes))
-	baseBytes, err := os.ReadFile(filepath.Join(packagePath, "base"))
 	if err != nil {
 		return err
 	}
@@ -70,10 +74,15 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	if strings.Contains(phases, "linux") {
-		base = fmt.Sprintf("quay.io/kubevirtci/%s", strings.TrimSpace(string(baseBytes)))
+		base = fmt.Sprintf("quay.io/kubevirtci/centos%s", centosVersion)
 	} else {
 		k8sPath := fmt.Sprintf("%s/../", packagePath)
-		baseImageBytes, err := os.ReadFile(filepath.Join(k8sPath, "base-image"))
+		// Select base-image file based on PROVISION_CENTOS_VERSION
+		baseImageFile := "base-image"
+		if centosVersion == "10" {
+			baseImageFile = "base-image-centos10"
+		}
+		baseImageBytes, err := os.ReadFile(filepath.Join(k8sPath, baseImageFile))
 		if err != nil {
 			return err
 		}
