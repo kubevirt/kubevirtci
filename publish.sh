@@ -144,25 +144,7 @@ function publish_clusters() {
   push_cluster_images
 }
 
-function build_alpine_container_disk() {
-  echo "INFO: build alpine container disk"
-  (cd cluster-provision/images/vm-image-builder && ./create-containerdisk.sh alpine-cloud-init)
-  ${CRI_BIN} tag alpine-cloud-init:devel ${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}
-  ${CRI_BIN} tag alpine-cloud-init:devel ${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel
-}
 
-function push_alpine_container_disk() {
-  echo "INFO: push alpine container disk"
-  TARGET_IMAGE="${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}"
-  podman push $TARGET_IMAGE
-  TARGET_KUBEVIRT_IMAGE="${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel"
-  podman push $TARGET_KUBEVIRT_IMAGE
-}
-
-function publish_alpine_container_disk() {
-  build_alpine_container_disk
-  push_alpine_container_disk
-}
 
 function create_git_tag() {
   if [ "$CI" == "true" ]; then
@@ -221,11 +203,6 @@ function main() {
       publish_manifest k8s-$i ${KUBEVIRTCI_TAG}-slim
     fi
   done
-  
-  # Currently supported for amd64 only
-  if [ "$ARCH" == "amd64" ]; then
-   publish_alpine_container_disk
-  fi
 
   push_gocli
   if [ $ARCH == "s390x" ]; then
