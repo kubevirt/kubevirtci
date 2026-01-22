@@ -147,7 +147,6 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("ksm-scan-interval", 20, "sleep interval in milliseconds for ksm")
 	run.Flags().Bool("enable-swap", false, "enable swap")
 	run.Flags().String("swap-behavior", "", "kubelet swap behavior")
-	run.Flags().Bool("unlimited-swap", false, "unlimited swap")
 	run.Flags().Uint("swap-size", 0, "swap memory size in GB")
 	run.Flags().Uint("swapiness", 0, "swapiness")
 	run.Flags().String("docker-proxy", "", "sets network proxy for docker daemon")
@@ -403,11 +402,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	swapBehavior, err := cmd.Flags().GetString("swap-behavior")
-	if err != nil {
-		return err
-	}
-
-	unlimitedSwap, err := cmd.Flags().GetBool("unlimited-swap")
 	if err != nil {
 		return err
 	}
@@ -839,7 +833,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodesconfig.WithSwapiness(int(swapiness)),
 			nodesconfig.WithSwapBehavior(swapBehavior),
 			nodesconfig.WithSwapSize(int(swapSize)),
-			nodesconfig.WithUnlimitedSwap(unlimitedSwap),
 		}
 
 		n := nodesconfig.NewNodeLinuxConfig(x+1, prefix, linuxConfigFuncs)

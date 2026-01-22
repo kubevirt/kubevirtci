@@ -21,7 +21,6 @@ type NodeLinuxConfig struct {
 	KsmScanInterval int
 	Swappiness      int
 	SwapBehavior    string
-	UnlimitedSwap   bool
 	SwapSize        int
 }
 
