@@ -7,18 +7,18 @@ import (
 )
 
 type swapOpt struct {
-	sshClient     libssh.Client
-	swapiness     int
-	unlimitedSwap bool
-	size          int
+	sshClient    libssh.Client
+	swapiness    int
+	swapBehavior string
+	size         int
 }
 
-func NewSwapOpt(sc libssh.Client, swapiness int, us bool, size int) *swapOpt {
+func NewSwapOpt(sc libssh.Client, swapiness int, swapBehavior string, size int) *swapOpt {
 	return &swapOpt{
-		sshClient:     sc,
-		swapiness:     swapiness,
-		unlimitedSwap: us,
-		size:          size,
+		sshClient:    sc,
+		swapiness:    swapiness,
+		swapBehavior: swapBehavior,
+		size:         size,
 	}
 }
 
@@ -47,9 +47,9 @@ func (o *swapOpt) Exec() error {
 		}
 	}
 
-	if o.unlimitedSwap {
+	if o.swapBehavior != "" {
 		cmds := []string{
-			`sed -i 's/memorySwap: {}/memorySwap:\n  swapBehavior: UnlimitedSwap/g' /var/lib/kubelet/config.yaml`,
+			fmt.Sprintf(`sed -i 's/memorySwap: {}/memorySwap:\n  swapBehavior: %s/g' /var/lib/kubelet/config.yaml`, o.swapBehavior),
 			"systemctl restart kubelet",
 		}
 		for _, cmd := range cmds {

@@ -146,6 +146,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Uint("ksm-page-count", 10, "number of pages to scan per time in ksm")
 	run.Flags().Uint("ksm-scan-interval", 20, "sleep interval in milliseconds for ksm")
 	run.Flags().Bool("enable-swap", false, "enable swap")
+	run.Flags().String("swap-behavior", "", "kubelet swap behavior")
 	run.Flags().Bool("unlimited-swap", false, "unlimited swap")
 	run.Flags().Uint("swap-size", 0, "swap memory size in GB")
 	run.Flags().Uint("swapiness", 0, "swapiness")
@@ -397,6 +398,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	enableSwap, err := cmd.Flags().GetBool("enable-swap")
+	if err != nil {
+		return err
+	}
+
+	swapBehavior, err := cmd.Flags().GetString("swap-behavior")
 	if err != nil {
 		return err
 	}
@@ -831,6 +837,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodesconfig.WithKsmScanInterval(int(ksmScanInterval)),
 			nodesconfig.WithSwap(enableSwap),
 			nodesconfig.WithSwapiness(int(swapiness)),
+			nodesconfig.WithSwapBehavior(swapBehavior),
 			nodesconfig.WithSwapSize(int(swapSize)),
 			nodesconfig.WithUnlimitedSwap(unlimitedSwap),
 		}
@@ -1042,7 +1049,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 	}
 
 	if n.SwapEnabled {
-		swapOpt := swap.NewSwapOpt(sshClient, n.Swappiness, n.UnlimitedSwap, n.SwapSize)
+		swapOpt := swap.NewSwapOpt(sshClient, n.Swappiness, n.SwapBehavior, n.SwapSize)
 		opts = append(opts, swapOpt)
 	}
 
