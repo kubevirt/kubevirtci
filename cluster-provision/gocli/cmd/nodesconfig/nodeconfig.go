@@ -26,21 +26,21 @@ type NodeLinuxConfig struct {
 
 // NodeK8sConfig type holds the config k8s options for kubevirt cluster
 type NodeK8sConfig struct {
-	Ceph         bool
-	Prometheus   bool
-	Alertmanager bool
-	Grafana      bool
-	Istio        bool
-	NfsCsi       bool
-	CNAO         bool
-	CNAOSkipCR   bool
-	Multus       bool
-	CDI          bool
-	CDIVersion   string
-	AAQ          bool
-	AAQVersion   string
-	DNC          bool
-	NRI          bool
+	Ceph                     bool
+	Prometheus               bool
+	Alertmanager             bool
+	Grafana                  bool
+	Istio                    bool
+	NfsCsi                   bool
+	CNAO                     bool
+	CNAOSkipCR               bool
+	Multus                   bool
+	CDI                      bool
+	CDIVersion               string
+	AAQ                      bool
+	AAQVersion               string
+	DNC                      bool
+	NetworkResourcesInjector bool
 }
 
 func NewNodeK8sConfig(confs []K8sConfigFunc) *NodeK8sConfig {

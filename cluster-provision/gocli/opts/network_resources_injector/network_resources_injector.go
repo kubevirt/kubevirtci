@@ -1,4 +1,4 @@
-package nri
+package network_resources_injector
 
 import (
 	_ "embed"

@@ -40,10 +40,10 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/istio"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/ksm"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/multus"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/network_resources_injector"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nfscsi"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/node01"
 	nodesprovision "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nodes"
-	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nri"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/prometheus"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/psa"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/realtime"
@@ -169,7 +169,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-audit", false, "enable k8s audit for all metadata events")
 	run.Flags().StringArrayVar(&usbDisks, "usb", []string{}, "size of the emulate USB disk to pass to the node")
 	run.Flags().StringArrayVar(&sharedDisks, "shared-block-device", []string{}, "size of block device to share between all nodes")
-	run.Flags().Bool("deploy-nri", false, "deploys Network Resources Injector")
+	run.Flags().Bool("deploy-network-resources-injector", false, "deploys Network Resources Injector")
 
 	return run
 }
@@ -431,7 +431,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	deployNRI, err := cmd.Flags().GetBool("deploy-nri")
+	deployNetworkResourcesInjector, err := cmd.Flags().GetBool("deploy-network-resources-injector")
 	if err != nil {
 		return err
 	}
@@ -867,7 +867,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		nodesconfig.WithCdiVersion(cdiVersion),
 		nodesconfig.WithAAQ(deployAaq),
 		nodesconfig.WithAAQVersion(aaqVersion),
-		nodesconfig.WithNRI(deployNRI),
+		nodesconfig.WithNetworkResourcesInjector(deployNetworkResourcesInjector),
 	}
 	n := nodesconfig.NewNodeK8sConfig(k8sConfs)
 
@@ -951,9 +951,9 @@ func provisionK8sOptions(sshClient libssh.Client, k8sClient k8s.K8sDynamicClient
 		}
 	}
 
-	if n.NRI {
-		nriOpt := nri.NewNetworkResourcesInjectorOpt(sshClient, k8sClient)
-		opts = append(opts, nriOpt)
+	if n.NetworkResourcesInjector {
+		networkResourcesInjectorOpt := network_resources_injector.NewNetworkResourcesInjectorOpt(sshClient, k8sClient)
+		opts = append(opts, networkResourcesInjectorOpt)
 	}
 
 	for _, opt := range opts {

@@ -218,8 +218,8 @@ func WithAAQVersion(aaqVersion string) K8sConfigFunc {
 	}
 }
 
-func WithNRI(nri bool) K8sConfigFunc {
+func WithNetworkResourcesInjector(networkResourcesInjector bool) K8sConfigFunc {
 	return func(n *NodeK8sConfig) {
-		n.NRI = nri
+		n.NetworkResourcesInjector = networkResourcesInjector
 	}
 }
