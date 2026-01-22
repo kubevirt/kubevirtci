@@ -147,15 +147,25 @@ function publish_clusters() {
 function build_alpine_container_disk() {
   echo "INFO: build alpine container disk"
   (cd cluster-provision/images/vm-image-builder && ./create-containerdisk.sh alpine-cloud-init)
-  ${CRI_BIN} tag alpine-cloud-init:devel ${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}
-  ${CRI_BIN} tag alpine-cloud-init:devel ${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel
+  if [ $ARCH == "amd64" ]; then
+    ${CRI_BIN} tag alpine-cloud-init:devel ${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}
+    ${CRI_BIN} tag alpine-cloud-init:devel ${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel
+  else
+    ${CRI_BIN} tag alpine-cloud-init:devel ${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}-$ARCH
+    ${CRI_BIN} tag alpine-cloud-init:devel ${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel-$ARCH
+  fi
 }
 
 function push_alpine_container_disk() {
   echo "INFO: push alpine container disk"
-  TARGET_IMAGE="${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}"
+    if [ $ARCH == "amd64" ]; then
+     TARGET_IMAGE="${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}"
+     TARGET_KUBEVIRT_IMAGE="${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel"
+    else
+     TARGET_IMAGE="${TARGET_REPO}/alpine-with-test-tooling-container-disk:${KUBEVIRTCI_TAG}-$ARCH"
+     TARGET_KUBEVIRT_IMAGE="${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel-$ARCH"
+    fi
   podman push $TARGET_IMAGE
-  TARGET_KUBEVIRT_IMAGE="${TARGET_KUBEVIRT_REPO}/alpine-with-test-tooling-container-disk:devel"
   podman push $TARGET_KUBEVIRT_IMAGE
 }
 
@@ -180,19 +190,21 @@ publish_manifest() {
   local amend=""
   local image_name="${1:?}"
   local image_tag="${2:?}"
-  local full_image_name="${TARGET_REPO}/${image_name}:${image_tag}"
-  if [[ "$image_name" != "centos9" && "$image_name" != "centos10" && "$image_name" != "gocli" && ! ( "$image_name" == "k8s-1.34" && "$image_tag" =~ "slim" ) ]]; then
+  local target_image_repo="${3:-$TARGET_REPO}"
+  local full_image_name="${target_image_repo}/${image_name}:${image_tag}"
+  if [[ "$image_name" != "alpine-with-test-tooling-container-disk" && "$image_name" != "centos9" && "$image_name" != "centos10" && "$image_name" != "gocli" && ! ( "$image_name" == "k8s-1.34" && "$image_tag" =~ "slim" ) ]]; then
     unset 'cur_archs[1]'
   fi
   for arch in ${cur_archs[*]};do
     if [ "$arch" = "amd64" ]; then
-      amend+=" --amend ${TARGET_REPO}/${image_name}:${image_tag}"
+      amend+=" --amend ${target_image_repo}/${image_name}:${image_tag}"
     else
-      amend+=" --amend ${TARGET_REPO}/${image_name}:${image_tag}-${arch}"
+      amend+=" --amend ${target_image_repo}/${image_name}:${image_tag}-${arch}"
     fi
   done
   podman manifest create ${full_image_name} ${amend}
   podman manifest push ${full_image_name} "docker://${full_image_name}"
+    
 }
 
 function main() {
@@ -223,6 +235,11 @@ function main() {
   done
    
   publish_alpine_container_disk
+
+  if [ $ARCH == "s390x" ]; then
+   publish_manifest "alpine-with-test-tooling-container-disk" $KUBEVIRTCI_TAG
+   publish_manifest "alpine-with-test-tooling-container-disk" "devel" $TARGET_KUBEVIRT_REPO
+  fi
 
   push_gocli
   if [ $ARCH == "s390x" ]; then
