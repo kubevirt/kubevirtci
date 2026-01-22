@@ -1,22 +1,29 @@
 #!/bin/sh
 set -ex
 
-# Currently, the build tool, alpine-make-vm-image, only support amd64
-# So we disable build for non-x86 architectures
-# https://github.com/alpinelinux/alpine-make-vm-image/issues/10
-if [[ ${ARCHITECTURE} != "" && ${ARCHITECTURE} != "amd64" || $(uname -m) != "x86_64" ]]; then
-   echo "only support native build for amd64 platform"
-   exit 1
-fi
+KERNEL_FLAVOR="virt"
+ALPINE_BRANCH="v3.19"
+SCRIPT_PATH=$(dirname "$(dirname "$(realpath "$0")")")
+. "${SCRIPT_PATH}/common.sh"
+ARCHITECTURE="${ARCHITECTURE:-"$(go_style_local_arch)"}"
+ARCH="${ARCH:-"$(linux_style_local_arch)"}"
+
+if [ "$ARCHITECTURE" = "s390x" ]; then
+   KERNEL_FLAVOR="lts"
+   ALPINE_BRANCH="v3.20"
+fi 
 
 if [ "${ARCHITECTURE}" != ""  ]; then
     PLATFORM=linux/$ARCHITECTURE
 fi
 
-podman run --rm --privileged docker.io/multiarch/qemu-user-static --reset -p yes
+# s390x does not support qemu-user-static
+if [ "${ARCHITECTURE}" != "s390x" ]; then
+    podman run --rm --privileged docker.io/multiarch/qemu-user-static --reset -p yes
+fi
 
 if [ ! -f alpine-make-vm-image ]; then
-    curl  https://raw.githubusercontent.com/alpinelinux/alpine-make-vm-image/master/alpine-make-vm-image -o alpine-make-vm-image
+    curl  https://raw.githubusercontent.com/kubevirt/alpine-make-vm-image/master/alpine-make-vm-image -o alpine-make-vm-image
     chmod 755 alpine-make-vm-image
 fi
 
@@ -24,7 +31,9 @@ podman run --rm --platform=$PLATFORM -v /lib/modules:/lib/modules -v /dev:/dev -
 ./alpine-make-vm-image \
     --image-format qcow2 \
     --image-size 200M \
-    --branch v3.19 \
+    --branch $ALPINE_BRANCH \
+    --kernel-flavor $KERNEL_FLAVOR \
+    --arch $ARCH \
     --packages \"$(cat packages)\" \
     --serial-console \
     --script-chroot \

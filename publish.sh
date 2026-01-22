@@ -221,11 +221,8 @@ function main() {
       publish_manifest k8s-$i ${KUBEVIRTCI_TAG}-slim
     fi
   done
-  
-  # Currently supported for amd64 only
-  if [ "$ARCH" == "amd64" ]; then
-   publish_alpine_container_disk
-  fi
+   
+  publish_alpine_container_disk
 
   push_gocli
   if [ $ARCH == "s390x" ]; then
