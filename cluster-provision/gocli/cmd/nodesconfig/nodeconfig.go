@@ -20,6 +20,7 @@ type NodeLinuxConfig struct {
 	KsmPageCount    int
 	KsmScanInterval int
 	Swappiness      int
+	SwapBehavior    string
 	UnlimitedSwap   bool
 	SwapSize        int
 }
