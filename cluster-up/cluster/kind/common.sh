@@ -2,7 +2,7 @@
 
 set -e
 
-source "${KUBEVIRTCI_PATH}/hack/detect_cri.sh"
+source "${KUBEVIRTCI_PATH}/../hack/detect_cri.sh"
 export CRI_BIN=${CRI_BIN:-$(detect_cri)}
 
 export KIND_EXPERIMENTAL_PROVIDER=${CRI_BIN}

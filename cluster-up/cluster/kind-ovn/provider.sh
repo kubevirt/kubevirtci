@@ -24,7 +24,7 @@ KIND_PATH=${KIND_PATH:-"${KUBEVIRTCI_CONFIG_PATH}/${KUBEVIRT_PROVIDER}/_kind"}
 CLUSTER_PATH=${CLUSTER_PATH:-"${KUBEVIRTCI_CONFIG_PATH}/${KUBEVIRT_PROVIDER}/_ovnk"}
 CLUSTER_NAME=${KUBEVIRT_PROVIDER}
 
-source "${KUBEVIRTCI_PATH}/hack/detect_cri.sh"
+source "${KUBEVIRTCI_PATH}/../hack/detect_cri.sh"
 export CRI_BIN=${CRI_BIN:-$(detect_cri)}
 
 function calculate_mtu() {
