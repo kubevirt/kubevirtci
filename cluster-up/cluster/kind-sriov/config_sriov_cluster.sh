@@ -70,6 +70,9 @@ if [[ "$KUBEVIRT_USE_DRA" != "true" ]]; then
 
   # Verify that each sriov capable node has sriov VFs allocatable resource
   validate_nodes_sriov_allocatable_resource
+  
+  ## Deploy network-resources-injector
+  sriov_components::deploy_network_resources_injector
 else
   sriov_components::deploy_dra
 fi
