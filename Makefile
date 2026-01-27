@@ -8,7 +8,11 @@ cluster-up:
 cluster-down:
 	./cluster-up/down.sh
 
+bump-net-resources-injector:
+	./hack/bump-net-resources-injector.sh
+
 .PHONY: \
 	cluster-up \
 	cluster-down \
+	bump-net-resources-injector \
 	bump
