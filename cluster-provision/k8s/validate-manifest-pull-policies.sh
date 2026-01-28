@@ -4,6 +4,9 @@ set -euo pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+source "${DIR}/../../hack/detect_cri.sh"
+export CRI_BIN=${CRI_BIN:-$(detect_cri)}
+
 function usage {
     cat <<EOF
 Usage: $0 <k8s-cluster-dir>
@@ -24,7 +27,7 @@ function main {
 
     manifest_dir="$DIR/$1/manifests"
     echo "Checking $manifest_dir"
-    docker run --rm -v "$manifest_dir:/manifests:Z" \
+    ${CRI_BIN} run --rm -v "$manifest_dir:/manifests:Z" \
 	 quay.io/kubevirtci/check-image-pull-policies@sha256:c942d3a4a17f1576f81eba0a5844c904d496890677c6943380b543bbf2d9d1be \
             --manifest-source=/manifests \
             --dry-run=false \
