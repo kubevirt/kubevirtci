@@ -20,8 +20,9 @@
 
 set -ex
 
-KUBEVIRTCI_PATH="${KUBEVIRTCI_PATH:-$(realpath "$(dirname "$0")")/../../}"
-source "${KUBEVIRTCI_PATH}/../hack/detect_cri.sh"
+SCRIPT_PATH=$(dirname "$(realpath "$0")")
+KUBEVIRTCI_PATH="$(realpath "${SCRIPT_PATH}/../../..")/"
+source "${KUBEVIRTCI_PATH}/hack/detect_cri.sh"
 export CRI_BIN=${CRI_BIN:-$(detect_cri)}
 
 KIND_BIN="${KIND_BIN:-./kind}"
