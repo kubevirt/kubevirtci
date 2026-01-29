@@ -14,13 +14,13 @@ if [ $ARCH == "s390x" ]; then
 fi
 PHASES=${PHASES:-k8s}
 
-function detect_cri() {
-    if podman ps >/dev/null 2>&1; then echo podman; elif docker ps >/dev/null 2>&1; then echo docker; fi
-}
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_REPO="quay.io/kubevirtci"
 TARGET_KUBEVIRT_REPO="quay.io/kubevirt"
 TARGET_GIT_REMOTE="https://kubevirt-bot@github.com/kubevirt/kubevirtci.git"
+
+source "${SCRIPT_DIR}/hack/detect_cri.sh"
 export CRI_BIN=${CRI_BIN:-$(detect_cri)}
 
 IMAGES_TO_BUILD=()
@@ -112,7 +112,7 @@ function push_cluster_images() {
 
   # images that the change doesn't affect can be retagged from previous tag
   for i in ${IMAGES_TO_RETAG[@]}; do
-    if [ $ARCH == "amd64" ]; then 
+    if [ $ARCH == "amd64" ]; then
       echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG)"
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
       echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG-slim)"
@@ -204,7 +204,7 @@ publish_manifest() {
   done
   podman manifest create ${full_image_name} ${amend}
   podman manifest push ${full_image_name} "docker://${full_image_name}"
-    
+
 }
 
 function main() {
@@ -233,7 +233,7 @@ function main() {
       publish_manifest k8s-$i ${KUBEVIRTCI_TAG}-slim
     fi
   done
-   
+
   publish_alpine_container_disk
 
   if [ $ARCH == "s390x" ]; then
