@@ -35,6 +35,9 @@ while true; do
   esac
 done
 
+NODE_NUM=${NODE_NUM-1}
+n="$(printf "%02d" $(( 10#${NODE_NUM} )))"
+
 function calc_next_disk {
   last="$(ls -t disk* | head -1 | sed -e 's/disk//' -e 's/.qcow2//')"
   last="${last:-00}"
@@ -46,14 +49,28 @@ function calc_next_disk {
     # Customize qcow2 image using virt-sysprep (with KVM accelerator)
     export LIBGUESTFS_BACKEND=direct
     export LIBGUESTFS_BACKEND_SETTINGS=force_kvm
-    virt-sysprep -a box.qcow2 --run-command 'useradd -m cloud-user' --append '/etc/cloud/cloud.cfg:runcmd:' --append '/etc/cloud/cloud.cfg: - hostnamectl set-hostname ""' --root-password password:root --ssh-inject cloud-user:string:"ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
+    # Inject udev rule to assign eth0 to the primary MAC.
+    # Linux may rename NICs unpredictably in VMs or with multiple NICs,
+    # so this ensures the primary NIC always becomes eth0 regardless of OS naming.
+    TMP_UDEV_RULE=$(mktemp)
+    cat > "$TMP_UDEV_RULE" <<EOF
+SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="52:55:00:d1:55:${n}", NAME="eth0"
+EOF
+    UDEV_RULE_FILE="/tmp/70-persistent-net.rules"
+    mv "$TMP_UDEV_RULE" "$UDEV_RULE_FILE"
+    
+    virt-sysprep -a box.qcow2 \
+      --run-command 'useradd -m cloud-user' \
+      --append '/etc/cloud/cloud.cfg:runcmd:' \
+      --append '/etc/cloud/cloud.cfg: - hostnamectl set-hostname ""' \
+      --root-password password:root \
+      --ssh-inject cloud-user:string:"ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key" \
+      --copy-in "$UDEV_RULE_FILE":/etc/udev/rules.d
+    rm -f "$UDEV_RULE_FILE"
   else
     last=$(printf "/disk%02d.qcow2" $last)
   fi
 }
-
-NODE_NUM=${NODE_NUM-1}
-n="$(printf "%02d" $(( 10#${NODE_NUM} )))"
 
 cat >/usr/local/bin/ssh.sh <<EOL
 #!/bin/bash
