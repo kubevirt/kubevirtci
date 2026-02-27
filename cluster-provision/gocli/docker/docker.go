@@ -295,16 +295,55 @@ func PrintProgress(progressReader io.ReadCloser, writer *os.File) error {
 			fmt.Print("\r" + line + strings.Repeat(" ", clearLength))
 		}
 	} else {
-		fmt.Fprint(writer, "Downloading ...")
+		// Non-interactive output (logs, CI, etc):
+		// print human-readable status/progress lines derived from the JSON stream.
 		scanner := bufio.NewScanner(progressReader)
 		for scanner.Scan() {
 			line := scanner.Text()
+
+			// First, surface any error reported in the pull status.
 			if err := checkForError(line); err != nil {
 				return err
 			}
-			fmt.Print(".")
+			if line == "" {
+				continue
+			}
+
+			// Decode progress details from the JSON message for human-readable output.
+			var ps PullStatus
+			if err := json.Unmarshal([]byte(line), &ps); err != nil {
+				// If parsing fails, fall back to printing the raw line.
+				fmt.Fprintln(writer, line)
+				continue
+			}
+
+			// build a readable message
+			msg := ps.Status
+			if ps.ID != "" {
+				if msg != "" {
+					msg += " "
+				}
+				msg += ps.ID
+			}
+
+			if ps.ProgressDetail.Total > 0 && ps.ProgressDetail.Current > 0 {
+				pct := int(float64(ps.ProgressDetail.Current) / float64(ps.ProgressDetail.Total) * 100)
+				if pct < 0 {
+					pct = 0
+				}
+				if pct > 100 {
+					pct = 100
+				}
+				msg += fmt.Sprintf(" (%d%%)", pct)
+			}
+
+			if msg != "" {
+				fmt.Fprintln(writer, msg)
+			}
 		}
-		fmt.Print("\n")
+		if err := scanner.Err(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -324,8 +363,13 @@ func checkForError(line string) error {
 }
 
 type PullStatus struct {
-	Status string `json:"status,omitempty"`
-	Error  string `json:"error,omitempty"`
+	Status         string `json:"status,omitempty"`
+	ID             string `json:"id,omitempty"`
+	Error          string `json:"error,omitempty"`
+	ProgressDetail struct {
+		Current int64 `json:"current,omitempty"`
+		Total   int64 `json:"total,omitempty"`
+	} `json:"progressDetail,omitempty"`
 }
 
 func resizeTerminal(ctx context.Context, cli *client.Client, execID string, file *os.File) {
