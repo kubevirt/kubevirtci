@@ -118,9 +118,9 @@ func WithSwapiness(swapiness int) LinuxConfigFunc {
 	}
 }
 
-func WithUnlimitedSwap(unlimitedSwap bool) LinuxConfigFunc {
+func WithSwapBehavior(swapBehavior string) LinuxConfigFunc {
 	return func(n *NodeLinuxConfig) {
-		n.UnlimitedSwap = unlimitedSwap
+		n.SwapBehavior = swapBehavior
 	}
 }
 
