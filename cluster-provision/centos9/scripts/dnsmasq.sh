@@ -12,6 +12,9 @@ ip link set dev br0 up
 ip addr add dev br0 192.168.66.02/24
 ip -6 addr add fd00::1/64 dev br0
 
+ip link add br-sriov type bridge
+ip link set dev br-sriov up
+
 # Create secondary networks
 for snet in $(seq 1 ${NUM_SECONDARY_NICS}); do
   ip link add br${snet} type bridge
@@ -24,6 +27,11 @@ for i in $(seq 1 ${NUM_NODES}); do
   ip link set tap${n} master br0
   ip link set dev tap${n} up
   DHCP_HOSTS="${DHCP_HOSTS} --dhcp-host=52:55:00:d1:55:${n},192.168.66.1${n},[fd00::1${n}],node${n},infinite"
+
+  ip tuntap add dev tap-sriov${n} mode tap user $(whoami)
+  ip link set tap-sriov${n} master br-sriov
+  ip link set dev tap-sriov${n} up
+
   for s in $(seq 1 ${NUM_SECONDARY_NICS}); do
     tap_name=stap$(($i - 1))-$(($s - 1))
     ip tuntap add dev $tap_name mode tap user $(whoami)

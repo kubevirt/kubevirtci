@@ -6,7 +6,6 @@ GOARCH ?= $$(uname -m | grep -q s390x && echo s390x || echo amd64)
 
 export GO111MODULE=on
 export GOPROXY=direct
-export GOSUMDB=off
 export GOFLAGS=-mod=vendor
 
 BIN_DIR = $(CURDIR)/build
