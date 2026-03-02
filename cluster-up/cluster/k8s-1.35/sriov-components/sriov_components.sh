@@ -1,9 +1,9 @@
 #!/bin/bash
 
-MANIFESTS_DIR="${KUBEVIRTCI_PATH}/cluster/${KUBEVIRT_PROVIDER}/sriov-components/manifests"
+MANIFESTS_DIR="${SCRIPT_PATH}/sriov-components/manifests"
 
 KUSTOMIZE_MULTUS_DIR="${MANIFESTS_DIR}/multus"
-MULTUS_MANIFEST="${CUSTOM_MANIFESTS}/multus.yaml"
+MULTUS_MANIFEST="${KUBEVIRTCI_CONFIG_PATH}/${KUBEVIRT_PROVIDER}/manifests/multus.yaml"
 
 CUSTOM_MANIFESTS="${KUBEVIRTCI_CONFIG_PATH}/${KUBEVIRT_PROVIDER}/manifests"
 SRIOV_COMPONENTS_MANIFEST="${CUSTOM_MANIFESTS}/sriov-components.yaml"
@@ -17,18 +17,11 @@ PATCH_SRIOVDP_RESOURCE_PREFIX="${CUSTOM_MANIFESTS}/patch-sriovdp-resource-prefix
 PATCH_NODE_SELECTOR_TEMPLATE="${MANIFESTS_DIR}/patch-node-selector.yaml.in"
 PATCH_NODE_SELECTOR="${CUSTOM_MANIFESTS}/patch-node-selector.yaml"
 
-KUBECONFIG="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig"
-KUBECTL="${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl --kubeconfig=${KUBECONFIG}"
-
 SRIOV_DRA_MANIFEST="${MANIFESTS_DIR}/dra/sriov_dra.yaml"
 SRIOV_DRA_NAMESPACE="dra-driver-sriov"
 
-NETWORK_RESOURCES_INJECTOR_AUTH_MANIFEST="${MANIFESTS_DIR}/network_resources_injector/auth.yaml"
-NETWORK_RESOURCES_INJECTOR_SERVICE_MANIFEST="${MANIFESTS_DIR}/network_resources_injector/service.yaml"
-NETWORK_RESOURCES_INJECTOR_SERVER_MANIFEST="${MANIFESTS_DIR}/network_resources_injector/server.yaml"
-
 function _kubectl() {
-    ${KUBECTL} "$@"
+    kubectl "$@"
 }
 
 function _retry() {
@@ -115,6 +108,8 @@ function sriov_components::wait_allocatable_resource() {
 }
 
 function sriov_components::deploy_multus() {
+  mkdir -p "$CUSTOM_MANIFESTS"
+
   _kubectl kustomize "$KUSTOMIZE_MULTUS_DIR" > "$MULTUS_MANIFEST"
 
   echo "Deploying Multus:"
@@ -133,7 +128,7 @@ function sriov_components::deploy() {
   local -r label_key=$5
   local -r label_value=$6
 
-  _create_custom_manifests_dir 
+  _create_custom_manifests_dir
   _prepare_node_selector_patch "$label_key" "$label_value"
   _prepare_sriovdp_resource_prefix_patch "$resource_prefix"
   _prepare_device_plugin_config \
@@ -149,13 +144,6 @@ function sriov_components::deploy_dra() {
   _kubectl create namespace "$SRIOV_DRA_NAMESPACE"
   _kubectl apply -f "$SRIOV_DRA_MANIFEST"
 
-  return 0
-}
-
-function sriov_components::deploy_network_resources_injector() {
-  _kubectl apply -f "$NETWORK_RESOURCES_INJECTOR_AUTH_MANIFEST"
-  _kubectl apply -f "$NETWORK_RESOURCES_INJECTOR_SERVICE_MANIFEST"
-  _kubectl apply -f "$NETWORK_RESOURCES_INJECTOR_SERVER_MANIFEST"
   return 0
 }
 
@@ -230,4 +218,3 @@ function _deploy_sriov_components() {
 
   return 0
 }
-
