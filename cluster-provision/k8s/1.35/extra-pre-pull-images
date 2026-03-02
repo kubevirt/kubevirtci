@@ -10,4 +10,12 @@ quay.io/cephcsi/cephcsi:v3.13.1
 quay.io/kubevirtci/install-cni:1.26.4
 quay.io/kubevirtci/pilot:1.26.4
 quay.io/kubevirtci/proxyv2:1.26.4
+gcr.io/k8s-staging-networking/kube-network-policies@sha256:bcbc2f6e57bb1689fffcaa968da1cf065ac0beed373e4f3b286a0e7dabe6e76d
 gcr.io/k8s-staging-networking/kube-network-policies@sha256:8c1f03ed7368803ec906014e5d22d54bb0cbb836af18e59de238861b7a85fdda
+ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:669b9d85524896308d9dbf4bb5f21f2635af27089d1209882e2d676597901d6d
+ghcr.io/kubevirt/kubesecondarydns@sha256:b8e1a46e9af47ffe32945894cc004b8525f0c734e446d4555559b7f71448ee7a
+quay.io/brancz/kube-rbac-proxy@sha256:85e87746fc166df9b5d2590eae23688e91b514d64dc0914d5101df4077099f91
+quay.io/kubevirt/bridge-marker@sha256:059eb99f04d42c5dd177d1b2b87af65efc14ac229738554b559fd8d4513139ef
+quay.io/kubevirt/cni-default-plugins@sha256:0487dfdad234413eb88b64f51e1694d6a1f474dd17cf3e510158ef5d2410dc70
+quay.io/kubevirt/kubemacpool@sha256:44957fd99f464f6e56daec0a86a5fa0afba062af25ffdad86422868ed63df81c
+quay.io/kubevirt/macvtap-cni@sha256:796257a98b170a191318ab8fe9af873b7a7b83b3deaa81757e2e2949ed51998d
