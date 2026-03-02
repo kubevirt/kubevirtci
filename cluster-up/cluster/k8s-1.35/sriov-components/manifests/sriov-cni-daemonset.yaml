@@ -30,12 +30,7 @@ spec:
         image: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.9.0
         imagePullPolicy: IfNotPresent
         securityContext:
-          allowPrivilegeEscalation: false
-          privileged: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-              - ALL
+          privileged: true
         resources:
           requests:
             cpu: "100m"
