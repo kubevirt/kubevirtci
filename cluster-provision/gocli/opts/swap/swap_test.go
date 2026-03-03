@@ -23,7 +23,7 @@ var _ = Describe("SwapOpt", func() {
 
 	BeforeEach(func() {
 		sshClient = kubevirtcimocks.NewMockSSHClient(gomock.NewController(GinkgoT()))
-		opt = NewSwapOpt(sshClient, 10, true, 1)
+		opt = NewSwapOpt(sshClient, 10, "LimitedSwap", 1)
 	})
 
 	It("should execute SwapOpt successfully", func() {
@@ -33,7 +33,7 @@ var _ = Describe("SwapOpt", func() {
 			"swapon -a",
 			"/bin/su -c \"echo vm.swappiness = " + fmt.Sprintf("%d", opt.swapiness) + " >> /etc/sysctl.conf\"",
 			"sysctl vm.swappiness=" + fmt.Sprintf("%d", opt.swapiness),
-			`sed -i 's/memorySwap: {}/memorySwap:\n  swapBehavior: UnlimitedSwap/g' /var/lib/kubelet/config.yaml`,
+			`sed -i 's/memorySwap: {}/memorySwap:\n  swapBehavior: LimitedSwap/g' /var/lib/kubelet/config.yaml`,
 			"systemctl restart kubelet",
 		}
 
