@@ -6,6 +6,8 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 )
 
+const DefaultEtcdCapacity = "1G"
+
 type etcdInMemOpt struct {
 	etcdSize  string
 	sshClient libssh.Client
@@ -13,7 +15,7 @@ type etcdInMemOpt struct {
 
 func NewEtcdInMemOpt(sc libssh.Client, size string) *etcdInMemOpt {
 	if size == "" {
-		size = "512M"
+		size = DefaultEtcdCapacity
 	}
 	return &etcdInMemOpt{
 		etcdSize:  size,

@@ -157,7 +157,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().StringArrayVar(&nvmeDisks, "nvme", []string{}, "size of the emulate NVMe disk to pass to the node")
 	run.Flags().StringArrayVar(&scsiDisks, "scsi", []string{}, "size of the emulate SCSI disk to pass to the node")
 	run.Flags().Bool("run-etcd-on-memory", false, "configure etcd to run on RAM memory, etcd data will not be persistent")
-	run.Flags().String("etcd-capacity", "512M", "set etcd data mount size.\nthis flag takes affect only when 'run-etcd-on-memory' is specified")
+	run.Flags().String("etcd-capacity", etcdinmemory.DefaultEtcdCapacity, "set etcd data mount size.\nthis flag takes affect only when 'run-etcd-on-memory' is specified")
 	run.Flags().Uint("hugepages-2m", 64, "number of hugepages of size 2M to allocate")
 	run.Flags().Uint("hugepages-1g", 0, "number of hugepages of size 1Gi to allocate")
 	run.Flags().Bool("enable-realtime-scheduler", false, "configures the kernel to allow unlimited runtime for processes that require realtime scheduling")
