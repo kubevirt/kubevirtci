@@ -13,7 +13,7 @@ type etcdInMemOpt struct {
 
 func NewEtcdInMemOpt(sc libssh.Client, size string) *etcdInMemOpt {
 	if size == "" {
-		size = "512M"
+		size = "1G"
 	}
 	return &etcdInMemOpt{
 		etcdSize:  size,
