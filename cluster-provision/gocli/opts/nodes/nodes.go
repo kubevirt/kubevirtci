@@ -21,6 +21,9 @@ var (
 	//go:embed conf/00-cgroupv2.conf
 	cgroupv2 []byte
 
+	//go:embed scripts/setup-bridges.sh
+	setupBridgesScript []byte
+
 	versionRegex = regexp.MustCompile(`.*([0-9]+\.[0-9]+)`)
 	v1_32        = semver.MustParse("v1.32")
 )
@@ -79,6 +82,7 @@ func (n *nodesProvisioner) Exec() error {
 		`echo "KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --fail-swap-on=false ` + nodeIP + " " + n.featureGatesFlag() + kubeletCpuManagerArgs + `" | tee /etc/sysconfig/kubelet > /dev/null`,
 		"systemctl daemon-reload &&  service kubelet restart",
 		"swapoff -a",
+		string(setupBridgesScript),
 		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
 		`timeout=60; interval=5; while ! systemctl status crio | grep -w "active"; do echo "Waiting for cri-o service to be ready"; sleep $interval; timeout=$((timeout - interval)); if [[ $timeout -le 0 ]]; then exit 1; fi; done`,
 		"kubeadm join --token abcdef.1234567890123456 " + controlPlaneIP + ":6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true",
