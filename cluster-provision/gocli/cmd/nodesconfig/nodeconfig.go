@@ -2,26 +2,27 @@ package nodesconfig
 
 // NodeLinuxConfig type holds the config params that a node can have for its linux system
 type NodeLinuxConfig struct {
-	NodeIdx         int
-	K8sVersion      string
-	FipsEnabled     bool
-	DockerProxy     string
-	EtcdInMemory    bool
-	EtcdSize        string
-	SingleStack     bool
-	Flannel         bool
-	NoEtcdFsync     bool
-	EnableAudit     bool
-	GpuAddress      string
-	Realtime        bool
-	PSA             bool
-	KsmEnabled      bool
-	SwapEnabled     bool
-	KsmPageCount    int
-	KsmScanInterval int
-	Swappiness      int
-	SwapBehavior    string
-	SwapSize        int
+	NodeIdx              int
+	K8sVersion           string
+	FipsEnabled          bool
+	DockerProxy          string
+	EtcdInMemory         bool
+	EtcdSize             string
+	SingleStack          bool
+	Flannel              bool
+	NoEtcdFsync          bool
+	EnableAudit          bool
+	GpuAddress           string
+	Realtime             bool
+	PSA                  bool
+	KsmEnabled           bool
+	SwapEnabled          bool
+	KsmPageCount         int
+	KsmScanInterval      int
+	Swappiness           int
+	SwapBehavior         string
+	SwapSize             int
+	SecondaryNicBridges  bool
 }
 
 // NodeK8sConfig type holds the config k8s options for kubevirt cluster

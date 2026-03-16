@@ -130,6 +130,12 @@ func WithSwapSize(swapSize int) LinuxConfigFunc {
 	}
 }
 
+func WithSecondaryNicBridges(secondaryNicBridges bool) LinuxConfigFunc {
+	return func(n *NodeLinuxConfig) {
+		n.SecondaryNicBridges = secondaryNicBridges
+	}
+}
+
 func WithCeph(ceph bool) K8sConfigFunc {
 	return func(n *NodeK8sConfig) {
 		n.Ceph = ceph

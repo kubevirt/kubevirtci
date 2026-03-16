@@ -111,6 +111,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().StringP("memory", "m", "3096M", "amount of ram per node")
 	run.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
 	run.Flags().UintP("secondary-nics", "", 0, "number of secondary nics to add")
+	run.Flags().Bool("enable-secondary-nic-bridges", false, "create bridge devices for secondary NICs")
 	run.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	run.Flags().String("kernel-args", "", "additional kernel args to pass through to the nodes")
 	run.Flags().BoolP("background", "b", true, "go to background after nodes are up")
@@ -240,6 +241,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	secondaryNics, err := cmd.Flags().GetUint("secondary-nics")
+	if err != nil {
+		return err
+	}
+
+	secondaryNicBridges, err := cmd.Flags().GetBool("enable-secondary-nic-bridges")
 	if err != nil {
 		return err
 	}
@@ -833,6 +839,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodesconfig.WithSwapiness(int(swapiness)),
 			nodesconfig.WithSwapBehavior(swapBehavior),
 			nodesconfig.WithSwapSize(int(swapSize)),
+			nodesconfig.WithSecondaryNicBridges(secondaryNicBridges),
 		}
 
 		n := nodesconfig.NewNodeLinuxConfig(x+1, prefix, linuxConfigFuncs)
@@ -1019,7 +1026,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 	}
 
 	if n.NodeIdx == 1 {
-		n := node01.NewNode01Provisioner(sshClient, n.SingleStack, n.Flannel, n.NoEtcdFsync)
+		n := node01.NewNode01Provisioner(sshClient, n.SingleStack, n.Flannel, n.NoEtcdFsync, n.SecondaryNicBridges)
 		opts = append(opts, n)
 
 	} else {
@@ -1032,7 +1039,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 			bindVfioOpt := bindvfio.NewBindVfioOpt(sshClient, gpuDeviceID)
 			opts = append(opts, bindVfioOpt)
 		}
-		n := nodesprovision.NewNodesProvisioner(n.K8sVersion, sshClient, n.SingleStack)
+		n := nodesprovision.NewNodesProvisioner(n.K8sVersion, sshClient, n.SingleStack, n.SecondaryNicBridges)
 		opts = append(opts, n)
 	}
 

@@ -26,7 +26,7 @@ var _ = Describe("nodes", func() {
 		BeforeEach(func() {
 			mockCtrl = gomock.NewController(GinkgoT())
 			sshClient = kubevirtcimocks.NewMockSSHClient(mockCtrl)
-			opt = NewNodesProvisioner("k8s-1.32", sshClient, false)
+			opt = NewNodesProvisioner("k8s-1.32", sshClient, false, false)
 			AddExpectCalls(sshClient)
 		})
 
@@ -42,7 +42,7 @@ var _ = Describe("nodes", func() {
 
 	DescribeTable("calling featureGateFlag",
 		func(k8sVersion, expectedValue string) {
-			np := NewNodesProvisioner(k8sVersion, nil, false)
+			np := NewNodesProvisioner(k8sVersion, nil, false, false)
 			Expect(np.featureGatesFlag()).To(BeEquivalentTo(expectedValue))
 		},
 		Entry("should not add new fg if 1.32", "k8s-1.32", "--feature-gates=NodeSwap=true"),
@@ -62,7 +62,7 @@ var _ = Describe("nodes", func() {
 					}
 				})
 
-				np := NewNodesProvisioner("name-with-no-version", nil, false)
+				np := NewNodesProvisioner("name-with-no-version", nil, false, false)
 				Expect(np.featureGatesFlag()).To(BeEquivalentTo(expectedValue))
 			},
 			Entry("should not add new fg if 1.32", "k8s-1.32", "--feature-gates=NodeSwap=true"),

@@ -6,10 +6,10 @@ git clone https://github.com/kubevirt/kubevirtci.git
 cd kubevirtci                                                                         
 ```                                                                                   
                                                                                       
-Start multi node k8s cluster with 2 nics                                              
-```                                                                                   
-export KUBEVIRT_PROVIDER=k8s-1.33 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=1
-make cluster-up                                                                       
+Start multi node k8s cluster with 2 nics
+```
+export KUBEVIRT_PROVIDER=k8s-1.33 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=1 KUBEVIRT_SECONDARY_NIC_BRIDGES=true
+make cluster-up
 ```                                                                                   
                                                                                       
 Stop k8s cluster                                                                      
