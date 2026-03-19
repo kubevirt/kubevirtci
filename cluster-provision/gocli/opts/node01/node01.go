@@ -13,19 +13,24 @@ var cgroupv2 []byte
 //go:embed conf/adv-audit.yaml
 var advAudit []byte
 
+//go:embed scripts/setup-bridges.sh
+var setupBridgesScript []byte
+
 type node01Provisioner struct {
-	sshClient   libssh.Client
-	singleStack bool
-	flannel     bool
-	etcdNoFsync bool
+	sshClient           libssh.Client
+	singleStack         bool
+	flannel             bool
+	etcdNoFsync         bool
+	secondaryNicBridges bool
 }
 
-func NewNode01Provisioner(sc libssh.Client, singleStack, flannel, etcdNoFsync bool) *node01Provisioner {
+func NewNode01Provisioner(sc libssh.Client, singleStack, flannel, etcdNoFsync, secondaryNicBridges bool) *node01Provisioner {
 	return &node01Provisioner{
-		sshClient:   sc,
-		singleStack: singleStack,
-		flannel:     flannel,
-		etcdNoFsync: etcdNoFsync,
+		sshClient:           sc,
+		singleStack:         singleStack,
+		flannel:             flannel,
+		etcdNoFsync:         etcdNoFsync,
+		secondaryNicBridges: secondaryNicBridges,
 	}
 }
 
@@ -59,6 +64,13 @@ func (n *node01Provisioner) Exec() error {
 		`if [ -f /home/` + libssh.GetSSHUser() + `/enable_audit ]; then echo '` + string(advAudit) + `' | tee /etc/kubernetes/audit/adv-audit.yaml > /dev/null; fi`,
 		`timeout=30; interval=5; while ! hostnamectl | grep Transient; do echo "Waiting for dhclient to set the hostname from dnsmasq"; sleep $interval; timeout=$((timeout - interval)); [ $timeout -le 0 ] && exit 1; done`,
 		"swapoff -a",
+	}
+
+	if n.secondaryNicBridges {
+		cmds = append(cmds, string(setupBridgesScript))
+	}
+
+	cmds = append(cmds,
 		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
 		`timeout=60; interval=5; while ! systemctl status crio | grep -w "active"; do echo "Waiting for cri-o service to be ready"; sleep $interval; timeout=$((timeout - interval)); if [[ $timeout -le 0 ]]; then exit 1; fi; done`,
 		kubeadmInitCmd,
@@ -70,7 +82,7 @@ func (n *node01Provisioner) Exec() error {
 		`kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /provision/local-volume.yaml`,
 		"mkdir -p /var/lib/rook",
 		"chcon -t container_file_t /var/lib/rook",
-	}
+	)
 	for _, cmd := range cmds {
 		err := n.sshClient.Command(cmd)
 		if err != nil {

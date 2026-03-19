@@ -21,18 +21,22 @@ var (
 	//go:embed conf/00-cgroupv2.conf
 	cgroupv2 []byte
 
+	//go:embed scripts/setup-bridges.sh
+	setupBridgesScript []byte
+
 	versionRegex = regexp.MustCompile(`.*([0-9]+\.[0-9]+)`)
 	v1_32        = semver.MustParse("v1.32")
 )
 
 type nodesProvisioner struct {
-	k8sVersion  string
-	sshClient   libssh.Client
-	singleStack bool
-	version     *semver.Version
+	k8sVersion          string
+	sshClient           libssh.Client
+	singleStack         bool
+	version             *semver.Version
+	secondaryNicBridges bool
 }
 
-func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack bool) *nodesProvisioner {
+func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack, secondaryNicBridges bool) *nodesProvisioner {
 	submatches := versionRegex.FindStringSubmatch(k8sVersion)
 	if len(submatches) != 2 {
 		logrus.Infof("not a parseable semver contained in %q. Trying the %q environment variable", k8sVersion, kubevirtProviderEnv)
@@ -50,10 +54,11 @@ func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack bool) 
 		logrus.Fatalf("not a parseable semver contained in %q", k8sVersion)
 	}
 	return &nodesProvisioner{
-		sshClient:   sc,
-		singleStack: singleStack,
-		k8sVersion:  k8sVersion,
-		version:     version,
+		sshClient:           sc,
+		singleStack:         singleStack,
+		k8sVersion:          k8sVersion,
+		version:             version,
+		secondaryNicBridges: secondaryNicBridges,
 	}
 }
 
@@ -79,12 +84,19 @@ func (n *nodesProvisioner) Exec() error {
 		`echo "KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --fail-swap-on=false ` + nodeIP + " " + n.featureGatesFlag() + kubeletCpuManagerArgs + `" | tee /etc/sysconfig/kubelet > /dev/null`,
 		"systemctl daemon-reload &&  service kubelet restart",
 		"swapoff -a",
+	}
+
+	if n.secondaryNicBridges {
+		cmds = append(cmds, string(setupBridgesScript))
+	}
+
+	cmds = append(cmds,
 		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
 		`timeout=60; interval=5; while ! systemctl status crio | grep -w "active"; do echo "Waiting for cri-o service to be ready"; sleep $interval; timeout=$((timeout - interval)); if [[ $timeout -le 0 ]]; then exit 1; fi; done`,
-		"kubeadm join --token abcdef.1234567890123456 " + controlPlaneIP + ":6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true",
+		"kubeadm join --token abcdef.1234567890123456 "+controlPlaneIP+":6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true",
 		"mkdir -p /var/lib/rook",
 		"chcon -t container_file_t /var/lib/rook",
-	}
+	)
 
 	for _, cmd := range cmds {
 		err := n.sshClient.Command(cmd)
