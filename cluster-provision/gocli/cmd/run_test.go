@@ -47,13 +47,13 @@ var _ = Describe("Node Provisioning", func() {
 		It("should execute the correct commands", func() {
 			linuxConfigFuncs := []nodesconfig.LinuxConfigFunc{
 				nodesconfig.WithEtcdInMemory(true),
-				nodesconfig.WithEtcdSize("512M"),
+				nodesconfig.WithEtcdSize("1G"),
 				nodesconfig.WithPSA(true),
 			}
 
 			n := nodesconfig.NewNodeLinuxConfig(1, "k8s-1.30", linuxConfigFuncs)
 
-			etcdinmemory.AddExpectCalls(sshClient, "512M")
+			etcdinmemory.AddExpectCalls(sshClient, "1G")
 			bindvfio.AddExpectCalls(sshClient, "8086:2668")
 			bindvfio.AddExpectCalls(sshClient, "8086:2415")
 			psa.AddExpectCalls(sshClient)
