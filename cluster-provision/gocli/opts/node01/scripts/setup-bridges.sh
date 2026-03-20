@@ -14,16 +14,33 @@ for iface in $(ls /sys/class/net/ 2>/dev/null | grep -E '^eth[1-9]$|^eth[0-9]{2,
     nmcli connection delete ${iface} 2>/dev/null || true
     nmcli connection delete ${bridge_name} 2>/dev/null || true
 
-    # Create bridge connection
-    nmcli connection add type bridge ifname ${bridge_name} con-name ${bridge_name}
+    # Create bridge connection with autoconnect enabled
+    nmcli connection add type bridge ifname ${bridge_name} con-name ${bridge_name} \
+        connection.autoconnect yes \
+        connection.autoconnect-priority 100
 
-    # Add ethernet interface as bridge slave
-    nmcli connection add type ethernet ifname ${iface} con-name ${iface} master ${bridge_name}
+    # Add ethernet interface as bridge slave with autoconnect
+    nmcli connection add type ethernet ifname ${iface} con-name ${iface} master ${bridge_name} \
+        connection.autoconnect yes \
+        connection.autoconnect-priority 100
 
     # Bring up the bridge (which will also bring up the slave)
     nmcli connection up ${bridge_name}
 
-    echo "Bridge ${bridge_name} created and configured successfully"
+    # Verify the bridge was created successfully
+    if ip link show ${bridge_name} &>/dev/null; then
+        echo "Bridge ${bridge_name} created and verified successfully"
+        # Show the bridge details
+        ip link show ${bridge_name}
+        ip link show ${iface} | grep -q "master ${bridge_name}" && echo "  ✓ ${iface} enslaved to ${bridge_name}"
+    else
+        echo "ERROR: Bridge ${bridge_name} creation failed!"
+        exit 1
+    fi
 done
 
 echo "All secondary interface bridges configured"
+
+# Final verification
+echo "Verifying all bridges..."
+ip link show | grep -E "^[0-9]+: br[0-9]+"
