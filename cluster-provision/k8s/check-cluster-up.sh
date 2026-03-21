@@ -71,7 +71,6 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
     bash -x ./cluster-up/up.sh
 
-
     if ! { timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s --all -l app!=whereabouts; do sleep 1; done" && timeout 210s bash -c "until ${ksh} wait --for=condition=Ready pod --timeout=30s -n kube-system --all -l app!=whereabouts; do sleep 1; done"; }; then
         gather_cluster_state
         exit 1
@@ -133,7 +132,9 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
             hack/conformance.sh $conformance_config
         fi
 
-        export SONOBUOY_EXTRA_ARGS="--plugin systemd-logs --plugin e2e"
+        # FIXME: Pod InPlace Resize Container tests fail with "resize is infeasible" timeout on kubevirtci nodes.
+        # Skip them until the root cause is resolved. See https://github.com/kubevirt/kubevirtci/issues/1631
+        export SONOBUOY_EXTRA_ARGS="--plugin systemd-logs --plugin e2e --plugin-env e2e.E2E_SKIP=Pod.InPlace.Resize.Container"
         hack/conformance.sh $conformance_config
 
         if [[ $(uname -m) != *s390x* ]]; then
