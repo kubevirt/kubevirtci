@@ -171,6 +171,11 @@ kind: KubeletConfiguration
 cgroupDriver: systemd
 failSwapOn: false
 kubeletCgroups: /systemd/system.slice
+cpuManagerPolicy: static
+kubeReserved:
+  cpu: 500m
+systemReserved:
+  cpu: 500m
 EOF
 
 cat <<EOT >/etc/sysconfig/kubelet
