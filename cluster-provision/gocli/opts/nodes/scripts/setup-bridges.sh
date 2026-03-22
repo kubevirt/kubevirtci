@@ -14,8 +14,8 @@ for iface in $(ls /sys/class/net/ 2>/dev/null | grep -E '^eth[1-9]$|^eth[0-9]{2,
     nmcli connection delete ${iface} 2>/dev/null || true
     nmcli connection delete ${bridge_name} 2>/dev/null || true
 
-    # Create bridge connection
-    nmcli connection add type bridge ifname ${bridge_name} con-name ${bridge_name}
+    # Create bridge connection (disable DHCP to avoid timeouts)
+    nmcli connection add type bridge ifname ${bridge_name} con-name ${bridge_name} ipv4.method disabled ipv6.method disabled
 
     # Add ethernet interface as bridge slave
     nmcli connection add type ethernet ifname ${iface} con-name ${iface} master ${bridge_name}
