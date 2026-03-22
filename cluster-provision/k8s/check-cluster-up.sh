@@ -66,6 +66,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         export KUBEVIRT_DEPLOY_GRAFANA=true
         export KUBEVIRT_DEPLOY_CDI=true
         export KUBEVIRT_STORAGE="rook-ceph-default"
+        export KUBEVIRT_SECONDARY_NIC_BRIDGES=true
     fi
 
     trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT
@@ -91,8 +92,12 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     if [ "${SLIM}" != "true" ]; then
         ${ssh} node01 -- ip l show eth1
         ${ssh} node01 -- ip l show eth2
+        ${ssh} node01 -- ip l show br1
+        ${ssh} node01 -- ip l show br2
         ${ssh} node02 -- ip l show eth1
         ${ssh} node02 -- ip l show eth2
+        ${ssh} node02 -- ip l show br1
+        ${ssh} node02 -- ip l show br2
 
         # Sanity check that Multus is able to connect secondary networks
         ${ksh} create -f "$DIR/test-multi-net.yaml"
