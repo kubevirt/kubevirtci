@@ -11,8 +11,16 @@ cluster-down:
 bump-net-resources-injector:
 	./hack/bump-net-resources-injector.sh
 
+crio-verify:
+	./hack/verify-crio-sync.sh
+
+crio-sync:
+	./hack/sync-crio-versions.sh
+
 .PHONY: \
 	cluster-up \
 	cluster-down \
 	bump-net-resources-injector \
-	bump
+	bump \
+	crio-verify \
+	crio-sync
