@@ -23,7 +23,7 @@ if [ "${ARCHITECTURE}" != "s390x" ]; then
 fi
 
 if [ ! -f alpine-make-vm-image ]; then
-    curl  https://raw.githubusercontent.com/kubevirt/alpine-make-vm-image/master/alpine-make-vm-image -o alpine-make-vm-image
+    curl https://raw.githubusercontent.com/vamsikrishna-siddu/alpine-make-vm-image-1/refs/heads/replace-nbd-with-loop-device/alpine-make-vm-image -o alpine-make-vm-image
     chmod 755 alpine-make-vm-image
 fi
 
