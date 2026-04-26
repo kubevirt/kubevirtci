@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 set -ex
 
@@ -67,7 +67,7 @@ function ensure_driver_is_loaded() {
 
   if ! grep "$module_name" /proc/modules; then
     if ! modprobe "$driver_name"; then
-      echo "FATAL: failed to load $DRIVER kernel module $DRIVER_KMODULE" >&2 && return 1
+      echo "FATAL: failed to load $driver_name kernel module $module_name" >&2 && return 1
     fi
   fi
 
@@ -84,7 +84,7 @@ validate_run_with_sudo
 validate_sysfs_mount_as_rw
 ensure_driver_is_loaded $DRIVER $DRIVER_KMODULE
 
-sriov_pfs=( $(find /sys/class/net/*/device/sriov_numvfs) )
+sriov_pfs=( $(find /sys/class/net/*/device/sriov_numvfs 2>/dev/null) )
 [ "${#sriov_pfs[@]}" -eq 0 ] && echo "FATAL: Could not find available sriov PFs" >&2 && exit 1
 
 for pf_name in $sriov_pfs; do
