@@ -275,6 +275,20 @@ function setup_kind() {
     # install the local storageClass for KubeVirt tests
     _kubectl apply -f $KIND_MANIFESTS_DIR/local-storage-class.yaml
 
+    # wait for the storage profile local to be created by CDI
+    kubectl wait --for=create --timeout=300s crd storageprofiles.cdi.kubevirt.io
+    kubectl wait --for=create storageprofile local
+
+    # set the accessModes and volumeMode for the storage profile,
+    # since CDI does not set it automatically
+    kubectl patch storageprofile local --type=merge -p '
+    spec:
+      claimPropertySets:
+      - accessModes:
+        - ReadWriteOnce
+        volumeMode: Filesystem
+    '
+
 }
 
 function _add_extra_mounts() {
