@@ -1,7 +1,18 @@
 #cloud-config
-password: fedora
-chpasswd: { expire: False }
 ssh_pwauth: yes
+users:
+  - name: cloud-user
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+chpasswd:
+  users:
+    - name: fedora
+      password: fedora
+      type: text
+    - name: cloud-user
+      password: cloud-user
+      type: text
+  expire: false
 write_files:
     - path: /etc/modules-load.d/mlx5.conf
       content: |
@@ -33,7 +44,7 @@ write_files:
           RemainAfterExit=true
 
           [Install]
-          WantedBy=cloud-init.service
+          WantedBy=cloud-init.target
     # Note: bash and libreadline in Fedora 35 come with 'bracketed-paste' mode
     # enabled by default. This results in extra escape sequences in the
     # console output. The mode is explicitly disabled here to make the existing
@@ -41,25 +52,54 @@ write_files:
     - path: /etc/profile.d/disable-bracketed-paste.sh
       content: |
         bind 'set enable-bracketed-paste off'
+    # Note: systemd>=258 (Fedora 43+) injects OSC 3008/8003 escape sequences
+    # via PROMPT_COMMAND and PS0 for shell integration. These break goexpect
+    # regex matching in console tests. Disable them at the profile level.
+    - path: /etc/profile.d/disable-systemd-shell-integration.sh
+      content: |
+        unset PROMPT_COMMAND PS0
+    # Restrict cloud-init datasource search to NoCloud, ConfigDrive, and None
+    # so that VMs booted without a cloud-init ISO (e.g. Freeze/Unfreeze tests)
+    # complete datasource detection in seconds instead of timing out through
+    # network-based datasources (EC2, Azure, ...) which can take many minutes
+    # on arm64. With NoCloud or ConfigDrive data injected by KubeVirt the
+    # behaviour is unchanged; without data cloud-init falls through to None.
+    - path: /etc/cloud/cloud.cfg.d/99-kubevirt-datasource.cfg
+      content: |
+        datasource_list: [NoCloud, ConfigDrive, None]
 runcmd:
+  # Fedora 43+ uses predictable network interface names (e.g. enp1s0).
+  # Many KubeVirt tests assume "eth0". Restore classic naming.
+  - sudo grubby --update-kernel=ALL --args="net.ifnames=0 biosdevname=0"
   - sudo systemctl daemon-reload
   - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress-ng virt-what vm-dump-metrics tpm2-tools netcat sg3_utils iperf3 wget tcpdump
-  # Download the busybox netcat and relpace it with the OpenBSD netcat
-  # To align with the netcat tool used in the Alpine image for network e2e testing
-  - if [ $(uname -m) == "aarch64" ]; then export CPUARCH="armv8l"; elif [ $(uname -m) == "s390x" ]; then export CPUARCH="s390x"; else export CPUARCH="x86_64"; fi
-  - sudo wget https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/busybox-${CPUARCH}
-  - sudo chmod +x busybox-${CPUARCH}
-  - sudo mv /usr/bin/nc /usr/bin/netcat-openbsd
-  - sudo mv busybox-${CPUARCH} /usr/bin/nc
+  # Install nmap-ncat in addition to OpenBSD netcat.
+  # Use "nc" when OpenBSD behavior is needed (cloud-init uses "nc -U").
+  # Use "ncat" when nmap-ncat behavior is needed (--recv-only, --no-shutdown,
+  # and server commands that use --sh-exec in tests).
+  - sudo dnf install -y nmap-ncat
+  - sudo alternatives --set nc /usr/bin/netcat
   - sudo dnf clean all
   - sudo systemctl enable wait-for-cloud-init
   - sudo systemctl enable qemu-guest-agent.service
   - sudo hostnamectl set-hostname ""
   - sudo hostnamectl set-hostname "" --transient
-  - sudo sed -i /users-groups/d /etc/cloud/cloud.cfg
+  - sudo sed -i '/users_groups/d' /etc/cloud/cloud.cfg
   - sudo sed -i 's/^SELINUX=.*/SELINUX=permissive/' /etc/selinux/config
-  # Adjust /etc/nsswitch.conf to mitigate the bug with nss-myhostame which
-  # breaks FQDN: https://bugzilla.redhat.com/show_bug.cgi?id=2038634
+  # Prefer "dns" before "resolve" in nsswitch.conf hosts lookup order.
+  # In our test setup, the "resolve" NSS module (systemd-resolved D-Bus path)
+  # can return the local short hostname before DNS search domains are applied,
+  # so "hostname -f" may return only the short name.
+  # Keep "resolve [!UNAVAIL=return]" at the end to preserve fallback semantics.
+  # Note: use a literal block (|) to avoid YAML misinterpreting "hosts:" as a mapping key.
   - |
-    sudo sed -i 's/hosts:      files myhostname resolve \[\!UNAVAIL=return\] dns/hosts:      resolve \[\!UNAVAIL=return\] files myhostname dns/' /etc/nsswitch.conf
+    sudo sed -i 's/^hosts:.*/hosts:      files dns myhostname resolve [!UNAVAIL=return]/' /etc/nsswitch.conf
+  - sudo sed -i '/pam_nologin/d' /etc/pam.d/sshd
+  # Ensure boot artifacts are refreshed on IBM Z. If cmdline/kernel artifacts drift,
+  # s390x can panic early with unknown-block and disabled-wait.
+  - |
+    if [ "$(uname -m)" = "s390x" ]; then
+      sudo dracut -f --regenerate-all
+      sudo zipl
+    fi
   - sudo shutdown

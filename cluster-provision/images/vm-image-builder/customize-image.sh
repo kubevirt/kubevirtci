@@ -99,5 +99,5 @@ virt-sysprep -d $DOMAIN_NAME --operations machine-id,bash-history,logfiles,tmp-f
 # Remove VM
 undefine_vm "${DOMAIN_NAME}"
 
-# Convert image
-qemu-img convert -c -O qcow2 "${SOURCE_IMAGE_PATH}" "${CUSTOMIZE_IMAGE_PATH}"
+# Convert image, sparsify and compress
+virt-sparsify --compress "${SOURCE_IMAGE_PATH}" "${CUSTOMIZE_IMAGE_PATH}"
