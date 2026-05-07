@@ -61,6 +61,11 @@ if [[ ${ARCH} = $(go_style_local_arch) ]]; then
   buildconfig="--virt-type kvm"
 else
   buildconfig="--arch $(linux_style_arch_name ${ARCH})"
+  if [[ "${ARCH}" = "arm64" ]]; then
+    # Under TCG emulation, cpu=max can trap in EDK2 very early (PC=0x6200).
+    # Pin to a stable model for cross-arch arm64 customization boots.
+    buildconfig="${buildconfig} --cpu model=cortex-a57"
+  fi
 fi
 
 if [[ ${DEBUG} = "true" ]]; then
