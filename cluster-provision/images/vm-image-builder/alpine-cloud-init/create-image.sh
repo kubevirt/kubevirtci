@@ -8,9 +8,17 @@ SCRIPT_PATH=$(dirname "$(dirname "$(realpath "$0")")")
 ARCHITECTURE="${ARCHITECTURE:-"$(go_style_local_arch)"}"
 ARCH="${ARCH:-"$(linux_style_arch_name "$ARCHITECTURE")"}"
 
+IMAGE_SIZE="200M"
+
 if [ "$ARCHITECTURE" = "s390x" ]; then
    KERNEL_FLAVOR="lts"
    ALPINE_BRANCH="v3.20"
+fi
+
+# arm64 uses UEFI boot which requires a separate 128M EFI partition,
+# so the image needs to be larger to fit both the EFI and root partitions.
+if [ "$ARCHITECTURE" = "arm64" ]; then
+   IMAGE_SIZE="512M"
 fi
 
 # s390x does not support qemu-user-static
@@ -26,7 +34,7 @@ fi
 podman run --rm -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
 ./alpine-make-vm-image \
     --image-format qcow2 \
-    --image-size 200M \
+    --image-size $IMAGE_SIZE \
     --branch $ALPINE_BRANCH \
     --kernel-flavor $KERNEL_FLAVOR \
     --arch $ARCH \
