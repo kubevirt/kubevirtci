@@ -13,10 +13,6 @@ if [ "$ARCHITECTURE" = "s390x" ]; then
    ALPINE_BRANCH="v3.20"
 fi
 
-if [ "${ARCHITECTURE}" != ""  ]; then
-    PLATFORM=linux/$ARCHITECTURE
-fi
-
 # s390x does not support qemu-user-static
 if [ "${ARCHITECTURE}" != "s390x" ]; then
     podman run --rm --privileged docker.io/multiarch/qemu-user-static --reset -p yes
@@ -27,7 +23,7 @@ if [ ! -f alpine-make-vm-image ]; then
     chmod 755 alpine-make-vm-image
 fi
 
-podman run --rm --platform=$PLATFORM -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
+podman run --rm -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
 ./alpine-make-vm-image \
     --image-format qcow2 \
     --image-size 200M \
