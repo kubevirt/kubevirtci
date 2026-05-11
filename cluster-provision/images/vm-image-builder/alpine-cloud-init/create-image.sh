@@ -11,10 +11,19 @@ ARCH="${ARCH:-"$(linux_style_local_arch)"}"
 if [ "$ARCHITECTURE" = "s390x" ]; then
    KERNEL_FLAVOR="lts"
    ALPINE_BRANCH="v3.20"
-fi 
+fi
 
 if [ "${ARCHITECTURE}" != ""  ]; then
     PLATFORM=linux/$ARCHITECTURE
+fi
+
+# Ensure the NBD (Network Block Device) module is loaded for alpine-make-vm-image,
+# which attaches the image to an NBD device during the build process.
+if lsmod | grep -qw nbd; then
+    echo "NBD Kernel module is already loaded."
+else
+    echo "NBD Kernel module was not loaded. Loading NBD kernel module on host system..."
+    modprobe nbd
 fi
 
 # s390x does not support qemu-user-static
