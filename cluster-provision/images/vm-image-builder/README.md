@@ -135,3 +135,117 @@ To use your own tag for the image, you need to set the environment variable `KUB
 ```
 export KUBEVIRTCI_TAG=mytag
 ```
+
+## End-to-end: updating fedora-with-test-tooling in KubeVirt
+
+The `fedora-with-test-tooling` container disk is used by KubeVirt e2e tests. Unlike
+the alpine image and the k8s provider images, it has no automated CI job for
+publishing. The full update cycle is manual and spans two repositories.
+
+### 1. Make changes (kubevirtci)
+
+Edit the files under `fedora-with-test-tooling/` (e.g. `cloud-config` to add
+packages or configuration).
+
+### 2. Build locally (kubevirtci)
+
+Build the image for your host architecture to verify the changes:
+
+```bash
+cd cluster-provision/images/vm-image-builder
+./create-containerdisk.sh fedora-with-test-tooling
+```
+
+This downloads the base Fedora cloud image, boots a VM with `cloud-config` via
+`virt-install`, runs `virt-sysprep`, and wraps the result in a `FROM scratch`
+container image.
+
+Prerequisites: see the [Prerequisites](#prerequisites) section above.
+
+### 3. Publish to quay.io (kubevirtci)
+
+Build and push for all architectures (amd64, arm64, s390x):
+
+```bash
+cd cluster-provision/images/vm-image-builder
+./publish-multiarch-containerdisk.sh fedora-with-test-tooling quay.io kubevirtci
+```
+
+This pushes per-arch images and a multi-arch manifest to
+`quay.io/kubevirtci/fedora-with-test-tooling:<tag>`.
+
+You need write access to the `kubevirtci` organization on quay.io.
+
+### 4. Get the new image digests
+
+After publishing, retrieve the per-arch digests:
+
+```bash
+skopeo inspect --raw docker://quay.io/kubevirtci/fedora-with-test-tooling:<tag> | \
+  jq '.manifests[] | {platform: .platform, digest: .digest}'
+```
+
+### 5. Update the digest in kubevirt (kubevirt repo)
+
+In the `kubevirt/kubevirt` repository, update the `oci_pull` entries in the
+`WORKSPACE` file with the new digests:
+
+```python
+oci_pull(
+    name = "fedora_with_test_tooling",
+    digest = "sha256:<new-amd64-digest>",
+    image = "quay.io/kubevirtci/fedora-with-test-tooling",
+)
+
+oci_pull(
+    name = "fedora_with_test_tooling_aarch64",
+    digest = "sha256:<new-arm64-digest>",
+    image = "quay.io/kubevirtci/fedora-with-test-tooling",
+)
+
+oci_pull(
+    name = "fedora_with_test_tooling_s390x",
+    digest = "sha256:<new-s390x-digest>",
+    image = "quay.io/kubevirtci/fedora-with-test-tooling",
+)
+```
+
+### 6. Verify
+
+In the kubevirt repo, run the e2e tests that use
+`fedora-with-test-tooling-container-disk` to confirm the updated image works
+correctly.
+
+### Summary of the image flow
+
+```
+kubevirtci                                         kubevirt
+────────                                           ───────
+fedora-with-test-tooling/cloud-config
+        │
+        ▼
+create-containerdisk.sh
+  ├─ downloads base Fedora cloud image
+  ├─ boots VM with cloud-init (virt-install)
+  ├─ virt-sysprep + compress
+  └─ wraps qcow2 in FROM scratch container
+        │
+        ▼
+publish-multiarch-containerdisk.sh
+  ├─ builds amd64, arm64, s390x
+  ├─ pushes per-arch images
+  └─ pushes multi-arch manifest
+        │
+        └──► quay.io/kubevirtci/fedora-with-test-tooling:<tag>
+                                                        │
+                                                        ▼
+                                              WORKSPACE (oci_pull by digest)
+                                                        │
+                                                        ▼
+                                              containerimages/BUILD.bazel
+                                              (oci_image + oci_push)
+                                                        │
+                                                        ▼
+                                              quay.io/kubevirt/fedora-with-test-tooling-container-disk
+                                              (used in e2e test VMI specs)
+```
