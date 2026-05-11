@@ -6,12 +6,12 @@ ALPINE_BRANCH="v3.19"
 SCRIPT_PATH=$(dirname "$(dirname "$(realpath "$0")")")
 . "${SCRIPT_PATH}/common.sh"
 ARCHITECTURE="${ARCHITECTURE:-"$(go_style_local_arch)"}"
-ARCH="${ARCH:-"$(linux_style_local_arch)"}"
+ARCH="${ARCH:-"$(linux_style_arch_name "$ARCHITECTURE")"}"
 
 if [ "$ARCHITECTURE" = "s390x" ]; then
    KERNEL_FLAVOR="lts"
    ALPINE_BRANCH="v3.20"
-fi 
+fi
 
 if [ "${ARCHITECTURE}" != ""  ]; then
     PLATFORM=linux/$ARCHITECTURE
