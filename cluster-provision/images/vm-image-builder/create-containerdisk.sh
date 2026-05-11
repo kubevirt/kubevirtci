@@ -88,10 +88,10 @@ if [ -f "${SCRIPT_PATH}/${IMAGE_NAME}/create-image.sh" ]; then
     readonly build_directory="${SCRIPT_PATH}/${IMAGE_NAME}/build"
 
     trap 'cleanup' EXIT SIGINT
-    mkdir -p "${build_directory}"
 
     pushd "${SCRIPT_PATH}/${IMAGE_NAME}"
-      cleanup
+      rm -rf "${build_directory}"
+      mkdir -p "${build_directory}"
       echo "Creating the image"
       ./create-image.sh "${build_directory}/${customized_image}"
 
