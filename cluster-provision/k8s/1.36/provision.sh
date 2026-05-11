@@ -99,5 +99,25 @@ fi
 
 dnf install -y NetworkManager NetworkManager-ovs NetworkManager-config-server
 
+# NetworkManager-config-server sets no-auto-default=* which prevents auto-DHCP
+# on unconfigured interfaces. CentOS 9 has ifcfg-eth0 from cloud-init but
+# CentOS 10 uses keyfile format and has no persistent connection profile.
+if [ "$release" == "centos10" ]; then
+  cat > /etc/NetworkManager/system-connections/eth0.nmconnection << ETHEOF
+[connection]
+id=eth0
+type=ethernet
+interface-name=eth0
+autoconnect=true
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+ETHEOF
+  chmod 600 /etc/NetworkManager/system-connections/eth0.nmconnection
+fi
+
 # envsubst pkg is not available by default in s390x Architecture, so explicitly installing it as part of gettext
 dnf install -y gettext
