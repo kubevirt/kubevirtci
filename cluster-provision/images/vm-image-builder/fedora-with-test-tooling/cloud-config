@@ -1,9 +1,14 @@
 #cloud-config
 ssh_pwauth: yes
 users:
+  - name: fedora
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    lock_passwd: false
   - name: cloud-user
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
+    lock_passwd: false
 chpasswd:
   users:
     - name: fedora
