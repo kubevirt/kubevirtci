@@ -6,15 +6,19 @@ ALPINE_BRANCH="v3.19"
 SCRIPT_PATH=$(dirname "$(dirname "$(realpath "$0")")")
 . "${SCRIPT_PATH}/common.sh"
 ARCHITECTURE="${ARCHITECTURE:-"$(go_style_local_arch)"}"
-ARCH="${ARCH:-"$(linux_style_local_arch)"}"
+ARCH="${ARCH:-"$(linux_style_arch_name "$ARCHITECTURE")"}"
+
+IMAGE_SIZE="200M"
 
 if [ "$ARCHITECTURE" = "s390x" ]; then
    KERNEL_FLAVOR="lts"
    ALPINE_BRANCH="v3.20"
 fi
 
-if [ "${ARCHITECTURE}" != ""  ]; then
-    PLATFORM=linux/$ARCHITECTURE
+# arm64 uses UEFI boot which requires a separate 128M EFI partition,
+# so the image needs to be larger to fit both the EFI and root partitions.
+if [ "$ARCHITECTURE" = "arm64" ]; then
+   IMAGE_SIZE="512M"
 fi
 
 # Ensure the NBD (Network Block Device) module is loaded for alpine-make-vm-image,
@@ -36,10 +40,10 @@ if [ ! -f alpine-make-vm-image ]; then
     chmod 755 alpine-make-vm-image
 fi
 
-podman run --rm --platform=$PLATFORM -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
+podman run --rm -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
 ./alpine-make-vm-image \
     --image-format qcow2 \
-    --image-size 200M \
+    --image-size $IMAGE_SIZE \
     --branch $ALPINE_BRANCH \
     --kernel-flavor $KERNEL_FLAVOR \
     --arch $ARCH \
