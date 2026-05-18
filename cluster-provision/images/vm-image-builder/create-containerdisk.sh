@@ -96,7 +96,7 @@ if [ -f "${SCRIPT_PATH}/${IMAGE_NAME}/create-image.sh" ]; then
       ./create-image.sh "${build_directory}/${customized_image}"
 
       echo "Creating the containerdisk ..."
-      podman build . -t ${IMAGE_NAME}:${TAG} -f - <<END
+      podman build --platform linux/${ARCH} . -t ${IMAGE_NAME}:${TAG} -f - <<END
 FROM scratch
 ADD --chown=107:107 build/${customized_image} /disk/
 END
