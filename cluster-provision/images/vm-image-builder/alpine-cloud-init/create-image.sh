@@ -40,7 +40,14 @@ if [ ! -f alpine-make-vm-image ]; then
     chmod 755 alpine-make-vm-image
 fi
 
-podman run --rm -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
+# Users can set the network backend by setting the environment variable PODMAN_NETWORK_BACKEND
+# for example: export PODMAN_NETWORK_BACKEND=slirp4netns
+PODMAN_NETWORK_ARG=""
+if [ -n "${PODMAN_NETWORK_BACKEND}" ]; then
+    PODMAN_NETWORK_ARG="--network ${PODMAN_NETWORK_BACKEND}"
+fi
+
+podman run --rm ${PODMAN_NETWORK_ARG} -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
 ./alpine-make-vm-image \
     --image-format qcow2 \
     --image-size $IMAGE_SIZE \
