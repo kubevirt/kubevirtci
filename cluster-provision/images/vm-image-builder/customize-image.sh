@@ -6,31 +6,58 @@ source ${SCRIPT_PATH}/common.sh
 ARCH=${ARCHITECTURE:-"$(go_style_local_arch)"}
 CONSOLE=${CONSOLE:-"true"}
 DEBUG=${DEBUG:-"false"}
+ARTIFACTS=${ARTIFACTS:-"${PWD}/artifacts"}
+
+function debug_logs() {
+  local -a logs=(
+    "/tmp/provision-vm-console.log"
+    "/var/log/libvirtd.log"
+    "/var/log/virtlogd.log"
+    "/var/log/swtpm/libvirt/qemu/provision-vm-swtpm.log"
+  )
+  local qemu_log
+  if [[ -d /var/log/libvirt/qemu ]]; then
+    for qemu_log in /var/log/libvirt/qemu/*; do
+      [[ -f "${qemu_log}" ]] && logs+=("${qemu_log}")
+    done
+  fi
+
+  printf '%s\n' "${logs[@]}"
+}
 
 function print_debug_log() {
-  local debuglog="/tmp/provision-vm-console.log /var/log/libvirtd.log /var/log/virtlogd.log /var/log/swtpm/libvirt/qemu/provision-vm-swtpm.log"
-  for i in `ls /var/log/libvirt/qemu/`; do
-    debuglog="/var/log/libvirt/qemu/${i} ${debuglog}"
-  done
-  for log in ${debuglog}; do
+  local log
+  while IFS= read -r log; do
     printf "*%.0s" {1..15}
     echo "print ${log}"
-    [[ -f ${log} ]] && cat ${log}
-  done
+    [[ -f "${log}" ]] && cat "${log}"
+  done < <(debug_logs)
+}
+
+function collect_artifacts() {
+  mkdir -p "${ARTIFACTS}" || return 0
+
+  local log
+  while IFS= read -r log; do
+    [[ -f "${log}" ]] || continue
+    cp -f "${log}" "${ARTIFACTS}/$(basename "${log}")" || true
+  done < <(debug_logs)
 }
 
 function cleanup() {
-  if [ $? -ne 0 ]; then
+  local exit_code=$?
+
+  if [[ ${exit_code} -ne 0 ]]; then
     rm -f "${CUSTOMIZE_IMAGE_PATH}"
   fi
 
-  if [[ ${DEBUG} = "true" ]]; then
-    print_debug_log
-  fi
+  collect_artifacts
 
   virsh destroy "${DOMAIN_NAME}" || true
   undefine_vm "${DOMAIN_NAME}"
   rm -rf "${CLOUD_INIT_ISO}"
+
+  return "${exit_code}"
 }
 
 function undefine_vm() {
@@ -73,7 +100,7 @@ if [[ ${DEBUG} = "true" ]]; then
 fi
 
 if [[ ${CONSOLE} = "false" ]]; then
-  consoleconfig="--noautoconsole --wait 120"
+  consoleconfig="--noautoconsole --wait 90"
 else
   consoleconfig=""
 fi
