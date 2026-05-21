@@ -21,6 +21,11 @@ if [ "$ARCHITECTURE" = "arm64" ]; then
    IMAGE_SIZE="512M"
 fi
 
+# The compiled image was 203M on ppc64le, so we needed to increase the size
+if [ "$ARCHITECTURE" = "ppc64le" ]; then
+   IMAGE_SIZE="250M"
+fi
+
 # Ensure the NBD (Network Block Device) module is loaded for alpine-make-vm-image,
 # which attaches the image to an NBD device during the build process.
 if lsmod | grep -qw nbd; then
