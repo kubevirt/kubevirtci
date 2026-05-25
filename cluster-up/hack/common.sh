@@ -14,6 +14,7 @@ if [ -z "$KUBEVIRTCI_CONFIG_PATH" ]; then
         echo "$(pwd)/_ci-configs"
     )"
 fi
+export KUBEVIRTCI_CONFIG_PATH
 
 
 KUBEVIRTCI_CLUSTER_PATH=${KUBEVIRTCI_CLUSTER_PATH:-${KUBEVIRTCI_PATH}/cluster}
@@ -44,6 +45,8 @@ KUBEVIRT_SWAP_ON=${KUBEVIRT_SWAP_ON:-false}
 KUBEVIRT_SWAP_BEHAVIOR=${KUBEVIRT_SWAP_BEHAVIOR:-}
 KUBEVIRT_KSM_ON=${KUBEVIRT_KSM_ON:-false}
 KUBVIRT_WITH_CNAO_SKIP_CONFIG=${KUBVIRT_WITH_CNAO_SKIP_CONFIG:-false}
+
+export KUBEVIRT_PROVIDER
 
 # If on a developer setup, expose ocp on 8443, so that the openshift web console can be used (the port is important because of auth redirects)
 # http and https ports are accessed by testing framework and should not be randomized

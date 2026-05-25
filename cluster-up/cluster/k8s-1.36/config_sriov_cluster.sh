@@ -5,18 +5,9 @@ set -xe
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
 CONFIGURE_VFS_SCRIPT_PATH="$SCRIPT_PATH/sriov-node/configure_vfs.sh"
 
-# Set KUBEVIRTCI_CONFIG_PATH if not set
-if [ -z "$KUBEVIRTCI_CONFIG_PATH" ]; then
-    KUBEVIRTCI_CONFIG_PATH="$(cd "${SCRIPT_PATH}/../../.." && pwd)/_ci-configs"
-fi
-
-# Always derive provider from script location (e.g. cluster/k8s-1.36/*).
-KUBEVIRT_PROVIDER="$(basename "$SCRIPT_PATH")"
-if ! [[ "$KUBEVIRT_PROVIDER" =~ ^k8s-[0-9]+\.[0-9]+$ ]]; then
-    echo "FATAL: unable to derive valid k8s provider from SCRIPT_PATH=${SCRIPT_PATH}" >&2
-    exit 1
-fi
-export KUBEVIRT_PROVIDER
+# These are expected to be exported by cluster-up/hack/common.sh.
+: "${KUBEVIRTCI_CONFIG_PATH:?FATAL: missing KUBEVIRTCI_CONFIG_PATH}"
+: "${KUBEVIRT_PROVIDER:?FATAL: missing KUBEVIRT_PROVIDER}"
 
 KUBECONFIG="${KUBEVIRTCI_CONFIG_PATH}/${KUBEVIRT_PROVIDER}/.kubeconfig"
 KUBECTL="${KUBEVIRTCI_CONFIG_PATH}/${KUBEVIRT_PROVIDER}/.kubectl --kubeconfig=${KUBECONFIG}"
