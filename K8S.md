@@ -11,6 +11,21 @@ Start multi node k8s cluster with 2 nics
 export KUBEVIRT_PROVIDER=k8s-1.33 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=1 KUBEVIRT_SECONDARY_NIC_BRIDGES=true
 make cluster-up
 ```                                                                                   
+
+Prepare the cluster for the emulated SR-IOV, with device plugin:
+(This requires `KUBEVIRT_PROVIDER` `k8s-1.35` or newer)
+```
+export KUBEVIRT_PROVIDER=k8s-1.36
+export KUBEVIRT_WITH_SRIOV=true
+make cluster-up
+```
+When enabled, cluster-up will install Multus CNI and configure each cluster node QEMU instance
+to use emulated SR-IOV Physical Function (PF), and create Virtual Functions (VF).
+
+Optional: to use DRA path in SR-IOV setup, add this before cluster-up:
+```
+export KUBEVIRT_USE_DRA=true
+```
                                                                                       
 Stop k8s cluster                                                                      
 ```
