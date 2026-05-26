@@ -136,6 +136,12 @@ func WithSecondaryNicBridges(secondaryNicBridges bool) LinuxConfigFunc {
 	}
 }
 
+func WithVsockChildNsMode(mode string) LinuxConfigFunc {
+	return func(n *NodeLinuxConfig) {
+		n.VsockChildNsMode = mode
+	}
+}
+
 func WithCeph(ceph bool) K8sConfigFunc {
 	return func(n *NodeK8sConfig) {
 		n.Ceph = ceph
