@@ -25,7 +25,6 @@ write_files:
     - path: /etc/modules-load.d/mlx4.conf
       content: |
         mlx4_core
-        mlx4_ib
     - path: /etc/modules-load.d/i40e.conf
       content: |
         i40e
