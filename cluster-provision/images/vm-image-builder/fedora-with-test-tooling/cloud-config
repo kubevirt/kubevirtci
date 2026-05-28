@@ -71,11 +71,18 @@ write_files:
       content: |
         datasource_list: [NoCloud, ConfigDrive, None]
 runcmd:
+  - |
+    set -e
+    KERNEL_VER_REL="7.0.10-101.fc43"
+    KERNEL_NEVRA="${KERNEL_VER_REL}.$(uname -m)"
+    echo "KERNEL_NEVRA=${KERNEL_NEVRA}" > /etc/kernel-nevra.env
+    sudo dnf -y install "kernel-${KERNEL_NEVRA}"
+    sudo grubby --set-default="/boot/vmlinuz-${KERNEL_NEVRA}"
+  - sudo systemctl daemon-reload
+  - sudo dnf install -y qemu-guest-agent stress-ng virt-what vm-dump-metrics tpm2-tools netcat sg3_utils iperf3 wget tcpdump
   # Fedora 43+ uses predictable network interface names (e.g. enp1s0).
   # Many KubeVirt tests assume "eth0". Restore classic naming.
   - sudo grubby --update-kernel=ALL --args="net.ifnames=0 biosdevname=0"
-  - sudo systemctl daemon-reload
-  - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress-ng virt-what vm-dump-metrics tpm2-tools netcat sg3_utils iperf3 wget tcpdump
   # Install nmap-ncat in addition to OpenBSD netcat.
   # Use "nc" when OpenBSD behavior is needed (cloud-init uses "nc -U").
   # Use "ncat" when nmap-ncat behavior is needed (--recv-only, --no-shutdown,
@@ -102,7 +109,13 @@ runcmd:
   # s390x can panic early with unknown-block and disabled-wait.
   - |
     if [ "$(uname -m)" = "s390x" ]; then
-      sudo dracut -f --regenerate-all
+      set -e
+      source /etc/kernel-nevra.env
+      echo -e '[defaultboot]\ntarget=/boot' > /etc/zipl.conf
+      sudo zipl-switch-to-blscfg
+      sudo dracut -f "/boot/initramfs-${KERNEL_NEVRA}.img" "${KERNEL_NEVRA}"
       sudo zipl
+      # Fail image build if bootmap was not refreshed to include the newly pinned kernel.
+      test /boot/bootmap -nt "/boot/vmlinuz-${KERNEL_NEVRA}"
     fi
   - sudo shutdown
