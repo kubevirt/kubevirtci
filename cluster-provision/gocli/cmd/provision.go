@@ -60,6 +60,9 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		// default to Centos Stream 9
 		centosVersion = "9"
 	}
+
+	centosScriptsPath := filepath.Join(packagePath, "..", "..", fmt.Sprintf("centos%s", centosVersion), "scripts")
+
 	versionBytes, err := os.ReadFile(filepath.Join(packagePath, "version"))
 	if err != nil {
 		return err
@@ -175,6 +178,11 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	containers <- dnsmasq.ID
+
+	err = copyDirectory(ctx, cli, dnsmasq.ID, centosScriptsPath, "/")
+	if err != nil {
+		return fmt.Errorf("failed copying centos scripts into dnsmasq container: %v", err)
+	}
 	if err := cli.ContainerStart(ctx, dnsmasq.ID, container.StartOptions{}); err != nil {
 		return err
 	}
@@ -229,6 +237,11 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	containers <- node.ID
+
+	err = copyDirectory(ctx, cli, node.ID, centosScriptsPath, "/")
+	if err != nil {
+		return fmt.Errorf("failed copying centos scripts into node container: %v", err)
+	}
 	if err := cli.ContainerStart(ctx, node.ID, container.StartOptions{}); err != nil {
 		return err
 	}
