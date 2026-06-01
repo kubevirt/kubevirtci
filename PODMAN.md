@@ -4,22 +4,38 @@ Install podman 3.1+, then run it in docker compatible mode:
 
 ## Rootless podman
 
+### Setup (Fedora)
+
+Enable the user podman socket:
+
+```bash
+systemctl --user enable --now podman.socket
 ```
-systemctl start --user podman.socket
+
+Load required kernel modules now and during future boots:
+
+```bash
+sudo tee /etc/modules-load.d/kubevirtci.conf <<EOF
+# Kernel modules required for KubeVirt cluster-up
+ip_tables
+iptable_nat
+iptable_filter
+ip6_tables
+ip6table_nat
+ip6table_filter
+kvm
+EOF
+sudo systemctl restart systemd-modules-load
 ```
 
-Currently rootless podman is **not** working with the `make cluster-sync`
-command, essentially because incoming traffic is coming from the loopback device
-instead of eth0.
+Configure the podman socket path for your future shells:
 
-The current rules - [ssh](https://github.com/kubevirt/kubevirtci/blob/962d90cead28fc2aadcc07388b18d2479b2b6714/cluster-provision/centos8/scripts/vm.sh#L73), [restricted ports](https://github.com/kubevirt/kubevirtci/blob/962d90cead28fc2aadcc07388b18d2479b2b6714/cluster-provision/centos8/scripts/vm.sh#L83) - allow `make cluster-up` to run successfully, but
-unfortunately they break the cluster's network connectivity in a subtle way:
-image pulling fails because outgoing traffic to ports 22 6443 8443 80 443 30007
-30008 31001 30085 is redirected to the VM in the respective node container (i.e.
-itself) instead of going to the specified host (e.g. quay.io).
-
-This will use `fuse-overlayfs` as storage layer. If the performance is not
-satisfactory, consider running podman as root to use plain `overlayfs2`:
+```bash
+mkdir -p ~/.bashrc.d
+tee ~/.bashrc.d/kubevirtci <<EOF
+export KUBEVIRTCI_PODMAN_SOCKET=\$XDG_RUNTIME_DIR/podman/podman.sock
+EOF
+```
 
 ## Rootful podman
 
