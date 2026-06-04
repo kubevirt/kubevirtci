@@ -19,6 +19,11 @@ sed -Ei \
 	-e 's/^[# ](unicode)=.*/\1=YES/' \
 	/etc/rc.conf
 
+step 'Enable igbvf kernel module when present'
+if ls /lib/modules/*/kernel/drivers/net/ethernet/intel/igbvf/igbvf.ko* >/dev/null 2>&1; then
+	echo "igbvf" > /etc/modules-load.d/igbvf.conf
+fi
+
 step 'Enable services'
 rc-update add qemu-guest-agent default
 rc-update add cloud-init default
