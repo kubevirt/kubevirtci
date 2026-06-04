@@ -76,7 +76,7 @@ runcmd:
   # Many KubeVirt tests assume "eth0". Restore classic naming.
   - sudo grubby --update-kernel=ALL --args="net.ifnames=0 biosdevname=0"
   - sudo systemctl daemon-reload
-  - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress-ng virt-what vm-dump-metrics tpm2-tools netcat sg3_utils iperf3 wget tcpdump
+  - sudo dnf install -y kernel-modules-$(uname -r) qemu-guest-agent stress-ng virt-what vm-dump-metrics tpm2-tools netcat sg3_utils iperf3 wget tcpdump dhcp-client
   # Install nmap-ncat in addition to OpenBSD netcat.
   # Use "nc" when OpenBSD behavior is needed (cloud-init uses "nc -U").
   # Use "ncat" when nmap-ncat behavior is needed (--recv-only, --no-shutdown,
