@@ -146,13 +146,13 @@ fi
 # Prevent the emulated soundcard from messing with host sound
 export QEMU_AUDIO_DRV=none
 
-block_dev_arg=""
+block_dev_drive_arg=""
 
 if [ -n "${BLOCK_DEV}" ]; then
   # 10Gi default
   block_device_size="${BLOCK_DEV_SIZE:-10737418240}"
   qemu-img create -f qcow2 ${BLOCK_DEV} ${block_device_size}
-  block_dev_arg="-drive format=qcow2,file=${BLOCK_DEV},if=virtio,cache=unsafe"
+  block_dev_drive_arg="-drive format=qcow2,file=${BLOCK_DEV},if=none,id=extdisk,cache=unsafe"
 fi
 
 disk_num=0
@@ -191,6 +191,7 @@ if [ "$n" = "01" ] ; then
 fi
 
 numa_arg=""
+sriov_pxb_numa_arg=""
 if [ "${NUMA}" -gt 1 ]; then
     numa_mem_unit="${MEMORY//[[:digit:]]/}"
     numa_mem_value="${MEMORY//[!0-9]/}"
@@ -207,14 +208,16 @@ if [ "${NUMA}" -gt 1 ]; then
         numa_arg+=" -numa node,nodeid=${node_id},memdev=m${node_id},cpus=${node_first_cpu}-${node_last_cpu}"
         node_first_cpu=$((node_last_cpu + 1))
     done
+    sriov_pxb_numa_arg=",numa_node=0"
 fi
 
 if [ "$(uname -m)" == "s390x" ]; then
   # As per https://www.qemu.org/docs/master/system/s390x/bootdevices.html#booting-without-bootindex-parameter -drive if=virtio can't be specified with bootindex for s390x
   qemu_system_cmd="qemu-system-s390x \
     -enable-kvm \
-    -drive format=qcow2,file=${next},if=none,cache=unsafe,id=drive1 ${block_dev_arg} \
+    -drive format=qcow2,file=${next},if=none,cache=unsafe,id=drive1 ${block_dev_drive_arg} \
     -device virtio-blk,drive=drive1,bootindex=1 \
+    ${BLOCK_DEV:+ -device virtio-blk,drive=extdisk} \
     -device virtio-net-ccw,netdev=network0,mac=52:55:00:d1:55:${n} \
     -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
     -device virtio-rng \
@@ -234,13 +237,16 @@ else
   #Docs: https://www.qemu.org/docs/master/system/invocation.html
   qemu_system_cmd="qemu-system-x86_64 \
     -enable-kvm \
-    -drive format=qcow2,file=${next},if=virtio,cache=unsafe ${block_dev_arg} \
-    -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
+    -drive format=qcow2,file=${next},if=none,id=bootdisk,cache=unsafe ${block_dev_drive_arg} \
+    -device virtio-blk-pci,drive=bootdisk,bus=pcie.0 \
+    ${BLOCK_DEV:+ -device virtio-blk-pci,drive=extdisk,bus=pcie.0} \
+    -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n},bus=pcie.0 \
     -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
-    -device pcie-root-port,id=sriovrp,slot=3,chassis=3,bus=pcie.0 \
+    -device pxb-pcie,id=sriovpxb,bus=pcie.0,bus_nr=128${sriov_pxb_numa_arg} \
+    -device pcie-root-port,id=sriovrp,slot=3,chassis=3,bus=sriovpxb \
     -device igb,id=igb0,bus=sriovrp,netdev=sriovnet0,mac=52:55:00:d1:57:${n} \
     -netdev tap,id=sriovnet0,ifname=tap-sriov${n},script=no,downscript=no \
-    -device virtio-rng-pci \
+    -device virtio-rng-pci,bus=pcie.0 \
     -initrd /initrd.img \
     -kernel /vmlinuz \
     -append \"$(cat /kernel.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}\" \
@@ -251,9 +257,7 @@ else
     -serial pty \
     -machine q35,accel=kvm,kernel_irqchip=split \
     -device intel-iommu,intremap=on,caching-mode=on \
-    -device intel-hda \
-    -device hda-duplex \
-    -device AC97 \
+    -device intel-hda,bus=pcie.0 -device hda-duplex -device AC97,bus=pcie.0 \
     -uuid $(cat /proc/sys/kernel/random/uuid) \
     -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
     ${QEMU_ARGS}"

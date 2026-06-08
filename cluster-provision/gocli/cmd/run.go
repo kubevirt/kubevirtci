@@ -601,6 +601,10 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	qemuArgs += " -serial pty"
 
 	var qemuNetDevice = getNetDeviceByArch()
+	pcieBus := ""
+	if qemuNetDevice != QEMU_DEVICE_S390X {
+		pcieBus = ",bus=pcie.0"
+	}
 
 	wg := sync.WaitGroup{}
 	wg.Add(int(nodes))
@@ -621,7 +625,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			if qemuNetDevice == QEMU_DEVICE_S390X {
 				nodeQemuMonitorArgs = fmt.Sprintf("%s netdev_add tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no; device_add %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s;", nodeQemuMonitorArgs, netSuffix, netSuffix, qemuNetDevice, netSuffix, macSuffix)
 			} else { //devices like virtio-net-pci doesn't support hot-plug
-				nodeQemuArgs = fmt.Sprintf("%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, qemuNetDevice, netSuffix, macSuffix, netSuffix, netSuffix)
+				nodeQemuArgs = fmt.Sprintf("%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s,bus=pcie.0 -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, qemuNetDevice, netSuffix, macSuffix, netSuffix, netSuffix)
 			}
 		}
 
@@ -661,7 +665,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 					CgroupPermissions: "mrw",
 				},
 			}
-			nodeQemuArgs = fmt.Sprintf("%s -device vfio-pci,host=%s", nodeQemuArgs, gpuAddress)
+			nodeQemuArgs = fmt.Sprintf("%s -device vfio-pci,host=%s%s", nodeQemuArgs, gpuAddress, pcieBus)
 		}
 
 		var vmArgsNvmeDisks []string
@@ -669,13 +673,13 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			for i, size := range nvmeDisks {
 				resource.MustParse(size)
 				disk := fmt.Sprintf("%s-%d.img", nvmeDiskImagePrefix, i)
-				nodeQemuArgs = fmt.Sprintf("%s -drive file=%s,format=raw,id=NVME%d,if=none -device nvme,drive=NVME%d,serial=nvme-%d", nodeQemuArgs, disk, i, i, i)
+				nodeQemuArgs = fmt.Sprintf("%s -drive file=%s,format=raw,id=NVME%d,if=none -device nvme,drive=NVME%d,serial=nvme-%d%s", nodeQemuArgs, disk, i, i, i, pcieBus)
 				vmArgsNvmeDisks = append(vmArgsNvmeDisks, fmt.Sprintf("--nvme-device-size %s", size))
 			}
 		}
 		var vmArgsSCSIDisks []string
 		if len(scsiDisks) > 0 {
-			nodeQemuArgs = fmt.Sprintf("%s -device virtio-scsi-pci,id=scsi0", nodeQemuArgs)
+			nodeQemuArgs = fmt.Sprintf("%s -device virtio-scsi-pci,id=scsi0%s", nodeQemuArgs, pcieBus)
 			for i, size := range scsiDisks {
 				resource.MustParse(size)
 				disk := fmt.Sprintf("%s-%d.img", scsiDiskImagePrefix, i)
@@ -685,7 +689,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		}
 
 		var vmArgsUSBDisks []string
-		const bus = " -device qemu-xhci,id=bus%d"
+		bus := " -device qemu-xhci,id=bus%d" + pcieBus
 		const drive = " -drive if=none,id=stick%d,format=raw,file=/usb-%d.img"
 		const dev = " -device usb-storage,bus=bus%d.0,drive=stick%d"
 		const usbSizefmt = " --usb-device-size %s"
