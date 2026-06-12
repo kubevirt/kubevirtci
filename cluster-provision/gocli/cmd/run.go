@@ -558,15 +558,19 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		if err != nil {
 			return err
 		}
-		// Pull the ganesha image
-		err = docker.ImagePull(cli, ctx, utils.NFSGaneshaImage, image.PullOptions{})
+		// Pull the nfs image
+		err = docker.ImagePull(cli, ctx, utils.NFSServerImage, image.PullOptions{})
 		if err != nil {
 			panic(err)
 		}
 
-		// Start the ganesha image
+		// Start the nfs container
 		nfsServer, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: utils.NFSGaneshaImage,
+			Image: utils.NFSServerImage,
+			Env: []string{
+				"NFS_DIR=/data/nfs",
+				"NFS_OPTION=fsid=0,rw,sync,insecure,no_root_squash,no_subtree_check,nohide",
+			},
 		}, &container.HostConfig{
 			Mounts: []mount.Mount{
 				{
@@ -577,7 +581,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			},
 			Privileged:  true,
 			NetworkMode: container.NetworkMode("container:" + dnsmasq.ID),
-		}, nil, nil, prefix+"-nfs-ganesha")
+		}, nil, nil, prefix+"-nfs")
 		if err != nil {
 			return err
 		}
