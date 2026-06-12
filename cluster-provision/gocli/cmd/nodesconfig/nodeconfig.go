@@ -23,6 +23,7 @@ type NodeLinuxConfig struct {
 	SwapBehavior         string
 	SwapSize             int
 	SecondaryNicBridges  bool
+	VsockChildNsMode     string
 }
 
 // NodeK8sConfig type holds the config k8s options for kubevirt cluster

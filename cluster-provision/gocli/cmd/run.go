@@ -50,6 +50,7 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/rookceph"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/rootkey"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/swap"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/vsock"
 	k8s "kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/k8s"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 
@@ -171,6 +172,7 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().StringArrayVar(&usbDisks, "usb", []string{}, "size of the emulate USB disk to pass to the node")
 	run.Flags().StringArrayVar(&sharedDisks, "shared-block-device", []string{}, "size of block device to share between all nodes")
 	run.Flags().Bool("deploy-network-resources-injector", false, "deploys Network Resources Injector")
+	run.Flags().String("vsock-child-ns-mode", "", "vsock child namespace mode (global or local)")
 
 	return run
 }
@@ -438,6 +440,11 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	deployNetworkResourcesInjector, err := cmd.Flags().GetBool("deploy-network-resources-injector")
+	if err != nil {
+		return err
+	}
+
+	vsockChildNsMode, err := cmd.Flags().GetString("vsock-child-ns-mode")
 	if err != nil {
 		return err
 	}
@@ -848,6 +855,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodesconfig.WithSwapBehavior(swapBehavior),
 			nodesconfig.WithSwapSize(int(swapSize)),
 			nodesconfig.WithSecondaryNicBridges(secondaryNicBridges),
+			nodesconfig.WithVsockChildNsMode(vsockChildNsMode),
 		}
 
 		n := nodesconfig.NewNodeLinuxConfig(x+1, prefix, linuxConfigFuncs)
@@ -1059,6 +1067,14 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 	if n.SwapEnabled {
 		swapOpt := swap.NewSwapOpt(sshClient, n.Swappiness, n.SwapBehavior, n.SwapSize)
 		opts = append(opts, swapOpt)
+	}
+
+	if n.VsockChildNsMode != "" {
+		vsockOpt, err := vsock.NewVsockOpt(sshClient, n.VsockChildNsMode)
+		if err != nil {
+			return err
+		}
+		opts = append(opts, vsockOpt)
 	}
 
 	for _, o := range opts {
