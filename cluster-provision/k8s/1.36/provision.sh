@@ -27,8 +27,8 @@ else
   exit 1
 fi
 
-# Install modules of the initrd kernel
-dnf install -y "kernel-modules-$(uname -r)"
+# Install modules of the initrd kernel.
+dnf install -y "kernel-modules-$(uname -r)" "kernel-devel-$(uname -r)"
 
 # Resize root partition
 dnf install -y cloud-utils-growpart

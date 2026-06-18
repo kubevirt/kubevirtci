@@ -10,6 +10,10 @@ See [K8S.md](K8S.md)
 
 See [KUBEVIRTCI_LOCAL_TESTING.md](KUBEVIRTCI_LOCAL_TESTING.md)
 
+## Testing KubeVirt DRA vfio-gpu
+
+See [cluster-up/cluster/vfio-gpu/README.md](cluster-up/cluster/vfio-gpu/README.md)
+
 ## Using podman instead of docker
 
 See [PODMAN.md](PODMAN.md)
