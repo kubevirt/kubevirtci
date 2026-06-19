@@ -5,7 +5,7 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 )
 
@@ -39,7 +39,7 @@ func ssh(cmd *cobra.Command, args []string) error {
 	container := prefix + "-" + node
 	ssh_command := append([]string{"ssh.sh"}, args[1:]...)
 	file := os.Stdout
-	if terminal.IsTerminal(int(file.Fd())) {
+	if term.IsTerminal(int(file.Fd())) {
 		exitCode, err := docker.Terminal(cli, container, ssh_command, file)
 		if err != nil {
 			return err

@@ -1,13 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"strings"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/docker"
 )
 
@@ -40,7 +39,7 @@ func rm(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	var dnsmasq *types.Container
+	var dnsmasq *container.Summary
 nodnsmasq:
 	for i, c := range containers {
 		for _, name := range c.Names {

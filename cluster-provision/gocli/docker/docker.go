@@ -13,17 +13,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
-func GetPrefixedContainers(cli *client.Client, prefix string) ([]types.Container, error) {
+func GetPrefixedContainers(cli *client.Client, prefix string) ([]container.Summary, error) {
 	containers, err := cli.ContainerList(context.Background(), container.ListOptions{
 		All: true,
 	})
@@ -33,8 +32,8 @@ func GetPrefixedContainers(cli *client.Client, prefix string) ([]types.Container
 	return filterByPrefix(containers, prefix), nil
 }
 
-func filterByPrefix(containers []types.Container, prefix string) []types.Container {
-	prefixedConatiners := []types.Container{}
+func filterByPrefix(containers []container.Summary, prefix string) []container.Summary {
+	prefixedConatiners := []container.Summary{}
 	for i, c := range containers {
 		for _, name := range c.Names {
 			if strings.HasPrefix(name, prefix) || strings.HasPrefix(name, "/"+prefix) {
@@ -96,7 +95,7 @@ func ImagePull(cli *client.Client, ctx context.Context, ref string, options imag
 		}
 		return nil
 	}
-	return fmt.Errorf("failed to download %s four times, giving up.", ref)
+	return fmt.Errorf("failed to download %s four times, giving up", ref)
 }
 
 func Exec(cli *client.Client, containerID string, args []string, out io.Writer) (bool, error) {
@@ -134,7 +133,7 @@ func Exec(cli *client.Client, containerID string, args []string, out io.Writer) 
 
 func Terminal(cli *client.Client, containerID string, args []string, file *os.File) (int, error) {
 
-	if !terminal.IsTerminal(int(file.Fd())) {
+	if !term.IsTerminal(int(file.Fd())) {
 		return 1, fmt.Errorf("failure calling terminal out of TTY")
 	}
 
@@ -162,7 +161,7 @@ func Terminal(cli *client.Client, containerID string, args []string, file *os.Fi
 	}
 	defer attached.Close()
 
-	state, err := terminal.MakeRaw(int(file.Fd()))
+	state, err := term.MakeRaw(int(file.Fd()))
 	if err != nil {
 		return -1, err
 	}
@@ -197,7 +196,7 @@ func Terminal(cli *client.Client, containerID string, args []string, file *os.Fi
 	}()
 
 	defer func() {
-		terminal.Restore(int(file.Fd()), state)
+		_ = term.Restore(int(file.Fd()), state)
 	}()
 
 	err = <-errChan
@@ -278,8 +277,8 @@ func NewCleanupHandler(cli *client.Client, cleanupChan chan error, errWriter io.
 }
 
 func PrintProgress(progressReader io.ReadCloser, writer *os.File) error {
-	isTerminal := terminal.IsTerminal(int(writer.Fd()))
-	w, _, err := terminal.GetSize(int(writer.Fd()))
+	isTerminal := term.IsTerminal(int(writer.Fd()))
+	w, _, err := term.GetSize(int(writer.Fd()))
 
 	if isTerminal && err == nil {
 		scanner := bufio.NewScanner(progressReader)
@@ -329,8 +328,8 @@ type PullStatus struct {
 }
 
 func resizeTerminal(ctx context.Context, cli *client.Client, execID string, file *os.File) {
-	if w, h, err := terminal.GetSize(int(file.Fd())); err == nil {
-		cli.ContainerExecResize(ctx, execID, container.ResizeOptions{
+	if w, h, err := term.GetSize(int(file.Fd())); err == nil {
+		_ = cli.ContainerExecResize(ctx, execID, container.ResizeOptions{
 			Height: uint(h),
 			Width:  uint(w),
 		})

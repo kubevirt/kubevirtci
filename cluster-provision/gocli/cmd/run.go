@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"bufio"
-	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -23,7 +22,6 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/nodesconfig"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
@@ -93,10 +91,6 @@ var scsiDisks []string
 var usbDisks []string
 var sharedDisks []string
 var sshClient libssh.Client
-
-type dockerSetting struct {
-	Proxy string
-}
 
 // NewRunCommand returns command that runs given cluster
 func NewRunCommand() *cobra.Command {
@@ -212,16 +206,36 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 	portMap := nat.PortMap{}
 
-	utils.AppendTCPIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortHTTP, cmd.Flags(), "http-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortHTTPS, cmd.Flags(), "https-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortPrometheus, cmd.Flags(), "prometheus-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortGrafana, cmd.Flags(), "grafana-port")
-	utils.AppendUDPIfExplicit(portMap, utils.PortDNS, cmd.Flags(), "dns-port")
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortHTTP, cmd.Flags(), "http-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortHTTPS, cmd.Flags(), "https-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortPrometheus, cmd.Flags(), "prometheus-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortGrafana, cmd.Flags(), "grafana-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendUDPIfExplicit(portMap, utils.PortDNS, cmd.Flags(), "dns-port"); err != nil {
+		return err
+	}
 
 	qemuArgs, err := cmd.Flags().GetString("qemu-args")
 	if err != nil {
@@ -470,16 +484,15 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
 		cancel()
-		stop <- fmt.Errorf("Interrupt received, clean up")
+		stop <- fmt.Errorf("interrupt received, clean up")
 	}()
-
-	clusterImage := cluster
 
 	// Check if cluster container suffix has not being override
 	// in that case use the default prefix stored at the binary
 	if containerSuffix == "" {
 		containerSuffix = images.SUFFIX
 	}
+	var clusterImage string
 	if containerSuffix != "" {
 		clusterImage = fmt.Sprintf("%s/%s%s", containerOrg, cluster, containerSuffix)
 	} else {
@@ -537,7 +550,13 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	sshPort, err := utils.GetPublicPort(utils.PortSSH, dm.NetworkSettings.Ports)
+	if err != nil {
+		return err
+	}
 	apiServerPort, err := utils.GetPublicPort(utils.PortAPI, dm.NetworkSettings.Ports)
+	if err != nil {
+		return err
+	}
 
 	// Pull the registry image
 	err = docker.ImagePull(cli, ctx, utils.DockerRegistryImage, image.PullOptions{})
@@ -834,6 +853,9 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return err
 		}
 		sshClient, err = libssh.NewSSHClient(sshPort, x+1, true)
+		if err != nil {
+			return err
+		}
 
 		linuxConfigFuncs := []nodesconfig.LinuxConfigFunc{
 			nodesconfig.WithFipsEnabled(fipsEnabled),
@@ -921,7 +943,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	// If background flag was specified, we don't want to clean up if we reach that state
 	if !background {
 		wg.Wait()
-		stop <- fmt.Errorf("Done. please clean up")
+		stop <- fmt.Errorf("done, please clean up")
 	}
 
 	return nil
@@ -995,7 +1017,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 	if n.FipsEnabled {
 		for _, cmd := range []string{"sudo fips-mode-setup --enable", "sudo reboot"} {
 			if err := sshClient.Command(cmd); err != nil {
-				return fmt.Errorf("Starting fips mode failed: %s", err)
+				return fmt.Errorf("starting fips mode failed: %s", err)
 			}
 		}
 		err := waitForVMToBeUp(cli, n.K8sVersion, nodeName)
@@ -1113,21 +1135,6 @@ func nodeContainer(prefix string, node string) string {
 	return prefix + "-" + node
 }
 
-func getDockerProxyConfig(proxy string) (string, error) {
-	p := dockerSetting{Proxy: proxy}
-	buf := new(bytes.Buffer)
-
-	t, err := template.New("docker-proxy").Parse(proxySettings)
-	if err != nil {
-		return "", err
-	}
-	err = t.Execute(buf, p)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
 // getDeviceIOMMUGroup gets devices iommu_group
 // e.g. /sys/bus/pci/devices/0000\:65\:00.0/iommu_group -> ../../../../../kernel/iommu_groups/45
 func getPCIDeviceIOMMUGroup(pciAddress string) (string, error) {
@@ -1145,7 +1152,7 @@ func getDevicePCIID(pciAddress string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
