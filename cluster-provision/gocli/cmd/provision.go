@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -20,7 +20,6 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
 	containers2 "kubevirt.io/kubevirtci/cluster-provision/gocli/containers"
 
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
@@ -68,9 +67,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	version := strings.TrimSpace(string(versionBytes))
-	if err != nil {
-		return err
-	}
+
 	phases, err := cmd.Flags().GetString("phases")
 	if err != nil {
 		return err
@@ -125,8 +122,12 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 
 	portMap := nat.PortMap{}
 
-	utils.AppendTCPIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port"); err != nil {
+		return err
+	}
 
 	qemuArgs, err := cmd.Flags().GetString("qemu-args")
 	if err != nil {
@@ -156,7 +157,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
-		stop <- fmt.Errorf("Interrupt received, clean up")
+		stop <- fmt.Errorf("interrupt received, clean up")
 	}()
 
 	// Pull the base image
@@ -339,12 +340,12 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	dir, err := ioutil.TempDir("", "gocli")
+	dir, err := os.MkdirTemp("", "gocli")
 	if err != nil {
 		return fmt.Errorf("failed creating a temporary directory: %v", err)
 	}
-	defer os.RemoveAll(dir)
-	if err := ioutil.WriteFile(filepath.Join(dir, "additional.kernel.args"), []byte(shellescape.QuoteCommand(additionalKernelArguments)), 0666); err != nil {
+	defer func() { _ = os.RemoveAll(dir) }()
+	if err := os.WriteFile(filepath.Join(dir, "additional.kernel.args"), []byte(shellescape.QuoteCommand(additionalKernelArguments)), 0666); err != nil {
 		return fmt.Errorf("failed creating additional.kernel.args file: %v", err)
 	}
 	if err := copyDirectory(ctx, cli, node.ID, dir, "/"); err != nil {
@@ -377,7 +378,7 @@ func copyDirectory(ctx context.Context, cli *client.Client, containerID string, 
 	if err != nil {
 		return err
 	}
-	defer srcArchive.Close()
+	defer func() { _ = srcArchive.Close() }()
 
 	dstInfo := archive.CopyInfo{Path: targetDirectory}
 
@@ -385,7 +386,7 @@ func copyDirectory(ctx context.Context, cli *client.Client, containerID string, 
 	if err != nil {
 		return err
 	}
-	defer preparedArchive.Close()
+	defer func() { _ = preparedArchive.Close() }()
 
 	err = cli.CopyToContainer(ctx, containerID, dstDir, preparedArchive, container.CopyToContainerOptions{AllowOverwriteDirWithFile: false})
 	if err != nil {

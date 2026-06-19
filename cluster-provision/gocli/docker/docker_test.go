@@ -4,25 +4,25 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 )
 
 func Test_filterByPrefix(t *testing.T) {
 	type args struct {
-		containers []types.Container
+		containers []container.Summary
 		prefix     string
 	}
 	tests := []struct {
 		name string
 		args args
-		want []types.Container
+		want []container.Summary
 	}{
 		{name: "should filter by prefix",
 			args: struct {
-				containers []types.Container
+				containers []container.Summary
 				prefix     string
 			}{
-				containers: []types.Container{
+				containers: []container.Summary{
 					containerFromNames("prefix-1", "something", "unimportant"),
 					containerFromNames("prefix-2", "something1", "unimportant1"),
 					containerFromNames("absolutely-unrelated"),
@@ -34,7 +34,7 @@ func Test_filterByPrefix(t *testing.T) {
 				},
 				prefix: "prefix",
 			},
-			want: []types.Container{
+			want: []container.Summary{
 				containerFromNames("prefix-1", "something", "unimportant"),
 				containerFromNames("prefix-2", "something1", "unimportant1"),
 				containerFromNames("something1", "prefix-3", "unimportant1"),
@@ -52,8 +52,8 @@ func Test_filterByPrefix(t *testing.T) {
 	}
 }
 
-func containerFromNames(names ...string) types.Container {
-	return types.Container{
+func containerFromNames(names ...string) container.Summary {
+	return container.Summary{
 		Names: names,
 	}
 }

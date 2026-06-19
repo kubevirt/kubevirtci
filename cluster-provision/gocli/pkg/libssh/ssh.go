@@ -125,12 +125,12 @@ func (s *SSHClientImpl) CopyRemoteFile(remotePathToCopy string, target io.Writer
 
 	stdout, err := session.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("Unable to setup stdout for session: %v", err)
+		return fmt.Errorf("unable to setup stdout for session: %v", err)
 	}
 
 	stderr, err := session.StderrPipe()
 	if err != nil {
-		return fmt.Errorf("Unable to setup stderr for session: %v", err)
+		return fmt.Errorf("unable to setup stderr for session: %v", err)
 	}
 	go io.Copy(os.Stderr, stderr)
 
@@ -175,7 +175,7 @@ func (s *SSHClientImpl) CopyRemoteFile(remotePathToCopy string, target io.Writer
 	}
 
 	go func(wrPipe io.WriteCloser) {
-		defer wrPipe.Close()
+		defer func() { _ = wrPipe.Close() }()
 		fmt.Fprintf(wrPipe, "\x00")
 		fmt.Fprintf(wrPipe, "\x00")
 		fmt.Fprintf(wrPipe, "\x00")
@@ -204,7 +204,7 @@ func (s *SSHClientImpl) executeCommand(cmd string, outWriter, errWriter io.Write
 	if err != nil {
 		return err
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 
 	session.Stdout = outWriter
 	session.Stderr = errWriter
@@ -230,17 +230,17 @@ func (s *SSHClientImpl) initClient() error {
 	defer s.initMutex.Unlock()
 	client, err := ssh.Dial("tcp", net.JoinHostPort("127.0.0.1", fmt.Sprint(s.sshPort)), s.config)
 	if err != nil {
-		return fmt.Errorf("Failed to connect to SSH server: %v", err)
+		return fmt.Errorf("failed to connect to SSH server: %v", err)
 	}
 
 	conn, err := client.Dial("tcp", fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx))
 	if err != nil {
-		return fmt.Errorf("Error establishing connection to the next hop host: %s", err)
+		return fmt.Errorf("error establishing connection to the next hop host: %s", err)
 	}
 
 	ncc, chans, reqs, err := ssh.NewClientConn(conn, fmt.Sprintf("192.168.66.10%d:22", s.nodeIdx), s.config)
 	if err != nil {
-		return fmt.Errorf("Error creating forwarded ssh connection: %s", err)
+		return fmt.Errorf("error creating forwarded ssh connection: %s", err)
 	}
 
 	jumpHost := ssh.NewClient(ncc, chans, reqs)

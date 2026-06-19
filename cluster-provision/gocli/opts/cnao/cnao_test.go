@@ -45,7 +45,7 @@ var _ = Describe("CnaoOpt", func() {
 		opt = NewCnaoOpt(client, sshClient, multusEnabled, dncEnabled, skipCR)
 
 		sshClient.EXPECT().Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf wait deployment -n cluster-network-addons cluster-network-addons-operator --for condition=Available --timeout=200s")
-		opt.Exec()
+		Expect(opt.Exec()).To(Succeed())
 
 		obj, err := client.Get(schema.GroupVersionKind{Group: "networkaddonsoperator.network.kubevirt.io",
 			Version: "v1",
@@ -65,7 +65,7 @@ var _ = Describe("CnaoOpt", func() {
 
 		opt = NewCnaoOpt(client, sshClient, multusEnabled, dncEnabled, skipCR)
 		sshClient.EXPECT().Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf wait deployment -n cluster-network-addons cluster-network-addons-operator --for condition=Available --timeout=200s")
-		opt.Exec()
+		Expect(opt.Exec()).To(Succeed())
 
 		obj, err := client.Get(schema.GroupVersionKind{Group: "networkaddonsoperator.network.kubevirt.io",
 			Version: "v1",
@@ -85,7 +85,7 @@ var _ = Describe("CnaoOpt", func() {
 
 		opt = NewCnaoOpt(client, sshClient, multusEnabled, dncEnabled, skipCR)
 		sshClient.EXPECT().Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf wait deployment -n cluster-network-addons cluster-network-addons-operator --for condition=Available --timeout=200s")
-		opt.Exec()
+		Expect(opt.Exec()).To(Succeed())
 
 		obj, err := client.Get(schema.GroupVersionKind{Group: "networkaddonsoperator.network.kubevirt.io",
 			Version: "v1",
