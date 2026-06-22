@@ -270,6 +270,10 @@ function _add_common_params() {
         params=" --deploy-network-resources-injector $params"
     fi
 
+    if [ -n "$KUBEVIRT_TOPOLOGY_MANAGER_POLICY" ]; then
+        params=" --topology-manager-policy=$KUBEVIRT_TOPOLOGY_MANAGER_POLICY $params"
+    fi
+
     echo $params
 }
 

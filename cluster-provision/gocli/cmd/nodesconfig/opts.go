@@ -142,6 +142,12 @@ func WithVsockChildNsMode(mode string) LinuxConfigFunc {
 	}
 }
 
+func WithTopologyManagerPolicy(policy string) LinuxConfigFunc {
+	return func(n *NodeLinuxConfig) {
+		n.TopologyManagerPolicy = policy
+	}
+}
+
 func WithCeph(ceph bool) K8sConfigFunc {
 	return func(n *NodeK8sConfig) {
 		n.Ceph = ceph
