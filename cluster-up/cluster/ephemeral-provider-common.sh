@@ -274,6 +274,10 @@ function _add_common_params() {
         params=" --topology-manager-policy=$KUBEVIRT_TOPOLOGY_MANAGER_POLICY $params"
     fi
 
+    if [ -n "$KUBEVIRT_RESERVED_SYSTEM_CPUS" ]; then
+        params=" --reserved-system-cpus=$KUBEVIRT_RESERVED_SYSTEM_CPUS $params"
+    fi
+
     echo $params
 }
 

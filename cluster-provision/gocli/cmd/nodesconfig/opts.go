@@ -148,6 +148,12 @@ func WithTopologyManagerPolicy(policy string) LinuxConfigFunc {
 	}
 }
 
+func WithReservedSystemCPUs(cpuset string) LinuxConfigFunc {
+	return func(n *NodeLinuxConfig) {
+		n.ReservedSystemCPUs = cpuset
+	}
+}
+
 func WithCeph(ceph bool) K8sConfigFunc {
 	return func(n *NodeK8sConfig) {
 		n.Ceph = ceph
