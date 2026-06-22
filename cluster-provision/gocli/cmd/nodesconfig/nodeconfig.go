@@ -25,6 +25,7 @@ type NodeLinuxConfig struct {
 	SecondaryNicBridges   bool
 	VsockChildNsMode      string
 	TopologyManagerPolicy string
+	ReservedSystemCPUs    string
 }
 
 // NodeK8sConfig type holds the config k8s options for kubevirt cluster
