@@ -98,6 +98,9 @@ else
 fi 
 
 dnf install -y NetworkManager NetworkManager-ovs NetworkManager-config-server
+cat > /etc/udev/rules.d/99-kubevirtci-sriov-net.rules <<'EOF'
+ACTION=="add", SUBSYSTEM=="net", DRIVERS=="igb", NAME="sriov0"
+EOF
 
 # envsubst pkg is not available by default in s390x Architecture, so explicitly installing it as part of gettext
 dnf install -y gettext

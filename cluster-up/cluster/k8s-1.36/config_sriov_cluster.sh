@@ -98,7 +98,7 @@ done
 
 echo ""
 # Collect PF names from all nodes
-PFS_IN_USE="eth1"  # Our SR-IOV interface
+PFS_IN_USE="sriov0"  # Our SR-IOV interface
 
 if [[ "$KUBEVIRT_USE_DRA" != "true" ]]; then
   echo ""
