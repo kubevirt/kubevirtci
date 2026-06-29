@@ -98,6 +98,9 @@ else
 fi 
 
 dnf install -y NetworkManager NetworkManager-ovs NetworkManager-config-server
+cat > /etc/udev/rules.d/99-kubevirtci-sriov-net.rules <<'EOF'
+ACTION=="add", SUBSYSTEM=="net", DRIVERS=="igb", NAME="sriov0"
+EOF
 
 # NetworkManager-config-server sets no-auto-default=* which prevents auto-DHCP
 # on unconfigured interfaces. CentOS 9 has ifcfg-eth0 from cloud-init but
