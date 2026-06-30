@@ -49,6 +49,12 @@ else
   exit 1
 fi
 
+function create_sriov_udev_rule() {
+    cat > /etc/udev/rules.d/99-kubevirtci-sriov-net.rules <<'EOF'
+ACTION=="add", SUBSYSTEM=="net", DRIVERS=="igb", NAME="sriov0"
+EOF
+}
+
 function pull_container_retry() {
     retry=0
     maxRetries=5
@@ -90,6 +96,8 @@ registries = ['registry:5000']
 [registries.block]
 registries = []
 EOF
+
+create_sriov_udev_rule
 
 packages_version=$(getKubernetesClosestStableVersion)
 major_version=$(echo $packages_version | cut -d "." -f 2)
