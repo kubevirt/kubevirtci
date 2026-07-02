@@ -7,11 +7,12 @@
 package scp
 
 import (
-	"golang.org/x/crypto/ssh"
 	"time"
+
+	"golang.org/x/crypto/ssh"
 )
 
-// A struct containing all the configuration options
+// ClientConfigurer a struct containing all the configuration options
 // used by an scp client.
 type ClientConfigurer struct {
 	host         string
@@ -19,9 +20,10 @@ type ClientConfigurer struct {
 	session      *ssh.Session
 	timeout      time.Duration
 	remoteBinary string
+	sshClient    *ssh.Client
 }
 
-// Creates a new client configurer.
+// NewConfigurer creates a new client configurer.
 // It takes the required parameters: the host and the ssh.ClientConfig and
 // returns a configurer populated with the default values for the optional
 // parameters.
@@ -37,45 +39,45 @@ func NewConfigurer(host string, config *ssh.ClientConfig) *ClientConfigurer {
 	}
 }
 
-// Sets the path of the location of the remote scp binary
-// Defaults to: /usr/bin/scp
+// RemoteBinary sets the path of the location of the remote scp binary
+// Defaults to: /usr/bin/scp.
 func (c *ClientConfigurer) RemoteBinary(path string) *ClientConfigurer {
 	c.remoteBinary = path
 	return c
 }
 
-// Alters the host of the client connects to
+// Host alters the host of the client connects to.
 func (c *ClientConfigurer) Host(host string) *ClientConfigurer {
 	c.host = host
 	return c
 }
 
-// Changes the connection timeout.
-// Defaults to one minute
+// Timeout Changes the connection timeout.
+// Defaults to one minute.
 func (c *ClientConfigurer) Timeout(timeout time.Duration) *ClientConfigurer {
 	c.timeout = timeout
 	return c
 }
 
-// Alters the ssh.ClientConfig
+// ClientConfig alters the ssh.ClientConfig.
 func (c *ClientConfigurer) ClientConfig(config *ssh.ClientConfig) *ClientConfigurer {
 	c.clientConfig = config
 	return c
 }
 
-// Alters the ssh.Session
-func (c *ClientConfigurer) Session(session *ssh.Session) *ClientConfigurer {
-	c.session = session
+func (c *ClientConfigurer) SSHClient(sshClient *ssh.Client) *ClientConfigurer {
+	c.sshClient = sshClient
 	return c
 }
 
-// Builds a client with the configuration stored within the ClientConfigurer
+// Create builds a client with the configuration stored within the ClientConfigurer.
 func (c *ClientConfigurer) Create() Client {
 	return Client{
 		Host:         c.host,
 		ClientConfig: c.clientConfig,
 		Timeout:      c.timeout,
 		RemoteBinary: c.remoteBinary,
-		Session:      c.session,
+		sshClient:    c.sshClient,
+		closeHandler: EmptyHandler{},
 	}
 }
