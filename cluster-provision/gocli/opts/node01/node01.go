@@ -3,6 +3,7 @@ package node01
 import (
 	_ "embed"
 	"fmt"
+	"runtime"
 
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 )
@@ -68,6 +69,16 @@ func (n *node01Provisioner) Exec() error {
 
 	if n.secondaryNicBridges {
 		cmds = append(cmds, string(setupBridgesScript))
+	}
+
+	if runtime.GOARCH != "s390x" {
+		cmds = append(cmds, `cat >> /etc/kubernetes/kubelet.conf.d/50-kubevirt.conf <<'EOF'
+cpuManagerPolicy: static
+kubeReserved:
+  cpu: 500m
+systemReserved:
+  cpu: 500m
+EOF`)
 	}
 
 	cmds = append(cmds,
