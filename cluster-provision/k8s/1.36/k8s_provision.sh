@@ -116,6 +116,7 @@ EOF
 
 # Install Kubernetes CNI.
 dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
+    cri-tools-${CRIO_VERSION}.0 \
     kubectl-${packages_version} \
     kubeadm-${packages_version} \
     kubelet-${packages_version} \
