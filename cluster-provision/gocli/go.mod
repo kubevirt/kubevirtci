@@ -1,28 +1,28 @@
 module kubevirt.io/kubevirtci/cluster-provision/gocli
 
-go 1.24.0
+go 1.26.0
 
-toolchain go1.24.7
+toolchain go1.26.4
 
 require (
-	github.com/Masterminds/semver/v3 v3.2.1
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/alessio/shellescape v1.4.2
-	github.com/bramvdbogaerde/go-scp v1.2.0
+	github.com/bramvdbogaerde/go-scp v1.6.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/docker/docker v28.0.0+incompatible
 	github.com/docker/go-connections v0.5.0
-	github.com/onsi/ginkgo/v2 v2.18.0
-	github.com/onsi/gomega v1.33.1
+	github.com/onsi/ginkgo/v2 v2.32.0
+	github.com/onsi/gomega v1.42.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.74.0
 	github.com/rook/rook/pkg/apis v0.0.0-20240801164516-9c98467f3c32
-	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/afero v1.11.0
-	github.com/spf13/cobra v1.8.0
-	github.com/spf13/pflag v1.0.5
-	go.uber.org/mock v0.4.0
-	golang.org/x/crypto v0.46.0
-	golang.org/x/net v0.48.0
+	github.com/sirupsen/logrus v1.9.4
+	github.com/spf13/afero v1.15.0
+	github.com/spf13/cobra v1.10.2
+	github.com/spf13/pflag v1.0.10
+	go.uber.org/mock v0.6.0
+	golang.org/x/crypto v0.53.0
+	golang.org/x/net v0.56.0
 	gopkg.in/yaml.v3 v3.0.1
 	istio.io/operator v0.0.0-20200714085832-f408beefc360
 	k8s.io/api v0.30.3
@@ -32,11 +32,11 @@ require (
 	k8s.io/pod-security-admission v0.22.0-beta.0.0.20240531013614-68e02f3c6735
 	kubevirt.io/application-aware-quota-api v1.2.3
 	kubevirt.io/containerized-data-importer-api v1.59.1-0.20240610172909-253d5a6e7f95
-	sigs.k8s.io/yaml v1.4.0
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
-	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect
+	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
@@ -81,7 +81,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
-	github.com/moby/sys/user v0.1.0 // indirect
+	github.com/moby/sys/user v0.4.0 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -101,12 +101,16 @@ require (
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.4 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gotest.tools/v3 v3.5.1 // indirect
+	gotest.tools/v3 v3.5.2 // indirect
 	istio.io/api v1.22.0 // indirect
 	istio.io/pkg v0.0.0-20191029184635-5c2f5ef63692 // indirect
 	k8s.io/component-base v0.30.1 // indirect
@@ -126,17 +130,17 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6 // indirect
+	github.com/google/pprof v0.0.0-20260604005048-7023385849c0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/klauspost/compress v1.17.8 // indirect
+	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
-	github.com/moby/sys/sequential v0.5.0 // indirect
+	github.com/moby/sys/sequential v0.6.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
-	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/term v0.38.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
-	golang.org/x/tools v0.39.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/term v0.44.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/tools v0.47.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect; gindirect
 )
 
