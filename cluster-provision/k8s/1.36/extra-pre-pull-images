@@ -3,9 +3,9 @@ quay.io/calico/cni:v3.26.5
 quay.io/calico/kube-controllers:v3.26.5
 quay.io/calico/node:v3.26.5
 quay.io/cephcsi/cephcsi:v3.13.1
-quay.io/kubevirtci/install-cni:1.26.4
-quay.io/kubevirtci/pilot:1.26.4
-quay.io/kubevirtci/proxyv2:1.26.4
+quay.io/kubevirtci/install-cni:1.30.2
+quay.io/kubevirtci/pilot:1.30.2
+quay.io/kubevirtci/proxyv2:1.30.2
 gcr.io/k8s-staging-networking/kube-network-policies@sha256:bcbc2f6e57bb1689fffcaa968da1cf065ac0beed373e4f3b286a0e7dabe6e76d
 gcr.io/k8s-staging-networking/kube-network-policies@sha256:8c1f03ed7368803ec906014e5d22d54bb0cbb836af18e59de238861b7a85fdda
 ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:669b9d85524896308d9dbf4bb5f21f2635af27089d1209882e2d676597901d6d
