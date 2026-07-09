@@ -29,6 +29,9 @@ fi
 
 # Install modules of the initrd kernel
 dnf install -y "kernel-modules-$(uname -r)"
+if [ "$release" == "centos10" ]; then
+  dnf install -y "kernel-modules-extra-$(uname -r)"
+fi
 
 # Resize root partition
 dnf install -y cloud-utils-growpart
