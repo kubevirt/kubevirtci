@@ -26,6 +26,7 @@ test-gocli:
 .PHONY: cli
 cli:
 	CGO_ENABLED=0 GOOS=linux GOARCH=${GOARCH} $(GO) build -ldflags "-X 'kubevirt.io/kubevirtci/cluster-provision/gocli/images.SUFFIX=:$(KUBEVIRTCI_TAG)'" -o $(BIN_DIR)/cli-${GOARCH} ./cmd/cli
+	ln -sf cli-${GOARCH} $(BIN_DIR)/cli
 
 .PHONY: fmt
 fmt:

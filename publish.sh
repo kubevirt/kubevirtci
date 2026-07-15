@@ -67,14 +67,14 @@ function build_clusters() {
   for i in "${IMAGES_TO_BUILD[@]}"; do
     if [ $ARCH == "amd64" ]; then
       echo "INFO: building $i"
-      cluster-provision/gocli/build/cli-${ARCH} provision --phases k8s cluster-provision/k8s/$i
+      cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
 
-      cluster-provision/gocli/build/cli-${ARCH} provision --phases k8s cluster-provision/k8s/$i --slim
+      cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim
     elif [[ "$ARCH" == "s390x" && "$i" == "1.34" ]]; then
       echo "INFO: building $i slim"
-      cluster-provision/gocli/build/cli-${ARCH} provision --phases k8s cluster-provision/k8s/$i --slim
+      cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}
     fi
   done
