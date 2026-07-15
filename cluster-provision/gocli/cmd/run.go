@@ -84,6 +84,9 @@ EOF
 	scsiDiskImagePrefix = "/scsi"
 	QEMU_DEVICE_S390X   = "virtio-net-ccw"
 	QEMU_DEVICE_X86_64  = "virtio-net-pci"
+
+	secondaryNicRootPortBaseSlot  = 4
+	secondaryNicRootPortBaseChass = 10
 )
 
 var soundcardPCIIDs = []string{"8086:2668", "8086:2415"}
@@ -612,6 +615,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	qemuArgs += " -serial pty"
 
 	var qemuNetDevice = getNetDeviceByArch()
+	numaNodes := int(numa)
 	pcieBus := ""
 	if qemuNetDevice != QEMU_DEVICE_S390X {
 		pcieBus = ",bus=pcie.0"
@@ -636,7 +640,27 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			if qemuNetDevice == QEMU_DEVICE_S390X {
 				nodeQemuMonitorArgs = fmt.Sprintf("%s netdev_add tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no; device_add %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s;", nodeQemuMonitorArgs, netSuffix, netSuffix, qemuNetDevice, netSuffix, macSuffix)
 			} else { //devices like virtio-net-pci doesn't support hot-plug
-				nodeQemuArgs = fmt.Sprintf("%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s,bus=pcie.0 -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, qemuNetDevice, netSuffix, macSuffix, netSuffix, netSuffix)
+				rootPortArgs := ""
+				bus := "pcie.0"
+				if numaNodes > 1 {
+					numaNode := i % numaNodes
+					bus = fmt.Sprintf("secondaryrp%d", i)
+					slot := secondaryNicRootPortBaseSlot + i/numaNodes
+					rootPortArgs = fmt.Sprintf(" -device pcie-root-port,id=%s,slot=%d,chassis=%d,bus=secondarypxb%d",
+						bus,
+						slot,
+						secondaryNicRootPortBaseChass+i,
+						numaNode)
+				}
+				nodeQemuArgs = fmt.Sprintf("%s%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s,bus=%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no",
+					nodeQemuArgs,
+					rootPortArgs,
+					qemuNetDevice,
+					netSuffix,
+					macSuffix,
+					bus,
+					netSuffix,
+					netSuffix)
 			}
 		}
 
