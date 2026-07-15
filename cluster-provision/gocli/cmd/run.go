@@ -610,10 +610,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		volumes <- sharedVolume.Name
 	}
 
-	// Add serial pty so we can do stuff like 'screen /dev/pts0' to access
-	// the VM console from the container without ssh
-	qemuArgs += " -serial pty"
-
 	var qemuNetDevice = getNetDeviceByArch()
 	numaNodes := int(numa)
 	pcieBus := ""
