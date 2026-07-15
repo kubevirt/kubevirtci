@@ -787,9 +787,9 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 		vmContainerConfig := &container.Config{
 			Image: clusterImage,
-			Env: []string{
+			Env: append([]string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
-			},
+			}, utils.ForwardEnv("PROW_JOB_ID", "CI")...),
 			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s --numa %s %s %s %s %s %s %s",
 				memory,
 				strconv.Itoa(int(cpu)),
@@ -1113,7 +1113,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
 	var err error
 	// Wait for the VM to be up
-	for x := 0; x < 10; x++ {
+	for x := 0; x < 5; x++ {
 		err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh echo VM is up", "waiting for node to come up")
 		if err == nil {
 			break
