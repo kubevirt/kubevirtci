@@ -209,9 +209,9 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}
 	node, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: base,
-		Env: []string{
+		Env: append([]string{
 			fmt.Sprintf("NODE_NUM=%s", nodeNum),
-		},
+		}, utils.ForwardEnv("PROW_JOB_ID", "CI")...),
 		Volumes: map[string]struct{}{
 			"/var/run/disk":     {},
 			"/var/lib/registry": {},
