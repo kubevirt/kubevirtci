@@ -192,6 +192,7 @@ fi
 
 numa_arg=""
 sriov_pxb_numa_arg=""
+secondary_nic_pxb_args=""
 if [ "${NUMA}" -gt 1 ]; then
     numa_mem_unit="${MEMORY//[[:digit:]]/}"
     numa_mem_value="${MEMORY//[!0-9]/}"
@@ -209,6 +210,10 @@ if [ "${NUMA}" -gt 1 ]; then
         node_first_cpu=$((node_last_cpu + 1))
     done
     sriov_pxb_numa_arg=",numa_node=0"
+    for node_id in $(seq 0 $((NUMA - 1))); do
+        # Leave enough room for the downstream buses allocated under each NUMA bridge.
+        secondary_nic_pxb_args+=" -device pxb-pcie,id=secondarypxb${node_id},bus=pcie.0,bus_nr=$((160 + (node_id * 32))),numa_node=${node_id}"
+    done
 fi
 
 if [ "$(uname -m)" == "s390x" ]; then
@@ -243,6 +248,7 @@ else
     -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n},bus=pcie.0 \
     -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
     -device pxb-pcie,id=sriovpxb,bus=pcie.0,bus_nr=128${sriov_pxb_numa_arg} \
+    ${secondary_nic_pxb_args} \
     -device pcie-root-port,id=sriovrp,slot=3,chassis=3,bus=sriovpxb \
     -device igb,id=igb0,bus=sriovrp,netdev=sriovnet0,mac=52:55:00:d1:57:${n} \
     -netdev tap,id=sriovnet0,ifname=tap-sriov${n},script=no,downscript=no \
