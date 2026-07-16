@@ -58,7 +58,7 @@ n="$(printf "%02d" $(( 10#${NODE_NUM} )))"
 cat >/usr/local/bin/ssh.sh <<EOL
 #!/bin/bash
 set -e
-dockerize -wait tcp://192.168.66.1${n}:22 -timeout 120s &>/dev/null
+dockerize -wait tcp://192.168.66.1${n}:22 -timeout 300s &>/dev/null
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${VM_USER}@192.168.66.1${n} -i ${VM_USER_SSH_KEY} -p 22 -q \$@
 EOL
 chmod u+x /usr/local/bin/ssh.sh
