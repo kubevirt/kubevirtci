@@ -3,7 +3,6 @@ SHELL := /bin/bash
 IMAGES_FILE ?= images.json
 KUBEVIRTCI_IMAGE_REPO ?= quay.io/kubevirtci
 GOARCH ?= $$(uname -m | grep -q s390x && echo s390x || echo amd64)
-BUILDX_BUILDER ?= gocli-multiarch
 MULTIARCH_PLATFORMS ?= linux/amd64,linux/s390x
 
 export GO111MODULE=on
@@ -35,11 +34,11 @@ fmt:
 
 .PHONY: container
 container: cli
-	docker build --build-arg TARGETARCH=${GOARCH} -t ${KUBEVIRTCI_IMAGE_REPO}/gocli build/
+	podman build --build-arg TARGETARCH=${GOARCH} -t ${KUBEVIRTCI_IMAGE_REPO}/gocli build/
 
 .PHONY: container-run
 container-run: container
-	docker run --rm ${KUBEVIRTCI_IMAGE_REPO}/gocli
+	podman run --rm ${KUBEVIRTCI_IMAGE_REPO}/gocli
 
 .PHONY: vendor
 vendor:
@@ -50,11 +49,11 @@ vendor:
 push:
 	GOARCH=s390x $(MAKE) cli
 	GOARCH=amd64 $(MAKE) cli
-	# ensure a dedicated multi-platform builder exists
-	docker buildx inspect $(BUILDX_BUILDER) >/dev/null 2>&1 || \
-		docker buildx create --name $(BUILDX_BUILDER) --use
-	docker buildx build --builder $(BUILDX_BUILDER) \
+	buildah manifest rm ${KUBEVIRTCI_IMAGE_REPO}/gocli:${KUBEVIRTCI_TAG} 2>/dev/null || true
+	buildah build \
 		--platform $(MULTIARCH_PLATFORMS) \
-		--provenance=false \
-		-t ${KUBEVIRTCI_IMAGE_REPO}/gocli:${KUBEVIRTCI_TAG} \
-		--push build/
+		--manifest ${KUBEVIRTCI_IMAGE_REPO}/gocli:${KUBEVIRTCI_TAG} \
+		build/
+	buildah manifest push --all \
+		${KUBEVIRTCI_IMAGE_REPO}/gocli:${KUBEVIRTCI_TAG} \
+		docker://${KUBEVIRTCI_IMAGE_REPO}/gocli:${KUBEVIRTCI_TAG}

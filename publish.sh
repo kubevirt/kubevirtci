@@ -124,7 +124,7 @@ function push_cluster_images() {
 
 function push_gocli() {
   if [ $ARCH == "amd64" ]; then
-    echo "INFO: building and pushing multi-arch gocli via buildx"
+    echo "INFO: building and pushing multi-arch gocli via buildah"
     (cd cluster-provision/gocli && make push \
       KUBEVIRTCI_IMAGE_REPO=${TARGET_REPO} \
       KUBEVIRTCI_TAG=${KUBEVIRTCI_TAG})
