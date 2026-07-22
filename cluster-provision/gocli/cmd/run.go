@@ -1108,13 +1108,13 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 
 func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
 	var err error
-	// Wait for the VM to be up
 	for x := 0; x < 10; x++ {
 		err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh echo VM is up", "waiting for node to come up")
 		if err == nil {
 			break
 		}
 		logrus.WithError(err).Warningf("Could not establish a ssh connection to the VM, retrying ...")
+		logContainerDiagnostics(cli, prefix, nodeName, x+1)
 		time.Sleep(1 * time.Second)
 	}
 
@@ -1123,6 +1123,20 @@ func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
 	}
 
 	return nil
+}
+
+func logContainerDiagnostics(cli *client.Client, prefix string, nodeName string, attempt int) {
+	diagCmd := `echo "=== resource snapshot (attempt %d) ===" && date -Iseconds && ` +
+		`echo "--- loadavg ---" && cat /proc/loadavg && ` +
+		`echo "--- memory ---" && free -m && ` +
+		`echo "--- psi cpu ---" && (cat /proc/pressure/cpu 2>/dev/null || echo "PSI unavailable") && ` +
+		`echo "--- psi memory ---" && (cat /proc/pressure/memory 2>/dev/null || echo "PSI unavailable") && ` +
+		`echo "--- psi io ---" && (cat /proc/pressure/io 2>/dev/null || echo "PSI unavailable") && ` +
+		`echo "--- top cpu consumers ---" && ps -eo pid,pcpu,pmem,comm --sort=-pcpu 2>/dev/null | head -10 && ` +
+		`echo "--- qemu process ---" && (ps aux 2>/dev/null | grep qemu-system | grep -v grep || echo "QEMU NOT RUNNING") && ` +
+		`echo "--- oom kills ---" && (dmesg 2>/dev/null | grep -i -E 'oom|killed|out.of.memory' | tail -5 || true)`
+	cmd := fmt.Sprintf(diagCmd, attempt)
+	docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", cmd}, os.Stderr)
 }
 
 func nodeNameFromIndex(x int) string {
