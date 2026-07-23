@@ -176,6 +176,8 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().StringArrayVar(&sharedDisks, "shared-block-device", []string{}, "size of block device to share between all nodes")
 	run.Flags().Bool("deploy-network-resources-injector", false, "deploys Network Resources Injector")
 	run.Flags().String("vsock-child-ns-mode", "", "vsock child namespace mode (global or local)")
+	run.Flags().String("topology-manager-policy", "", "kubelet topology manager policy (e.g. single-numa-node)")
+	run.Flags().String("reserved-system-cpus", "", "kubelet reserved system cpuset (e.g. 4 or 4-5)")
 
 	return run
 }
@@ -251,6 +253,15 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	secondaryNicBridges, err := cmd.Flags().GetBool("enable-secondary-nic-bridges")
+	if err != nil {
+		return err
+	}
+
+	topologyManagerPolicy, err := cmd.Flags().GetString("topology-manager-policy")
+	if err != nil {
+		return err
+	}
+	reservedSystemCPUs, err := cmd.Flags().GetString("reserved-system-cpus")
 	if err != nil {
 		return err
 	}
@@ -876,6 +887,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodesconfig.WithSwapSize(int(swapSize)),
 			nodesconfig.WithSecondaryNicBridges(secondaryNicBridges),
 			nodesconfig.WithVsockChildNsMode(vsockChildNsMode),
+			nodesconfig.WithTopologyManagerPolicy(topologyManagerPolicy),
+			nodesconfig.WithReservedSystemCPUs(reservedSystemCPUs),
 		}
 
 		n := nodesconfig.NewNodeLinuxConfig(x+1, prefix, linuxConfigFuncs)
@@ -1075,7 +1088,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 			bindVfioOpt := bindvfio.NewBindVfioOpt(sshClient, gpuDeviceID)
 			opts = append(opts, bindVfioOpt)
 		}
-		n := nodesprovision.NewNodesProvisioner(n.K8sVersion, sshClient, n.SingleStack, n.SecondaryNicBridges)
+		n := nodesprovision.NewNodesProvisioner(n.K8sVersion, sshClient, n.SingleStack, n.SecondaryNicBridges, n.TopologyManagerPolicy, n.ReservedSystemCPUs)
 		opts = append(opts, n)
 	}
 

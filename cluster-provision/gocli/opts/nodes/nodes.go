@@ -29,14 +29,16 @@ var (
 )
 
 type nodesProvisioner struct {
-	k8sVersion          string
-	sshClient           libssh.Client
-	singleStack         bool
-	version             *semver.Version
-	secondaryNicBridges bool
+	k8sVersion            string
+	sshClient             libssh.Client
+	singleStack           bool
+	version               *semver.Version
+	secondaryNicBridges   bool
+	topologyManagerPolicy string
+	reservedSystemCPUs    string
 }
 
-func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack, secondaryNicBridges bool) *nodesProvisioner {
+func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack, secondaryNicBridges bool, topologyManagerPolicy, reservedSystemCPUs string) *nodesProvisioner {
 	submatches := versionRegex.FindStringSubmatch(k8sVersion)
 	if len(submatches) != 2 {
 		logrus.Infof("not a parseable semver contained in %q. Trying the %q environment variable", k8sVersion, kubevirtProviderEnv)
@@ -54,11 +56,13 @@ func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack, secon
 		logrus.Fatalf("not a parseable semver contained in %q", k8sVersion)
 	}
 	return &nodesProvisioner{
-		sshClient:           sc,
-		singleStack:         singleStack,
-		k8sVersion:          k8sVersion,
-		version:             version,
-		secondaryNicBridges: secondaryNicBridges,
+		sshClient:             sc,
+		singleStack:           singleStack,
+		k8sVersion:            k8sVersion,
+		version:               version,
+		secondaryNicBridges:   secondaryNicBridges,
+		topologyManagerPolicy: topologyManagerPolicy,
+		reservedSystemCPUs:    reservedSystemCPUs,
 	}
 }
 
@@ -74,14 +78,23 @@ func (n *nodesProvisioner) Exec() error {
 	}
 
 	kubeletCpuManagerArgs := " --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m"
+	kubeletTopologyManagerArgs := ""
+	kubeletReservedSystemCPUsArgs := ""
+	if n.topologyManagerPolicy != "" {
+		kubeletTopologyManagerArgs = " --topology-manager-policy=" + n.topologyManagerPolicy
+	}
+	if n.reservedSystemCPUs != "" {
+		kubeletReservedSystemCPUsArgs = " --reserved-cpus=" + n.reservedSystemCPUs
+	}
 	if runtime.GOARCH == "s390x" {
 		// CPU Manager feature is not yet supported on s390x.
 		kubeletCpuManagerArgs = ""
+		kubeletReservedSystemCPUsArgs = ""
 	}
 	cmds := []string{
 		"source /var/lib/kubevirtci/shared_vars.sh",
 		`timeout=30; interval=5; while ! hostnamectl | grep Transient; do echo "Waiting for dhclient to set the hostname from dnsmasq"; sleep $interval; timeout=$((timeout - interval)); [ $timeout -le 0 ] && exit 1; done`,
-		`echo "KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --fail-swap-on=false ` + nodeIP + " " + n.featureGatesFlag() + kubeletCpuManagerArgs + `" | tee /etc/sysconfig/kubelet > /dev/null`,
+		`echo "KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --fail-swap-on=false ` + nodeIP + " " + n.featureGatesFlag() + kubeletCpuManagerArgs + kubeletTopologyManagerArgs + kubeletReservedSystemCPUsArgs + `" | tee /etc/sysconfig/kubelet > /dev/null`,
 		"systemctl daemon-reload &&  service kubelet restart",
 		"swapoff -a",
 	}
