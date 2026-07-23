@@ -13,7 +13,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 provision_dir="$(basename "$(pwd)")"
 base_from_file="$(cat base | tr -d '\n')"
 
-PROVISION_CENTOS_VERSION="${PROVISION_CENTOS_VERSION:-9}"
+PROVISION_CENTOS_VERSION="${PROVISION_CENTOS_VERSION:-}"
 if [[ "$PROVISION_CENTOS_VERSION" == "10" ]]; then
   base="centos10"
 elif [[ "$PROVISION_CENTOS_VERSION" == "9" ]]; then

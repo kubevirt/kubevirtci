@@ -57,8 +57,12 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	packagePath := args[0]
 	centosVersion := os.Getenv("PROVISION_CENTOS_VERSION")
 	if centosVersion == "" {
-		// default to Centos Stream 9
-		centosVersion = "9"
+		baseBytes, err := os.ReadFile(filepath.Join(packagePath, "base"))
+		if err != nil {
+			return err
+		}
+		baseName := strings.TrimSpace(string(baseBytes))
+		centosVersion = strings.TrimPrefix(baseName, "centos")
 	}
 
 	centosScriptsPath := filepath.Join(packagePath, "..", "..", fmt.Sprintf("centos%s", centosVersion), "scripts")
