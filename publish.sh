@@ -53,8 +53,6 @@ function build_gocli() {
   (cd cluster-provision/gocli && make container)
   if [ $ARCH == "amd64" ]; then
     ${CRI_BIN} tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
-  else
-    ${CRI_BIN} tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}-${ARCH}
   fi
 }
 
@@ -125,13 +123,14 @@ function push_cluster_images() {
 }
 
 function push_gocli() {
-  echo "INFO: push gocli for ${ARCH}"
   if [ $ARCH == "amd64" ]; then
-    TARGET_IMAGE="${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}"
+    echo "INFO: building and pushing multi-arch gocli via buildah"
+    (cd cluster-provision/gocli && make push \
+      KUBEVIRTCI_IMAGE_REPO=${TARGET_REPO} \
+      KUBEVIRTCI_TAG=${KUBEVIRTCI_TAG})
   else
-    TARGET_IMAGE="${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}-${ARCH}"
+    echo "INFO: skipping gocli push on ${ARCH}, handled by amd64 job"
   fi
-  podman push "$TARGET_IMAGE"
 }
 
 function publish_node_base_image() {
@@ -163,7 +162,7 @@ publish_manifest() {
   local image_tag="${2:?}"
   local target_image_repo="${3:-$TARGET_REPO}"
   local full_image_name="${target_image_repo}/${image_name}:${image_tag}"
-  if [[ "$image_name" != "centos9" && "$image_name" != "centos10" && "$image_name" != "gocli" && ! ( "$image_name" == "k8s-1.34" && "$image_tag" =~ "slim" ) ]]; then
+  if [[ "$image_name" != "centos9" && "$image_name" != "centos10" && ! ( "$image_name" == "k8s-1.34" && "$image_tag" =~ "slim" ) ]]; then
     unset 'cur_archs[1]'
   fi
   for arch in ${cur_archs[*]};do
@@ -206,9 +205,6 @@ function main() {
   done
 
   push_gocli
-  if [ $ARCH == "s390x" ]; then
-    publish_manifest "gocli" $KUBEVIRTCI_TAG
-  fi
 
   if [ $ARCH == "amd64" ]; then
     create_git_tag
