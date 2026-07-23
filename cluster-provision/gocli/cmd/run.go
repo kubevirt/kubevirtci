@@ -1107,6 +1107,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 }
 
 func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
+	logContainerDiagnostics(cli, prefix, nodeName, "pre-ssh")
 	var err error
 	for x := 0; x < 10; x++ {
 		err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh echo VM is up", "waiting for node to come up")
@@ -1114,7 +1115,7 @@ func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
 			break
 		}
 		logrus.WithError(err).Warningf("Could not establish a ssh connection to the VM, retrying ...")
-		logContainerDiagnostics(cli, prefix, nodeName, x+1)
+		logContainerDiagnostics(cli, prefix, nodeName, fmt.Sprintf("retry-%d", x+1))
 		time.Sleep(1 * time.Second)
 	}
 
@@ -1122,11 +1123,12 @@ func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
 		return fmt.Errorf("could not establish a connection to the node after a generous timeout: %v", err)
 	}
 
+	logContainerDiagnostics(cli, prefix, nodeName, "ssh-ok")
 	return nil
 }
 
-func logContainerDiagnostics(cli *client.Client, prefix string, nodeName string, attempt int) {
-	diagCmd := `echo "=== resource snapshot (attempt %d) ===" && date -Iseconds && ` +
+func logContainerDiagnostics(cli *client.Client, prefix string, nodeName string, phase string) {
+	diagCmd := `echo "=== resource snapshot (%s, %s) ===" && date -Iseconds && ` +
 		`echo "--- loadavg ---" && cat /proc/loadavg && ` +
 		`echo "--- memory ---" && free -m && ` +
 		`echo "--- psi cpu ---" && (cat /proc/pressure/cpu 2>/dev/null || echo "PSI unavailable") && ` +
@@ -1135,7 +1137,7 @@ func logContainerDiagnostics(cli *client.Client, prefix string, nodeName string,
 		`echo "--- top cpu consumers ---" && ps -eo pid,pcpu,pmem,comm --sort=-pcpu 2>/dev/null | head -10 && ` +
 		`echo "--- qemu process ---" && (ps aux 2>/dev/null | grep qemu-system | grep -v grep || echo "QEMU NOT RUNNING") && ` +
 		`echo "--- oom kills ---" && (dmesg 2>/dev/null | grep -i -E 'oom|killed|out.of.memory' | tail -5 || true)`
-	cmd := fmt.Sprintf(diagCmd, attempt)
+	cmd := fmt.Sprintf(diagCmd, nodeName, phase)
 	docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", cmd}, os.Stderr)
 }
 
