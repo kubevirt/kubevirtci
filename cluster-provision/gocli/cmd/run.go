@@ -101,6 +101,20 @@ type dockerSetting struct {
 	Proxy string
 }
 
+func defaultHugepages2M() uint {
+	if runtime.GOARCH == "s390x" {
+		return 0
+	}
+	return 64
+}
+
+func defaultHugepages1M() uint {
+	if runtime.GOARCH == "s390x" {
+		return 128
+	}
+	return 0
+}
+
 // NewRunCommand returns command that runs given cluster
 func NewRunCommand() *cobra.Command {
 
@@ -163,8 +177,10 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().StringArrayVar(&scsiDisks, "scsi", []string{}, "size of the emulate SCSI disk to pass to the node")
 	run.Flags().Bool("run-etcd-on-memory", false, "configure etcd to run on RAM memory, etcd data will not be persistent")
 	run.Flags().String("etcd-capacity", etcdinmemory.DefaultEtcdCapacity, "set etcd data mount size.\nthis flag takes affect only when 'run-etcd-on-memory' is specified")
-	run.Flags().Uint("hugepages-2m", 64, "number of hugepages of size 2M to allocate")
+	run.Flags().Uint("hugepages-2m", defaultHugepages2M(), "number of hugepages of size 2M to allocate")
 	run.Flags().Uint("hugepages-1g", 0, "number of hugepages of size 1Gi to allocate")
+	run.Flags().Uint("hugepages-1m", defaultHugepages1M(), "number of hugepages of size 1M to allocate")
+	run.Flags().Uint("hugepages-2g", 0, "number of hugepages of size 2G to allocate")
 	run.Flags().Bool("enable-realtime-scheduler", false, "configures the kernel to allow unlimited runtime for processes that require realtime scheduling")
 	run.Flags().Bool("enable-fips", false, "enables FIPS")
 	run.Flags().Bool("enable-psa", false, "Pod Security Admission")
@@ -337,6 +353,15 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 	hugepages1Gcount, err := cmd.Flags().GetUint("hugepages-1g")
+	if err != nil {
+		return err
+	}
+
+	hugepages1Mcount, err := cmd.Flags().GetUint("hugepages-1m")
+	if err != nil {
+		return err
+	}
+	hugepages2Gcount, err := cmd.Flags().GetUint("hugepages-2g")
 	if err != nil {
 		return err
 	}
@@ -765,6 +790,14 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 		if hugepages1Gcount > 0 {
 			kernelArgs += fmt.Sprintf(" hugepagesz=1G hugepages=%d", hugepages1Gcount)
+		}
+
+		if hugepages1Mcount > 0 {
+			kernelArgs += fmt.Sprintf(" hugepagesz=1M hugepages=%d", hugepages1Mcount)
+		}
+
+		if hugepages2Gcount > 0 {
+			kernelArgs += fmt.Sprintf(" hugepagesz=2G hugepages=%d", hugepages2Gcount)
 		}
 
 		if fipsEnabled {
