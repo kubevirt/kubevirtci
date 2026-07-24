@@ -65,7 +65,7 @@ var _ = Describe("Provision Manager functionality", func() {
 				rulesDB["file2"] = []string{"target2"}
 
 				_, err := processChanges(rulesDB, targets, "A\tfile_should_fail")
-				Expect(err.Error()).To(Equal("Errors detected: files dont have a matching rule"))
+				Expect(err.Error()).To(Equal("errors detected: files dont have a matching rule"))
 			})
 
 			It("returns expected target when matching file is Deleted", func() {

@@ -57,7 +57,7 @@ type ReactorConfig struct {
 func NewConfig(manifestPath string, apiServerPort uint16) (*rest.Config, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", manifestPath)
 	if err != nil {
-		return nil, fmt.Errorf("Error building kubeconfig: %v", err)
+		return nil, fmt.Errorf("error building kubeconfig: %v", err)
 	}
 	config.Host = "https://127.0.0.1:" + fmt.Sprintf("%d", apiServerPort)
 	config.Insecure = true
@@ -68,7 +68,7 @@ func NewConfig(manifestPath string, apiServerPort uint16) (*rest.Config, error) 
 func NewDynamicClient(config *rest.Config) (*k8sDynamicClientImpl, error) {
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating dynamic client: %v", err)
+		return nil, fmt.Errorf("error creating dynamic client: %v", err)
 	}
 	return &k8sDynamicClientImpl{
 		client: dynamicClient,
@@ -113,7 +113,7 @@ func (c *k8sDynamicClientImpl) Get(gvk schema.GroupVersionKind, name, ns string)
 func (c *k8sDynamicClientImpl) Update(newResource *unstructured.Unstructured) error {
 	gv := strings.Split(newResource.GetAPIVersion(), "/")
 	if len(gv) != 2 {
-		return fmt.Errorf("Resource has no proper group and version. Got: %s\n", newResource.GetAPIVersion())
+		return fmt.Errorf("resource has no proper group and version, got: %s", newResource.GetAPIVersion())
 	}
 
 	resourceClient, err := c.initResourceClientForGVKAndNamespace(schema.GroupVersionKind{
@@ -163,14 +163,14 @@ func (c *k8sDynamicClientImpl) Apply(obj *unstructured.Unstructured) error {
 func SerializeIntoObject(manifest []byte) (*unstructured.Unstructured, error) {
 	jsonData, err := yaml.YAMLToJSON(manifest)
 	if err != nil {
-		return nil, fmt.Errorf("Error converting YAML to JSON: %v\n", err)
+		return nil, fmt.Errorf("error converting YAML to JSON: %v", err)
 	}
 
 	obj := &unstructured.Unstructured{}
 	dec := serializer.NewCodecFactory(s).UniversalDeserializer()
 	_, _, err = dec.Decode(jsonData, nil, obj)
 	if err != nil {
-		return nil, fmt.Errorf("Error decoding JSON to Unstructured object: %v\n", err)
+		return nil, fmt.Errorf("error decoding JSON to Unstructured object: %v", err)
 	}
 	return obj, nil
 }

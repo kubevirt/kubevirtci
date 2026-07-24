@@ -18,14 +18,10 @@ const (
 )
 
 var (
-	//go:embed conf/00-cgroupv2.conf
-	cgroupv2 []byte
-
 	//go:embed scripts/setup-bridges.sh
 	setupBridgesScript []byte
 
 	versionRegex = regexp.MustCompile(`.*([0-9]+\.[0-9]+)`)
-	v1_32        = semver.MustParse("v1.32")
 )
 
 type nodesProvisioner struct {

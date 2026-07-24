@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -117,7 +116,7 @@ func provisionManager(cmd *cobra.Command, arguments []string) error {
 		return err
 	}
 	if len(targets) == 0 {
-		return fmt.Errorf("No valid targets found")
+		return fmt.Errorf("no valid targets found")
 	}
 
 	rulesDB, err := buildRulesDBfromFile(params.rulesFile, targets)
@@ -258,7 +257,7 @@ func processChanges(rulesDB map[string][]string, targets []string, changes strin
 	}
 
 	if errorFound {
-		return nil, fmt.Errorf("Errors detected: files dont have a matching rule")
+		return nil, fmt.Errorf("errors detected: files dont have a matching rule")
 	}
 
 	return targetToRebuild, nil
@@ -285,7 +284,7 @@ func matcher(rulesDB map[string][]string, fileName string, status string) ([]str
 	}
 
 	if status != FILE_DELETED {
-		return nil, fmt.Errorf("Failed to find a rule for %s", fileName)
+		return nil, fmt.Errorf("failed to find a rule for %s", fileName)
 	}
 
 	return nil, nil
@@ -297,17 +296,17 @@ func getKubevirtciTag() (string, error) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	resp, err := http.Get(kubevirtciTagUrl)
 	if err != nil {
-		return "", fmt.Errorf("ERROR: getting latest kubevirtci tag failed, error: %v", err)
+		return "", fmt.Errorf("getting latest kubevirtci tag failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("ERROR: getting latest kubevirtci tag failed, status code: %d", resp.StatusCode)
+		return "", fmt.Errorf("getting latest kubevirtci tag failed, status code: %d", resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("ERROR: parsing response body failed: %v", err)
+		return "", fmt.Errorf("parsing response body failed: %v", err)
 	}
 
 	return strings.TrimSuffix(string(body), "\n"), nil
@@ -351,7 +350,7 @@ func buildRulesDBfromFile(rulesFile string, targets []string) (map[string][]stri
 	if err != nil {
 		return nil, err
 	}
-	defer inFile.Close()
+	defer func() { _ = inFile.Close() }()
 
 	return buildRulesDB(inFile, targets)
 }
@@ -427,12 +426,12 @@ func addRegexRules(cfgRegex []string, targets []string, rulesDB map[string][]str
 	for _, path := range cfgRegex {
 		directories, _ := fsys.GlobDirectories(path)
 		if len(directories) == 0 {
-			return fmt.Errorf("No valid directories found for Regex rule: %s", path)
+			return fmt.Errorf("no valid directories found for Regex rule: %s", path)
 		}
 		for _, dir := range directories {
 			target := strings.ReplaceAll(filepath.Base(dir), "k8s-", "")
 			if !isTargetValid(target, targets) {
-				return fmt.Errorf("Invalid target %s, regex rule: %s", target, path)
+				return fmt.Errorf("invalid target %s, regex rule: %s", target, path)
 			}
 			rulesDB[dir+"/*"] = []string{target}
 		}
@@ -445,7 +444,7 @@ func addRegexNoneRules(cfgRegexNone []string, rulesDB map[string][]string) error
 	for _, path := range cfgRegexNone {
 		directories, _ := fsys.GlobDirectories(path)
 		if len(directories) == 0 {
-			return fmt.Errorf("No valid directories found for RegexNone rule: %s", path)
+			return fmt.Errorf("no valid directories found for RegexNone rule: %s", path)
 		}
 		for _, dir := range directories {
 			rulesDB[dir+"/*"] = []string{TARGET_NONE}
@@ -464,12 +463,12 @@ func addExcludeRules(cfgExclude []Exclude, targets []string, rulesDB map[string]
 		ruleTargets := append([]string(nil), targets...)
 		for _, target := range e.Exclude {
 			if !isTargetValid(target, targets) {
-				return fmt.Errorf("Invalid target, exclude rule: %s", target)
+				return fmt.Errorf("invalid target, exclude rule: %s", target)
 			}
 			ruleTargets = excludeTarget(target, ruleTargets)
 		}
 		if len(ruleTargets) == 0 {
-			return fmt.Errorf("No valid targets left for exclude rule: %s", e.Pattern)
+			return fmt.Errorf("no valid targets left for exclude rule: %s", e.Pattern)
 		}
 		rulesDB[e.Pattern] = ruleTargets
 	}
@@ -485,7 +484,7 @@ func addSpecificRules(cfgSpecific []Specific, targets []string, rulesDB map[stri
 		ruleTargets := []string{}
 		for _, target := range e.Targets {
 			if !isTargetValid(target, targets) {
-				return fmt.Errorf("Invalid target, specific rule: %s", target)
+				return fmt.Errorf("invalid target, specific rule: %s", target)
 			}
 			ruleTargets = append(ruleTargets, target)
 		}
@@ -497,10 +496,10 @@ func addSpecificRules(cfgSpecific []Specific, targets []string, rulesDB map[stri
 func validatePathExist(path string, ruleType string) error {
 	matches, err := fsys.GetFileSystem().Glob(path)
 	if err != nil {
-		return fmt.Errorf("Error occurred for rule %s %s: %v", ruleType, path, err)
+		return fmt.Errorf("error occurred for rule %s %s: %v", ruleType, path, err)
 	}
 	if len(matches) == 0 {
-		return fmt.Errorf("Path doesn't exist for rule %s: %s", ruleType, path)
+		return fmt.Errorf("path doesn't exist for rule %s: %s", ruleType, path)
 	}
 	return nil
 }

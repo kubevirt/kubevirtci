@@ -35,7 +35,7 @@ func ApplyYAML(multiDocYAML []byte, client k8s.K8sDynamicClient) error {
 
 func beginsInComment(doc []byte) bool {
 	const commentRune = '#'
-	
+
 	for i := 0; i < len(doc); i++ {
 		if !unicode.IsSpace(rune(doc[i])) {
 			return doc[i] == commentRune

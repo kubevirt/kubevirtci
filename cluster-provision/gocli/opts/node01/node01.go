@@ -7,9 +7,6 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 )
 
-//go:embed conf/00-cgroupv2.conf
-var cgroupv2 []byte
-
 //go:embed conf/adv-audit.yaml
 var advAudit []byte
 
@@ -75,7 +72,7 @@ func (n *node01Provisioner) Exec() error {
 		`timeout=60; interval=5; while ! systemctl status crio | grep -w "active"; do echo "Waiting for cri-o service to be ready"; sleep $interval; timeout=$((timeout - interval)); if [[ $timeout -le 0 ]]; then exit 1; fi; done`,
 		kubeadmInitCmd,
 		`kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /provision/kubeadm-patches/add-security-context-deployment-patch.yaml)"`,
-		`kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f ` + cniManifest,
+		`kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f `+cniManifest,
 		`kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes node01 node-role.kubernetes.io/control-plane:NoSchedule-`,
 		`kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --no-headers; kubectl_rc=$?; retry_counter=0; while [[ $retry_counter -lt 20 && $kubectl_rc -ne 0 ]]; do sleep 10; echo "Waiting for api server to be available...";  kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes --no-headers; kubectl_rc=$?; retry_counter=$((retry_counter + 1)); done`,
 		"kubectl --kubeconfig=/etc/kubernetes/admin.conf version",

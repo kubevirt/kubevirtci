@@ -10,7 +10,6 @@ import (
 var sharedVars []byte
 
 type linuxProvisioner struct {
-	sshPort   uint16
 	sshClient libssh.Client
 }
 

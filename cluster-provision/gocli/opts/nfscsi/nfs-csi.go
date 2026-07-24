@@ -97,7 +97,7 @@ func (o *nfsCsiOpt) Exec() error {
 
 	err = backoff.Retry(operation, backoffStrategy)
 	if err != nil {
-		return fmt.Errorf("Waiting on PVC to become bound failed after maximum retries: %v", err)
+		return fmt.Errorf("waiting on PVC to become bound failed after maximum retries: %v", err)
 	}
 
 	err = o.client.Delete(schema.GroupVersionKind{
