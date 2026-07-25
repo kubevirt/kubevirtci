@@ -224,8 +224,7 @@ fi
 
 if [ "$(uname -m)" == "s390x" ]; then
   # As per https://www.qemu.org/docs/master/system/s390x/bootdevices.html#booting-without-bootindex-parameter -drive if=virtio can't be specified with bootindex for s390x
-  qemu_system_cmd="qemu-system-s390x \
-    -enable-kvm \
+  qemu_system_cmd="/usr/libexec/qemu-kvm \
     -drive format=qcow2,file=${next},if=none,cache=unsafe,id=drive1 ${block_dev_drive_arg} \
     -device virtio-blk,drive=drive1,bootindex=1 \
     ${BLOCK_DEV:+ -device virtio-blk,drive=extdisk} \
@@ -246,8 +245,7 @@ if [ "$(uname -m)" == "s390x" ]; then
     ${QEMU_ARGS}"
 else
   #Docs: https://www.qemu.org/docs/master/system/invocation.html
-  qemu_system_cmd="qemu-system-x86_64 \
-    -enable-kvm \
+  qemu_system_cmd="/usr/libexec/qemu-kvm \
     -drive format=qcow2,file=${next},if=none,id=bootdisk,cache=unsafe ${block_dev_drive_arg} \
     -device virtio-blk-pci,drive=bootdisk,bus=pcie.0 \
     ${BLOCK_DEV:+ -device virtio-blk-pci,drive=extdisk,bus=pcie.0} \
@@ -269,7 +267,8 @@ else
     ${SERIAL_ARG} \
     -machine q35,accel=kvm,kernel_irqchip=split \
     -device intel-iommu,intremap=on,caching-mode=on \
-    -device intel-hda,bus=pcie.0 -device hda-duplex -device AC97,bus=pcie.0 \
+    -device intel-hda,id=sound0,bus=pcie.0 -device hda-duplex,bus=sound0.0 \
+    -device ich9-intel-hda,id=sound1,bus=pcie.0 -device hda-duplex,bus=sound1.0 \
     -uuid $(cat /proc/sys/kernel/random/uuid) \
     -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
     ${QEMU_ARGS}"
