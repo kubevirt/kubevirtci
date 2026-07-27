@@ -2,6 +2,8 @@ package node01
 
 import (
 	"fmt"
+	"runtime"
+
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 	kubevirtcimocks "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/mock"
 )
@@ -11,6 +13,17 @@ func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient) {
 		fmt.Sprintf(`if [ -f /home/%s/enable_audit ]; then echo '%s' | tee /etc/kubernetes/audit/adv-audit.yaml > /dev/null; fi`, libssh.GetSSHUser(), string(advAudit)),
 		`timeout=30; interval=5; while ! hostnamectl | grep Transient; do echo "Waiting for dhclient to set the hostname from dnsmasq"; sleep $interval; timeout=$((timeout - interval)); [ $timeout -le 0 ] && exit 1; done`,
 		"swapoff -a",
+	}
+	if runtime.GOARCH != "s390x" {
+		cmds = append(cmds, `cat >> /etc/kubernetes/kubelet.conf.d/50-kubevirt.conf <<'EOF'
+cpuManagerPolicy: static
+kubeReserved:
+  cpu: 500m
+systemReserved:
+  cpu: 500m
+EOF`)
+	}
+	cmds = append(cmds,
 		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
 		`timeout=60; interval=5; while ! systemctl status crio | grep -w "active"; do echo "Waiting for cri-o service to be ready"; sleep $interval; timeout=$((timeout - interval)); if [[ $timeout -le 0 ]]; then exit 1; fi; done`,
 		`kubeadm init --config /etc/kubernetes/kubeadm.conf -v5`,
@@ -22,7 +35,7 @@ func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient) {
 		`kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f /provision/local-volume.yaml`,
 		"mkdir -p /var/lib/rook",
 		"chcon -t container_file_t /var/lib/rook",
-	}
+	)
 	for _, cmd := range cmds {
 		sshClient.EXPECT().Command(cmd)
 	}
