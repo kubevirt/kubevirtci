@@ -55,7 +55,7 @@ var _ = Describe("Node Provisioning", func() {
 
 			etcdinmemory.AddExpectCalls(sshClient, "1G")
 			bindvfio.AddExpectCalls(sshClient, "8086:2668")
-			bindvfio.AddExpectCalls(sshClient, "8086:2415")
+			bindvfio.AddExpectCalls(sshClient, "8086:293e")
 			psa.AddExpectCalls(sshClient)
 			node01.AddExpectCalls(sshClient)
 

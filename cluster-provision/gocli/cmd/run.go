@@ -89,7 +89,15 @@ EOF
 	secondaryNicRootPortBaseChass = 10
 )
 
-var soundcardPCIIDs = []string{"8086:2668", "8086:2415"}
+var soundcardPCIIDs = []string{
+	// Intel 82801AA AC97 Audio (aka -device AC97)
+	// Not enabled in CentOS builds of QEMU
+	//"8086:2415",
+	// Intel HD Audio Controller (ich6) (aka -device intel-hda)
+	"8086:2668",
+	// Intel HD Audio Controller (ich9) (aka -device ich9-intel-hda)
+	"8086:293e",
+}
 var cli *client.Client
 var nvmeDisks []string
 var scsiDisks []string
