@@ -89,10 +89,12 @@ EOF
 	secondaryNicRootPortBaseChass = 10
 )
 
+// Required PCI ids are hardcoded in KubeVirt e2e tests:
+// - https://github.com/kubevirt/kubevirt/blob/720b695b/tests/vmi_hostdev_test.go#L112
 var soundcardPCIIDs = []string{
 	// Intel 82801AA AC97 Audio (aka -device AC97)
 	// Not enabled in CentOS builds of QEMU
-	//"8086:2415",
+	"8086:2415",
 	// Intel HD Audio Controller (ich6) (aka -device intel-hda)
 	"8086:2668",
 	// Intel HD Audio Controller (ich9) (aka -device ich9-intel-hda)
@@ -1117,7 +1119,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
 	logContainerDiagnostics(cli, prefix, nodeName, "pre-ssh")
 	var err error
-	for x := 0; x < 10; x++ {
+	for x := 0; x < 5; x++ {
 		err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh echo VM is up", "waiting for node to come up")
 		if err == nil {
 			break

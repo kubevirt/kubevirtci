@@ -1,6 +1,4 @@
-FROM quay.io/centos/centos:stream9 AS base
-
-RUN dnf -y install epel-release
+FROM registry.fedoraproject.org/fedora:43 AS base
 
 RUN dnf -y install \
     bind-utils \
