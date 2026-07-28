@@ -58,7 +58,7 @@ n="$(printf "%02d" $(( 10#${NODE_NUM} )))"
 cat >/usr/local/bin/ssh.sh <<EOL
 #!/bin/bash
 set -e
-dockerize -wait tcp://192.168.66.1${n}:22 -timeout 300s &>/dev/null
+dockerize -wait tcp://192.168.66.1${n}:22 -timeout 120s &>/dev/null
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${VM_USER}@192.168.66.1${n} -i ${VM_USER_SSH_KEY} -p 22 -q \$@
 EOL
 chmod u+x /usr/local/bin/ssh.sh
@@ -216,15 +216,9 @@ if [ "${NUMA}" -gt 1 ]; then
     done
 fi
 
-if [ -n "${PROW_JOB_ID:-}" ] || [ "${CI:-}" = "true" ]; then
-  SERIAL_ARG="-serial file:/dev/stderr"
-else
-  SERIAL_ARG="-serial pty"
-fi
-
 if [ "$(uname -m)" == "s390x" ]; then
   # As per https://www.qemu.org/docs/master/system/s390x/bootdevices.html#booting-without-bootindex-parameter -drive if=virtio can't be specified with bootindex for s390x
-  qemu_system_cmd="/usr/libexec/qemu-kvm \
+  qemu_system_cmd="/usr/bin/qemu-kvm \
     -drive format=qcow2,file=${next},if=none,cache=unsafe,id=drive1 ${block_dev_drive_arg} \
     -device virtio-blk,drive=drive1,bootindex=1 \
     ${BLOCK_DEV:+ -device virtio-blk,drive=extdisk} \
@@ -238,14 +232,14 @@ if [ "$(uname -m)" == "s390x" ]; then
     -cpu host \
     -m ${MEMORY} \
     -smp ${CPU} ${numa_arg} \
-    ${SERIAL_ARG} \
+    -serial pty \
     -machine s390-ccw-virtio,accel=kvm \
     -uuid $(cat /proc/sys/kernel/random/uuid) \
     -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
     ${QEMU_ARGS}"
 else
   #Docs: https://www.qemu.org/docs/master/system/invocation.html
-  qemu_system_cmd="/usr/libexec/qemu-kvm \
+  qemu_system_cmd="/usr/bin/qemu-kvm \
     -drive format=qcow2,file=${next},if=none,id=bootdisk,cache=unsafe ${block_dev_drive_arg} \
     -device virtio-blk-pci,drive=bootdisk,bus=pcie.0 \
     ${BLOCK_DEV:+ -device virtio-blk-pci,drive=extdisk,bus=pcie.0} \
@@ -264,9 +258,10 @@ else
     -cpu host,migratable=no,+invtsc \
     -m ${MEMORY} \
     -smp ${CPU} ${numa_arg} \
-    ${SERIAL_ARG} \
+    -serial pty \
     -machine q35,accel=kvm,kernel_irqchip=split \
     -device intel-iommu,intremap=on,caching-mode=on \
+    -device AC97,bus=pcie.0 \
     -device intel-hda,id=sound0,bus=pcie.0 -device hda-duplex,bus=sound0.0 \
     -device ich9-intel-hda,id=sound1,bus=pcie.0 -device hda-duplex,bus=sound1.0 \
     -uuid $(cat /proc/sys/kernel/random/uuid) \
