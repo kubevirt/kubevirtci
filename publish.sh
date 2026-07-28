@@ -50,7 +50,7 @@ function run_provision_manager() {
 }
 
 function build_gocli() {
-  (cd cluster-provision/gocli && make cli container)
+  (cd cluster-provision/gocli && make cli container KUBEVIRTCI_IMAGE_REPO=${TARGET_REPO})
   if [ $ARCH == "amd64" ]; then
     ${CRI_BIN} tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
   fi
