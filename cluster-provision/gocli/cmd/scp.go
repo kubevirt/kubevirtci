@@ -129,16 +129,16 @@ func scp(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 
 	stdout, err := session.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("Unable to setup stdout for session: %v", err)
+		return fmt.Errorf("unable to setup stdout for session: %v", err)
 	}
 
 	stderr, err := session.StderrPipe()
 	if err != nil {
-		return fmt.Errorf("Unable to setup stderr for session: %v", err)
+		return fmt.Errorf("unable to setup stderr for session: %v", err)
 	}
 	go io.Copy(os.Stderr, stderr)
 
@@ -193,7 +193,7 @@ func scp(cmd *cobra.Command, args []string) error {
 	}
 
 	go func(wrPipe io.WriteCloser) {
-		defer wrPipe.Close()
+		defer func() { _ = wrPipe.Close() }()
 		fmt.Fprintf(wrPipe, "\x00")
 		fmt.Fprintf(wrPipe, "\x00")
 		fmt.Fprintf(wrPipe, "\x00")

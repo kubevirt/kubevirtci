@@ -1,0 +1,16 @@
+version: "2"
+run:
+  go: "1.26"
+  modules-download-mode: vendor
+linters:
+  default: standard
+  settings:
+    errcheck:
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - io.Copy
+formatters:
+  enable:
+    - goimports

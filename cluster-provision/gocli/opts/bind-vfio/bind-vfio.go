@@ -38,7 +38,7 @@ func (o *bindVfioOpt) Exec() error {
 	driver = strings.TrimSuffix(driver, "\n")
 
 	if err := o.sshClient.Command("modprobe -i vfio-pci"); err != nil {
-		return fmt.Errorf("Error loading vfio-pci module: %v", err)
+		return fmt.Errorf("error loading vfio-pci module: %v", err)
 	}
 
 	cmds := []string{
