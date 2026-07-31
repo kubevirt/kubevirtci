@@ -262,7 +262,6 @@ else
     -serial pty \
     -machine q35,accel=kvm,kernel_irqchip=split \
     -device intel-iommu,intremap=on,caching-mode=on \
-    -device AC97,bus=pcie.0 \
     -device intel-hda,id=sound0,bus=pcie.0 -device hda-duplex,bus=sound0.0 \
     -device ich9-intel-hda,id=sound1,bus=pcie.0 -device hda-duplex,bus=sound1.0 \
     -uuid $(cat /proc/sys/kernel/random/uuid) \

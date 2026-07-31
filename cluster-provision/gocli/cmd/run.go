@@ -88,11 +88,8 @@ EOF
 )
 
 // Required PCI ids are hardcoded in KubeVirt e2e tests:
-// - https://github.com/kubevirt/kubevirt/blob/720b695b/tests/vmi_hostdev_test.go#L112
+// - https://github.com/kubevirt/kubevirt/blob/39b1c5f9/tests/vmi_hostdev_test.go#L70-L79
 var soundcardPCIIDs = []string{
-	// Intel 82801AA AC97 Audio (aka -device AC97)
-	// Not enabled in CentOS builds of QEMU
-	"8086:2415",
 	// Intel HD Audio Controller (ich6) (aka -device intel-hda)
 	"8086:2668",
 	// Intel HD Audio Controller (ich9) (aka -device ich9-intel-hda)
