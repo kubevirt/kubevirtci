@@ -26,7 +26,7 @@ RUN echo "CentOS Stream 10 version $CENTOS_VERSION" && \
     curl --fail-with-body --retry 2 -LR -o box.qcow2 https://cloud.centos.org/centos/10-stream/$BUILDARCH/images/CentOS-Stream-GenericCloud-10-$CENTOS_VERSION.$BUILDARCH.qcow2 && \
     # Access virtual machine disk images directly by using LIBGUESTFS_BACKEND=direct, instead of libvirt
     export LIBGUESTFS_BACKEND=direct && \
-    guestfish --ro --add box.qcow2 --mount /dev/sda2:/ ls /boot/ | grep -E '^vmlinuz-|^initramfs-' | xargs -I {} guestfish --ro --add box.qcow2 -i copy-out /boot/{} / ;
+    guestfish --ro --add box.qcow2 -i glob copy-out '/boot/vmlinuz-*' / : glob copy-out '/boot/initramfs-*' / ;
 
 FROM base AS nodecontainer
 
