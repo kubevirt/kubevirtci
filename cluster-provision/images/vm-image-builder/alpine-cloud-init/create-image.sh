@@ -40,7 +40,7 @@ if [ ! -f alpine-make-vm-image ]; then
     chmod 755 alpine-make-vm-image
 fi
 
-podman run --rm -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v $(pwd):$(pwd):z alpine ash -c "cd $(pwd) &&
+podman run --rm -v /lib/modules:/lib/modules -v /dev:/dev --privileged -v "${PWD}":"${PWD}":z -w "${PWD}" alpine ash -c "
 ./alpine-make-vm-image \
     --image-format qcow2 \
     --image-size $IMAGE_SIZE \
