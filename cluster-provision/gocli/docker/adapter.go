@@ -42,7 +42,7 @@ func (d *DockerAdapter) Command(cmd string) error {
 	}
 
 	if !success {
-		return fmt.Errorf("Error executing %s on node %s", cmd, d.nodeName)
+		return fmt.Errorf("error executing %s on node %s", cmd, d.nodeName)
 	}
 	return nil
 }
