@@ -4,6 +4,12 @@ Welcome! As stated in the [README](README.md) this repository contains code for 
 
 See [the KubeVirt contribution guide](https://github.com/kubevirt/kubevirt/blob/main/CONTRIBUTING.md) for general information about how to contribute.
 
+## Development guides
+
+- **Cluster operations** (starting, stopping, kubectl, SSH): see [K8S.md](K8S.md)
+- **Local provisioning and testing**: see [KUBEVIRTCI_LOCAL_TESTING.md](KUBEVIRTCI_LOCAL_TESTING.md)
+- **Podman support**: see [PODMAN.md](PODMAN.md)
+
 ## Getting started with gocli
 
 ```
@@ -25,5 +31,21 @@ After published, update cluster-up/cluster/images.sh with the gocli hash, that w
 Or simply use:
 ```
 make bump provider=gocli hash=<NEW_HASH>
+```
+
+## Provider validation
+
+After provisioning a provider, validate it with these scripts:
+
+```bash
+# Validate cluster startup
+./cluster-provision/k8s/check-cluster-up.sh <provider>
+
+# Check image pull policies
+./cluster-provision/k8s/validate-pod-pull-policies.sh
+./cluster-provision/k8s/validate-manifest-pull-policies.sh
+
+# Test cluster connectivity
+cluster-up/check.sh
 ```
 

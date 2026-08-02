@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"bufio"
-	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -23,7 +22,6 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/nodesconfig"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/utils"
@@ -84,19 +82,25 @@ EOF
 	scsiDiskImagePrefix = "/scsi"
 	QEMU_DEVICE_S390X   = "virtio-net-ccw"
 	QEMU_DEVICE_X86_64  = "virtio-net-pci"
+
+	secondaryNicRootPortBaseSlot  = 4
+	secondaryNicRootPortBaseChass = 10
 )
 
-var soundcardPCIIDs = []string{"8086:2668", "8086:2415"}
+// Required PCI ids are hardcoded in KubeVirt e2e tests:
+// - https://github.com/kubevirt/kubevirt/blob/39b1c5f9/tests/vmi_hostdev_test.go#L70-L79
+var soundcardPCIIDs = []string{
+	// Intel HD Audio Controller (ich6) (aka -device intel-hda)
+	"8086:2668",
+	// Intel HD Audio Controller (ich9) (aka -device ich9-intel-hda)
+	"8086:293e",
+}
 var cli *client.Client
 var nvmeDisks []string
 var scsiDisks []string
 var usbDisks []string
 var sharedDisks []string
 var sshClient libssh.Client
-
-type dockerSetting struct {
-	Proxy string
-}
 
 // NewRunCommand returns command that runs given cluster
 func NewRunCommand() *cobra.Command {
@@ -212,16 +216,36 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 	portMap := nat.PortMap{}
 
-	utils.AppendTCPIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortHTTP, cmd.Flags(), "http-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortHTTPS, cmd.Flags(), "https-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortPrometheus, cmd.Flags(), "prometheus-port")
-	utils.AppendTCPIfExplicit(portMap, utils.PortGrafana, cmd.Flags(), "grafana-port")
-	utils.AppendUDPIfExplicit(portMap, utils.PortDNS, cmd.Flags(), "dns-port")
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortSSH, cmd.Flags(), "ssh-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortVNC, cmd.Flags(), "vnc-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortHTTP, cmd.Flags(), "http-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortHTTPS, cmd.Flags(), "https-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortAPI, cmd.Flags(), "k8s-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortOCP, cmd.Flags(), "ocp-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortRegistry, cmd.Flags(), "registry-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortPrometheus, cmd.Flags(), "prometheus-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendTCPIfExplicit(portMap, utils.PortGrafana, cmd.Flags(), "grafana-port"); err != nil {
+		return err
+	}
+	if err := utils.AppendUDPIfExplicit(portMap, utils.PortDNS, cmd.Flags(), "dns-port"); err != nil {
+		return err
+	}
 
 	qemuArgs, err := cmd.Flags().GetString("qemu-args")
 	if err != nil {
@@ -470,16 +494,15 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
 		cancel()
-		stop <- fmt.Errorf("Interrupt received, clean up")
+		stop <- fmt.Errorf("interrupt received, clean up")
 	}()
-
-	clusterImage := cluster
 
 	// Check if cluster container suffix has not being override
 	// in that case use the default prefix stored at the binary
 	if containerSuffix == "" {
 		containerSuffix = images.SUFFIX
 	}
+	var clusterImage string
 	if containerSuffix != "" {
 		clusterImage = fmt.Sprintf("%s/%s%s", containerOrg, cluster, containerSuffix)
 	} else {
@@ -537,7 +560,13 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	sshPort, err := utils.GetPublicPort(utils.PortSSH, dm.NetworkSettings.Ports)
+	if err != nil {
+		return err
+	}
 	apiServerPort, err := utils.GetPublicPort(utils.PortAPI, dm.NetworkSettings.Ports)
+	if err != nil {
+		return err
+	}
 
 	// Pull the registry image
 	err = docker.ImagePull(cli, ctx, utils.DockerRegistryImage, image.PullOptions{})
@@ -607,11 +636,8 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		volumes <- sharedVolume.Name
 	}
 
-	// Add serial pty so we can do stuff like 'screen /dev/pts0' to access
-	// the VM console from the container without ssh
-	qemuArgs += " -serial pty"
-
 	var qemuNetDevice = getNetDeviceByArch()
+	numaNodes := int(numa)
 	pcieBus := ""
 	if qemuNetDevice != QEMU_DEVICE_S390X {
 		pcieBus = ",bus=pcie.0"
@@ -636,7 +662,27 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			if qemuNetDevice == QEMU_DEVICE_S390X {
 				nodeQemuMonitorArgs = fmt.Sprintf("%s netdev_add tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no; device_add %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s;", nodeQemuMonitorArgs, netSuffix, netSuffix, qemuNetDevice, netSuffix, macSuffix)
 			} else { //devices like virtio-net-pci doesn't support hot-plug
-				nodeQemuArgs = fmt.Sprintf("%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s,bus=pcie.0 -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no", nodeQemuArgs, qemuNetDevice, netSuffix, macSuffix, netSuffix, netSuffix)
+				rootPortArgs := ""
+				bus := "pcie.0"
+				if numaNodes > 1 {
+					numaNode := i % numaNodes
+					bus = fmt.Sprintf("secondaryrp%d", i)
+					slot := secondaryNicRootPortBaseSlot + i/numaNodes
+					rootPortArgs = fmt.Sprintf(" -device pcie-root-port,id=%s,slot=%d,chassis=%d,bus=secondarypxb%d",
+						bus,
+						slot,
+						secondaryNicRootPortBaseChass+i,
+						numaNode)
+				}
+				nodeQemuArgs = fmt.Sprintf("%s%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s,bus=%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no",
+					nodeQemuArgs,
+					rootPortArgs,
+					qemuNetDevice,
+					netSuffix,
+					macSuffix,
+					bus,
+					netSuffix,
+					netSuffix)
 			}
 		}
 
@@ -763,9 +809,9 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 
 		vmContainerConfig := &container.Config{
 			Image: clusterImage,
-			Env: []string{
+			Env: append([]string{
 				fmt.Sprintf("NODE_NUM=%s", nodeNum),
-			},
+			}, utils.ForwardEnv("PROW_JOB_ID", "CI")...),
 			Cmd: []string{"/bin/bash", "-c", fmt.Sprintf("/vm.sh -n /var/run/disk/disk.qcow2 --memory %s --cpu %s --numa %s %s %s %s %s %s %s",
 				memory,
 				strconv.Itoa(int(cpu)),
@@ -834,6 +880,9 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			return err
 		}
 		sshClient, err = libssh.NewSSHClient(sshPort, x+1, true)
+		if err != nil {
+			return err
+		}
 
 		linuxConfigFuncs := []nodesconfig.LinuxConfigFunc{
 			nodesconfig.WithFipsEnabled(fipsEnabled),
@@ -921,7 +970,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	// If background flag was specified, we don't want to clean up if we reach that state
 	if !background {
 		wg.Wait()
-		stop <- fmt.Errorf("Done. please clean up")
+		stop <- fmt.Errorf("done, please clean up")
 	}
 
 	return nil
@@ -995,7 +1044,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 	if n.FipsEnabled {
 		for _, cmd := range []string{"sudo fips-mode-setup --enable", "sudo reboot"} {
 			if err := sshClient.Command(cmd); err != nil {
-				return fmt.Errorf("Starting fips mode failed: %s", err)
+				return fmt.Errorf("starting fips mode failed: %s", err)
 			}
 		}
 		err := waitForVMToBeUp(cli, n.K8sVersion, nodeName)
@@ -1087,14 +1136,15 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 }
 
 func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
+	logContainerDiagnostics(cli, prefix, nodeName, "pre-ssh")
 	var err error
-	// Wait for the VM to be up
-	for x := 0; x < 10; x++ {
+	for x := 0; x < 5; x++ {
 		err = _cmd(cli, nodeContainer(prefix, nodeName), "ssh.sh echo VM is up", "waiting for node to come up")
 		if err == nil {
 			break
 		}
 		logrus.WithError(err).Warningf("Could not establish a ssh connection to the VM, retrying ...")
+		logContainerDiagnostics(cli, prefix, nodeName, fmt.Sprintf("retry-%d", x+1))
 		time.Sleep(1 * time.Second)
 	}
 
@@ -1102,7 +1152,22 @@ func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
 		return fmt.Errorf("could not establish a connection to the node after a generous timeout: %v", err)
 	}
 
+	logContainerDiagnostics(cli, prefix, nodeName, "ssh-ok")
 	return nil
+}
+
+func logContainerDiagnostics(cli *client.Client, prefix string, nodeName string, phase string) {
+	diagCmd := `echo "=== resource snapshot (%s, %s) ===" && date -Iseconds && ` +
+		`echo "--- loadavg ---" && cat /proc/loadavg && ` +
+		`echo "--- memory ---" && free -m && ` +
+		`echo "--- psi cpu ---" && (cat /proc/pressure/cpu 2>/dev/null || echo "PSI unavailable") && ` +
+		`echo "--- psi memory ---" && (cat /proc/pressure/memory 2>/dev/null || echo "PSI unavailable") && ` +
+		`echo "--- psi io ---" && (cat /proc/pressure/io 2>/dev/null || echo "PSI unavailable") && ` +
+		`echo "--- top cpu consumers ---" && ps -eo pid,pcpu,pmem,comm --sort=-pcpu 2>/dev/null | head -10 && ` +
+		`echo "--- qemu process ---" && (ps aux 2>/dev/null | grep qemu-system | grep -v grep || echo "QEMU NOT RUNNING") && ` +
+		`echo "--- oom kills ---" && (dmesg 2>/dev/null | grep -i -E 'oom|killed|out.of.memory' | tail -5 || true)`
+	cmd := fmt.Sprintf(diagCmd, nodeName, phase)
+	docker.Exec(cli, nodeContainer(prefix, nodeName), []string{"/bin/bash", "-c", cmd}, os.Stderr)
 }
 
 func nodeNameFromIndex(x int) string {
@@ -1111,21 +1176,6 @@ func nodeNameFromIndex(x int) string {
 
 func nodeContainer(prefix string, node string) string {
 	return prefix + "-" + node
-}
-
-func getDockerProxyConfig(proxy string) (string, error) {
-	p := dockerSetting{Proxy: proxy}
-	buf := new(bytes.Buffer)
-
-	t, err := template.New("docker-proxy").Parse(proxySettings)
-	if err != nil {
-		return "", err
-	}
-	err = t.Execute(buf, p)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
 }
 
 // getDeviceIOMMUGroup gets devices iommu_group
@@ -1145,7 +1195,7 @@ func getDevicePCIID(pciAddress string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {

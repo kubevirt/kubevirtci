@@ -2,6 +2,7 @@ package node01
 
 import (
 	"fmt"
+
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 	kubevirtcimocks "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/mock"
 )

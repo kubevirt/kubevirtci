@@ -58,7 +58,7 @@ n="$(printf "%02d" $(( 10#${NODE_NUM} )))"
 cat >/usr/local/bin/ssh.sh <<EOL
 #!/bin/bash
 set -e
-dockerize -wait tcp://192.168.66.1${n}:22 -timeout 300s &>/dev/null
+dockerize -wait tcp://192.168.66.1${n}:22 -timeout 120s &>/dev/null
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${VM_USER}@192.168.66.1${n} -i ${VM_USER_SSH_KEY} -p 22 -q \$@
 EOL
 chmod u+x /usr/local/bin/ssh.sh
@@ -192,6 +192,7 @@ fi
 
 numa_arg=""
 sriov_pxb_numa_arg=""
+secondary_nic_pxb_args=""
 if [ "${NUMA}" -gt 1 ]; then
     numa_mem_unit="${MEMORY//[[:digit:]]/}"
     numa_mem_value="${MEMORY//[!0-9]/}"
@@ -209,6 +210,10 @@ if [ "${NUMA}" -gt 1 ]; then
         node_first_cpu=$((node_last_cpu + 1))
     done
     sriov_pxb_numa_arg=",numa_node=0"
+    for node_id in $(seq 0 $((NUMA - 1))); do
+        # Leave enough room for the downstream buses allocated under each NUMA bridge.
+        secondary_nic_pxb_args+=" -device pxb-pcie,id=secondarypxb${node_id},bus=pcie.0,bus_nr=$((160 + (node_id * 32))),numa_node=${node_id}"
+    done
 fi
 
 if [ "$(uname -m)" == "s390x" ]; then
@@ -235,14 +240,14 @@ if [ "$(uname -m)" == "s390x" ]; then
     ${QEMU_ARGS}"
 else
   #Docs: https://www.qemu.org/docs/master/system/invocation.html
-  qemu_system_cmd="qemu-system-x86_64 \
-    -enable-kvm \
+  qemu_system_cmd="/usr/bin/qemu-kvm \
     -drive format=qcow2,file=${next},if=none,id=bootdisk,cache=unsafe ${block_dev_drive_arg} \
     -device virtio-blk-pci,drive=bootdisk,bus=pcie.0 \
     ${BLOCK_DEV:+ -device virtio-blk-pci,drive=extdisk,bus=pcie.0} \
     -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n},bus=pcie.0 \
     -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
     -device pxb-pcie,id=sriovpxb,bus=pcie.0,bus_nr=128${sriov_pxb_numa_arg} \
+    ${secondary_nic_pxb_args} \
     -device pcie-root-port,id=sriovrp,slot=3,chassis=3,bus=sriovpxb \
     -device igb,id=igb0,bus=sriovrp,netdev=sriovnet0,mac=52:55:00:d1:57:${n} \
     -netdev tap,id=sriovnet0,ifname=tap-sriov${n},script=no,downscript=no \
@@ -257,7 +262,8 @@ else
     -serial pty \
     -machine q35,accel=kvm,kernel_irqchip=split \
     -device intel-iommu,intremap=on,caching-mode=on \
-    -device intel-hda,bus=pcie.0 -device hda-duplex -device AC97,bus=pcie.0 \
+    -device intel-hda,id=sound0,bus=pcie.0 -device hda-duplex,bus=sound0.0 \
+    -device ich9-intel-hda,id=sound1,bus=pcie.0 -device hda-duplex,bus=sound1.0 \
     -uuid $(cat /proc/sys/kernel/random/uuid) \
     -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
     ${QEMU_ARGS}"

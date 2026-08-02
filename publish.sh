@@ -87,9 +87,9 @@ function push_node_base_image() {
   else
     TARGET_IMAGE="${TARGET_REPO}/centos${CENTOS_VERSION}:${KUBEVIRTCI_TAG}-${ARCH}"
   fi
-  podman tag ${TARGET_REPO}/centos${CENTOS_VERSION}-base:latest ${TARGET_IMAGE}
+  ${CRI_BIN} tag ${TARGET_REPO}/centos${CENTOS_VERSION}-base:latest ${TARGET_IMAGE}
   echo "INFO: push $TARGET_IMAGE"
-  podman push ${TARGET_IMAGE}
+  ${CRI_BIN} push ${TARGET_IMAGE}
 }
 
 function push_cluster_images() {
@@ -97,14 +97,14 @@ function push_cluster_images() {
     if [ $ARCH == "amd64" ]; then
       echo "INFO: push $i"
       TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
-      podman push "$TARGET_IMAGE"
+      ${CRI_BIN} push "$TARGET_IMAGE"
 
       TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
-      podman push "$TARGET_IMAGE"
+      ${CRI_BIN} push "$TARGET_IMAGE"
     elif [[ "$ARCH" == "s390x" && "$i" == "1.34" ]]; then
       echo "INFO: push $i slim"
       TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
-      podman push "$TARGET_IMAGE"
+      ${CRI_BIN} push "$TARGET_IMAGE"
     fi
   done
 
@@ -131,6 +131,7 @@ function push_gocli() {
   else
     echo "INFO: skipping gocli push on ${ARCH}, handled by amd64 job"
   fi
+  ${CRI_BIN} push "$TARGET_IMAGE"
 }
 
 function publish_node_base_image() {
@@ -172,8 +173,8 @@ publish_manifest() {
       amend+=" --amend ${target_image_repo}/${image_name}:${image_tag}-${arch}"
     fi
   done
-  podman manifest create ${full_image_name} ${amend}
-  podman manifest push ${full_image_name} "docker://${full_image_name}"
+  ${CRI_BIN} manifest create ${full_image_name} ${amend}
+  ${CRI_BIN} manifest push ${full_image_name} "docker://${full_image_name}"
 
 }
 
