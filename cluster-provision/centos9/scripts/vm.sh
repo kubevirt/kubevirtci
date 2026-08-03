@@ -223,7 +223,8 @@ if [ "${host_arch}" != "s390x" ] && [ "${NUMA}" != 0 ]; then
     done
 fi
 
-if [ "${host_arch}" == "s390x" ]; then
+case "${host_arch}" in
+  s390x)
   # As per https://www.qemu.org/docs/master/system/s390x/bootdevices.html#booting-without-bootindex-parameter -drive if=virtio can't be specified with bootindex for s390x
   qemu_system_cmd="/usr/libexec/qemu-kvm \
     -drive format=qcow2,file=${next},if=none,cache=unsafe,id=drive1 ${block_dev_drive_arg} \
@@ -244,7 +245,29 @@ if [ "${host_arch}" == "s390x" ]; then
     -uuid $(cat /proc/sys/kernel/random/uuid) \
     -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
     ${QEMU_ARGS}"
-else
+    ;;
+  ppc64le)
+    qemu_system_cmd="/usr/libexec/qemu-kvm \
+      -drive format=qcow2,file=${next},if=none,cache=unsafe,id=drive1 ${block_dev_drive_arg} \
+      -device virtio-blk-pci,drive=drive1,bootindex=1 \
+      ${BLOCK_DEV:+ -device virtio-blk-pci,drive=extdisk} \
+      -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
+      -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
+      -device virtio-rng-pci \
+      -initrd /initrd.img \
+      -kernel /vmlinuz \
+      -append \"$(cat /kernel.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}\" \
+      -vnc :${n} \
+      -cpu host \
+      -m ${MEMORY} \
+      -smp ${CPU} ${numa_arg} \
+      -serial pty \
+      -machine pseries,accel=kvm \
+      -uuid $(cat /proc/sys/kernel/random/uuid) \
+      -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
+      ${QEMU_ARGS}"
+    ;;
+  *)
   #Docs: https://www.qemu.org/docs/master/system/invocation.html
   qemu_system_cmd="/usr/libexec/qemu-kvm \
     -drive format=qcow2,file=${next},if=none,id=bootdisk,cache=unsafe ${block_dev_drive_arg} \
@@ -273,7 +296,8 @@ else
     -uuid $(cat /proc/sys/kernel/random/uuid) \
     -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
     ${QEMU_ARGS}"
-fi
+    ;;
+esac
 
 PID=0
 eval "nohup $qemu_system_cmd &"
