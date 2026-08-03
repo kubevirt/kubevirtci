@@ -118,8 +118,8 @@ function _add_common_params() {
             params=" --container-suffix=:$KUBEVIRTCI_CONTAINER_SUFFIX $params"
         fi
 
-        # Currently, the s390x architecture supports only KUBEVIRT_SLIM.
-        if [[ ${KUBEVIRT_SLIM} == "true" || $(uname -m) == "s390x" ]]; then
+        # Currently, the s390x and ppc64le architectures support only KUBEVIRT_SLIM.
+        if [[ ${KUBEVIRT_SLIM} == "true" || $(uname -m) == "s390x" || $(uname -m) == "ppc64le" ]]; then
             params=" --slim $params"
         fi
     fi

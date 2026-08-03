@@ -217,58 +217,83 @@ if [ "${host_arch}" != "s390x" ] && [ "${NUMA}" != 0 ]; then
     done
 fi
 
-if [ "${host_arch}" == "s390x" ]; then
-  # As per https://www.qemu.org/docs/master/system/s390x/bootdevices.html#booting-without-bootindex-parameter -drive if=virtio can't be specified with bootindex for s390x
-  qemu_system_cmd="qemu-system-s390x \
-    -enable-kvm \
-    -drive format=qcow2,file=${next},if=none,cache=unsafe,id=drive1 ${block_dev_drive_arg} \
-    -device virtio-blk,drive=drive1,bootindex=1 \
-    ${BLOCK_DEV:+ -device virtio-blk,drive=extdisk} \
-    -device virtio-net-ccw,netdev=network0,mac=52:55:00:d1:55:${n} \
-    -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
-    -device virtio-rng \
-    -initrd /initrd.img \
-    -kernel /vmlinuz \
-    -append \"$(cat /kernel.s390x.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}\" \
-    -vnc :${n} \
-    -cpu host \
-    -m ${MEMORY} \
-    -smp ${CPU} \
-    -serial pty \
-    -machine s390-ccw-virtio,accel=kvm \
-    -uuid $(cat /proc/sys/kernel/random/uuid) \
-    -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
-    ${QEMU_ARGS}"
-else
-  #Docs: https://www.qemu.org/docs/master/system/invocation.html
-  qemu_system_cmd="/usr/bin/qemu-kvm \
-    -drive format=qcow2,file=${next},if=none,id=bootdisk,cache=unsafe ${block_dev_drive_arg} \
-    -device virtio-blk-pci,drive=bootdisk,bus=pcie.0 \
-    ${BLOCK_DEV:+ -device virtio-blk-pci,drive=extdisk,bus=pcie.0} \
-    -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n},bus=pcie.0 \
-    -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
-    -device pxb-pcie,id=sriovpxb,bus=pcie.0,bus_nr=128${sriov_pxb_numa_arg} \
-    ${secondary_nic_pxb_args} \
-    -device pcie-root-port,id=sriovrp,slot=3,chassis=3,bus=sriovpxb \
-    -device igb,id=igb0,bus=sriovrp,netdev=sriovnet0,mac=52:55:00:d1:57:${n} \
-    -netdev tap,id=sriovnet0,ifname=tap-sriov${n},script=no,downscript=no \
-    -device virtio-rng-pci,bus=pcie.0 \
-    -initrd /initrd.img \
-    -kernel /vmlinuz \
-    -append \"$(cat /kernel.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}\" \
-    -vnc :${n} \
-    -cpu host,migratable=no,+invtsc \
-    -m ${MEMORY} \
-    -smp ${CPU} ${numa_arg} \
-    -serial pty \
-    -machine q35,accel=kvm,kernel_irqchip=split \
-    -device intel-iommu,intremap=on,caching-mode=on \
-    -device intel-hda,id=sound0,bus=pcie.0 -device hda-duplex,bus=sound0.0 \
-    -device ich9-intel-hda,id=sound1,bus=pcie.0 -device hda-duplex,bus=sound1.0 \
-    -uuid $(cat /proc/sys/kernel/random/uuid) \
-    -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
-    ${QEMU_ARGS}"
-fi
+case "$(uname -m)" in
+  s390x)
+    # As per https://www.qemu.org/docs/master/system/s390x/bootdevices.html#booting-without-bootindex-parameter -drive if=virtio can't be specified with bootindex for s390x
+    qemu_system_cmd="qemu-system-s390x \
+      -enable-kvm \
+      -drive format=qcow2,file=${next},if=none,cache=unsafe,id=drive1 ${block_dev_drive_arg} \
+      -device virtio-blk,drive=drive1,bootindex=1 \
+      ${BLOCK_DEV:+ -device virtio-blk,drive=extdisk} \
+      -device virtio-net-ccw,netdev=network0,mac=52:55:00:d1:55:${n} \
+      -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
+      -device virtio-rng \
+      -initrd /initrd.img \
+      -kernel /vmlinuz \
+      -append \"$(cat /kernel.s390x.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}\" \
+      -vnc :${n} \
+      -cpu host \
+      -m ${MEMORY} \
+      -smp ${CPU} ${numa_arg} \
+      -serial pty \
+      -machine s390-ccw-virtio,accel=kvm \
+      -uuid $(cat /proc/sys/kernel/random/uuid) \
+      -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
+      ${QEMU_ARGS}"
+    ;;
+  ppc64le)
+    qemu_system_cmd="qemu-system-ppc64 \
+      -enable-kvm \
+      -drive format=qcow2,file=${next},if=none,cache=unsafe,id=drive1 ${block_dev_drive_arg} \
+      -device virtio-blk-pci,drive=drive1,bootindex=1 \
+      ${BLOCK_DEV:+ -device virtio-blk-pci,drive=extdisk} \
+      -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n} \
+      -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
+      -device virtio-rng-pci \
+      -initrd /initrd.img \
+      -kernel /vmlinuz \
+      -append \"$(cat /kernel.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}\" \
+      -vnc :${n} \
+      -cpu host \
+      -m ${MEMORY} \
+      -smp ${CPU} ${numa_arg} \
+      -serial pty \
+      -machine pseries,accel=kvm \
+      -uuid $(cat /proc/sys/kernel/random/uuid) \
+      -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
+      ${QEMU_ARGS}"
+    ;;
+  *)
+    #Docs: https://www.qemu.org/docs/master/system/invocation.html
+    qemu_system_cmd="/usr/bin/qemu-kvm \
+      -drive format=qcow2,file=${next},if=none,id=bootdisk,cache=unsafe ${block_dev_drive_arg} \
+      -device virtio-blk-pci,drive=bootdisk,bus=pcie.0 \
+      ${BLOCK_DEV:+ -device virtio-blk-pci,drive=extdisk,bus=pcie.0} \
+      -device virtio-net-pci,netdev=network0,mac=52:55:00:d1:55:${n},bus=pcie.0 \
+      -netdev tap,id=network0,ifname=tap${n},script=no,downscript=no \
+      -device pxb-pcie,id=sriovpxb,bus=pcie.0,bus_nr=128${sriov_pxb_numa_arg} \
+      ${secondary_nic_pxb_args} \
+      -device pcie-root-port,id=sriovrp,slot=3,chassis=3,bus=sriovpxb \
+      -device igb,id=igb0,bus=sriovrp,netdev=sriovnet0,mac=52:55:00:d1:57:${n} \
+      -netdev tap,id=sriovnet0,ifname=tap-sriov${n},script=no,downscript=no \
+      -device virtio-rng-pci,bus=pcie.0 \
+      -initrd /initrd.img \
+      -kernel /vmlinuz \
+      -append \"$(cat /kernel.args) $(cat /additional.kernel.args) ${KERNEL_ARGS}\" \
+      -vnc :${n} \
+      -cpu host,migratable=no,+invtsc \
+      -m ${MEMORY} \
+      -smp ${CPU} ${numa_arg} \
+      -serial pty \
+      -machine q35,accel=kvm,kernel_irqchip=split \
+      -device intel-iommu,intremap=on,caching-mode=on \
+      -device intel-hda,id=sound0,bus=pcie.0 -device hda-duplex,bus=sound0.0 \
+      -device ich9-intel-hda,id=sound1,bus=pcie.0 -device hda-duplex,bus=sound1.0 \
+      -uuid $(cat /proc/sys/kernel/random/uuid) \
+      -monitor unix:/tmp/qemu-monitor.sock,server,nowait \
+      ${QEMU_ARGS}"
+    ;;
+esac
 
 PID=0
 eval "nohup $qemu_system_cmd &"
