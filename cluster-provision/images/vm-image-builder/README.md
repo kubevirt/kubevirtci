@@ -29,6 +29,9 @@ To cross build for the Arm64 image on AMD64 machines, the following RPM needs to
 To cross build for the s390x image on AMD64 machines, the following RPM needs to be installed:
 - qemu-system-s390x
 
+To cross build for the ppc64le image on AMD64 machines, the following RPM needs to be installed:
+- qemu-system-ppc64
+
 ## Quickstart: Build and publish an existing containerdisk
 
 Choose one of the configuration directories in this folder which you want to
@@ -56,7 +59,13 @@ To build for s390x, you need to set the following environment
 variable.
 ```
 export ARCHITECTURE=s390x
-``` 
+```
+
+To build for ppc64le, you need to set the following environment
+variable.
+```
+export ARCHITECTURE=ppc64le
+```
 
 To build the Virtual Machine without console output, only need to set the
 environment variable `CONSOLE`. This is useful when the build script is
@@ -72,11 +81,12 @@ instructions are distributed between the following three files:
 
 ```
 $ ls -l example/
-cloud-config    # cloud-init configuration for virt-customize
-image-url       # download URL of the base image
-image-url-arm64 # download URL of the base image for Arm64
-image-url-s390x # download URL of the base image for s390x
-os-variant      # operating system variant (for example fedora32)
+  cloud-config      # cloud-init configuration for virt-customize
+  image-url         # download URL of the base image
+  image-url-arm64   # download URL of the base image for Arm64
+  image-url-s390x   # download URL of the base image for s390x
+  image-url-ppc64le # download URL of the base image for ppc64le
+  os-variant        # operating system variant (for example fedora32)
 ```
 
 To create a completely new containerdisk, best copy the `example` folder and
@@ -102,8 +112,8 @@ $ virtctl console testvm1
 ```
 
 ### Build and publish multi-arch images
-The multi-arch publish does not support building alpine-cloud-init because the [alpine-make-vm-image](https://raw.githubusercontent.com/alpinelinux/alpine-make-vm-image/master/alpine-make-vm-image) project does not support building Arm64 and s390x images.
-The `publish-multiarch-containerdisk.sh` script now supports building Arm64, AMD64 and s390x images.
+The multi-arch publish does not support building alpine-cloud-init because the [alpine-make-vm-image](https://raw.githubusercontent.com/alpinelinux/alpine-make-vm-image/master/alpine-make-vm-image) project does not support building Arm64, s390x and ppc64le images natively on non-native hardware.
+The `publish-multiarch-containerdisk.sh` script now supports building Arm64, AMD64, s390x and ppc64le images.
 The script primarily performs the following tasks:
 1. Use `create-containerdisk.sh` to build images.
 2. Upload the resulting images to a specific registry.
@@ -125,9 +135,9 @@ The script primarily performs the following tasks:
 ./ publish-multiarch-containerdisk.sh example myregistry registry_org
 
 # The script will do following things:
-# 1. Build the Arm64,AMD64 and s390x example image.
+# 1. Build the Arm64, AMD64, s390x and ppc64le example image.
 # 2. Generate a tag based on the current time.
-# 3. Push the registry_org/myregistry/example:tag-arm64,registry_org/myregistry/example:tag-amd64 and registry_org/myregistry/example:tag-s390x
+# 3. Push the registry_org/myregistry/example:tag-arm64, registry_org/myregistry/example:tag-amd64, registry_org/myregistry/example:tag-s390x and registry_org/myregistry/example:tag-ppc64le
 # 4. Generate a multi-arch manifest for the image, registry_org/myregistry/example:tag.
 ```
 
@@ -164,7 +174,7 @@ Prerequisites: see the [Prerequisites](#prerequisites) section above.
 
 ### 3. Publish to quay.io (kubevirtci)
 
-Build and push for all architectures (amd64, arm64, s390x):
+Build and push for all architectures (amd64, arm64, s390x, ppc64le):
 
 ```bash
 cd cluster-provision/images/vm-image-builder
@@ -208,6 +218,12 @@ oci_pull(
     digest = "sha256:<new-s390x-digest>",
     image = "quay.io/kubevirtci/fedora-with-test-tooling",
 )
+
+oci_pull(
+    name = "fedora_with_test_tooling_ppc64le",
+    digest = "sha256:<new-ppc64le-digest>",
+    image = "quay.io/kubevirtci/fedora-with-test-tooling",
+)
 ```
 
 ### 6. Verify
@@ -232,7 +248,7 @@ create-containerdisk.sh
         │
         ▼
 publish-multiarch-containerdisk.sh
-  ├─ builds amd64, arm64, s390x
+  ├─ builds amd64, arm64, s390x, ppc64le
   ├─ pushes per-arch images
   └─ pushes multi-arch manifest
         │
