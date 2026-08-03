@@ -76,8 +76,8 @@ func (n *nodesProvisioner) Exec() error {
 	kubeletCpuManagerArgs := " --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m"
 	kubeletTopologyManagerArgs := ""
 	kubeletReservedSystemCPUsArgs := ""
-	if runtime.GOARCH == "s390x" {
-		// CPU Manager and related features are not yet supported on s390x.
+	if runtime.GOARCH == "s390x" || runtime.GOARCH == "ppc64le" {
+		// CPU Manager and related features are not yet supported on s390x or ppc64le.
 		kubeletCpuManagerArgs = ""
 	} else {
 		if n.topologyManagerPolicy != "" {

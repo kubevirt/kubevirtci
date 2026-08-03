@@ -40,10 +40,12 @@ RUN chmod 700 vagrant.key
 
 ENV DOCKERIZE_VERSION=v0.8.0
 
-RUN if test "$BUILDARCH" != "s390x"; then \
-      curl -L -o dockerize-linux-$BUILDARCH.tar.gz https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz; \
-    else \
+RUN if test "$BUILDARCH" = "s390x"; then \
       curl -L -o dockerize-linux-$BUILDARCH.tar.gz https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-s390x-$DOCKERIZE_VERSION.tar.gz; \
+    elif test "$BUILDARCH" = "ppc64le"; then \
+      curl -L -o dockerize-linux-$BUILDARCH.tar.gz https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-ppc64le-$DOCKERIZE_VERSION.tar.gz; \
+    else \
+      curl -L -o dockerize-linux-$BUILDARCH.tar.gz https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz; \
     fi && \
     tar -xzvf dockerize-linux-$BUILDARCH.tar.gz && \
     rm dockerize-linux-$BUILDARCH.tar.gz && \

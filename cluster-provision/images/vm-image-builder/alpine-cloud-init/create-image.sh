@@ -15,6 +15,11 @@ if [ "$ARCHITECTURE" = "s390x" ]; then
    ALPINE_BRANCH="v3.20"
 fi
 
+# ppc64le uses the lts kernel flavor (same as s390x)
+if [ "$ARCHITECTURE" = "ppc64le" ]; then
+   KERNEL_FLAVOR="lts"
+fi
+
 # arm64 uses UEFI boot which requires a separate 128M EFI partition,
 # so the image needs to be larger to fit both the EFI and root partitions.
 if [ "$ARCHITECTURE" = "arm64" ]; then
@@ -30,8 +35,8 @@ else
     modprobe nbd
 fi
 
-# s390x does not support qemu-user-static
-if [ "${ARCHITECTURE}" != "s390x" ]; then
+# s390x and ppc64le do not support qemu-user-static
+if [ "${ARCHITECTURE}" != "s390x" ] && [ "${ARCHITECTURE}" != "ppc64le" ]; then
     podman run --rm --privileged docker.io/multiarch/qemu-user-static --reset -p yes
 fi
 
