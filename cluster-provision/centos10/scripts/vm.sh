@@ -191,30 +191,27 @@ if [ "$n" = "01" ] ; then
 fi
 
 numa_arg=""
-sriov_pxb_numa_arg=""
-secondary_nic_pxb_args=""
-if [ "${NUMA}" -gt 1 ]; then
-    numa_mem_unit="${MEMORY//[[:digit:]]/}"
-    numa_mem_value="${MEMORY//[!0-9]/}"
-    if [ $((CPU % NUMA)) -gt 0 ] || [ $((numa_mem_value % NUMA)) -gt 0 ]; then
-        echo "unable to calculate symmetric NUMA topology with vCPUs:${CPU} Memory:${MEMORY} NUMA:${NUMA}"
-        exit 1
-    fi
-    node_mem="$((numa_mem_value / NUMA))${numa_mem_unit}"
-    node_first_cpu=0
-    node_cpu_step=$((CPU / NUMA - 1))
-    for node_id in $(seq 0 $((NUMA - 1))); do
-        node_last_cpu=$((node_first_cpu + node_cpu_step))
-        numa_arg+=" -object memory-backend-ram,size=${node_mem},id=m${node_id}"
-        numa_arg+=" -numa node,nodeid=${node_id},memdev=m${node_id},cpus=${node_first_cpu}-${node_last_cpu}"
-        node_first_cpu=$((node_last_cpu + 1))
-    done
-    sriov_pxb_numa_arg=",numa_node=0"
-    for node_id in $(seq 0 $((NUMA - 1))); do
-        # Leave enough room for the downstream buses allocated under each NUMA bridge.
-        secondary_nic_pxb_args+=" -device pxb-pcie,id=secondarypxb${node_id},bus=pcie.0,bus_nr=$((160 + (node_id * 32))),numa_node=${node_id}"
-    done
+sriov_pxb_numa_arg=",numa_node=0"
+numa_mem_unit="${MEMORY//[[:digit:]]/}"
+numa_mem_value="${MEMORY//[!0-9]/}"
+if [ $((CPU % NUMA)) -gt 0 ] || [ $((numa_mem_value % NUMA)) -gt 0 ]; then
+    echo "unable to calculate symmetric NUMA topology with vCPUs:${CPU} Memory:${MEMORY} NUMA:${NUMA}"
+    exit 1
 fi
+node_mem="$((numa_mem_value / NUMA))${numa_mem_unit}"
+node_first_cpu=0
+node_cpu_step=$((CPU / NUMA - 1))
+for node_id in $(seq 0 $((NUMA - 1))); do
+    node_last_cpu=$((node_first_cpu + node_cpu_step))
+    numa_arg+=" -object memory-backend-ram,size=${node_mem},id=m${node_id}"
+    numa_arg+=" -numa node,nodeid=${node_id},memdev=m${node_id},cpus=${node_first_cpu}-${node_last_cpu}"
+    node_first_cpu=$((node_last_cpu + 1))
+done
+secondary_nic_pxb_args=""
+for node_id in $(seq 0 $((NUMA - 1))); do
+    # Leave enough room for the downstream buses allocated under each NUMA bridge.
+    secondary_nic_pxb_args+=" -device pxb-pcie,id=secondarypxb${node_id},bus=pcie.0,bus_nr=$((160 + (node_id * 32))),numa_node=${node_id}"
+done
 
 if [ "$(uname -m)" == "s390x" ]; then
   # As per https://www.qemu.org/docs/master/system/s390x/bootdevices.html#booting-without-bootindex-parameter -drive if=virtio can't be specified with bootindex for s390x
