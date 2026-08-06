@@ -193,7 +193,8 @@ fi
 numa_arg=""
 sriov_pxb_numa_arg=""
 secondary_nic_pxb_args=""
-if [ "${NUMA}" -gt 1 ]; then
+host_arch="$(uname -m)"
+if [ "${host_arch}" != "s390x" ] && [ "${NUMA}" != 0 ]; then
     numa_mem_unit="${MEMORY//[[:digit:]]/}"
     numa_mem_value="${MEMORY//[!0-9]/}"
     if [ $((CPU % NUMA)) -gt 0 ] || [ $((numa_mem_value % NUMA)) -gt 0 ]; then
@@ -216,7 +217,7 @@ if [ "${NUMA}" -gt 1 ]; then
     done
 fi
 
-if [ "$(uname -m)" == "s390x" ]; then
+if [ "${host_arch}" == "s390x" ]; then
   # As per https://www.qemu.org/docs/master/system/s390x/bootdevices.html#booting-without-bootindex-parameter -drive if=virtio can't be specified with bootindex for s390x
   qemu_system_cmd="qemu-system-s390x \
     -enable-kvm \
