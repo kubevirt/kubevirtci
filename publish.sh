@@ -2,14 +2,14 @@
 
 set -e
 
-archs=(amd64 s390x)
+archs=(amd64 s390x ppc64le)
 ARCH=$(uname -m | grep -q s390x && echo s390x || echo amd64)
 
 export KUBEVIRTCI_TAG=${KUBEVIRTCI_TAG:-$(date +"%y%m%d%H%M")-$(git rev-parse --short HEAD)}
 PREV_KUBEVIRTCI_TAG=$(curl -sL https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirtci/latest?ignoreCache=1)
 BYPASS_PMAN=${BYPASS_PMAN:-false}
 
-if [ $ARCH == "s390x" ]; then
+if [ $ARCH == "s390x" ] || [ $ARCH == "ppc64le" ]; then
   BYPASS_PMAN=true
 fi
 PHASES=${PHASES:-k8s}
@@ -74,7 +74,7 @@ function build_clusters() {
 
       cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim
-    elif [[ "$ARCH" == "s390x" && "$i" == "1.34" ]]; then
+    elif [[ ( "$ARCH" == "s390x" || "$ARCH" == "ppc64le" ) && "$i" == "1.34" ]]; then
       echo "INFO: building $i slim"
       cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}
@@ -103,7 +103,7 @@ function push_cluster_images() {
 
       TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
       ${CRI_BIN} push "$TARGET_IMAGE"
-    elif [[ "$ARCH" == "s390x" && "$i" == "1.34" ]]; then
+    elif [[ ( "$ARCH" == "s390x" || "$ARCH" == "ppc64le" ) && "$i" == "1.34" ]]; then
       echo "INFO: push $i slim"
       TARGET_IMAGE="${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
       ${CRI_BIN} push "$TARGET_IMAGE"
@@ -117,7 +117,7 @@ function push_cluster_images() {
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
       echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG-slim)"
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
-    elif [[ "$ARCH" == "s390x" && "$i" == "1.34" ]]; then
+    elif [[ ( "$ARCH" == "s390x" || "$ARCH" == "ppc64le" ) && "$i" == "1.34" ]]; then
       echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG-slim-$ARCH)"
       skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim-${ARCH}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
     fi
@@ -165,6 +165,7 @@ publish_manifest() {
   local full_image_name="${target_image_repo}/${image_name}:${image_tag}"
   if [[ "$image_name" != "centos9" && "$image_name" != "centos10" && "$image_name" != "gocli" && ! ( "$image_name" == "k8s-1.34" && "$image_tag" =~ "slim" ) ]]; then
     unset 'cur_archs[1]'
+    unset 'cur_archs[2]'
   fi
   for arch in ${cur_archs[*]};do
     if [ "$arch" = "amd64" ]; then
@@ -182,7 +183,7 @@ function main() {
   if [ "$PHASES" == "linux" ]; then
     CENTOS_VERSION=${PROVISION_CENTOS_VERSION:-9}
     publish_node_base_image
-    if [ $ARCH == "s390x" ]; then
+    if [ $ARCH == "s390x" ] || [ $ARCH == "ppc64le" ]; then
       publish_manifest "centos${CENTOS_VERSION}" $KUBEVIRTCI_TAG
     elif [ $ARCH == "amd64" ]; then
       if [ "$CENTOS_VERSION" == "10" ]; then
@@ -198,7 +199,7 @@ function main() {
   run_provision_manager
   publish_clusters
   for i in "${IMAGES_TO_BUILD[@]}"; do
-    if [ $ARCH == "s390x" ]; then
+    if [ $ARCH == "s390x" ] || [ $ARCH == "ppc64le" ]; then
       echo "INFO: publish manifests of $i"
       publish_manifest k8s-$i $KUBEVIRTCI_TAG
       publish_manifest k8s-$i ${KUBEVIRTCI_TAG}-slim
@@ -206,7 +207,7 @@ function main() {
   done
 
   push_gocli
-  if [ $ARCH == "s390x" ]; then
+  if [ $ARCH == "s390x" ] || [ $ARCH == "ppc64le" ]; then
     publish_manifest "gocli" $KUBEVIRTCI_TAG
   fi
 

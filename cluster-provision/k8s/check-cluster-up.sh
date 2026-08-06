@@ -117,6 +117,8 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
             arch_suffix=""
             if [[ $(uname -m) == *s390x* ]]; then
                 arch_suffix="-s390x"
+            elif [[ $(uname -m) == *ppc64le* ]]; then
+                arch_suffix="-ppc64le"
             fi
             LATEST=$(curl -L "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/latest${arch_suffix}")
             ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-operator${arch_suffix}.yaml"
@@ -142,7 +144,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         export SONOBUOY_EXTRA_ARGS="--plugin systemd-logs --plugin e2e --plugin-env e2e.E2E_SKIP=Pod.InPlace.Resize.Container"
         hack/conformance.sh $conformance_config
 
-        if [[ $(uname -m) != *s390x* ]]; then
+        if [[ $(uname -m) != *s390x* && $(uname -m) != *ppc64le* ]]; then
             echo "Sanity check cluster-up of single stack cluster"
             make cluster-down
             export KUBEVIRT_WITH_CNAO=false
