@@ -1,5 +1,7 @@
 FROM registry.fedoraproject.org/fedora:43 AS base
 
+ARG BUILDARCH
+
 RUN dnf -y install \
     bind-utils \
     dnsmasq \
@@ -12,7 +14,8 @@ RUN dnf -y install \
     screen \
     socat \
     tcpdump \
-    qemu-kvm-core && \
+    qemu-kvm-core \
+    $([ "$BUILDARCH" = "s390x" ] && echo "s390utils-base") && \
     dnf clean all
 
 FROM base AS imageartifactdownload
