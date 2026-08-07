@@ -15,6 +15,16 @@ if [ "$ARCHITECTURE" = "s390x" ]; then
    ALPINE_BRANCH="v3.20"
 fi
 
+# linux-virt on amd64 does not ship igbvf. Use linux-lts so SR-IOV VF
+# emulation backed by Intel 82576 can load the igbvf module in-guest.
+if [ "$ARCHITECTURE" = "amd64" ]; then
+   KERNEL_FLAVOR="lts"
+   # linux-lts on amd64 requires more space during initramfs creation than the
+   # old 200M image size, otherwise mkinitfs can fail with "No space left on
+   # device".
+   IMAGE_SIZE="512M"
+fi
+
 # arm64 uses UEFI boot which requires a separate 128M EFI partition,
 # so the image needs to be larger to fit both the EFI and root partitions.
 if [ "$ARCHITECTURE" = "arm64" ]; then
