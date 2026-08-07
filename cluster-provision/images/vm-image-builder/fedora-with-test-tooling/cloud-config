@@ -84,6 +84,18 @@ runcmd:
   - sudo dnf install -y nmap-ncat
   - sudo alternatives --set nc /usr/bin/netcat
   - sudo dnf clean all
+  # Pre-mark the well-known secondary VF MAC range as unmanaged so
+  # NetworkManager/wait-online does not try to configure or wait on them.
+  - |
+    unmanaged_devices="mac:0e:ad:00:00:be:01"
+    for suffix in $(seq -w 2 20); do
+      unmanaged_devices="${unmanaged_devices};mac:0e:ad:00:00:be:${suffix}"
+    done
+    sudo mkdir -p /etc/NetworkManager/conf.d
+    sudo tee /etc/NetworkManager/conf.d/99-unmanaged-vfs.conf >/dev/null <<EOF
+    [keyfile]
+    unmanaged-devices=${unmanaged_devices}
+    EOF
   - sudo systemctl enable wait-for-cloud-init
   - sudo systemctl enable qemu-guest-agent.service
   - sudo hostnamectl set-hostname ""
