@@ -59,6 +59,10 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		// default to Centos Stream 9
 		centosVersion = "9"
 	}
+	imageRepo := os.Getenv("TARGET_REPO")
+	if imageRepo == "" {
+		imageRepo = "quay.io/kubevirtci"
+	}
 
 	centosScriptsPath := filepath.Join(packagePath, "..", "..", fmt.Sprintf("centos%s", centosVersion), "scripts")
 
@@ -74,7 +78,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	if strings.Contains(phases, "linux") {
-		base = fmt.Sprintf("quay.io/kubevirtci/centos%s", centosVersion)
+		base = fmt.Sprintf("%s/centos%s", imageRepo, centosVersion)
 	} else {
 		k8sPath := fmt.Sprintf("%s/../", packagePath)
 		// Select base-image file based on PROVISION_CENTOS_VERSION
@@ -98,7 +102,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		name = fmt.Sprintf("%s-%s", name, containerSuffix)
 	}
 	prefix := fmt.Sprintf("k8s-%s-provision", name)
-	target := fmt.Sprintf("quay.io/kubevirtci/k8s-%s", name)
+	target := fmt.Sprintf("%s/k8s-%s", imageRepo, name)
 	scripts := filepath.Join(packagePath)
 
 	if phases == "linux" {
