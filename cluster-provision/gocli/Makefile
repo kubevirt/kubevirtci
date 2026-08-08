@@ -2,6 +2,7 @@ SHELL := /bin/bash
 
 IMAGES_FILE ?= images.json
 KUBEVIRTCI_IMAGE_REPO ?= quay.io/kubevirtci
+GOCLI_IMAGE ?= $(KUBEVIRTCI_IMAGE_REPO)/gocli
 GOARCH ?= $$(uname -m | grep -q s390x && echo s390x || echo amd64)
 MULTIARCH_PLATFORMS ?= linux/amd64,linux/s390x
 
@@ -10,7 +11,8 @@ export GOPROXY=direct
 export GOFLAGS=-mod=vendor
 
 BIN_DIR = $(CURDIR)/build
-GO ?= go
+CRI_BIN ?= podman
+GO      ?= go
 
 all: test-gocli container-run
 
@@ -34,11 +36,11 @@ fmt:
 
 .PHONY: container
 container: cli
-	podman build --build-arg TARGETARCH=${GOARCH} -t ${KUBEVIRTCI_IMAGE_REPO}/gocli build/
+	$(CRI_BIN) image build --build-arg TARGETARCH=${GOARCH} -t $(GOCLI_IMAGE) build/
 
 .PHONY: container-run
 container-run: container
-	podman run --rm ${KUBEVIRTCI_IMAGE_REPO}/gocli
+	$(CRI_BIN) container run --rm $(GOCLI_IMAGE)
 
 .PHONY: vendor
 vendor:
@@ -47,13 +49,12 @@ vendor:
 
 .PHONY: push
 push:
-	GOARCH=s390x $(MAKE) cli
-	GOARCH=amd64 $(MAKE) cli
-	buildah manifest rm ${KUBEVIRTCI_IMAGE_REPO}/gocli:${KUBEVIRTCI_TAG} 2>/dev/null || true
-	buildah build \
+	$(MAKE) GOARCH=s390x cli
+	$(MAKE) GOARCH=amd64 cli
+	$(CRI_BIN) image rm $(GOCLI_IMAGE):$(KUBEVIRTCI_TAG) 2>/dev/null || true
+	$(CRI_BIN) manifest rm $(GOCLI_IMAGE):$(KUBEVIRTCI_TAG) 2>/dev/null || true
+	$(CRI_BIN) manifest create $(GOCLI_IMAGE):$(KUBEVIRTCI_TAG)
+	$(CRI_BIN) image build ./build/ \
 		--platform $(MULTIARCH_PLATFORMS) \
-		--manifest ${KUBEVIRTCI_IMAGE_REPO}/gocli:${KUBEVIRTCI_TAG} \
-		build/
-	buildah manifest push --all \
-		${KUBEVIRTCI_IMAGE_REPO}/gocli:${KUBEVIRTCI_TAG} \
-		docker://${KUBEVIRTCI_IMAGE_REPO}/gocli:${KUBEVIRTCI_TAG}
+		--manifest $(GOCLI_IMAGE):$(KUBEVIRTCI_TAG)
+	$(CRI_BIN) manifest push $(GOCLI_IMAGE):$(KUBEVIRTCI_TAG) docker://$(GOCLI_IMAGE):$(KUBEVIRTCI_TAG)
