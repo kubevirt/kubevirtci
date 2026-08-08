@@ -1,0 +1,395 @@
+#!/bin/bash
+
+# This file is part of the KubeVirt project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Copyright the KubeVirt Authors.
+
+set -eux -o pipefail
+
+source /var/lib/kubevirtci/shared_vars.sh
+
+curl()( { set +x; } 2>/dev/null; command curl --fail-with-body --retry 2 -sSL "$@" )
+
+function getKubernetesClosestStableVersion() {
+  kubernetes_version=$version
+  packages_version=$kubernetes_version
+  if [[ $kubernetes_version == *@(alpha|beta|rc)* ]]; then
+    kubernetes_minor_version=$(echo $kubernetes_version | cut -d. -f2)
+    packages_major_version=$(echo $kubernetes_version | cut -d. -f1)
+    packages_minor_version=$((kubernetes_minor_version-1))
+    packages_version="$(curl "https://dl.k8s.io/release/stable-${packages_major_version}.${packages_minor_version}.txt" | sed 's/^v//')"
+  fi
+  echo $packages_version
+}
+
+function replaceKubeBinaries() {
+  command -v which >/dev/null || dnf install -y which
+  rm -f $(which kubeadm kubelet)
+
+  BIN_DIR="/usr/bin"
+  RELEASE="v$version"
+  ARCH="amd64"
+
+  curl --output-dir "${BIN_DIR}" --parallel \
+    -RO "https://dl.k8s.io/release/${RELEASE}/bin/linux/${ARCH}/{kubeadm,kubelet}" \
+
+  chmod +x ${BIN_DIR}/kubeadm ${BIN_DIR}/kubelet
+}
+
+if [ ! -f "/tmp/extra-pre-pull-images" ]; then
+    echo "ERROR: extra-pre-pull-images list missing" >&2
+    exit 1
+fi
+if [ ! -f "/tmp/pre-pull-images" ]; then
+    echo "ERROR: pre-pull-images missing" >&2
+    exit 1
+fi
+
+function create_sriov_udev_rule() {
+    cat > /etc/udev/rules.d/99-kubevirtci-sriov-net.rules <<'EOF'
+ACTION=="add", SUBSYSTEM=="net", DRIVERS=="igb", NAME="sriov0"
+EOF
+}
+
+function pull_container_retry() {
+    retry=0
+    maxRetries=5
+    retryAfterSeconds=3
+    until [ ${retry} -ge ${maxRetries} ]; do
+        crictl pull "$@" && break
+        retry=$((${retry} + 1))
+        echo "Retrying ${FUNCNAME[0]} [${retry}/${maxRetries}] in ${retryAfterSeconds}(s)"
+        sleep ${retryAfterSeconds}
+    done
+
+    if [ ${retry} -ge ${maxRetries} ]; then
+        echo "${FUNCNAME[0]} Failed after ${maxRetries} attempts!" >&2
+        exit 1
+    fi
+}
+
+# CRI-O installation and configuration:
+# - https://cri-o.io/#distribution-packaging
+CRIO_VERSION='1.37'
+CRIO_CHANNEL='prerelease'
+curl -Ro "/etc/yum.repos.d/cri-o-v${CRIO_VERSION}-${CRIO_CHANNEL}.repo" \
+  "https://download.opensuse.org/repositories/isv:/cri-o:/${CRIO_CHANNEL}:/v${CRIO_VERSION}/rpm/isv:cri-o:${CRIO_CHANNEL}:v${CRIO_VERSION}.repo"
+
+dnf install -y cri-o
+
+systemctl enable --now crio
+
+cat << EOF > /etc/containers/registries.conf
+[registries.search]
+registries = ['registry.access.redhat.com', 'registry.fedoraproject.org', 'quay.io', 'docker.io']
+
+[registries.insecure]
+registries = ['registry:5000']
+
+[registries.block]
+registries = []
+EOF
+
+create_sriov_udev_rule
+
+packages_version=$(getKubernetesClosestStableVersion)
+# Add Kubernetes release repository:
+# - https://blog.k8s.io/2023/08/15/pkgs-k8s-io-introduction/
+cat <<EOF >/etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes Release
+baseurl=https://pkgs.k8s.io/core:/stable:/v${packages_version%.*}/rpm
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v${packages_version%.*}/rpm/repodata/repomd.xml.key
+EOF
+
+# Install Kubernetes CNI.
+dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
+    cri-tools-${packages_version%.*}.0 \
+    kubectl-${packages_version} \
+    kubeadm-${packages_version} \
+    kubelet-${packages_version} \
+    kubernetes-cni
+
+# In case the version is unstable the package manager recognizes only the closest stable version
+# But it's unsafe using older kubeadm version than kubernetes version according to:
+# https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#kubeadm-s-skew-against-the-kubernetes-version
+# The reason we install kubeadm using dnf is for the dependencies packages.
+if [[ $version != $packages_version ]]; then
+   replaceKubeBinaries
+fi
+
+kubeadm config images pull --kubernetes-version ${version}
+
+if [[ ${slim} == false ]]; then
+    # Pre pull all images from the lists
+    for image in $(cat "/tmp/pre-pull-images" "/tmp/extra-pre-pull-images"); do
+        pull_container_retry "${image}"
+    done
+fi
+
+mkdir -p /provision
+
+cni_manifest="/provision/cni.yaml"
+cni_diff="/tmp/cni.diff"
+cni_manifest_ipv6="/provision/cni_ipv6.yaml"
+cni_ipv6_diff="/tmp/cni_ipv6.diff"
+flannel_manifest="/etc/kubernetes/flannel.yaml"
+flannel_diff="/tmp/flannel.diff"
+flannel_manifest_ipv6="/etc/kubernetes/flannel_ipv6.yaml"
+flannel_ipv6_diff="/tmp/flannel_ipv6.diff"
+knp_manifest="/etc/kubernetes/knp.yaml"
+knp_diff="/tmp/knp.diff"
+
+cp /tmp/cni.do-not-change.yaml $cni_manifest
+mv /tmp/cni.do-not-change.yaml $cni_manifest_ipv6
+patch $cni_manifest $cni_diff
+patch $cni_manifest_ipv6 $cni_ipv6_diff
+
+cp /tmp/flannel.do-not-change.yaml $flannel_manifest
+cp /tmp/flannel.do-not-change.yaml $flannel_manifest_ipv6
+patch $flannel_manifest $flannel_diff
+patch $flannel_manifest_ipv6 $flannel_ipv6_diff
+
+cp /tmp/knp.do-not-change.yaml $knp_manifest
+patch $knp_manifest $knp_diff
+
+cp /tmp/local-volume.yaml /provision/local-volume.yaml
+
+# Create drop-in config files for kubelet
+# https://kubernetes.io/docs/tasks/administer-cluster/kubelet-config-file/#kubelet-conf-d
+kubelet_conf_d="/etc/kubernetes/kubelet.conf.d"
+mkdir -m 644 $kubelet_conf_d
+
+# Set our custom initializations to kubelet
+kubevirt_kubelet_conf="$kubelet_conf_d/50-kubevirt.conf"
+cat <<EOF >$kubevirt_kubelet_conf
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+failSwapOn: false
+kubeletCgroups: /systemd/system.slice
+EOF
+
+cat <<EOT >/etc/sysconfig/kubelet
+KUBELET_EXTRA_ARGS=--runtime-cgroups=/systemd/system.slice --config-dir=$kubelet_conf_d
+EOT
+
+# Enable userfaultfd for CentOS to support post-copy live migration.
+# For more info: https://github.com/openshift/machine-config-operator/pull/3724
+echo "vm.unprivileged_userfaultfd = 1" > /etc/sysctl.d/enable-userfaultfd.conf
+
+# Needed for kubernetes service routing and dns
+# https://github.com/kubernetes/kubernetes/issues/33798#issuecomment-250962627
+modules=(bridge br_netfilter overlay)
+
+for module in "${modules[@]}"; do
+  modprobe "${module}"
+  echo "${module}" >> /etc/modules-load.d/k8s.conf
+done
+
+cat <<EOF > /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+net.ipv6.conf.all.disable_ipv6 = 0
+net.ipv6.conf.all.forwarding = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+sysctl --system
+
+# Delete conf files created by crio / podman
+# so calico will create the interfaces by its own according the right configuration.
+# See https://github.com/cri-o/cri-o/issues/2411#issuecomment-540006558
+# It should happen before crio start, see https://github.com/cri-o/cri-o/issues/4276
+# About podman see https://github.com/kubernetes/kubernetes/issues/107687
+rm -f /etc/cni/net.d/*
+
+systemctl daemon-reload
+systemctl enable crio kubelet --now
+
+# configure additional settings for cni plugin
+cat <<EOF >/etc/NetworkManager/conf.d/001-calico.conf
+[keyfile]
+unmanaged-devices=interface-name:cali*;interface-name:tunl*
+EOF
+
+# Use dhclient to have expected hostname behaviour
+cat <<EOF >/etc/NetworkManager/conf.d/002-dhclient.conf
+[main]
+dhcp=dhclient
+EOF
+
+echo "net.netfilter.nf_conntrack_max=1000000" >> /etc/sysctl.conf
+sysctl --system
+
+systemctl restart NetworkManager
+
+kubeadm_patches_dir="/provision/kubeadm-patches"
+mkdir -p "${kubeadm_patches_dir}"
+
+static_pods=(kube-apiserver kube-controller-manager kube-scheduler etcd)
+
+for pod in "${static_pods[@]}"; do
+
+  cat >"${kubeadm_patches_dir}/${pod}.yaml" <<EOF
+spec:
+  securityContext:
+    seLinuxOptions:
+      type: spc_t
+EOF
+
+done
+
+cat >$kubeadm_patches_dir/add-security-context-deployment-patch.yaml <<EOF
+spec:
+  template:
+    spec:
+      securityContext:
+        seLinuxOptions:
+          type: spc_t
+EOF
+
+# audit log configuration
+mkdir /etc/kubernetes/audit
+
+audit_api_version="audit.k8s.io/v1"
+cat > /etc/kubernetes/audit/adv-audit.yaml <<EOF
+apiVersion: ${audit_api_version}
+kind: Policy
+rules:
+- level: Request
+  users: ["kubernetes-admin"]
+  resources:
+  - group: kubevirt.io
+    resources:
+    - virtualmachines
+    - virtualmachineinstances
+    - virtualmachineinstancereplicasets
+    - virtualmachineinstancepresets
+    - virtualmachineinstancemigrations
+  omitStages:
+  - RequestReceived
+  - ResponseStarted
+  - Panic
+EOF
+
+# psa configuration
+cat > /etc/kubernetes/psa.yaml <<EOF
+apiVersion: apiserver.config.k8s.io/v1
+kind: AdmissionConfiguration
+plugins:
+- name: PodSecurity
+  configuration:
+    apiVersion: pod-security.admission.config.k8s.io/v1
+    kind: PodSecurityConfiguration
+    defaults:
+      enforce: "privileged"
+      enforce-version: "latest"
+      audit: "restricted"
+      audit-version: "latest"
+      warn: "restricted"
+      warn-version: "latest"
+    exemptions:
+      usernames: []
+      runtimeClasses: []
+      # Hopefuly this will not be needed in future. Add your favorite namespace to be ignored and your operator not broken
+      # You also need to modify psa.sh
+      namespaces: ["kube-system", "default", "istio-operator" ,"istio-system", "nfs-csi", "monitoring", "rook-ceph", "cluster-network-addons", "sonobuoy"]
+EOF
+
+kubeadm_raw=/tmp/kubeadm.conf
+kubeadm_raw_ipv6=/tmp/kubeadm_ipv6.conf
+kubeadm_flannel_ipv6_raw=/tmp/kubeadm_flannel_ipv6.conf
+kubeadm_manifest="/etc/kubernetes/kubeadm.conf"
+kubeadm_manifest_ipv6="/etc/kubernetes/kubeadm_ipv6.conf"
+kubeadm_flannel_ipv6_manifest="/etc/kubernetes/kubeadm_flannel_ipv6.conf"
+
+kubeadm_flannel_raw="/tmp/kubeadm_flannel.conf"
+kubeadm_flannel="/etc/kubernetes/kubeadm_flannel.conf"
+
+envsubst < $kubeadm_raw > $kubeadm_manifest
+envsubst < $kubeadm_raw_ipv6 > $kubeadm_manifest_ipv6
+
+envsubst < $kubeadm_flannel_raw > $kubeadm_flannel
+envsubst < $kubeadm_flannel_ipv6_raw > $kubeadm_flannel_ipv6_manifest
+
+until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done
+
+if ! kubeadm init --config $kubeadm_flannel -v5; then
+    kubeadm reset --force
+    rm -rf /etc/cni/net.d/* /var/lib/cni /var/lib/kubelet
+    kubeadm init --config $kubeadm_flannel -v5
+fi
+
+kubectl()( { set +x; } 2>/dev/null; command kubectl --kubeconfig='/etc/kubernetes/admin.conf' "$@" )
+
+kubectl patch deployment coredns -n kube-system --patch-file="${kubeadm_patches_dir}/add-security-context-deployment-patch.yaml"
+kubectl create -f "${flannel_manifest}"
+kubectl create -f "${knp_manifest}"
+
+# Wait at least for 8 pods
+while [[ "$(kubectl get pods -n kube-system --no-headers | wc -l)" -lt 8 ]]; do
+    echo "Waiting for at least 8 pods to appear ..."
+    kubectl get pods -n kube-system
+    sleep 10
+done
+
+# Wait until k8s pods are running
+while [ -n "$(kubectl get pods -n kube-system --no-headers | grep -v Running)" ]; do
+    echo "Waiting for k8s pods to enter the Running state ..."
+    kubectl get pods -n kube-system --no-headers | grep -v Running || true
+    sleep 10
+done
+
+# Make sure all containers are ready
+while [ -n "$(kubectl get pods -A -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers | grep false)" ]; do
+    echo "Waiting for all containers to become ready ..."
+    kubectl get pods -A -o'custom-columns=status:status.containerStatuses[*].ready,metadata:metadata.name' --no-headers
+    sleep 10
+done
+
+kubectl get pods -A
+
+kubeadm reset --force
+rm -rf /etc/cni/net.d/* /var/lib/cni /var/lib/kubelet
+
+# Create local-volume directories
+for i in {1..10}
+do
+  mkdir -p /var/local/kubevirt-storage/local-volume/disk${i}
+  mkdir -p /mnt/local-storage/local/disk${i}
+  echo "/var/local/kubevirt-storage/local-volume/disk${i} /mnt/local-storage/local/disk${i} none defaults,bind 0 0" >> /etc/fstab
+done
+chmod -R 777 /var/local/kubevirt-storage/local-volume
+
+# Setup selinux permissions to local volume directories.
+chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 /mnt/local-storage/
+
+# copy kwok manifests
+cp -rf /tmp/kwok /opt/
+
+# Create a properly labelled tmp directory for testing
+mkdir -p /var/provision/kubevirt.io/tests
+chcon -t container_file_t /var/provision/kubevirt.io/tests
+echo "tmpfs /var/provision/kubevirt.io/tests tmpfs rw,context=system_u:object_r:container_file_t:s0 0 1" >> /etc/fstab
+
+# Cleanup the existing NetworkManager profiles so the VM instances will come
+# up with the default profiles. (Base VM image includes non default settings)
+rm -f /etc/sysconfig/network-scripts/ifcfg-*
+nmcli connection add con-name eth0 ifname eth0 type ethernet
+
+# Remove machine-id, allowing unique ID/s for its instances
+rm -f /etc/machine-id ; touch /etc/machine-id

@@ -57,10 +57,14 @@ function build_gocli() {
 }
 
 function build_centos_base_image_with_deps() {
-  CENTOS_VERSION=${PROVISION_CENTOS_VERSION:-9}
+  local k8s_provider
+
   (cd cluster-provision/centos${CENTOS_VERSION} && ./build.sh)
-  IMAGE_TO_BUILD="$(find cluster-provision/k8s/* -maxdepth 0 -type d -printf '%f\n' | tail -1)"
-  (cd cluster-provision/k8s/${IMAGE_TO_BUILD} && ../provision.sh)
+  k8s_provider=$(
+    grep -Fl "centos${CENTOS_VERSION}" cluster-provision/k8s/*/base \
+      | xargs dirname | sort -V | tail -n 1
+  )
+  (cd "${k8s_provider}" && ../provision.sh)
 }
 
 function build_clusters() {
@@ -81,7 +85,6 @@ function build_clusters() {
 }
 
 function push_node_base_image() {
-  CENTOS_VERSION=${PROVISION_CENTOS_VERSION:-9}
   if [ $ARCH == "amd64" ]; then
     TARGET_IMAGE="${TARGET_REPO}/centos${CENTOS_VERSION}:${KUBEVIRTCI_TAG}"
   else
