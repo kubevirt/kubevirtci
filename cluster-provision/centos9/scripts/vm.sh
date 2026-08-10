@@ -233,7 +233,7 @@ if [ "${host_arch}" == "s390x" ]; then
     -vnc :${n} \
     -cpu host \
     -m ${MEMORY} \
-    -smp ${CPU} ${numa_arg} \
+    -smp ${CPU} \
     -serial pty \
     -machine s390-ccw-virtio,accel=kvm \
     -uuid $(cat /proc/sys/kernel/random/uuid) \
