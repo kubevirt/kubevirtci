@@ -1165,6 +1165,14 @@ func waitForVMToBeUp(cli *client.Client, prefix string, nodeName string) error {
 		return fmt.Errorf("could not establish a connection to the node after a generous timeout: %v", err)
 	}
 
+	// Sync VM clock from the container to fix s390x stale TOD clock
+	err = _cmd(cli, nodeContainer(prefix, nodeName),
+		`ssh.sh sudo date -s @$(date +%s)`,
+		"syncing VM clock from host")
+	if err != nil {
+		return err
+	}
+
 	logContainerDiagnostics(cli, prefix, nodeName, "ssh-ok")
 	return nil
 }
