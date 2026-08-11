@@ -8,11 +8,10 @@ _ci-configs/*
 .vscode
 sonobuoy*
 
-# Bazel directories
-cluster-provision/gocli/bazel-*
+# gocli build artifacts
+cluster-provision/gocli/build/cli*
+cluster-provision/gocli/cover.out
 
 # image builder
 *.qcow2
 cluster-provision/images/vm-image-builder/*_build
-
-cluster-provision/gocli/cover.out
