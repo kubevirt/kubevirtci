@@ -35,17 +35,24 @@ function getKubernetesClosestStableVersion() {
 }
 
 function replaceKubeBinaries() {
+  local bin_dir release arch
+
   command -v which >/dev/null || dnf install -y which
   rm -f $(which kubeadm kubelet)
 
-  BIN_DIR="/usr/bin"
-  RELEASE="v$version"
-  ARCH="amd64"
+  bin_dir="/usr/bin"
+  release="v$version"
+  arch="$(uname -m)"
 
-  curl --output-dir "${BIN_DIR}" --parallel \
-    -RO "https://dl.k8s.io/release/${RELEASE}/bin/linux/${ARCH}/{kubeadm,kubelet}" \
+  case "${arch}" in
+    aarch64) arch=arm64;;
+    x86_64)  arch=amd64;;
+  esac
 
-  chmod +x ${BIN_DIR}/kubeadm ${BIN_DIR}/kubelet
+  curl --output-dir "${bin_dir}" --parallel \
+    -RO "https://dl.k8s.io/release/${release}/bin/linux/${arch}/{kubeadm,kubelet}" \
+
+  chmod +x "${bin_dir}"/kubeadm "${bin_dir}"/kubelet
 }
 
 if [ ! -f "/tmp/extra-pre-pull-images" ]; then
