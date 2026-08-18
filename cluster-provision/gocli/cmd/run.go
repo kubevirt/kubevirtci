@@ -675,7 +675,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			} else { //devices like virtio-net-pci doesn't support hot-plug
 				rootPortArgs := ""
 				bus := "pcie.0"
-				if numaNodes > 1 {
+				if numaNodes > 0 {
 					numaNode := i % numaNodes
 					bus = fmt.Sprintf("secondaryrp%d", i)
 					slot := secondaryNicRootPortBaseSlot + i/numaNodes
