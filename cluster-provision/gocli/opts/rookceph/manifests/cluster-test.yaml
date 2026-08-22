@@ -7,17 +7,6 @@
 #   kubectl create -f crds.yaml -f common.yaml -f operator.yaml
 #   kubectl create -f cluster-test.yaml
 #################################################################################################################
-# kind: ConfigMap
-# apiVersion: v1
-# metadata:
-#   name: rook-config-override
-#   namespace: rook-ceph # namespace:cluster
-# data:
-#   config: |
-#     [global]
-#     osd_pool_default_size = 1
-#     mon_warn_on_pool_no_redundancy = false
-# ---
 apiVersion: ceph.rook.io/v1
 kind: CephCluster
 metadata:
@@ -26,11 +15,17 @@ metadata:
 spec:
   dataDirHostPath: /var/lib/rook
   cephVersion:
-    image: quay.io/ceph/ceph:v19
+    image: quay.io/ceph/ceph:v20.2.4
     allowUnsupported: true
+  security:
+    cephx:
+      csi:
+        keyType: aes # required when Kubernetes nodes don't run Linux kernel 7.0+
   mon:
     count: 1
     allowMultiplePerNode: true
+  # test environments can skip ok-to-stop checks during upgrades
+  skipUpgradeChecks: true
   mgr:
     count: 1
     allowMultiplePerNode: true
