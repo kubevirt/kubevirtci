@@ -50,4 +50,4 @@ registry.k8s.io/sig-storage/csi-snapshotter:v8.2.0
 registry.k8s.io/sig-storage/csi-snapshotter:v8.5.0
 registry.k8s.io/sig-storage/livenessprobe:v2.15.0
 registry.k8s.io/sig-storage/nfsplugin:v4.11.0
-registry.k8s.io/sig-storage/snapshot-controller:v8.2.0
+registry.k8s.io/sig-storage/snapshot-controller:v8.4.0
