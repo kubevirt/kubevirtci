@@ -7,7 +7,7 @@ ghcr.io/flannel-io/flannel:v0.27.2
 ghcr.io/k8snetworkplumbingwg/multus-cni:v3.8
 ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:2b9671447f3ea4e7e56730843dbf59445b9307246f393b61386b896d56ae51c9
 ghcr.io/k8snetworkplumbingwg/multus-dynamic-networks-controller@sha256:c7d137a7f4ddd81233b9778d02ae57a496e892ddedf74d49382d86df50ddcc27
-ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.9.0
+ghcr.io/k8snetworkplumbingwg/network-resources-injector:239ce933a74cfcc0843dd64e514a4b72146634d7
 ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin@sha256:435f374b434b3bc70a5cfaba0011fdcf5f433d96b98b06d29306cbd8db3a8c21
 ghcr.io/k8snetworkplumbingwg/whereabouts:v0.8.0
 ghcr.io/kubevirt/ipam-controller@sha256:83f03d3185ee5b27489ae4cb876bf64c9a0b9a910724deae8c341bfae0531152
