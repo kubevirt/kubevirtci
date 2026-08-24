@@ -137,9 +137,20 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
             hack/conformance.sh $conformance_config
         fi
 
-        # FIXME: Pod InPlace Resize Container tests fail with "resize is infeasible" timeout on kubevirtci nodes.
-        # Skip them until the root cause is resolved. See https://github.com/kubevirt/kubevirtci/issues/1631
-        export SONOBUOY_EXTRA_ARGS="--plugin systemd-logs --plugin e2e --plugin-env e2e.E2E_SKIP=Pod.InPlace.Resize.Container"
+        skip_tests=(
+            # Pod InPlace Resize Container tests fail with "resize is infeasible" timeout on kubevirtci nodes.
+            # FIXME: Skip them until the root cause is resolved. See https://github.com/kubevirt/kubevirtci/issues/1631
+            'Pod.InPlace.Resize.Container'
+
+            # Unlike containerd, CRI-O does not set `net.ipv4.ip_unprivileged_port_start` by default;
+            # therefore, the test fails to `listen tcp 0.0.0.0:443: bind: permission denied`.
+            # FIXME: Skip the test until CRI-O configures it. See https://github.com/cri-o/cri-o/issues/10050
+            'Projected.PodCertificate.*should.allow.server.and.client.pods.to.establish.an.mTLS.connection'
+        )
+        skip_regex=$(printf '(%s)|' "${skip_tests[@]}")
+        skip_regex="${skip_regex%|}"  # Remove trailing pipe
+
+        export SONOBUOY_EXTRA_ARGS="--plugin systemd-logs --plugin e2e --plugin-env e2e.E2E_SKIP=(${skip_regex})"
         hack/conformance.sh $conformance_config
 
         if [[ $(uname -m) != *s390x* ]]; then
