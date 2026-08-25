@@ -130,7 +130,13 @@ if [[ $version != $packages_version ]]; then
    replaceKubeBinaries
 fi
 
-kubeadm config images pull --kubernetes-version ${version}
+# Pull each kubeadm image individually so a CDN connection failure on one image
+# (e.g. cdn.registry.k8s.io returning 400 on a Range retry after unexpected EOF,
+# see https://github.com/kubernetes/registry.k8s.io/issues/333) does not abort
+# the entire pull and each image gets its own fresh connection with retries.
+for image in $(kubeadm config images list --kubernetes-version ${version}); do
+    pull_container_retry ${image}
+done
 
 if [[ ${slim} == false ]]; then
     # Pre pull all images from the lists
