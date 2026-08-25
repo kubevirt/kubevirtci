@@ -78,6 +78,8 @@ EOF
 
 dnf install -y cri-o
 
+systemctl enable --now crio
+
 cat << EOF > /etc/containers/registries.conf
 [registries.search]
 registries = ['registry.access.redhat.com', 'registry.fedoraproject.org', 'quay.io', 'docker.io']
@@ -88,17 +90,6 @@ registries = ['registry:5000']
 [registries.block]
 registries = []
 EOF
-
-cat << EOF > /etc/containers/registries.conf.d/registry-k8s-io-no-cdn.conf
-# Workaround for https://github.com/kubernetes/registry.k8s.io/issues/333
-[[registry]]
-location = "registry.k8s.io"
-
-[[registry.mirror]]
-location = "us-central1-docker.pkg.dev/k8s-artifacts-prod/images"
-EOF
-
-systemctl enable --now crio
 
 packages_version=$(getKubernetesClosestStableVersion)
 major_version=$(echo $packages_version | cut -d "." -f 2)
