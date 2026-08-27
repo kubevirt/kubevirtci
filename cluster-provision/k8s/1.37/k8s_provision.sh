@@ -124,8 +124,8 @@ gpgkey=https://pkgs.k8s.io/core:/stable:/v${packages_version%.*}/rpm/repodata/re
 EOF
 
 # Install Kubernetes CNI.
-dnf install --skip-broken --nobest --nogpgcheck --disableexcludes=kubernetes -y \
-    cri-tools-${packages_version%.*}.0 \
+dnf install --skip-broken --nobest --disableexcludes=kubernetes -y \
+    cri-tools \
     kubectl-${packages_version} \
     kubeadm-${packages_version} \
     kubelet-${packages_version} \
