@@ -598,7 +598,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-alertmanager-overview
   namespace: monitoring
 ---
@@ -1468,7 +1468,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-apiserver
   namespace: monitoring
 ---
@@ -2270,7 +2270,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-cluster-total
   namespace: monitoring
 ---
@@ -2862,7 +2862,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-controller-manager
   namespace: monitoring
 ---
@@ -3488,7 +3488,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-grafana-overview
   namespace: monitoring
 ---
@@ -5063,7 +5063,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-k8s-resources-cluster
   namespace: monitoring
 ---
@@ -5692,7 +5692,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-k8s-resources-multicluster
   namespace: monitoring
 ---
@@ -7198,7 +7198,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-k8s-resources-namespace
   namespace: monitoring
 ---
@@ -7764,7 +7764,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-k8s-resources-node
   namespace: monitoring
 ---
@@ -9136,7 +9136,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-k8s-resources-pod
   namespace: monitoring
 ---
@@ -10190,7 +10190,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-k8s-resources-workload
   namespace: monitoring
 ---
@@ -11441,7 +11441,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-k8s-resources-workloads-namespace
   namespace: monitoring
 ---
@@ -12682,7 +12682,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-kubelet
   namespace: monitoring
 ---
@@ -13466,7 +13466,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-namespace-by-workload
   namespace: monitoring
 ---
@@ -14519,7 +14519,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-node-cluster-rsrc-use
   namespace: monitoring
 ---
@@ -15598,7 +15598,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-node-rsrc-use
   namespace: monitoring
 ---
@@ -16687,7 +16687,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-nodes-darwin
   namespace: monitoring
 ---
@@ -17769,7 +17769,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-nodes
   namespace: monitoring
 ---
@@ -18079,7 +18079,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-persistentvolumesusage
   namespace: monitoring
 ---
@@ -18559,7 +18559,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-pod-total
   namespace: monitoring
 ---
@@ -20219,7 +20219,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-prometheus-remote-write
   namespace: monitoring
 ---
@@ -21461,7 +21461,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-prometheus
   namespace: monitoring
 ---
@@ -22104,7 +22104,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-proxy
   namespace: monitoring
 ---
@@ -22693,7 +22693,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-scheduler
   namespace: monitoring
 ---
@@ -23263,7 +23263,7 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-workload-total
   namespace: monitoring
 ---
@@ -23889,6 +23889,6 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 11.1.0
+    app.kubernetes.io/version: 13.0.2
   name: grafana-dashboard-namespace-by-pod
   namespace: monitoring

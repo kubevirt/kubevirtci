@@ -1,6 +1,6 @@
 # Prometheus
 
-> All the yamls here are based on the `release-0.8` of the repository [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus), a newer version may change significantly at any time.
+> All the yamls here are based on the `release-0.18` of the repository [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus), a newer version may change significantly at any time.
 
 The kube-prometheus repository collects Kubernetes manifests, [Grafana](http://grafana.com/) dashboards, and [Prometheus rules](https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/) combined with documentation and scripts to provide easy to operate end-to-end Kubernetes cluster monitoring with [Prometheus](https://prometheus.io/) using the Prometheus Operator.
 
@@ -28,6 +28,21 @@ The `kubevirt-prometheus-metrics` service can then be discovered by the ServiceM
 KubeVirt’s virt-operator, by default, checks the existence of the MonitorNamespace and MonitorServiceAccount, and automatically creates a ServiceMonitor resource in the MonitorNamespace. Additionally, KubeVirt also appropriate role and rolebinding in KubeVirt’s namespace.
 
 ## Upgrading
-All the files are based on the `release-0.8` of the repository [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus), the change applied was decreasing the Prometheus and Alertmanager replicas from 2 to 1.
+All the files are based on the `release-0.18` of the repository [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus).
 
-Additionally, we included a new Grafana dashboard `kubevirt-control-plane.json` in [cluster-provision/k8s/1.21/manifests/prometheus/grafana/grafana-dashboardDefinitions.yaml](https://github.com/kubevirt/kubevirtci/cluster-provision/k8s/1.21/manifests/prometheus/grafana/grafana-dashboardDefinitions.yaml).
+Component versions:
+* prometheus-operator v0.92.0
+* Prometheus v3.12.0
+* Alertmanager v0.33.0
+* Grafana 13.0.2
+* kube-state-metrics v2.19.0
+* node-exporter v1.11.1
+* kube-rbac-proxy v0.22.0
+
+kubevirtci customizations applied on top of upstream:
+* Prometheus replicas decreased from 2 to 1
+* Alertmanager replicas decreased from 3 to 1
+* NodePort services added for Prometheus (30007) and Grafana (30008)
+* Grafana image prefixed with `docker.io/` for CRI-O compatibility
+
+Excluded components: blackboxExporter, prometheusAdapter, networkPolicies.

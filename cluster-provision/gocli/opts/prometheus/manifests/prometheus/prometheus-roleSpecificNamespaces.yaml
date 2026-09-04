@@ -6,15 +6,22 @@ metadata:
     app.kubernetes.io/instance: k8s
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 2.53.0
+    app.kubernetes.io/version: 3.12.0
   name: prometheus-k8s
   namespace: default
 rules:
 - apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - services
-  - endpoints
   - pods
   verbs:
   - get
@@ -45,15 +52,22 @@ metadata:
     app.kubernetes.io/instance: k8s
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 2.53.0
+    app.kubernetes.io/version: 3.12.0
   name: prometheus-k8s
   namespace: kube-system
 rules:
 - apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - services
-  - endpoints
   - pods
   verbs:
   - get
@@ -84,15 +98,22 @@ metadata:
     app.kubernetes.io/instance: k8s
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 2.53.0
+    app.kubernetes.io/version: 3.12.0
   name: prometheus-k8s
   namespace: monitoring
 rules:
 - apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - services
-  - endpoints
   - pods
   verbs:
   - get

@@ -1,7 +1,7 @@
 docker.io/calico/cni:v3.26.5
 docker.io/calico/kube-controllers:v3.26.5
 docker.io/calico/node:v3.26.5
-docker.io/grafana/grafana:11.1.0
+docker.io/grafana/grafana:13.0.2
 ghcr.io/flannel-io/flannel-cni-plugin:v1.7.1-flannel1
 ghcr.io/flannel-io/flannel:v0.27.2
 ghcr.io/k8snetworkplumbingwg/multus-cni:v3.8
@@ -12,8 +12,7 @@ ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin@sha256:435f374b434b3bc70a5cfaba0011f
 ghcr.io/k8snetworkplumbingwg/whereabouts:v0.8.0
 ghcr.io/kubevirt/ipam-controller@sha256:4fdc9c77b9e683f274a31fcb7f6dbcf765799596efd93bc37512fb860f07b02f
 ghcr.io/kubevirt/kubesecondarydns@sha256:f5fe9c98fb6d7e5e57a6df23fe82e43e65db5953d76af44adda9ab40c46ad0bf
-quay.io/brancz/kube-rbac-proxy:v0.18.0
-quay.io/brancz/kube-rbac-proxy:v0.8.0
+quay.io/brancz/kube-rbac-proxy:v0.22.0
 quay.io/brancz/kube-rbac-proxy@sha256:e6a323504999b2a4d2a6bf94f8580a050378eba0900fd31335cf9df5787d9a9b
 quay.io/ceph/ceph:v20.2.4
 quay.io/cephcsi/cephcsi:v3.16.2
@@ -32,12 +31,12 @@ quay.io/kubevirt/cni-default-plugins@sha256:976a24392c2a096c38c2663d234b2d3131f5
 quay.io/kubevirt/kubemacpool@sha256:bc1c0b05cd71fd9cc3c15a4a90df7e8581bd19f69256895f6a711b412ba02a85
 quay.io/kubevirt/macvtap-cni@sha256:af31faae20c0128a469dd4c1aa866d6bf78d1d2f5972127adf4c9438dcde10f4
 quay.io/kubevirtci/rook-ceph:v1.19.10
-quay.io/prometheus-operator/prometheus-operator:v0.75.1
-quay.io/prometheus/alertmanager:v0.27.0
-quay.io/prometheus/node-exporter:v1.8.1
-quay.io/prometheus/prometheus:v2.53.0
+quay.io/prometheus-operator/prometheus-operator:v0.92.0
+quay.io/prometheus/alertmanager:v0.33.0
+quay.io/prometheus/node-exporter:v1.11.1
+quay.io/prometheus/prometheus:v3.12.0
 registry.k8s.io/coredns/coredns@sha256:a0ead06651cf580044aeb0a0feba63591858fb2e43ade8c9dea45a6a89ae7e5e
-registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.1.0
+registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.19.0
 registry.k8s.io/networking/kube-network-policies:v0.7.0
 registry.k8s.io/sig-storage/csi-attacher:v4.11.0
 registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0
