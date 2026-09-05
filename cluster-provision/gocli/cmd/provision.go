@@ -46,6 +46,7 @@ func NewProvisionCommand() *cobra.Command {
 	provision.Flags().String("container-suffix", "", "use additional suffix for the provisioned container image")
 	provision.Flags().String("phases", "linux,k8s", "phases to run, possible values: linux,k8s linux k8s")
 	provision.Flags().StringArray("additional-persistent-kernel-arguments", []string{}, "additional persistent kernel arguments applied after provision")
+	provision.Flags().String("image-repo", "quay.io/kubevirtci", "the registry to publish the images to")
 
 	return provision
 }
@@ -63,6 +64,10 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		baseName := strings.TrimSpace(string(baseBytes))
 		centosVersion = strings.TrimPrefix(baseName, "centos")
 	}
+	imageRepo, err := cmd.Flags().GetString("image-repo")
+	if err != nil {
+		return err
+	}
 
 	centosScriptsPath := filepath.Join(packagePath, "..", "..", fmt.Sprintf("centos%s", centosVersion), "scripts")
 
@@ -78,7 +83,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	if strings.Contains(phases, "linux") {
-		base = fmt.Sprintf("quay.io/kubevirtci/centos%s", centosVersion)
+		base = fmt.Sprintf("%s/centos%s", imageRepo, centosVersion)
 	} else {
 		k8sPath := fmt.Sprintf("%s/../", packagePath)
 		// Select base-image file based on PROVISION_CENTOS_VERSION
@@ -102,7 +107,7 @@ func provisionCluster(cmd *cobra.Command, args []string) (retErr error) {
 		name = fmt.Sprintf("%s-%s", name, containerSuffix)
 	}
 	prefix := fmt.Sprintf("k8s-%s-provision", name)
-	target := fmt.Sprintf("quay.io/kubevirtci/k8s-%s", name)
+	target := fmt.Sprintf("%s/k8s-%s", imageRepo, name)
 	scripts := filepath.Join(packagePath)
 
 	if phases == "linux" {

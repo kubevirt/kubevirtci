@@ -16,7 +16,8 @@ PHASES=${PHASES:-k8s}
 
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TARGET_REPO="quay.io/kubevirtci"
+TARGET_REPO="${TARGET_REPO:-quay.io/kubevirtci}"
+SOURCE_REPO="quay.io/kubevirtci"
 TARGET_KUBEVIRT_REPO="quay.io/kubevirt"
 TARGET_GIT_REMOTE="https://kubevirt-bot@github.com/kubevirt/kubevirtci.git"
 
@@ -34,7 +35,7 @@ function run_provision_manager() {
       return
   fi
 
-  json_result=$(${CRI_BIN} run --rm -v $(pwd):/workdir:Z quay.io/kubevirtci/gocli provision-manager)
+  json_result=$(${CRI_BIN} run --rm -v $(pwd):/workdir:Z ${TARGET_REPO}/gocli provision-manager)
   echo "INFO: Provision manager results: $json_result"
 
   while IFS=":" read key value; do
@@ -50,7 +51,7 @@ function run_provision_manager() {
 }
 
 function build_gocli() {
-  (cd cluster-provision/gocli && make container)
+  (cd cluster-provision/gocli && make container KUBEVIRTCI_IMAGE_REPO="${TARGET_REPO}")
   if [ $ARCH == "amd64" ]; then
     ${CRI_BIN} tag ${TARGET_REPO}/gocli ${TARGET_REPO}/gocli:${KUBEVIRTCI_TAG}
   fi
@@ -71,14 +72,14 @@ function build_clusters() {
   for i in "${IMAGES_TO_BUILD[@]}"; do
     if [ $ARCH == "amd64" ]; then
       echo "INFO: building $i"
-      cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i
+      cluster-provision/gocli/build/cli provision --phases k8s --image-repo ${TARGET_REPO} cluster-provision/k8s/$i
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}
 
-      cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
+      cluster-provision/gocli/build/cli provision --phases k8s --image-repo ${TARGET_REPO} cluster-provision/k8s/$i --slim
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim
     elif [[ "$ARCH" == "s390x" ]]; then
       echo "INFO: building $i slim"
-      cluster-provision/gocli/build/cli provision --phases k8s cluster-provision/k8s/$i --slim
+      cluster-provision/gocli/build/cli provision --phases k8s --image-repo ${TARGET_REPO} cluster-provision/k8s/$i --slim
       ${CRI_BIN} tag ${TARGET_REPO}/k8s-$i ${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}
     fi
   done
@@ -115,12 +116,12 @@ function push_cluster_images() {
   for i in ${IMAGES_TO_RETAG[@]}; do
     if [ $ARCH == "amd64" ]; then
       echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG)"
-      skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
+      skopeo copy "docker://${SOURCE_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}"
       echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG-slim)"
-      skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
+      skopeo copy "docker://${SOURCE_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim"
     elif [[ "$ARCH" == "s390x" ]]; then
       echo "INFO: retagging $i (previous tag $PREV_KUBEVIRTCI_TAG-slim-$ARCH)"
-      skopeo copy "docker://${TARGET_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim-${ARCH}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
+      skopeo copy "docker://${SOURCE_REPO}/k8s-$i:${PREV_KUBEVIRTCI_TAG}-slim-${ARCH}" "docker://${TARGET_REPO}/k8s-$i:${KUBEVIRTCI_TAG}-slim-${ARCH}"
     fi
   done
 }
