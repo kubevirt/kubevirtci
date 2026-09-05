@@ -24,6 +24,15 @@ else
 	echo "[ OK ] found /dev/kvm"
 fi
 
+if ! grep -q "^ip6_tables " /proc/modules; then
+	echo "[ERR ] kernel module ip6_tables is not loaded"
+	echo "[ERR ] run: sudo modprobe ip6_tables"
+	echo "[ERR ] see PODMAN.md for how to load required modules persistently"
+	exit 1
+else
+	echo "[ OK ] kernel module ip6_tables is loaded"
+fi
+
 KVM_ARCH=""
 KVM_NESTED="unknown"
 KVM_HPAGE="unknown"
