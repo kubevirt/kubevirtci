@@ -17,13 +17,16 @@ fi
 # s390x requires native hardware because alpine-make-vm-image runs zipl (the
 # s390x bootloader installer) in a chroot. zipl performs low-level ioctl calls
 # on the block device to write IPL boot records, which segfaults under
-# qemu-user-static. arm64 cross-builds fine because its UEFI bootloader setup
-# is just writing a text file (startup.nsh), with no low-level disk operations.
-if [ "$(uname -m)" = "s390x" ]; then
-    BUILD_ARCHES=${BUILD_ARCHES:-"s390x"}
-else
-    BUILD_ARCHES=${BUILD_ARCHES:-"amd64 arm64"}
-fi
+# qemu-user-static. ppc64le similarly requires native hardware because its
+# bootloader (grub2-ppc64le) also performs low-level disk operations that
+# segfault under qemu-user-static. arm64 cross-builds fine because its UEFI
+# bootloader setup is just writing a text file (startup.nsh), with no
+# low-level disk operations.
+case "$(uname -m)" in
+  s390x)  BUILD_ARCHES=${BUILD_ARCHES:-"s390x"} ;;
+  ppc64le) BUILD_ARCHES=${BUILD_ARCHES:-"ppc64le"} ;;
+  *)      BUILD_ARCHES=${BUILD_ARCHES:-"amd64 arm64"} ;;
+esac
 TARGET_REPO=${TARGET_REPO:-"quay.io/kubevirtci"}
 TARGET_KUBEVIRT_REPO=${TARGET_KUBEVIRT_REPO:-"quay.io/kubevirt"}
 IMAGE_NAME="alpine-with-test-tooling-container-disk"

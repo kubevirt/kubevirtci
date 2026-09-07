@@ -13,6 +13,9 @@ go_style_arch_name() {
     s390x)
         echo "s390x"
         ;;
+    ppc64le)
+        echo "ppc64le"
+        ;;
     *)
         echo "ERROR: invalid Arch, ${arch}"
         exit 1
@@ -32,6 +35,9 @@ linux_style_arch_name() {
         ;;
     s390x)
         echo "s390x"
+        ;;
+    ppc64le)
+        echo "ppc64le"
         ;;
     *)
         echo "ERROR: invalid Arch, ${arch}"

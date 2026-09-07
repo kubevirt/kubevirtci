@@ -82,6 +82,7 @@ EOF
 	scsiDiskImagePrefix = "/scsi"
 	QEMU_DEVICE_S390X   = "virtio-net-ccw"
 	QEMU_DEVICE_X86_64  = "virtio-net-pci"
+	QEMU_DEVICE_PPC64LE = "virtio-net-pci"
 
 	secondaryNicRootPortBaseSlot  = 4
 	secondaryNicRootPortBaseChass = 10
@@ -1083,8 +1084,8 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 		opts = append(opts, realtimeOpt)
 	}
 
-	// sound cards are not supported on s390x.
-	if runtime.GOARCH != "s390x" {
+	// sound cards are not supported on s390x or ppc64le.
+	if runtime.GOARCH != "s390x" && runtime.GOARCH != "ppc64le" {
 		for _, s := range soundcardPCIIDs {
 			// move the VM sound cards to a vfio-pci driver to prepare for assignment
 			bvfio := bindvfio.NewBindVfioOpt(sshClient, s)
@@ -1231,9 +1232,12 @@ func getDevicePCIID(pciAddress string) (string, error) {
 }
 
 func getNetDeviceByArch() string {
-	if runtime.GOARCH == "s390x" {
+	switch runtime.GOARCH {
+	case "s390x":
 		return QEMU_DEVICE_S390X
-	} else {
+	case "ppc64le":
+		return QEMU_DEVICE_PPC64LE
+	default:
 		return QEMU_DEVICE_X86_64
 	}
 }

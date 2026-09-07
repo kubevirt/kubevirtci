@@ -87,18 +87,25 @@ dnf install -y container-selinux
 
 dnf install -y libseccomp-devel
 
-#openvswitch for s390x is not available from the centos default repos.
-if [ "$ARCH" == "s390x" ]; then
-  dnf install -y https://kojipkgs.fedoraproject.org//packages/openvswitch/2.16.0/2.fc36/s390x/openvswitch-2.16.0-2.fc36.s390x.rpm
-  systemctl enable openvswitch
-else
-  dnf install -y centos-release-nfv-openvswitch
-  if [ "$release" == "centos10" ]; then
-    dnf install -y openvswitch3.5
-  else
-    dnf install -y openvswitch2.16
-  fi
-fi 
+#openvswitch for s390x and ppc64le is not available from the centos default repos.
+case "$ARCH" in
+  s390x)
+    dnf install -y https://kojipkgs.fedoraproject.org//packages/openvswitch/2.16.0/2.fc36/s390x/openvswitch-2.16.0-2.fc36.s390x.rpm
+    systemctl enable openvswitch
+    ;;
+  ppc64le)
+    dnf install -y https://kojipkgs.fedoraproject.org//packages/openvswitch/2.16.0/2.fc36/ppc64le/openvswitch-2.16.0-2.fc36.ppc64le.rpm
+    systemctl enable openvswitch
+    ;;
+  *)
+    dnf install -y centos-release-nfv-openvswitch
+    if [ "$release" == "centos10" ]; then
+      dnf install -y openvswitch3.5
+    else
+      dnf install -y openvswitch2.16
+    fi
+    ;;
+esac
 
 dnf install -y NetworkManager NetworkManager-ovs NetworkManager-config-server
 
