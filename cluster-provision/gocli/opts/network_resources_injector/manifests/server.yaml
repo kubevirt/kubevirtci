@@ -45,6 +45,7 @@ spec:
         - -logtostderr
         - -v=2
         - -insecure
+        - -failure-policy=Ignore
         env:
         - name: NAMESPACE
           valueFrom:
