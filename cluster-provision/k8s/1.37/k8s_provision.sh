@@ -96,18 +96,20 @@ curl -Ro "/etc/yum.repos.d/cri-o-v${CRIO_VERSION}-${CRIO_CHANNEL}.repo" \
 
 dnf install -y cri-o
 
-systemctl enable --now crio
+cat << EOF > /etc/containers/registries.conf.d/kubevirtci.conf
+unqualified-search-registries = [
+  "registry.access.redhat.com",
+  "registry.fedoraproject.org",
+  "quay.io",
+  "docker.io"
+]
 
-cat << EOF > /etc/containers/registries.conf
-[registries.search]
-registries = ['registry.access.redhat.com', 'registry.fedoraproject.org', 'quay.io', 'docker.io']
-
-[registries.insecure]
-registries = ['registry:5000']
-
-[registries.block]
-registries = []
+[[registry]]
+location = "registry:5000"
+insecure = true
 EOF
+
+systemctl enable --now crio
 
 create_sriov_udev_rule
 
