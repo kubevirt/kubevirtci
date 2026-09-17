@@ -35,6 +35,7 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/cnao"
 	dockerproxy "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/docker-proxy"
 	etcdinmemory "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/etcd"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/extranics"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/istio"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/ksm"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/multus"
@@ -116,7 +117,8 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().StringP("memory", "m", "3096M", "amount of ram per node")
 	run.Flags().UintP("cpu", "c", 2, "number of cpu cores per node")
 	run.Flags().UintP("secondary-nics", "", 0, "number of secondary nics to add")
-	run.Flags().Bool("enable-secondary-nic-bridges", false, "create bridge devices for secondary NICs")
+	run.Flags().StringSlice("secondary-ifaces-to-bridge", nil, "secondary NICs to enslave to a bridge device each, e.g. eth1,eth2")
+	run.Flags().StringSlice("secondary-ifaces-to-ip", nil, "secondary NICs to give an address of their own, e.g. eth3,eth4")
 	run.Flags().String("qemu-args", "", "additional qemu args to pass through to the nodes")
 	run.Flags().String("kernel-args", "", "additional kernel args to pass through to the nodes")
 	run.Flags().BoolP("background", "b", true, "go to background after nodes are up")
@@ -273,7 +275,12 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		return err
 	}
 
-	secondaryNicBridges, err := cmd.Flags().GetBool("enable-secondary-nic-bridges")
+	bridgedIfaces, err := cmd.Flags().GetStringSlice("secondary-ifaces-to-bridge")
+	if err != nil {
+		return err
+	}
+
+	addressedIfaces, err := cmd.Flags().GetStringSlice("secondary-ifaces-to-ip")
 	if err != nil {
 		return err
 	}
@@ -914,7 +921,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			nodesconfig.WithSwapiness(int(swapiness)),
 			nodesconfig.WithSwapBehavior(swapBehavior),
 			nodesconfig.WithSwapSize(int(swapSize)),
-			nodesconfig.WithSecondaryNicBridges(secondaryNicBridges),
+			nodesconfig.WithExtraNICsConfig(extranics.Config{BridgedIfaces: bridgedIfaces, AddressedIfaces: addressedIfaces}),
 			nodesconfig.WithVsockChildNsMode(vsockChildNsMode),
 			nodesconfig.WithTopologyManagerPolicy(topologyManagerPolicy),
 			nodesconfig.WithReservedSystemCPUs(reservedSystemCPUs),
@@ -1104,7 +1111,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 	}
 
 	if n.NodeIdx == 1 {
-		n := node01.NewNode01Provisioner(sshClient, n.SingleStack, n.Flannel, n.NoEtcdFsync, n.SecondaryNicBridges)
+		n := node01.NewNode01Provisioner(sshClient, n.SingleStack, n.Flannel, n.NoEtcdFsync, n.ExtraNICsConfig)
 		opts = append(opts, n)
 
 	} else {
@@ -1117,7 +1124,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 			bindVfioOpt := bindvfio.NewBindVfioOpt(sshClient, gpuDeviceID)
 			opts = append(opts, bindVfioOpt)
 		}
-		n := nodesprovision.NewNodesProvisioner(n.K8sVersion, sshClient, n.SingleStack, n.SecondaryNicBridges, n.TopologyManagerPolicy, n.ReservedSystemCPUs)
+		n := nodesprovision.NewNodesProvisioner(n.K8sVersion, sshClient, n.SingleStack, n.ExtraNICsConfig, n.TopologyManagerPolicy, n.ReservedSystemCPUs)
 		opts = append(opts, n)
 	}
 

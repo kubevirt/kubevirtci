@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/extranics"
 	kubevirtcimocks "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/mock"
 )
 
@@ -26,7 +27,7 @@ var _ = Describe("nodes", func() {
 		BeforeEach(func() {
 			mockCtrl = gomock.NewController(GinkgoT())
 			sshClient = kubevirtcimocks.NewMockSSHClient(mockCtrl)
-			opt = NewNodesProvisioner("k8s-1.32", sshClient, false, false, "", "")
+			opt = NewNodesProvisioner("k8s-1.32", sshClient, false, extranics.Config{}, "", "")
 			AddExpectCalls(sshClient)
 		})
 
@@ -42,7 +43,7 @@ var _ = Describe("nodes", func() {
 
 	DescribeTable("calling featureGateFlag",
 		func(k8sVersion, expectedValue string) {
-			np := NewNodesProvisioner(k8sVersion, nil, false, false, "", "")
+			np := NewNodesProvisioner(k8sVersion, nil, false, extranics.Config{}, "", "")
 			Expect(np.featureGatesFlag()).To(BeEquivalentTo(expectedValue))
 		},
 		Entry("should not add new fg if 1.32", "k8s-1.32", "--feature-gates=NodeSwap=true"),
@@ -62,7 +63,7 @@ var _ = Describe("nodes", func() {
 					}
 				})
 
-				np := NewNodesProvisioner("name-with-no-version", nil, false, false, "", "")
+				np := NewNodesProvisioner("name-with-no-version", nil, false, extranics.Config{}, "", "")
 				Expect(np.featureGatesFlag()).To(BeEquivalentTo(expectedValue))
 			},
 			Entry("should not add new fg if 1.32", "k8s-1.32", "--feature-gates=NodeSwap=true"),

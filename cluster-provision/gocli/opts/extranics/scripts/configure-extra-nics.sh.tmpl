@@ -1,0 +1,108 @@
+#!/bin/bash
+set -e
+
+# Configure the secondary network interfaces of a node.
+#
+# This script is rendered from a template, with the interfaces to act on baked
+# in by the caller. Nothing here discovers interfaces on its own, so a node
+# only ever gets the configuration that was asked for.
+#
+# Uses NetworkManager (nmcli) to create persistent configurations.
+
+# Enslave an interface to a bridge of its own, brX for ethX.
+setup_bridge() {
+    local iface="$1"
+    local bridge_name="br${iface#eth}"
+
+    echo "Setting up bridge ${bridge_name} for interface ${iface}"
+
+    # Delete existing connections for the interface if any (to ensure clean state)
+    nmcli connection delete ${iface} 2>/dev/null || true
+    nmcli connection delete ${bridge_name} 2>/dev/null || true
+
+    # Create bridge connection (disable DHCP to avoid timeouts)
+    nmcli connection add type bridge ifname ${bridge_name} con-name ${bridge_name} \
+      bridge.stp no ipv4.method disabled ipv6.method disabled
+
+    # Add ethernet interface as bridge slave
+    nmcli connection add type ethernet ifname ${iface} con-name ${iface} master ${bridge_name}
+
+    # Bring up the bridge (which will also bring up the slave)
+    nmcli connection up ${bridge_name}
+
+    echo "Bridge ${bridge_name} created and configured successfully"
+}
+
+# Derive an address from the one dnsmasq leased to eth0, shifting the third
+# octet by the interface index: eth0 192.168.66.101 -> eth1 192.168.67.101.
+# The host octet is what keeps the result unique per node. Shifting the third
+# octet only lands in a different subnet because eth0 is a /24.
+derive_ipv4_from_eth0() {
+    local offset="$1"
+    local cidr oldifs
+
+    cidr=$(ip -4 -o addr show dev eth0 scope global | awk '{print $4; exit}')
+    if [ -z "${cidr}" ]; then
+        echo "eth0 has no global IPv4 address to derive from" >&2
+        return 1
+    fi
+
+    oldifs=$IFS; IFS='./'; set -- ${cidr}; IFS=$oldifs   # $1..$4 octets, $5 prefix
+    if [ $((${3} + offset)) -gt 255 ]; then
+        echo "third octet out of range: ${cidr} + ${offset}" >&2
+        return 1
+    fi
+
+    echo "${1}.${2}.$((${3} + offset)).${4}/${5}"
+}
+
+# The IPv6 counterpart, as text surgery since the shell cannot do v6 arithmetic:
+# eth0 fd00::101/64 -> eth1 fd00:1::101/64. This relies on the fixed address
+# format dnsmasq hands out, and breaks on any other shape.
+derive_ipv6_from_eth0() {
+    local offset="$1"
+    local cidr
+
+    cidr=$(ip -6 -o addr show dev eth0 scope global | awk '{print $4; exit}')
+    if [ -z "${cidr}" ]; then
+        echo "eth0 has no global IPv6 address to derive from" >&2
+        return 1
+    fi
+
+    echo "${cidr%%::*}:${offset}::${cidr#*::}"
+}
+
+# Give an interface an address of its own instead of a bridge.
+configure_static_ip() {
+    local iface="$1"
+    local offset="${iface#eth}"
+
+    # Declared apart from the assignment so that "local" does not mask a failing
+    # derivation from "set -e".
+    local iface_ipv4 iface_ipv6
+    iface_ipv4=$(derive_ipv4_from_eth0 "${offset}")
+    iface_ipv6=$(derive_ipv6_from_eth0 "${offset}")
+
+    echo "Setting up interface ${iface} with ${iface_ipv4} ${iface_ipv6}"
+
+    # Delete existing connection for the interface if any (to ensure clean state)
+    nmcli connection delete ${iface} 2>/dev/null || true
+
+    # The connected routes come with the addresses, and never-default keeps a
+    # secondary interface from stealing eth0's default route.
+    nmcli connection add type ethernet ifname ${iface} con-name ${iface} \
+      ipv4.method manual ipv4.addresses "${iface_ipv4}" ipv4.never-default yes \
+      ipv6.method manual ipv6.addresses "${iface_ipv6}" ipv6.never-default yes
+
+    nmcli connection up ${iface}
+
+    echo "Interface ${iface} configured successfully"
+}
+{{range .BridgedIfaces}}
+setup_bridge {{.}}
+{{- end}}
+{{- range .AddressedIfaces}}
+configure_static_ip {{.}}
+{{- end}}
+
+echo "All secondary interfaces configured"

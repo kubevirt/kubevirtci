@@ -8,9 +8,16 @@ cd kubevirtci
                                                                                       
 Start multi node k8s cluster with 2 nics
 ```
-export KUBEVIRT_PROVIDER=k8s-1.33 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=1 KUBEVIRT_SECONDARY_NIC_BRIDGES=true
+export KUBEVIRT_PROVIDER=k8s-1.33 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=1 KUBEVIRT_SECONDARY_IFACES_TO_BRIDGE=eth1
 make cluster-up
 ```                                                                                   
+
+A secondary interface may instead be given an address of its own, derived from
+the one eth0 was leased, so that eth0 192.168.66.101 makes eth2 192.168.68.101
+```
+export KUBEVIRT_PROVIDER=k8s-1.33 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=2 KUBEVIRT_SECONDARY_IFACES_TO_BRIDGE=eth1 KUBEVIRT_SECONDARY_IFACES_TO_IP=eth2
+make cluster-up
+```
 
 Prepare the cluster for the emulated SR-IOV, with device plugin:
 (This requires `KUBEVIRT_PROVIDER` `k8s-1.35` or newer)
