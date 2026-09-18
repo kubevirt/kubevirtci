@@ -88,11 +88,19 @@ function pull_container_retry() {
 }
 
 # CRI-O installation and configuration:
-# - https://cri-o.io/#distribution-packaging
+# - https://github.com/kubevirt/project-infra/blob/main/hack/mirror-crio.sh
 CRIO_VERSION='1.37'
-CRIO_CHANNEL='prerelease'
-curl -Ro "/etc/yum.repos.d/cri-o-v${CRIO_VERSION}-${CRIO_CHANNEL}.repo" \
-  "https://download.opensuse.org/repositories/isv:/cri-o:/${CRIO_CHANNEL}:/v${CRIO_VERSION}/rpm/isv:cri-o:${CRIO_CHANNEL}:v${CRIO_VERSION}.repo"
+CRIO_CHANNEL='stable'
+CRIO_REPO="isv_cri-o_stable_v${CRIO_VERSION}"
+cat >"/etc/yum.repos.d/${CRIO_REPO}.repo" <<EOF
+[${CRIO_REPO}]
+name=CRI-O v${CRIO_VERSION} (Stable) (rpm)
+type=rpm-md
+baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/${CRIO_REPO}
+gpgcheck=1
+gpgkey=https://download.opensuse.org/repositories/isv:/cri-o:/${CRIO_CHANNEL}:/v${CRIO_VERSION}/rpm/repodata/repomd.xml.key
+enabled=1
+EOF
 
 dnf install -y cri-o
 
