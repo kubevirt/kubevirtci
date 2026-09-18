@@ -1,5 +1,7 @@
 package nodesconfig
 
+import "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/extranics"
+
 // NodeLinuxConfig type holds the config params that a node can have for its linux system
 type NodeLinuxConfig struct {
 	NodeIdx               int
@@ -22,7 +24,7 @@ type NodeLinuxConfig struct {
 	Swappiness            int
 	SwapBehavior          string
 	SwapSize              int
-	SecondaryNicBridges   bool
+	ExtraNICsConfig       extranics.Config
 	VsockChildNsMode      string
 	TopologyManagerPolicy string
 	ReservedSystemCPUs    string

@@ -4,30 +4,28 @@ import (
 	_ "embed"
 	"fmt"
 
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/extranics"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 )
 
 //go:embed conf/adv-audit.yaml
 var advAudit []byte
 
-//go:embed scripts/setup-bridges.sh
-var setupBridgesScript []byte
-
 type node01Provisioner struct {
-	sshClient           libssh.Client
-	singleStack         bool
-	flannel             bool
-	etcdNoFsync         bool
-	secondaryNicBridges bool
+	sshClient       libssh.Client
+	singleStack     bool
+	flannel         bool
+	etcdNoFsync     bool
+	extraNICsConfig extranics.Config
 }
 
-func NewNode01Provisioner(sc libssh.Client, singleStack, flannel, etcdNoFsync, secondaryNicBridges bool) *node01Provisioner {
+func NewNode01Provisioner(sc libssh.Client, singleStack, flannel, etcdNoFsync bool, extraNICsConfig extranics.Config) *node01Provisioner {
 	return &node01Provisioner{
-		sshClient:           sc,
-		singleStack:         singleStack,
-		flannel:             flannel,
-		etcdNoFsync:         etcdNoFsync,
-		secondaryNicBridges: secondaryNicBridges,
+		sshClient:       sc,
+		singleStack:     singleStack,
+		flannel:         flannel,
+		etcdNoFsync:     etcdNoFsync,
+		extraNICsConfig: extraNICsConfig,
 	}
 }
 
@@ -63,12 +61,20 @@ func (n *node01Provisioner) Exec() error {
 		"swapoff -a",
 	}
 
-	if n.secondaryNicBridges {
-		cmds = append(cmds, string(setupBridgesScript))
+	cmds = append(cmds,
+		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done")
+
+	// After the wait above, since the secondary addresses are derived from the
+	// ones eth0 was leased.
+	if !n.extraNICsConfig.Empty() {
+		script, err := extranics.Script(n.extraNICsConfig)
+		if err != nil {
+			return err
+		}
+		cmds = append(cmds, script)
 	}
 
 	cmds = append(cmds,
-		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
 		`timeout=60; interval=5; while ! systemctl status crio | grep -w "active"; do echo "Waiting for cri-o service to be ready"; sleep $interval; timeout=$((timeout - interval)); if [[ $timeout -le 0 ]]; then exit 1; fi; done`,
 		kubeadmInitCmd,
 		`kubectl --kubeconfig=/etc/kubernetes/admin.conf patch deployment coredns -n kube-system -p "$(cat /provision/kubeadm-patches/add-security-context-deployment-patch.yaml)"`,

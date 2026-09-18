@@ -1,5 +1,7 @@
 package nodesconfig
 
+import "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/extranics"
+
 type LinuxConfigFunc func(n *NodeLinuxConfig)
 
 type K8sConfigFunc func(n *NodeK8sConfig)
@@ -130,9 +132,9 @@ func WithSwapSize(swapSize int) LinuxConfigFunc {
 	}
 }
 
-func WithSecondaryNicBridges(secondaryNicBridges bool) LinuxConfigFunc {
+func WithExtraNICsConfig(extraNICsConfig extranics.Config) LinuxConfigFunc {
 	return func(n *NodeLinuxConfig) {
-		n.SecondaryNicBridges = secondaryNicBridges
+		n.ExtraNICsConfig = extraNICsConfig
 	}
 }
 

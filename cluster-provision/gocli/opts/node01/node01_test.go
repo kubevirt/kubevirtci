@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/extranics"
 	kubevirtcimocks "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/mock"
 )
 
@@ -24,7 +25,7 @@ var _ = Describe("Node01Provisioner", func() {
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		sshClient = kubevirtcimocks.NewMockSSHClient(mockCtrl)
-		opt = NewNode01Provisioner(sshClient, false, false, false, false)
+		opt = NewNode01Provisioner(sshClient, false, false, false, extranics.Config{})
 		AddExpectCalls(sshClient)
 	})
 

@@ -1,7 +1,6 @@
 package nodes
 
 import (
-	_ "embed"
 	"fmt"
 	"os"
 	"regexp"
@@ -10,6 +9,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/sirupsen/logrus"
 
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/extranics"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 )
 
@@ -17,24 +17,19 @@ const (
 	kubevirtProviderEnv = "KUBEVIRT_PROVIDER"
 )
 
-var (
-	//go:embed scripts/setup-bridges.sh
-	setupBridgesScript []byte
-
-	versionRegex = regexp.MustCompile(`.*([0-9]+\.[0-9]+)`)
-)
+var versionRegex = regexp.MustCompile(`.*([0-9]+\.[0-9]+)`)
 
 type nodesProvisioner struct {
 	k8sVersion            string
 	sshClient             libssh.Client
 	singleStack           bool
 	version               *semver.Version
-	secondaryNicBridges   bool
+	extraNICsConfig       extranics.Config
 	topologyManagerPolicy string
 	reservedSystemCPUs    string
 }
 
-func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack, secondaryNicBridges bool, topologyManagerPolicy, reservedSystemCPUs string) *nodesProvisioner {
+func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack bool, extraNICsConfig extranics.Config, topologyManagerPolicy, reservedSystemCPUs string) *nodesProvisioner {
 	submatches := versionRegex.FindStringSubmatch(k8sVersion)
 	if len(submatches) != 2 {
 		logrus.Infof("not a parseable semver contained in %q. Trying the %q environment variable", k8sVersion, kubevirtProviderEnv)
@@ -56,7 +51,7 @@ func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack, secon
 		singleStack:           singleStack,
 		k8sVersion:            k8sVersion,
 		version:               version,
-		secondaryNicBridges:   secondaryNicBridges,
+		extraNICsConfig:       extraNICsConfig,
 		topologyManagerPolicy: topologyManagerPolicy,
 		reservedSystemCPUs:    reservedSystemCPUs,
 	}
@@ -95,12 +90,20 @@ func (n *nodesProvisioner) Exec() error {
 		"swapoff -a",
 	}
 
-	if n.secondaryNicBridges {
-		cmds = append(cmds, string(setupBridgesScript))
+	cmds = append(cmds,
+		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done")
+
+	// After the wait above, since the secondary addresses are derived from the
+	// ones eth0 was leased.
+	if !n.extraNICsConfig.Empty() {
+		script, err := extranics.Script(n.extraNICsConfig)
+		if err != nil {
+			return err
+		}
+		cmds = append(cmds, script)
 	}
 
 	cmds = append(cmds,
-		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
 		`timeout=60; interval=5; while ! systemctl status crio | grep -w "active"; do echo "Waiting for cri-o service to be ready"; sleep $interval; timeout=$((timeout - interval)); if [[ $timeout -le 0 ]]; then exit 1; fi; done`,
 		"kubeadm join --token abcdef.1234567890123456 "+controlPlaneIP+":6443 --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification=true",
 		"mkdir -p /var/lib/rook",
