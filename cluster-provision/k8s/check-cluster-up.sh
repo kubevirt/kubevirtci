@@ -119,8 +119,8 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
                 arch_suffix="-s390x"
             fi
             LATEST=$(curl -L "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/latest${arch_suffix}")
-            ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-operator${arch_suffix}.yaml"
-            ${ksh} apply -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-cr${arch_suffix}.yaml"
+            ${ksh} apply --server-side -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-operator${arch_suffix}.yaml"
+            ${ksh} apply --server-side -f "https://storage.googleapis.com/kubevirt-prow/devel/nightly/release/kubevirt/kubevirt/${LATEST}/kubevirt-cr${arch_suffix}.yaml"
 
             ${ksh} wait -n kubevirt kv kubevirt --for condition=Available --timeout 15m
 
