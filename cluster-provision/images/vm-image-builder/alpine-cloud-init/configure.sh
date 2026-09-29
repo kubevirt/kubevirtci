@@ -19,7 +19,21 @@ sed -Ei \
 	-e 's/^[# ](unicode)=.*/\1=YES/' \
 	/etc/rc.conf
 
+step 'Install udhcpc6 script'
+cat udhcpc6.script > /etc/udhcpc6.script
+chmod 755 /etc/udhcpc6.script
+
+step 'Configure IPv6 DHCP on eth0'
+cat >> /etc/network/interfaces <<'EOF'
+
+# IPv6 (explicitly calls udhcpc6 on link UP)
+iface eth0 inet6 manual
+    up /usr/bin/udhcpc6 -b -t 3 -p /var/run/udhcpc6.eth0.pid -i eth0 -s /etc/udhcpc6.script
+    down kill $(cat /var/run/udhcpc6.eth0.pid 2>/dev/null) 2>/dev/null || true
+EOF
+
 step 'Enable services'
+rc-update add syslog boot
 rc-update add qemu-guest-agent default
 rc-update add cloud-init default
 rc-update add cloud-init-local default
