@@ -46,7 +46,13 @@ function calc_next_disk {
     # Customize qcow2 image using virt-sysprep (with KVM accelerator)
     export LIBGUESTFS_BACKEND=direct
     export LIBGUESTFS_BACKEND_SETTINGS=force_kvm
-    virt-sysprep -a box.qcow2 --run-command 'useradd -m cloud-user' --append '/etc/cloud/cloud.cfg:runcmd:' --append '/etc/cloud/cloud.cfg: - hostnamectl set-hostname ""' --root-password password:root --ssh-inject cloud-user:string:"ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
+    virt-sysprep -a box.qcow2 \
+      --run-command 'useradd -m cloud-user' \
+      --append '/etc/cloud/cloud.cfg.d/kubevirtci.cfg:runcmd:' \
+      --append '/etc/cloud/cloud.cfg.d/kubevirtci.cfg:  - hostnamectl set-hostname ""' \
+      --append '/etc/sudoers.d/kubevirtci:cloud-user	ALL=(ALL)	NOPASSWD: ALL' \
+      --root-password password:root \
+      --ssh-inject cloud-user:string:"ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
   else
     last=$(printf "/disk%02d.qcow2" $last)
   fi

@@ -40,7 +40,10 @@ dnf install -y "kernel-modules-${KERNEL_RELEASE}" "kernel-devel-${KERNEL_RELEASE
 # Resize root partition
 dnf install -y cloud-utils-growpart
 
-ROOT_PART_NUM='2'
+case "${ARCH}" in
+    s390x) ROOT_PART_NUM='1';;
+    *)     ROOT_PART_NUM='3';;
+esac
 if growpart /dev/vda "${ROOT_PART_NUM}"; then
     DEVICE="/dev/vda${ROOT_PART_NUM}"
     MOUNTPOINT=$(findmnt -n -o TARGET "$DEVICE")
@@ -104,8 +107,7 @@ dnf install -y openvswitch3.5
 dnf install -y NetworkManager NetworkManager-ovs NetworkManager-config-server
 
 # NetworkManager-config-server sets no-auto-default=* which prevents auto-DHCP
-# on unconfigured interfaces. CentOS 9 has ifcfg-eth0 from cloud-init but
-# CentOS 10 uses keyfile format and has no persistent connection profile.
+# on unconfigured interfaces.
 cat > /etc/NetworkManager/system-connections/eth0.nmconnection << ETHEOF
 [connection]
 id=eth0
