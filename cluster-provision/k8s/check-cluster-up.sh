@@ -53,7 +53,7 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
     export KUBEVIRT_NUM_NODES=2
     # Give the nodes enough memory to run tests in parallel, including tests which involve fedora
     export KUBEVIRT_MEMORY_SIZE=${KUBEVIRT_MEMORY_SIZE:-9216M}
-    export KUBEVIRT_NUM_SECONDARY_NICS=2
+    export KUBEVIRT_NUM_SECONDARY_NICS=4
 
     # all extras need to get deployed now so that we can make sure whether any
     # images are missing from the pre-pull mechanism
@@ -66,7 +66,8 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         export KUBEVIRT_DEPLOY_GRAFANA=true
         export KUBEVIRT_DEPLOY_CDI=true
         export KUBEVIRT_STORAGE="rook-ceph-default"
-        export KUBEVIRT_SECONDARY_NIC_BRIDGES=true
+        export KUBEVIRT_SECONDARY_IFACES_TO_BRIDGE=eth1,eth2
+        export KUBEVIRT_SECONDARY_IFACES_TO_IP=eth3,eth4
     fi
 
     trap cleanup EXIT ERR SIGINT SIGTERM SIGQUIT

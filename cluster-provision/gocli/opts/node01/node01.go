@@ -4,30 +4,28 @@ import (
 	_ "embed"
 	"fmt"
 
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/extranics"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 )
 
 //go:embed conf/adv-audit.yaml
 var advAudit []byte
 
-//go:embed scripts/setup-bridges.sh
-var setupBridgesScript []byte
-
 type node01Provisioner struct {
-	sshClient           libssh.Client
-	singleStack         bool
-	flannel             bool
-	etcdNoFsync         bool
-	secondaryNicBridges bool
+	sshClient       libssh.Client
+	singleStack     bool
+	flannel         bool
+	etcdNoFsync     bool
+	extraNICsConfig extranics.Config
 }
 
-func NewNode01Provisioner(sc libssh.Client, singleStack, flannel, etcdNoFsync, secondaryNicBridges bool) *node01Provisioner {
+func NewNode01Provisioner(sc libssh.Client, singleStack, flannel, etcdNoFsync bool, extraNICsConfig extranics.Config) *node01Provisioner {
 	return &node01Provisioner{
-		sshClient:           sc,
-		singleStack:         singleStack,
-		flannel:             flannel,
-		etcdNoFsync:         etcdNoFsync,
-		secondaryNicBridges: secondaryNicBridges,
+		sshClient:       sc,
+		singleStack:     singleStack,
+		flannel:         flannel,
+		etcdNoFsync:     etcdNoFsync,
+		extraNICsConfig: extraNICsConfig,
 	}
 }
 
@@ -63,8 +61,12 @@ func (n *node01Provisioner) Exec() error {
 		"swapoff -a",
 	}
 
-	if n.secondaryNicBridges {
-		cmds = append(cmds, string(setupBridgesScript))
+	if !n.extraNICsConfig.Empty() {
+		script, err := extranics.Script(n.extraNICsConfig)
+		if err != nil {
+			return err
+		}
+		cmds = append(cmds, script)
 	}
 
 	cmds = append(cmds,
