@@ -18,10 +18,16 @@ source $KUBEVIRTCI_SHARED_DIR/shared_vars.sh
 
 if grep -q "CentOS Stream 9" /etc/os-release; then
   release="centos9"
-  ROOT_PARTITION="1"
+  case "${ARCH}" in
+    s390x) ROOT_PARTITION="2";;
+    *)     ROOT_PARTITION="4";;
+  esac
 elif grep -q "CentOS Stream 10" /etc/os-release; then
   release="centos10"
-  ROOT_PARTITION="2"
+  case "${ARCH}" in
+    s390x) ROOT_PARTITION="1";;
+    *)     ROOT_PARTITION="3";;
+  esac
 else
   echo "ERROR: Could not recognize guest OS"
   exit 1
@@ -103,10 +109,8 @@ fi
 dnf install -y NetworkManager NetworkManager-ovs NetworkManager-config-server
 
 # NetworkManager-config-server sets no-auto-default=* which prevents auto-DHCP
-# on unconfigured interfaces. CentOS 9 has ifcfg-eth0 from cloud-init but
-# CentOS 10 uses keyfile format and has no persistent connection profile.
-if [ "$release" == "centos10" ]; then
-  cat > /etc/NetworkManager/system-connections/eth0.nmconnection << ETHEOF
+# on unconfigured interfaces.
+cat > /etc/NetworkManager/system-connections/eth0.nmconnection << ETHEOF
 [connection]
 id=eth0
 type=ethernet
@@ -119,8 +123,7 @@ method=auto
 [ipv6]
 method=auto
 ETHEOF
-  chmod 600 /etc/NetworkManager/system-connections/eth0.nmconnection
-fi
+chmod 600 /etc/NetworkManager/system-connections/eth0.nmconnection
 
 # envsubst pkg is not available by default in s390x Architecture, so explicitly installing it as part of gettext
 dnf install -y gettext

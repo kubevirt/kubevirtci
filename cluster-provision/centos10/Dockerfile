@@ -11,10 +11,10 @@ RUN dnf -y install \
     iptables \
     iputils \
     openssh-clients \
+    qemu-kvm-core \
     screen \
     socat \
     tcpdump \
-    qemu-kvm-core \
     $([ "$BUILDARCH" = "s390x" ] && echo "s390utils-core") && \
     dnf clean all
 
@@ -28,8 +28,7 @@ WORKDIR /
 RUN echo "CentOS Stream 10 version $CENTOS_VERSION" && \
     curl --fail-with-body --retry 2 -LR -o box.qcow2 https://cloud.centos.org/centos/10-stream/$BUILDARCH/images/CentOS-Stream-GenericCloud-10-$CENTOS_VERSION.$BUILDARCH.qcow2 && \
     # Access virtual machine disk images directly by using LIBGUESTFS_BACKEND=direct, instead of libvirt
-    export LIBGUESTFS_BACKEND=direct && \
-    guestfish --ro --add box.qcow2 -i glob copy-out '/boot/vmlinuz-*' / : glob copy-out '/boot/initramfs-*' / ;
+    LIBGUESTFS_BACKEND='direct' virt-get-kernel --add='box.qcow2' --output='/'
 
 FROM base AS nodecontainer
 
