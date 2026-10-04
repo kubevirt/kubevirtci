@@ -6,11 +6,30 @@ git clone https://github.com/kubevirt/kubevirtci.git
 cd kubevirtci                                                                         
 ```                                                                                   
                                                                                       
-Start multi node k8s cluster with 2 nics
+Start a multi-node k8s cluster with one secondary NIC (eth0 + eth1).
+`KUBEVIRT_NUM_SECONDARY_NICS` creates the NICs;
+`KUBEVIRT_SECONDARY_IFACES_TO_BRIDGE` / `KUBEVIRT_SECONDARY_IFACES_TO_IP` only configure them.
+Configuring ethN requires `KUBEVIRT_NUM_SECONDARY_NICS >= N`.
+
+`KUBEVIRT_SECONDARY_IFACES_TO_BRIDGE=eth1` creates bridge `br1` and enslaves `eth1` to it
+(`br1` is the master, `eth1` is the slave):
 ```
-export KUBEVIRT_PROVIDER=k8s-1.33 KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=1 KUBEVIRT_SECONDARY_NIC_BRIDGES=true
+export KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=1 KUBEVIRT_SECONDARY_IFACES_TO_BRIDGE=eth1
 make cluster-up
-```                                                                                   
+```
+
+A secondary interface may instead be given an address of its own. Each ethN sits one
+subnet further than eth0's 192.168.66.0/24 lease, so on node01:
+eth0 → 192.168.66.101, eth1 → 192.168.67.101, eth2 → 192.168.68.101
+(and likewise fd00::101, fd00:1::101, fd00:2::101).
+```
+export KUBEVIRT_NUM_NODES=2 KUBEVIRT_NUM_SECONDARY_NICS=2 KUBEVIRT_SECONDARY_IFACES_TO_BRIDGE=eth1 KUBEVIRT_SECONDARY_IFACES_TO_IP=eth2
+make cluster-up
+```
+
+Note:
+Interfaces that are neither listed in KUBEVIRT_SECONDARY_IFACES_TO_BRIDGE nor in KUBEVIRT_SECONDARY_IFACES_TO_IP will remain
+unconfigured.
 
 Prepare the cluster for the emulated SR-IOV, with device plugin:
 (This requires `KUBEVIRT_PROVIDER` `k8s-1.35` or newer)
