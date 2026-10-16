@@ -1,0 +1,4 @@
+FROM scratch
+# Kernel built using http://www.linux-kvm.org/page/KVM-unit-tests
+ARG KERNEL_URL=https://storage.googleapis.com/builddeps/ppc64le/ppc64le-guestless-kernel.bin
+ADD --chmod=755 ${KERNEL_URL} /boot/kernel
