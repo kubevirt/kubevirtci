@@ -24,6 +24,20 @@ else
 	echo "[ OK ] found /dev/kvm"
 fi
 
+# IPv4-only clusters do not need the IPv6 ip6_tables module.
+if [[ "${IPFAMILY:-dual}" != "ipv4" ]]; then
+	if ! grep -q "^ip6_tables " /proc/modules; then
+		echo "[ERR ] kernel module ip6_tables is not loaded"
+		echo "[ERR ] run: sudo modprobe ip6_tables"
+		echo "[ERR ] see PODMAN.md for how to load required modules persistently"
+		exit 1
+	else
+		echo "[ OK ] kernel module ip6_tables is loaded"
+	fi
+else
+	echo "[ OK ] IPv6 is disabled; skipping ip6_tables check"
+fi
+
 KVM_ARCH=""
 KVM_NESTED="unknown"
 KVM_HPAGE="unknown"
