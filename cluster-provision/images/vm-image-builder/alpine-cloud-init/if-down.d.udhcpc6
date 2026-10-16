@@ -1,0 +1,4 @@
+#!/bin/sh
+[ "$IFACE" = "eth0" ] || exit 0
+kill "$(cat /var/run/udhcpc6.eth0.pid 2>/dev/null)" 2>/dev/null || true
+exit 0
