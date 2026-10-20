@@ -19,11 +19,13 @@
 set -euo pipefail
 
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
+source "$SCRIPT_PATH/vgpu_profile.sh"
 
 # Set KUBEVIRTCI_PATH if not set
 if [ -z "${KUBEVIRTCI_PATH:-}" ]; then
-    KUBEVIRTCI_PATH="$(cd "$(dirname "$0")/../../.." && pwd)"
+    KUBEVIRTCI_PATH="$(cd "$(dirname "$0")/../.." && pwd)"
 fi
+KUBEVIRTCI_PATH="$(cd "$KUBEVIRTCI_PATH" && pwd)/"
 
 # Set KUBEVIRT_PROVIDER if not set
 if [ -z "${KUBEVIRT_PROVIDER:-}" ]; then
@@ -39,7 +41,7 @@ VGPU_NODE_LABEL="$VGPU_NODE_LABEL_KEY=$VGPU_NODE_LABEL_VALUE"
 function ssh_to_node() {
     local node_name=$1
     shift
-    "${KUBEVIRTCI_PATH}/cluster-up/ssh.sh" "$node_name" "$@"
+    "${KUBEVIRTCI_PATH}/ssh.sh" "$node_name" "$@"
 }
 
 function run_step() {
@@ -81,9 +83,24 @@ function copy_module_source() {
 
     # Use the container + scp approach (more reliable for large files)
     local container_name="${KUBEVIRT_PROVIDER}-${node_name}"
+    local container_runtime
+
+    if [[ "${KUBEVIRTCI_RUNTIME:-}" == "podman" ]]; then
+        container_runtime=podman
+    elif [[ "${KUBEVIRTCI_RUNTIME:-}" == "docker" ]]; then
+        container_runtime=docker
+    elif command -v podman >/dev/null 2>&1 && podman ps >/dev/null 2>&1; then
+        container_runtime=podman
+    elif command -v docker >/dev/null 2>&1 && docker ps >/dev/null 2>&1; then
+        container_runtime=docker
+    else
+        echo "ERROR: no usable Docker or Podman runtime found" >&2
+        rm -f "$tarball"
+        return 1
+    fi
 
     # Copy tarball to container
-    docker cp "$tarball" "${container_name}:/tmp/fake-nvidia-vgpu.tar.gz" || {
+    "$container_runtime" cp "$tarball" "${container_name}:/tmp/fake-nvidia-vgpu.tar.gz" || {
         rm -f "$tarball"
         return 1
     }
@@ -93,7 +110,7 @@ function copy_module_source() {
     local vm_ip="192.168.66.1${node_num}"
 
     # Copy from container to VM
-    docker exec "${container_name}" bash -c "
+    "$container_runtime" exec "${container_name}" bash -c "
         scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /vagrant.key \
             /tmp/fake-nvidia-vgpu.tar.gz root@${vm_ip}:/tmp/
     " || {
@@ -125,19 +142,15 @@ function load_module() {
     ssh_to_node "$node_name" "sudo modprobe vfio && sudo modprobe mdev" || return
 
     # Load our module
-    ssh_to_node "$node_name" "sudo rmmod fake-nvidia-vgpu 2>/dev/null || true" || return
+    ssh_to_node "$node_name" "if test -d /sys/module/fake_nvidia_vgpu; then sudo rmmod fake-nvidia-vgpu; fi" || return
     ssh_to_node "$node_name" "cd /tmp/fake-nvidia-vgpu && sudo insmod fake-nvidia-vgpu.ko"
 }
 
 function verify_module() {
     local node_name=$1
-    local types=/sys/class/mdev_bus/nvidia/mdev_supported_types
 
-    ssh_to_node "$node_name" "lsmod | grep -q '^fake_nvidia_vgpu ' && \
-        test -d $types/nvidia-222 && test -d $types/nvidia-223 && \
-        grep -qx 16 $types/nvidia-222/available_instances && \
-        grep -qx 8 $types/nvidia-223/available_instances" || {
-        echo 'Expected loaded module and nvidia-222/223 types with 16/8 available instances.' >&2
+    ssh_to_node "$node_name" "lsmod | grep -q '^fake_nvidia_vgpu ' && $(vgpu_profile_check_command "$VGPU_MAX_INSTANCES")" || {
+        echo "Expected loaded module with $VGPU_MDEV_TYPE ($VGPU_MAX_INSTANCES instances) and $VGPU_OVERRIDE_MDEV_TYPE ($VGPU_OVERRIDE_MAX_INSTANCES instances)." >&2
         return 1
     }
 }
@@ -193,7 +206,7 @@ function usage() {
     echo "  unload [node]   - Unload module from node"
     echo "  status [node]   - Check module status on node"
     echo "  deps [node]     - Install build dependencies on node"
-    echo "  full-setup      - Set up fake vGPU support on worker nodes (alias for setup)"
+    echo "  full-setup [node] - Alias for setup"
     echo ""
     echo "If no node is specified, operates on all worker nodes."
     echo ""
@@ -208,78 +221,64 @@ function get_worker_nodes() {
     kubectl get nodes -l node-role.kubernetes.io/worker -o custom-columns=:.metadata.name --no-headers
 }
 
-# Main
+function dispatch_node_command() {
+    local command=$1
+    local node=$2
+
+    case "$command" in
+        setup) setup_node_vgpu "$node" ;;
+        compile)
+            copy_module_source "$node"
+            compile_module "$node"
+            ;;
+        load) load_module "$node" ;;
+        unload) unload_module "$node" ;;
+        status) check_module_status "$node" ;;
+        deps) install_build_deps "$node" ;;
+    esac
+}
+
+function dispatch_workers() {
+    local command=$1
+    local target_node=$2
+    local nodes node
+
+    if [ -n "$target_node" ]; then
+        nodes=$target_node
+    else
+        nodes=$(get_worker_nodes) || {
+            echo "ERROR: Could not query workers; check the cluster and KUBECONFIG." >&2
+            return 1
+        }
+        if [ -z "$nodes" ]; then
+            echo "ERROR: No worker nodes found." >&2
+            return 1
+        fi
+    fi
+
+    # SSH and container commands may read stdin, so do not use while read.
+    for node in $nodes; do
+        dispatch_node_command "$command" "$node"
+    done
+}
+
 command=${1:-setup}
 target_node=${2:-}
 
+if (( $# > 2 )); then
+    usage
+    exit 1
+fi
+
 case "$command" in
-    setup)
-        if [ -n "$target_node" ]; then
-            setup_node_vgpu "$target_node"
-        else
-            for node in $(get_worker_nodes); do
-                setup_node_vgpu "$node"
-            done
-        fi
-        ;;
-    compile)
-        if [ -n "$target_node" ]; then
-            copy_module_source "$target_node"
-            compile_module "$target_node"
-        else
-            for node in $(get_worker_nodes); do
-                copy_module_source "$node"
-                compile_module "$node"
-            done
-        fi
-        ;;
-    load)
-        if [ -n "$target_node" ]; then
-            load_module "$target_node"
-        else
-            for node in $(get_worker_nodes); do
-                load_module "$node"
-            done
-        fi
-        ;;
-    unload)
-        if [ -n "$target_node" ]; then
-            unload_module "$target_node"
-        else
-            for node in $(get_worker_nodes); do
-                unload_module "$node"
-            done
-        fi
-        ;;
-    status)
-        if [ -n "$target_node" ]; then
-            check_module_status "$target_node"
-        else
-            for node in $(get_worker_nodes); do
-                check_module_status "$node"
-            done
-        fi
-        ;;
-    deps)
-        if [ -n "$target_node" ]; then
-            install_build_deps "$target_node"
-        else
-            for node in $(get_worker_nodes); do
-                install_build_deps "$node"
-            done
-        fi
-        ;;
-    full-setup)
-        for node in $(get_worker_nodes); do
-            setup_node_vgpu "$node"
-        done
-        ;;
-    help|-h|--help)
-        usage
-        ;;
+    full-setup) command=setup ;;
+    setup|compile|load|unload|status|deps) ;;
+    help|-h|--help) usage; exit 0 ;;
     *)
-        echo "Unknown command: $command"
+        echo "Unknown command: $command" >&2
         usage
         exit 1
         ;;
 esac
+
+dispatch_workers "$command" "$target_node"
