@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Mediated virtual PCI display host device driver
+ * Fake NVIDIA vGPU mediated device driver for KubeVirt testing
  *
- * See mdpy-defs.h for device specs
+ * This module creates fake mdev devices that simulate NVIDIA Tesla T4 vGPUs.
+ * It provides the sysfs infrastructure and VFIO device emulation needed for
+ * KubeVirt mdev tests to pass without real GPU hardware.
  *
+ * Requires the mdev_driver API and VFIO iommufd emulated-device helpers.
+ * Enterprise kernels may provide these through backports.
+ *
+ * Derived from the Linux kernel mdpy sample driver:
  *   (c) Gerd Hoffmann <kraxel@redhat.com>
  *
  * based on mtty driver which is:
@@ -11,162 +17,245 @@
  *	 Author: Neo Jia <cjia@nvidia.com>
  *		 Kirti Wankhede <kwankhede@nvidia.com>
  *
+ *   Copyright (c) 2026 The KubeVirt Authors.
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/kref.h>
 #include <linux/slab.h>
-#include <linux/vmalloc.h>
-#include <linux/cdev.h>
-#include <linux/vfio.h>
-#include <linux/iommu.h>
-#include <linux/sysfs.h>
 #include <linux/mdev.h>
 #include <linux/pci.h>
-#include <drm/drm_fourcc.h>
-#include "mdpy-defs.h"
+#include <linux/vfio.h>
+#include <linux/vmalloc.h>
+#include <linux/mm.h>
 
-#define MDPY_NAME		"mdpy"
-#define MDPY_CLASS_NAME		"mdpy"
+#include "compat.h"
 
-#define MDPY_CONFIG_SPACE_SIZE	0xff
-#define MDPY_MEMORY_BAR_OFFSET	PAGE_SIZE
-#define MDPY_DISPLAY_REGION	16
+#define VERSION_STRING  "1.1"
+#define DRIVER_AUTHOR   "KubeVirt Fake vGPU Driver"
 
-#define STORE_LE16(addr, val)	(*(u16 *)addr = val)
-#define STORE_LE32(addr, val)	(*(u32 *)addr = val)
+#define FAKE_VGPU_NAME          "nvidia"
 
+/* NVIDIA PCI IDs - Tesla T4 */
+#define NVIDIA_VENDOR_ID        0x10de
+#define NVIDIA_T4_DEVICE_ID     0x1eb8
+#define NVIDIA_T4_SUBSYS_ID     0x12a2
 
-MODULE_DESCRIPTION("Mediated virtual PCI display host device driver");
+/* PCI config space size */
+#define FAKE_VGPU_CONFIG_SPACE_SIZE     256
+
+/* Memory BAR configuration */
+#define FAKE_VGPU_MEMORY_BAR_OFFSET     PAGE_SIZE
+#define FAKE_VGPU_MEMORY_SIZE           (16 * 1024 * 1024)  /* 16MB fake VRAM */
+
+/* Maximum number of mdev instances */
+#define MAX_T4_1B_INSTANCES     16
+#define MAX_T4_2B_INSTANCES     8
+#define FAKE_VGPU_TYPE_COUNT    2
+
+#define STORE_LE16(addr, val)   (*(u16 *)addr = cpu_to_le16(val))
+#define STORE_LE32(addr, val)   (*(u32 *)addr = cpu_to_le32(val))
+
+MODULE_DESCRIPTION("Fake NVIDIA vGPU driver for KubeVirt testing");
 MODULE_LICENSE("GPL v2");
+MODULE_VERSION(VERSION_STRING);
+MODULE_AUTHOR(DRIVER_AUTHOR);
 
-#define MDPY_TYPE_1 "vga"
-#define MDPY_TYPE_2 "xga"
-#define MDPY_TYPE_3 "hd"
+/* Global device structure */
+static struct fake_vgpu_dev {
+	struct mdev_parent parent;
+	bool parent_registered;
+} fake_vgpu_dev;
 
-static struct mdpy_type {
+static struct mdev_driver fake_vgpu_driver;
+static struct mdev_type *fake_vgpu_mdev_types[];
+static int fake_vgpu_reset_mdev_types(void);
+static atomic_t fake_vgpu_active_mdevs = ATOMIC_INIT(0);
+
+static int fake_vgpu_pci_probe(struct pci_dev *pdev,
+				       const struct pci_device_id *id)
+{
+	int ret;
+
+	ret = fake_vgpu_reset_mdev_types();
+	if (ret)
+		return ret;
+
+	ret = mdev_register_parent(&fake_vgpu_dev.parent, &pdev->dev,
+				   &fake_vgpu_driver, fake_vgpu_mdev_types,
+				   FAKE_VGPU_TYPE_COUNT);
+	if (!ret) {
+		fake_vgpu_dev.parent_registered = true;
+	}
+
+	return ret;
+}
+
+static void fake_vgpu_pci_remove(struct pci_dev *pdev)
+{
+	if (fake_vgpu_dev.parent_registered) {
+		mdev_unregister_parent(&fake_vgpu_dev.parent);
+		fake_vgpu_dev.parent_registered = false;
+	}
+	/* Type kobjects are reset by the last mdev teardown if needed. */
+	if (atomic_read(&fake_vgpu_active_mdevs) == 0)
+		fake_vgpu_reset_mdev_types();
+}
+
+static const struct pci_device_id fake_vgpu_pci_ids[] = {
+	{ PCI_DEVICE(NVIDIA_VENDOR_ID, NVIDIA_T4_DEVICE_ID) },
+	{ }
+};
+MODULE_DEVICE_TABLE(pci, fake_vgpu_pci_ids);
+
+static struct pci_driver fake_vgpu_pci_driver = {
+	.name = FAKE_VGPU_NAME,
+	.id_table = fake_vgpu_pci_ids,
+	.probe = fake_vgpu_pci_probe,
+	.remove = fake_vgpu_pci_remove,
+};
+
+/* vGPU type definitions matching NVIDIA GRID naming */
+static struct fake_vgpu_type {
 	struct mdev_type type;
-	u32 format;
-	u32 bytepp;
-	u32 width;
-	u32 height;
-} mdpy_types[] = {
+	u32 max_instances;
+	u32 fb_size;
+	const char *profile;
+} fake_vgpu_types[] = {
 	{
-		.type.sysfs_name 	= MDPY_TYPE_1,
-		.type.pretty_name	= MDPY_CLASS_NAME "-" MDPY_TYPE_1,
-		.format = DRM_FORMAT_XRGB8888,
-		.bytepp = 4,
-		.width	= 640,
-		.height = 480,
-	}, {
-		.type.sysfs_name 	= MDPY_TYPE_2,
-		.type.pretty_name	= MDPY_CLASS_NAME "-" MDPY_TYPE_2,
-		.format = DRM_FORMAT_XRGB8888,
-		.bytepp = 4,
-		.width	= 1024,
-		.height = 768,
-	}, {
-		.type.sysfs_name 	= MDPY_TYPE_3,
-		.type.pretty_name	= MDPY_CLASS_NAME "-" MDPY_TYPE_3,
-		.format = DRM_FORMAT_XRGB8888,
-		.bytepp = 4,
-		.width	= 1920,
-		.height = 1080,
+		.type.sysfs_name = "222",
+		.type.pretty_name = "GRID T4-1B",
+		.max_instances = MAX_T4_1B_INSTANCES,
+		.fb_size = 1024,
+		.profile = "1b",
+	},
+	{
+		.type.sysfs_name = "223",
+		.type.pretty_name = "GRID T4-2B",
+		.max_instances = MAX_T4_2B_INSTANCES,
+		.fb_size = 2048,
+		.profile = "2b",
 	},
 };
 
-static struct mdev_type *mdpy_mdev_types[] = {
-	&mdpy_types[0].type,
-	&mdpy_types[1].type,
-	&mdpy_types[2].type,
+static struct mdev_type *fake_vgpu_mdev_types[] = {
+	&fake_vgpu_types[0].type,
+	&fake_vgpu_types[1].type,
 };
 
-static dev_t		mdpy_devt;
-static const struct class mdpy_class = {
-	.name = MDPY_CLASS_NAME,
-};
-static struct cdev	mdpy_cdev;
-static struct device	mdpy_dev;
-static struct mdev_parent mdpy_parent;
-static const struct vfio_device_ops mdpy_dev_ops;
+static int fake_vgpu_reset_mdev_types(void)
+{
+	int i;
 
-/* State of each mdev device */
+	for (i = 0; i < ARRAY_SIZE(fake_vgpu_types); i++) {
+		if (kref_read(&fake_vgpu_types[i].type.kobj.kref))
+			return -EBUSY;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(fake_vgpu_types); i++) {
+		memset(&fake_vgpu_types[i].type.kobj, 0,
+		       sizeof(fake_vgpu_types[i].type.kobj));
+		fake_vgpu_types[i].type.devices_kobj = NULL;
+		fake_vgpu_types[i].type.parent = NULL;
+	}
+
+	return 0;
+}
+
+/* Track available instances per type */
+static atomic_t avail_instances[ARRAY_SIZE(fake_vgpu_types)];
+
+/* Per-mdev device state */
 struct mdev_state {
 	struct vfio_device vdev;
+	const struct fake_vgpu_type *type;
+	int type_index;
+
+	/* PCI config space */
 	u8 *vconfig;
 	u32 bar_mask;
-	struct mutex ops_lock;
-	struct mdev_device *mdev;
-	struct vfio_device_info dev_info;
 
-	const struct mdpy_type *type;
-	u32 memsize;
+	/* Fake VRAM */
 	void *memblk;
+	u32 memsize;
+
+	struct mutex ops_lock;
 };
 
-static void mdpy_create_config_space(struct mdev_state *mdev_state)
+static const struct vfio_device_ops fake_vgpu_dev_ops;
+
+/*
+ * Create PCI config space that presents as NVIDIA Tesla T4
+ */
+static void fake_vgpu_create_config_space(struct mdev_state *mdev_state)
 {
-	STORE_LE16((u16 *) &mdev_state->vconfig[PCI_VENDOR_ID],
-		   MDPY_PCI_VENDOR_ID);
-	STORE_LE16((u16 *) &mdev_state->vconfig[PCI_DEVICE_ID],
-		   MDPY_PCI_DEVICE_ID);
-	STORE_LE16((u16 *) &mdev_state->vconfig[PCI_SUBSYSTEM_VENDOR_ID],
-		   MDPY_PCI_SUBVENDOR_ID);
-	STORE_LE16((u16 *) &mdev_state->vconfig[PCI_SUBSYSTEM_ID],
-		   MDPY_PCI_SUBDEVICE_ID);
+	u8 *vconfig = mdev_state->vconfig;
 
-	STORE_LE16((u16 *) &mdev_state->vconfig[PCI_COMMAND],
-		   PCI_COMMAND_IO | PCI_COMMAND_MEMORY);
-	STORE_LE16((u16 *) &mdev_state->vconfig[PCI_STATUS],
-		   PCI_STATUS_CAP_LIST);
-	STORE_LE16((u16 *) &mdev_state->vconfig[PCI_CLASS_DEVICE],
-		   PCI_CLASS_DISPLAY_OTHER);
-	mdev_state->vconfig[PCI_CLASS_REVISION] =  0x01;
+	STORE_LE16(&vconfig[PCI_VENDOR_ID], NVIDIA_VENDOR_ID);
+	STORE_LE16(&vconfig[PCI_DEVICE_ID], NVIDIA_T4_DEVICE_ID);
+	STORE_LE16(&vconfig[PCI_COMMAND], PCI_COMMAND_MEMORY);
+	STORE_LE16(&vconfig[PCI_STATUS], PCI_STATUS_CAP_LIST);
+	vconfig[PCI_REVISION_ID] = 0xa1;
+	vconfig[PCI_CLASS_PROG] = 0x00;
+	STORE_LE16(&vconfig[PCI_CLASS_DEVICE], PCI_CLASS_DISPLAY_VGA);
+	vconfig[PCI_HEADER_TYPE] = PCI_HEADER_TYPE_NORMAL;
 
-	STORE_LE32((u32 *) &mdev_state->vconfig[PCI_BASE_ADDRESS_0],
+	STORE_LE32(&vconfig[PCI_BASE_ADDRESS_0],
 		   PCI_BASE_ADDRESS_SPACE_MEMORY |
-		   PCI_BASE_ADDRESS_MEM_TYPE_32	 |
+		   PCI_BASE_ADDRESS_MEM_TYPE_32 |
 		   PCI_BASE_ADDRESS_MEM_PREFETCH);
-	mdev_state->bar_mask = ~(mdev_state->memsize) + 1;
+	mdev_state->bar_mask = ~(mdev_state->memsize - 1);
 
-	/* vendor specific capability for the config registers */
-	mdev_state->vconfig[PCI_CAPABILITY_LIST]       = MDPY_VENDORCAP_OFFSET;
-	mdev_state->vconfig[MDPY_VENDORCAP_OFFSET + 0] = 0x09; /* vendor cap */
-	mdev_state->vconfig[MDPY_VENDORCAP_OFFSET + 1] = 0x00; /* next ptr */
-	mdev_state->vconfig[MDPY_VENDORCAP_OFFSET + 2] = MDPY_VENDORCAP_SIZE;
-	STORE_LE32((u32 *) &mdev_state->vconfig[MDPY_FORMAT_OFFSET],
-		   mdev_state->type->format);
-	STORE_LE32((u32 *) &mdev_state->vconfig[MDPY_WIDTH_OFFSET],
-		   mdev_state->type->width);
-	STORE_LE32((u32 *) &mdev_state->vconfig[MDPY_HEIGHT_OFFSET],
-		   mdev_state->type->height);
+	STORE_LE16(&vconfig[PCI_SUBSYSTEM_VENDOR_ID], NVIDIA_VENDOR_ID);
+	STORE_LE16(&vconfig[PCI_SUBSYSTEM_ID], NVIDIA_T4_SUBSYS_ID);
+	vconfig[PCI_CAPABILITY_LIST] = 0x60;
+
+	/* PM capability at 0x60 */
+	vconfig[0x60] = PCI_CAP_ID_PM;
+	vconfig[0x61] = 0x68;
+	STORE_LE16(&vconfig[0x62], 0x0003);
+	STORE_LE16(&vconfig[0x64], 0x0000);
+
+	/* PCIe capability at 0x68 */
+	vconfig[0x68] = PCI_CAP_ID_EXP;
+	vconfig[0x69] = 0x00;
+	STORE_LE16(&vconfig[0x6a], 0x0002);
+	STORE_LE32(&vconfig[0x6c], 0x00000010);
 }
 
 static void handle_pci_cfg_write(struct mdev_state *mdev_state, u16 offset,
-				 char *buf, u32 count)
+				 const char *buf, u32 count)
 {
-	struct device *dev = mdev_dev(mdev_state->mdev);
 	u32 cfg_addr;
+	u32 length;
+	u8 *vconfig = mdev_state->vconfig;
 
-	switch (offset) {
-	case PCI_BASE_ADDRESS_0:
-		cfg_addr = *(u32 *)buf;
-
-		if (cfg_addr == 0xffffffff) {
-			cfg_addr = (cfg_addr & mdev_state->bar_mask);
-		} else {
+	if (offset >= PCI_COMMAND && offset < PCI_COMMAND + sizeof(u16)) {
+		length = min_t(u32, count, PCI_COMMAND + sizeof(u16) - offset);
+		memcpy(&vconfig[offset], buf, length);
+	} else if (offset >= PCI_BASE_ADDRESS_0 &&
+		   offset < PCI_BASE_ADDRESS_0 + sizeof(u32)) {
+		length = min_t(u32, count,
+			       PCI_BASE_ADDRESS_0 + sizeof(u32) - offset);
+		memcpy(&vconfig[offset], buf, length);
+		cfg_addr = vconfig[PCI_BASE_ADDRESS_0] |
+			   (vconfig[PCI_BASE_ADDRESS_0 + 1] << 8) |
+			   (vconfig[PCI_BASE_ADDRESS_0 + 2] << 16) |
+			   ((u32)vconfig[PCI_BASE_ADDRESS_0 + 3] << 24);
+		if (cfg_addr == 0xffffffff)
+			cfg_addr &= mdev_state->bar_mask;
+		else
 			cfg_addr &= PCI_BASE_ADDRESS_MEM_MASK;
-			if (cfg_addr)
-				dev_info(dev, "BAR0 @ 0x%x\n", cfg_addr);
-		}
-
-		cfg_addr |= (mdev_state->vconfig[offset] &
-			     ~PCI_BASE_ADDRESS_MEM_MASK);
-		STORE_LE32(&mdev_state->vconfig[offset], cfg_addr);
-		break;
+		cfg_addr |= PCI_BASE_ADDRESS_SPACE_MEMORY |
+			    PCI_BASE_ADDRESS_MEM_TYPE_32 |
+			    PCI_BASE_ADDRESS_MEM_PREFETCH;
+		STORE_LE32(&vconfig[PCI_BASE_ADDRESS_0], cfg_addr);
 	}
 }
 
@@ -174,423 +263,324 @@ static ssize_t mdev_access(struct mdev_state *mdev_state, char *buf,
 			   size_t count, loff_t pos, bool is_write)
 {
 	int ret = 0;
+	loff_t bar_pos;
 
 	mutex_lock(&mdev_state->ops_lock);
 
-	if (pos < MDPY_CONFIG_SPACE_SIZE) {
+	if (pos < 0) {
+		ret = -EINVAL;
+		goto out;
+	}
+
+	if (pos < FAKE_VGPU_CONFIG_SPACE_SIZE) {
+		if (count > FAKE_VGPU_CONFIG_SPACE_SIZE - (size_t)pos) {
+			ret = -EINVAL;
+			goto out;
+		}
 		if (is_write)
 			handle_pci_cfg_write(mdev_state, pos, buf, count);
 		else
-			memcpy(buf, (mdev_state->vconfig + pos), count);
-
-	} else if ((pos >= MDPY_MEMORY_BAR_OFFSET) &&
-		   (pos + count <=
-		    MDPY_MEMORY_BAR_OFFSET + mdev_state->memsize)) {
-		pos -= MDPY_MEMORY_BAR_OFFSET;
+			memcpy(buf, mdev_state->vconfig + pos, count);
+	} else if (pos >= FAKE_VGPU_MEMORY_BAR_OFFSET &&
+		   (bar_pos = pos - FAKE_VGPU_MEMORY_BAR_OFFSET) <
+		   mdev_state->memsize &&
+		   count <= mdev_state->memsize - (size_t)bar_pos) {
 		if (is_write)
-			memcpy(mdev_state->memblk, buf, count);
+			memcpy(mdev_state->memblk + bar_pos, buf, count);
 		else
-			memcpy(buf, mdev_state->memblk, count);
-
+			memcpy(buf, mdev_state->memblk + bar_pos, count);
 	} else {
-		dev_info(mdev_state->vdev.dev,
-			 "%s: %s @0x%llx (unhandled)\n", __func__,
-			 is_write ? "WR" : "RD", pos);
-		ret = -1;
-		goto accessfailed;
+		ret = -EINVAL;
+		goto out;
 	}
 
 	ret = count;
 
-
-accessfailed:
+out:
 	mutex_unlock(&mdev_state->ops_lock);
-
 	return ret;
 }
 
-static int mdpy_reset(struct mdev_state *mdev_state)
+static int fake_vgpu_reset(struct mdev_state *mdev_state)
 {
-	u32 stride, i;
-
-	/* initialize with gray gradient */
-	stride = mdev_state->type->width * mdev_state->type->bytepp;
-	for (i = 0; i < mdev_state->type->height; i++)
-		memset(mdev_state->memblk + i * stride,
-		       i * 255 / mdev_state->type->height,
-		       stride);
+	mutex_lock(&mdev_state->ops_lock);
+	memset(mdev_state->vconfig, 0, FAKE_VGPU_CONFIG_SPACE_SIZE);
+	fake_vgpu_create_config_space(mdev_state);
+	memset(mdev_state->memblk, 0, mdev_state->memsize);
+	mutex_unlock(&mdev_state->ops_lock);
 	return 0;
 }
 
-static int mdpy_init_dev(struct vfio_device *vdev)
+static int fake_vgpu_init_dev(struct vfio_device *vdev)
 {
 	struct mdev_state *mdev_state =
 		container_of(vdev, struct mdev_state, vdev);
 	struct mdev_device *mdev = to_mdev_device(vdev->dev);
-	const struct mdpy_type *type =
-		container_of(mdev->type, struct mdpy_type, type);
-	u32 fbsize;
-	int ret = -ENOMEM;
+	const struct fake_vgpu_type *type;
+	int i, ret = -ENOMEM;
 
-	mdev_state->vconfig = kzalloc(MDPY_CONFIG_SPACE_SIZE, GFP_KERNEL);
+	for (i = 0; i < ARRAY_SIZE(fake_vgpu_types); i++) {
+		if (mdev->type == &fake_vgpu_types[i].type) {
+			type = &fake_vgpu_types[i];
+			mdev_state->type_index = i;
+			break;
+		}
+	}
+	if (i == ARRAY_SIZE(fake_vgpu_types))
+		return -EINVAL;
+
+	mdev_state->type = type;
+	mdev_state->vconfig = kzalloc(FAKE_VGPU_CONFIG_SPACE_SIZE, GFP_KERNEL);
 	if (!mdev_state->vconfig)
 		return ret;
 
-	fbsize = roundup_pow_of_two(type->width * type->height * type->bytepp);
-
-	mdev_state->memblk = vmalloc_user(fbsize);
+	mdev_state->memsize = FAKE_VGPU_MEMORY_SIZE;
+	mdev_state->memblk = vmalloc_user(mdev_state->memsize);
 	if (!mdev_state->memblk)
-		goto out_vconfig;
+		goto err_vconfig;
 
 	mutex_init(&mdev_state->ops_lock);
-	mdev_state->mdev = mdev;
-	mdev_state->type = type;
-	mdev_state->memsize = fbsize;
-	mdpy_create_config_space(mdev_state);
-	mdpy_reset(mdev_state);
+	fake_vgpu_reset(mdev_state);
 
-	dev_info(vdev->dev, "%s: %s (%dx%d)\n", __func__, type->type.pretty_name,
-		 type->width, type->height);
+	dev_info(vdev->dev, "Created fake vGPU: %s (%s)\n",
+		 type->type.sysfs_name, type->type.pretty_name);
+
 	return 0;
 
-out_vconfig:
+err_vconfig:
 	kfree(mdev_state->vconfig);
 	return ret;
 }
 
-static int mdpy_probe(struct mdev_device *mdev)
+static int fake_vgpu_probe(struct mdev_device *mdev)
 {
 	struct mdev_state *mdev_state;
-	int ret;
+	int i, ret;
+
+	for (i = 0; i < ARRAY_SIZE(fake_vgpu_types); i++) {
+		if (mdev->type == &fake_vgpu_types[i].type)
+			break;
+	}
+	if (i == ARRAY_SIZE(fake_vgpu_types))
+		return -EINVAL;
+
+	if (atomic_dec_return(&avail_instances[i]) < 0) {
+		atomic_inc(&avail_instances[i]);
+		return -ENOSPC;
+	}
 
 	mdev_state = vfio_alloc_device(mdev_state, vdev, &mdev->dev,
-				       &mdpy_dev_ops);
-	if (IS_ERR(mdev_state))
+				       &fake_vgpu_dev_ops);
+	if (IS_ERR(mdev_state)) {
+		atomic_inc(&avail_instances[i]);
 		return PTR_ERR(mdev_state);
+	}
 
 	ret = vfio_register_emulated_iommu_dev(&mdev_state->vdev);
-	if (ret)
-		goto err_put_vdev;
-	dev_set_drvdata(&mdev->dev, mdev_state);
-	return 0;
+	if (ret) {
+		vfio_put_device(&mdev_state->vdev);
+		atomic_inc(&avail_instances[i]);
+		return ret;
+	}
 
-err_put_vdev:
-	vfio_put_device(&mdev_state->vdev);
-	return ret;
+	dev_set_drvdata(&mdev->dev, mdev_state);
+	atomic_inc(&fake_vgpu_active_mdevs);
+	return 0;
 }
 
-static void mdpy_release_dev(struct vfio_device *vdev)
+static void fake_vgpu_release_dev(struct vfio_device *vdev)
 {
 	struct mdev_state *mdev_state =
 		container_of(vdev, struct mdev_state, vdev);
 
 	vfree(mdev_state->memblk);
 	kfree(mdev_state->vconfig);
+	mutex_destroy(&mdev_state->ops_lock);
 }
 
-static void mdpy_remove(struct mdev_device *mdev)
+static void fake_vgpu_remove(struct mdev_device *mdev)
 {
 	struct mdev_state *mdev_state = dev_get_drvdata(&mdev->dev);
+	int type_index = mdev_state->type_index;
 
-	dev_info(&mdev->dev, "%s\n", __func__);
+	dev_info(&mdev->dev, "Removing fake vGPU: %s\n",
+		 mdev_state->type->type.sysfs_name);
 
 	vfio_unregister_group_dev(&mdev_state->vdev);
 	vfio_put_device(&mdev_state->vdev);
+	atomic_dec(&fake_vgpu_active_mdevs);
+	atomic_inc(&avail_instances[type_index]);
+	if (atomic_read(&fake_vgpu_active_mdevs) == 0 &&
+	    !fake_vgpu_dev.parent_registered)
+		fake_vgpu_reset_mdev_types();
 }
 
-static ssize_t mdpy_read(struct vfio_device *vdev, char __user *buf,
-			 size_t count, loff_t *ppos)
+static ssize_t fake_vgpu_rw(struct vfio_device *vdev, char __user *buf,
+			    size_t count, loff_t *ppos, bool is_write)
 {
 	struct mdev_state *mdev_state =
 		container_of(vdev, struct mdev_state, vdev);
-	unsigned int done = 0;
-	int ret;
+	size_t done = 0;
+	int ret = 0;
 
 	while (count) {
-		size_t filled;
+		size_t chunk;
+		u32 value = 0;
 
-		if (count >= 4 && !(*ppos % 4)) {
-			u32 val;
+		if (count >= 4 && !(*ppos % 4))
+			chunk = 4;
+		else if (count >= 2 && !(*ppos % 2))
+			chunk = 2;
+		else
+			chunk = 1;
 
-			ret = mdev_access(mdev_state, (char *)&val, sizeof(val),
-					  *ppos, false);
-			if (ret <= 0)
-				goto read_err;
-
-			if (copy_to_user(buf, &val, sizeof(val)))
-				goto read_err;
-
-			filled = 4;
-		} else if (count >= 2 && !(*ppos % 2)) {
-			u16 val;
-
-			ret = mdev_access(mdev_state, (char *)&val, sizeof(val),
-					  *ppos, false);
-			if (ret <= 0)
-				goto read_err;
-
-			if (copy_to_user(buf, &val, sizeof(val)))
-				goto read_err;
-
-			filled = 2;
-		} else {
-			u8 val;
-
-			ret = mdev_access(mdev_state, (char *)&val, sizeof(val),
-					  *ppos, false);
-			if (ret <= 0)
-				goto read_err;
-
-			if (copy_to_user(buf, &val, sizeof(val)))
-				goto read_err;
-
-			filled = 1;
+		if (is_write && copy_from_user(&value, buf, chunk)) {
+			ret = -EFAULT;
+			break;
+		}
+		ret = mdev_access(mdev_state, (char *)&value, chunk,
+				  *ppos, is_write);
+		if (ret <= 0)
+			break;
+		if (!is_write && copy_to_user(buf, &value, chunk)) {
+			ret = -EFAULT;
+			break;
 		}
 
-		count -= filled;
-		done += filled;
-		*ppos += filled;
-		buf += filled;
+		count -= chunk;
+		done += chunk;
+		*ppos += chunk;
+		buf += chunk;
 	}
 
-	return done;
-
-read_err:
-	return -EFAULT;
+	return done ? done : ret;
 }
 
-static ssize_t mdpy_write(struct vfio_device *vdev, const char __user *buf,
-			  size_t count, loff_t *ppos)
+static ssize_t fake_vgpu_read(struct vfio_device *vdev, char __user *buf,
+			      size_t count, loff_t *ppos)
+{
+	return fake_vgpu_rw(vdev, buf, count, ppos, false);
+}
+
+static ssize_t fake_vgpu_write(struct vfio_device *vdev, const char __user *buf,
+			       size_t count, loff_t *ppos)
+{
+	return fake_vgpu_rw(vdev, (char __user *)buf, count, ppos, true);
+}
+
+static int fake_vgpu_mmap(struct vfio_device *vdev, struct vm_area_struct *vma)
 {
 	struct mdev_state *mdev_state =
 		container_of(vdev, struct mdev_state, vdev);
-	unsigned int done = 0;
-	int ret;
+	unsigned long bar_pgoff;
+	size_t offset;
 
-	while (count) {
-		size_t filled;
-
-		if (count >= 4 && !(*ppos % 4)) {
-			u32 val;
-
-			if (copy_from_user(&val, buf, sizeof(val)))
-				goto write_err;
-
-			ret = mdev_access(mdev_state, (char *)&val, sizeof(val),
-					  *ppos, true);
-			if (ret <= 0)
-				goto write_err;
-
-			filled = 4;
-		} else if (count >= 2 && !(*ppos % 2)) {
-			u16 val;
-
-			if (copy_from_user(&val, buf, sizeof(val)))
-				goto write_err;
-
-			ret = mdev_access(mdev_state, (char *)&val, sizeof(val),
-					  *ppos, true);
-			if (ret <= 0)
-				goto write_err;
-
-			filled = 2;
-		} else {
-			u8 val;
-
-			if (copy_from_user(&val, buf, sizeof(val)))
-				goto write_err;
-
-			ret = mdev_access(mdev_state, (char *)&val, sizeof(val),
-					  *ppos, true);
-			if (ret <= 0)
-				goto write_err;
-
-			filled = 1;
-		}
-		count -= filled;
-		done += filled;
-		*ppos += filled;
-		buf += filled;
-	}
-
-	return done;
-write_err:
-	return -EFAULT;
-}
-
-static int mdpy_mmap(struct vfio_device *vdev, struct vm_area_struct *vma)
-{
-	struct mdev_state *mdev_state =
-		container_of(vdev, struct mdev_state, vdev);
-
-	if (vma->vm_pgoff != MDPY_MEMORY_BAR_OFFSET >> PAGE_SHIFT)
+	if (vma->vm_pgoff < FAKE_VGPU_MEMORY_BAR_OFFSET >> PAGE_SHIFT)
 		return -EINVAL;
+	bar_pgoff = vma->vm_pgoff - (FAKE_VGPU_MEMORY_BAR_OFFSET >> PAGE_SHIFT);
+	if (bar_pgoff >= mdev_state->memsize >> PAGE_SHIFT)
+		return -EINVAL;
+	offset = bar_pgoff << PAGE_SHIFT;
 	if (vma->vm_end < vma->vm_start)
 		return -EINVAL;
-	if (vma->vm_end - vma->vm_start > mdev_state->memsize)
+	if (offset >= mdev_state->memsize ||
+	    vma->vm_end - vma->vm_start > mdev_state->memsize - offset)
 		return -EINVAL;
 	if ((vma->vm_flags & VM_SHARED) == 0)
 		return -EINVAL;
 
-	return remap_vmalloc_range(vma, mdev_state->memblk, 0);
+	return remap_vmalloc_range(vma, mdev_state->memblk, bar_pgoff);
 }
 
-static int mdpy_ioctl_get_region_info(struct vfio_device *vdev,
-				      struct vfio_region_info *region_info,
-				      struct vfio_info_cap *caps)
+static int fake_vgpu_get_region_info(struct vfio_device *vdev,
+				     struct vfio_region_info *region_info,
+				     struct vfio_info_cap *caps)
 {
 	struct mdev_state *mdev_state =
 		container_of(vdev, struct mdev_state, vdev);
 
-	if (region_info->index >= VFIO_PCI_NUM_REGIONS &&
-	    region_info->index != MDPY_DISPLAY_REGION)
+	if (region_info->index >= VFIO_PCI_NUM_REGIONS)
 		return -EINVAL;
 
 	switch (region_info->index) {
 	case VFIO_PCI_CONFIG_REGION_INDEX:
 		region_info->offset = 0;
-		region_info->size   = MDPY_CONFIG_SPACE_SIZE;
-		region_info->flags  = (VFIO_REGION_INFO_FLAG_READ |
-				       VFIO_REGION_INFO_FLAG_WRITE);
+		region_info->size = FAKE_VGPU_CONFIG_SPACE_SIZE;
+		region_info->flags = VFIO_REGION_INFO_FLAG_READ |
+				     VFIO_REGION_INFO_FLAG_WRITE;
 		break;
 	case VFIO_PCI_BAR0_REGION_INDEX:
-	case MDPY_DISPLAY_REGION:
-		region_info->offset = MDPY_MEMORY_BAR_OFFSET;
-		region_info->size   = mdev_state->memsize;
-		region_info->flags  = (VFIO_REGION_INFO_FLAG_READ  |
-				       VFIO_REGION_INFO_FLAG_WRITE |
-				       VFIO_REGION_INFO_FLAG_MMAP);
+		region_info->offset = FAKE_VGPU_MEMORY_BAR_OFFSET;
+		region_info->size = mdev_state->memsize;
+		region_info->flags = VFIO_REGION_INFO_FLAG_READ |
+				     VFIO_REGION_INFO_FLAG_WRITE |
+				     VFIO_REGION_INFO_FLAG_MMAP;
 		break;
 	default:
-		region_info->size   = 0;
+		region_info->size = 0;
 		region_info->offset = 0;
-		region_info->flags  = 0;
+		region_info->flags = 0;
+		break;
 	}
 
 	return 0;
 }
 
-static int mdpy_get_irq_info(struct vfio_irq_info *irq_info)
+static int fake_vgpu_get_irq_info(struct vfio_irq_info *irq_info)
 {
+	irq_info->flags = 0;
 	irq_info->count = 0;
 	return 0;
 }
 
-static int mdpy_get_device_info(struct vfio_device_info *dev_info)
+static int fake_vgpu_get_device_info(struct vfio_device_info *dev_info)
 {
-	dev_info->flags = VFIO_DEVICE_FLAGS_PCI;
+	dev_info->flags = VFIO_DEVICE_FLAGS_PCI |
+			  VFIO_DEVICE_FLAGS_RESET;
 	dev_info->num_regions = VFIO_PCI_NUM_REGIONS;
 	dev_info->num_irqs = VFIO_PCI_NUM_IRQS;
 	return 0;
 }
 
-static int mdpy_query_gfx_plane(struct mdev_state *mdev_state,
-				struct vfio_device_gfx_plane_info *plane)
+static long fake_vgpu_ioctl(struct vfio_device *vdev, unsigned int cmd,
+			    unsigned long arg)
 {
-	if (plane->flags & VFIO_GFX_PLANE_TYPE_PROBE) {
-		if (plane->flags == (VFIO_GFX_PLANE_TYPE_PROBE |
-				     VFIO_GFX_PLANE_TYPE_REGION))
-			return 0;
-		return -EINVAL;
-	}
-
-	if (plane->flags != VFIO_GFX_PLANE_TYPE_REGION)
-		return -EINVAL;
-
-	plane->drm_format     = mdev_state->type->format;
-	plane->width	      = mdev_state->type->width;
-	plane->height	      = mdev_state->type->height;
-	plane->stride	      = (mdev_state->type->width *
-				 mdev_state->type->bytepp);
-	plane->size	      = mdev_state->memsize;
-	plane->region_index   = MDPY_DISPLAY_REGION;
-
-	/* unused */
-	plane->drm_format_mod = 0;
-	plane->x_pos	      = 0;
-	plane->y_pos	      = 0;
-	plane->x_hot	      = 0;
-	plane->y_hot	      = 0;
-
-	return 0;
-}
-
-static long mdpy_ioctl(struct vfio_device *vdev, unsigned int cmd,
-		       unsigned long arg)
-{
-	int ret = 0;
-	unsigned long minsz;
 	struct mdev_state *mdev_state =
 		container_of(vdev, struct mdev_state, vdev);
+	unsigned long minsz;
+	int ret = 0;
 
 	switch (cmd) {
 	case VFIO_DEVICE_GET_INFO:
 	{
 		struct vfio_device_info info;
-
 		minsz = offsetofend(struct vfio_device_info, num_irqs);
-
 		if (copy_from_user(&info, (void __user *)arg, minsz))
 			return -EFAULT;
-
 		if (info.argsz < minsz)
 			return -EINVAL;
-
-		ret = mdpy_get_device_info(&info);
+		ret = fake_vgpu_get_device_info(&info);
 		if (ret)
 			return ret;
-
-		memcpy(&mdev_state->dev_info, &info, sizeof(info));
-
 		if (copy_to_user((void __user *)arg, &info, minsz))
 			return -EFAULT;
-
 		return 0;
 	}
 
 	case VFIO_DEVICE_GET_IRQ_INFO:
 	{
 		struct vfio_irq_info info;
-
 		minsz = offsetofend(struct vfio_irq_info, count);
-
 		if (copy_from_user(&info, (void __user *)arg, minsz))
 			return -EFAULT;
-
-		if ((info.argsz < minsz) ||
-		    (info.index >= mdev_state->dev_info.num_irqs))
+		if (info.argsz < minsz ||
+		    info.index >= VFIO_PCI_NUM_IRQS)
 			return -EINVAL;
-
-		ret = mdpy_get_irq_info(&info);
+		ret = fake_vgpu_get_irq_info(&info);
 		if (ret)
 			return ret;
-
 		if (copy_to_user((void __user *)arg, &info, minsz))
 			return -EFAULT;
-
-		return 0;
-	}
-
-	case VFIO_DEVICE_QUERY_GFX_PLANE:
-	{
-		struct vfio_device_gfx_plane_info plane = {};
-
-		minsz = offsetofend(struct vfio_device_gfx_plane_info,
-				    region_index);
-
-		if (copy_from_user(&plane, (void __user *)arg, minsz))
-			return -EFAULT;
-
-		if (plane.argsz < minsz)
-			return -EINVAL;
-
-		ret = mdpy_query_gfx_plane(mdev_state, &plane);
-		if (ret)
-			return ret;
-
-		if (copy_to_user((void __user *)arg, &plane, minsz))
-			return -EFAULT;
-
 		return 0;
 	}
 
@@ -598,146 +588,95 @@ static long mdpy_ioctl(struct vfio_device *vdev, unsigned int cmd,
 		return -EINVAL;
 
 	case VFIO_DEVICE_RESET:
-		return mdpy_reset(mdev_state);
+		return fake_vgpu_reset(mdev_state);
+
 	}
+
 	return -ENOTTY;
 }
 
-static ssize_t
-resolution_show(struct device *dev, struct device_attribute *attr,
-		char *buf)
+static unsigned int fake_vgpu_get_available(struct mdev_type *mtype)
 {
-	struct mdev_state *mdev_state = dev_get_drvdata(dev);
-
-	return sprintf(buf, "%dx%d\n",
-		       mdev_state->type->width,
-		       mdev_state->type->height);
-}
-static DEVICE_ATTR_RO(resolution);
-
-static struct attribute *mdev_dev_attrs[] = {
-	&dev_attr_resolution.attr,
-	NULL,
-};
-
-static const struct attribute_group mdev_dev_group = {
-	.name  = "vendor",
-	.attrs = mdev_dev_attrs,
-};
-
-static const struct attribute_group *mdev_dev_groups[] = {
-	&mdev_dev_group,
-	NULL,
-};
-
-static ssize_t mdpy_show_description(struct mdev_type *mtype, char *buf)
-{
-	struct mdpy_type *type = container_of(mtype, struct mdpy_type, type);
-
-	return sprintf(buf, "virtual display, %dx%d framebuffer\n",
-		       type->width, type->height);
+	int i;
+	for (i = 0; i < ARRAY_SIZE(fake_vgpu_types); i++) {
+		if (mtype == &fake_vgpu_types[i].type)
+			return max(atomic_read(&avail_instances[i]), 0);
+	}
+	return 0;
 }
 
-static const struct vfio_device_ops mdpy_dev_ops = {
-	.init = mdpy_init_dev,
-	.release = mdpy_release_dev,
-	.read = mdpy_read,
-	.write = mdpy_write,
-	.ioctl = mdpy_ioctl,
-	.get_region_info_caps = mdpy_ioctl_get_region_info,
-	.mmap = mdpy_mmap,
-	.bind_iommufd	= vfio_iommufd_emulated_bind,
-	.unbind_iommufd	= vfio_iommufd_emulated_unbind,
-	.attach_ioas	= vfio_iommufd_emulated_attach_ioas,
-	.detach_ioas	= vfio_iommufd_emulated_detach_ioas,
+static ssize_t fake_vgpu_show_description(struct mdev_type *mtype, char *buf)
+{
+	const struct fake_vgpu_type *type =
+		container_of(mtype, struct fake_vgpu_type, type);
+	return sprintf(buf,
+		       "NVIDIA GRID vGPU (%s), %dMB framebuffer, max_instance=%u\n",
+		       type->profile, type->fb_size, type->max_instances);
+}
+
+static const struct vfio_device_ops fake_vgpu_dev_ops = {
+	.name = "fake-nvidia-vgpu",
+	.init = fake_vgpu_init_dev,
+	.release = fake_vgpu_release_dev,
+	.read = fake_vgpu_read,
+	.write = fake_vgpu_write,
+	.ioctl = fake_vgpu_ioctl,
+	.get_region_info_caps = fake_vgpu_get_region_info,
+	.mmap = fake_vgpu_mmap,
+	.bind_iommufd = vfio_iommufd_emulated_bind,
+	.unbind_iommufd = vfio_iommufd_emulated_unbind,
+	.attach_ioas = vfio_iommufd_emulated_attach_ioas,
+	.detach_ioas = vfio_iommufd_emulated_detach_ioas,
 };
 
-static struct mdev_driver mdpy_driver = {
+static struct mdev_driver fake_vgpu_driver = {
 	.device_api = VFIO_DEVICE_API_PCI_STRING,
-	.max_instances = 4,
 	.driver = {
-		.name = "mdpy",
+		.name = "nvidia",
 		.owner = THIS_MODULE,
 		.mod_name = KBUILD_MODNAME,
-		.dev_groups = mdev_dev_groups,
 	},
-	.probe = mdpy_probe,
-	.remove	= mdpy_remove,
-	.show_description = mdpy_show_description,
+	.probe = fake_vgpu_probe,
+	.remove = fake_vgpu_remove,
+	.get_available = fake_vgpu_get_available,
+	.show_description = fake_vgpu_show_description,
 };
 
-static const struct file_operations vd_fops = {
-	.owner		= THIS_MODULE,
-};
-
-static void mdpy_device_release(struct device *dev)
+static int __init fake_vgpu_init(void)
 {
-	/* nothing */
-}
+	int ret, i;
 
-static int __init mdpy_dev_init(void)
-{
-	int ret = 0;
+	pr_info("fake_nvidia_vgpu: initializing (version %s)\n", VERSION_STRING);
 
-	ret = alloc_chrdev_region(&mdpy_devt, 0, MINORMASK + 1, MDPY_NAME);
-	if (ret < 0) {
-		pr_err("Error: failed to register mdpy_dev, err: %d\n", ret);
+	for (i = 0; i < ARRAY_SIZE(fake_vgpu_types); i++)
+		atomic_set(&avail_instances[i], fake_vgpu_types[i].max_instances);
+
+	memset(&fake_vgpu_dev, 0, sizeof(fake_vgpu_dev));
+
+	ret = mdev_register_driver(&fake_vgpu_driver);
+	if (ret)
 		return ret;
-	}
-	cdev_init(&mdpy_cdev, &vd_fops);
-	cdev_add(&mdpy_cdev, mdpy_devt, MINORMASK + 1);
-	pr_info("%s: major %d\n", __func__, MAJOR(mdpy_devt));
 
-	ret = mdev_register_driver(&mdpy_driver);
+	ret = pci_register_driver(&fake_vgpu_pci_driver);
 	if (ret)
-		goto err_cdev;
+		goto err_mdev_driver;
 
-	ret = class_register(&mdpy_class);
-	if (ret)
-		goto err_driver;
-	mdpy_dev.class = &mdpy_class;
-	mdpy_dev.release = mdpy_device_release;
-	dev_set_name(&mdpy_dev, "%s", MDPY_NAME);
-
-	ret = device_register(&mdpy_dev);
-	if (ret)
-		goto err_put;
-
-	ret = mdev_register_parent(&mdpy_parent, &mdpy_dev, &mdpy_driver,
-				   mdpy_mdev_types,
-				   ARRAY_SIZE(mdpy_mdev_types));
-	if (ret)
-		goto err_device;
+	pr_info("fake_nvidia_vgpu: ready, providing %d GRID T4-1B and %d GRID T4-2B instances\n",
+		MAX_T4_1B_INSTANCES, MAX_T4_2B_INSTANCES);
 
 	return 0;
 
-err_device:
-	device_del(&mdpy_dev);
-err_put:
-	put_device(&mdpy_dev);
-	class_unregister(&mdpy_class);
-err_driver:
-	mdev_unregister_driver(&mdpy_driver);
-err_cdev:
-	cdev_del(&mdpy_cdev);
-	unregister_chrdev_region(mdpy_devt, MINORMASK + 1);
+err_mdev_driver:
+	mdev_unregister_driver(&fake_vgpu_driver);
 	return ret;
 }
 
-static void __exit mdpy_dev_exit(void)
+static void __exit fake_vgpu_exit(void)
 {
-	mdpy_dev.bus = NULL;
-	mdev_unregister_parent(&mdpy_parent);
-
-	device_unregister(&mdpy_dev);
-	mdev_unregister_driver(&mdpy_driver);
-	cdev_del(&mdpy_cdev);
-	unregister_chrdev_region(mdpy_devt, MINORMASK + 1);
-	class_unregister(&mdpy_class);
+	pci_unregister_driver(&fake_vgpu_pci_driver);
+	mdev_unregister_driver(&fake_vgpu_driver);
+	pr_info("fake_nvidia_vgpu: unloaded\n");
 }
 
-module_param_named(count, mdpy_driver.max_instances, int, 0444);
-MODULE_PARM_DESC(count, "number of " MDPY_NAME " devices");
-
-module_init(mdpy_dev_init)
-module_exit(mdpy_dev_exit)
+module_init(fake_vgpu_init)
+module_exit(fake_vgpu_exit)
