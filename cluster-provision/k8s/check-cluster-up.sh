@@ -65,6 +65,9 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
         export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=true
         export KUBEVIRT_DEPLOY_GRAFANA=true
         export KUBEVIRT_DEPLOY_CDI=true
+        if [[ "$(printf '%s\n' "1.37" "${provider}" | sort -V | head -n 1)" == "1.37" ]]; then
+            export KUBEVIRT_WITH_VGPU_MDEV=true
+        fi
         export KUBEVIRT_STORAGE="rook-ceph-default"
         export KUBEVIRT_SECONDARY_IFACES_TO_BRIDGE=eth1,eth2
         export KUBEVIRT_SECONDARY_IFACES_TO_IP=eth3,eth4
