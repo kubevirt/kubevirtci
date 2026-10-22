@@ -53,6 +53,15 @@ KUBVIRT_WITH_CNAO_SKIP_CONFIG=${KUBVIRT_WITH_CNAO_SKIP_CONFIG:-false}
 export KUBEVIRT_PROVIDER
 export KUBEVIRT_MEMORY_SIZE
 
+# Work around the QEMU 10.1.5 CET/xstate issue described here:
+# https://lists.openwall.net/linux-kernel/2026/04/03/1182
+# Disable guest user shadow stacks to avoid process crashes.
+# The guest appears to see user shadow stacks without the required CET_USER xstate,
+# causing process crashes.
+if [[ "${KUBEVIRT_WITH_VGPU_MDEV}" == "true" ]]; then
+    export KUBEVIRT_PROVIDER_EXTRA_ARGS="${KUBEVIRT_PROVIDER_EXTRA_ARGS:-} --kernel-args=nousershstk"
+fi
+
 # If on a developer setup, expose ocp on 8443, so that the openshift web console can be used (the port is important because of auth redirects)
 # http and https ports are accessed by testing framework and should not be randomized
 if [ -z "${JOB_NAME}" ]; then
