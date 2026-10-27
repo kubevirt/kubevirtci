@@ -1,6 +1,8 @@
-FROM registry.fedoraproject.org/fedora:43 AS base
+FROM quay.io/centos/centos:stream9 AS base
 
-ARG BUILDARCH
+ARG BUILDARCH=x86_64
+
+RUN dnf -y install epel-release
 
 RUN dnf -y install \
     bind-utils \
@@ -20,7 +22,7 @@ RUN dnf -y install \
 
 FROM base AS imageartifactdownload
 
-ARG BUILDARCH=x86_64
+ARG BUILDARCH
 ARG CENTOS_VERSION
 
 WORKDIR /

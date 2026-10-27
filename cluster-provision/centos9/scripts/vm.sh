@@ -225,8 +225,7 @@ fi
 
 if [ "${host_arch}" == "s390x" ]; then
   # As per https://www.qemu.org/docs/master/system/s390x/bootdevices.html#booting-without-bootindex-parameter -drive if=virtio can't be specified with bootindex for s390x
-  qemu_system_cmd="qemu-system-s390x \
-    -enable-kvm \
+  qemu_system_cmd="/usr/libexec/qemu-kvm \
     -drive format=qcow2,file=${next},if=none,cache=unsafe,id=drive1 ${block_dev_drive_arg} \
     -device virtio-blk,drive=drive1,bootindex=1 \
     ${BLOCK_DEV:+ -device virtio-blk,drive=extdisk} \
@@ -247,7 +246,7 @@ if [ "${host_arch}" == "s390x" ]; then
     ${QEMU_ARGS}"
 else
   #Docs: https://www.qemu.org/docs/master/system/invocation.html
-  qemu_system_cmd="/usr/bin/qemu-kvm \
+  qemu_system_cmd="/usr/libexec/qemu-kvm \
     -drive format=qcow2,file=${next},if=none,id=bootdisk,cache=unsafe ${block_dev_drive_arg} \
     -device virtio-blk-pci,drive=bootdisk,bus=pcie.0 \
     ${BLOCK_DEV:+ -device virtio-blk-pci,drive=extdisk,bus=pcie.0} \
