@@ -1,9 +1,10 @@
 # DRA vfio-gpu for KubeVirt e2e
 
 Provides fake `vfio-pci` devices for KubeVirt DRA e2e tests on the
-virtualized `k8s-*` providers. The setup uses synthetic PCI devices from the
-`fake-iommu` and `fake-pci` kernel modules, but builds and loads those modules
-inside the virtualized worker nodes instead of on the host.
+virtualized `k8s-*` providers. The synthetic PCI devices come from the
+`fake-iommu` and `fake-pci` kernel modules in the dra-example-driver
+checkout (`demo/vfio-gpu`). This directory clones that repo and builds the
+modules inside the virtualized worker nodes instead of on the host.
 
 > Inspired by the approach explored in
 > [kubevirt/kubevirt#16712](https://github.com/kubevirt/kubevirt/pull/16712)
@@ -13,27 +14,25 @@ inside the virtualized worker nodes instead of on the host.
 > but the fake VFIO kernel modules are loaded in the provider VMs.
 
 > **WARNING:** loading and binding the fake VFIO kernel modules requires
-> `root`. If you run the host-side module setup directly, use
-> `sudo -E cluster-up/cluster/vfio-gpu/setup-host-vfio-pci.sh`. The `k8s-*`
-> provider path loads the fake modules inside the provider worker nodes.
+> `root`. The `k8s-*` provider path loads the fake modules inside the
+> provider worker nodes. For a Kind cluster, run
+> `demo/vfio-gpu/setup-host-vfio-pci.sh` from a dra-example-driver checkout.
 
 ## Contents
 
 | File / dir | Purpose |
 | ---------- | ------- |
-| `fake-iommu/` | Kernel module that exposes fake IOMMU groups |
-| `fake-pci/` | Kernel module that publishes synthetic PCI devices on bus `faca` |
-| `vfio-node/setup_node_vfio.sh` | Script copied into each worker node to build/load fake modules and bind devices to `vfio-pci` |
-| `setup-fake-pci-host.sh` | Shared helper used inside the worker node to load/unload modules and bind devices |
-| `setup-host-vfio-pci.sh` | Host-side helper for loading fake VFIO modules when testing against your own Kind cluster |
-| `config_vfio_cluster.sh` | Post-create cluster setup: fake VFIO modules, node labels, DRA driver install |
-| `install_dra_example_driver.sh` | Builds, pushes, and installs the DRA example driver |
+| `config_vfio_cluster.sh` | Post-create cluster setup: copy `demo/vfio-gpu` into each worker, label nodes, install the DRA driver |
+| `install_dra_example_driver.sh` | Clones, builds, pushes, and installs the DRA example driver |
 | `../k8s-*/config_vfio_cluster.sh` | Provider wrapper gated by `KUBEVIRT_USE_FAKE_VFIO=true` |
+
+The kernel modules and `setup-node-vfio.sh` live in the driver's `demo/vfio-gpu` directory. `config_vfio_cluster.sh` clones that repo first and copies the directory into each worker.
 
 ## Prerequisites
 
-Host tools: `docker` or `podman`, `kubectl`, `helm`, `git`, `make`, and a
-kubevirtci `k8s-*` provider that can run nested virtualization.
+Host tools: `docker` or `podman`, `kubectl`, `helm`, `git`, and a
+kubevirtci `k8s-*` provider that can run nested virtualization. The modules
+are built inside the worker, so the host does not need kernel headers.
 
 Worker node packages: `make`, `gcc`, and matching kernel headers for the
 running worker-node kernel. These must be present in the provider image; the
@@ -64,7 +63,7 @@ make cluster-up
 wrapper. That wrapper delegates to this directory and configures each worker
 node by:
 
-- copying the fake VFIO sources to `/tmp/fake-vfio`;
+- cloning dra-example-driver and copying `demo/vfio-gpu` to `/tmp/fake-vfio`;
 - building and loading `fake-iommu.ko` and `fake-pci.ko` inside the worker;
 - binding fake PCI devices to `vfio-pci`;
 - labeling nodes with `fake-vfio-capable=true`;
@@ -82,10 +81,10 @@ bash cluster-up/cluster/k8s-1.36/config_vfio_cluster.sh
 ## Kind cluster testing
 
 If you want to test against your own Kind cluster, load and bind the fake VFIO
-kernel modules on the host first:
+kernel modules on the host first, from a dra-example-driver checkout:
 
 ```bash
-sudo -E cluster-up/cluster/vfio-gpu/setup-host-vfio-pci.sh
+sudo -E FAKE_PCI_DEVICES=8 bash demo/vfio-gpu/setup-host-vfio-pci.sh
 ```
 
 Create the Kind cluster with `/dev/vfio` bind-mounted into the node container,

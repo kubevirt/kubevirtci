@@ -4,8 +4,8 @@ set -e
 set -o pipefail
 
 SCRIPT_PATH="$(dirname "$(realpath "$0")")"
-VFIO_NODE_SETUP_SCRIPT="${SCRIPT_PATH}/vfio-node/setup_node_vfio.sh"
 VFIO_NODE_WORKDIR="/tmp/fake-vfio"
+VFIO_GPU_SRC=""
 
 : "${KUBEVIRTCI_CONFIG_PATH:?FATAL: missing KUBEVIRTCI_CONFIG_PATH}"
 : "${KUBEVIRT_PROVIDER:?FATAL: missing KUBEVIRT_PROVIDER}"
@@ -31,13 +31,23 @@ ssh_to_node() {
     "${SCRIPT_PATH}/../../ssh.sh" "$node_name" "$@"
 }
 
-encode_file() {
-    local file=$1
-    base64 <"${file}" | tr -d '\n'
+encode_vfio_assets() {
+    tar -C "${VFIO_GPU_SRC}" -cz fake-iommu fake-pci setup-fake-pci-host.sh setup-node-vfio.sh | base64 | tr -d '\n'
 }
 
-encode_vfio_assets() {
-    tar -C "${SCRIPT_PATH}" -cz fake-iommu fake-pci setup-fake-pci-host.sh | base64 | tr -d '\n'
+# Some fake VFIO tests require at least 8G of memory. Fail early if the cluster was started with less.
+validate_memory() {
+    local mem_value mem_unit mem_in_mb
+    mem_value=$(echo "${KUBEVIRT_MEMORY_SIZE:-0}" | sed 's/[^0-9]//g')
+    mem_unit=$(echo "${KUBEVIRT_MEMORY_SIZE:-0}" | sed 's/[^a-zA-Z]//g' | tr '[:lower:]' '[:upper:]')
+    case "${mem_unit}" in
+        G) mem_in_mb=$((mem_value * 1024)) ;;
+        *) mem_in_mb=${mem_value} ;;
+    esac
+    if [ "${mem_in_mb}" -lt 8192 ]; then
+        echo "FATAL: fake VFIO requires KUBEVIRT_MEMORY_SIZE >= 8G (8192M). Current value: ${KUBEVIRT_MEMORY_SIZE:-unset}" >&2
+        exit 1
+    fi
 }
 
 # Some fake VFIO tests require at least 8G of memory. Fail early if the cluster was started with less.
@@ -57,31 +67,29 @@ validate_memory() {
 
 validate_inputs() {
     validate_memory
-    if [ ! -d "${SCRIPT_PATH}/fake-iommu" ] || [ ! -d "${SCRIPT_PATH}/fake-pci" ]; then
-        echo "FATAL: fake VFIO module sources not found under ${SCRIPT_PATH}" >&2
+    clone_dra_example_driver
+    VFIO_GPU_SRC="${DRA_EXAMPLE_DRIVER_DIR}/demo/vfio-gpu"
+    if [ ! -d "${VFIO_GPU_SRC}/fake-iommu" ] || [ ! -d "${VFIO_GPU_SRC}/fake-pci" ]; then
+        echo "FATAL: fake VFIO module sources not found under ${VFIO_GPU_SRC}" >&2
+        echo "The dra-example-driver checkout must contain demo/vfio-gpu." >&2
         exit 1
     fi
-    if [ ! -x "${SCRIPT_PATH}/setup-fake-pci-host.sh" ]; then
-        echo "FATAL: setup-fake-pci-host.sh not found or not executable under ${SCRIPT_PATH}" >&2
-        exit 1
-    fi
-    if [ ! -f "${VFIO_NODE_SETUP_SCRIPT}" ]; then
-        echo "FATAL: node setup script not found at ${VFIO_NODE_SETUP_SCRIPT}" >&2
+    if [ ! -f "${VFIO_GPU_SRC}/setup-fake-pci-host.sh" ] || [ ! -f "${VFIO_GPU_SRC}/setup-node-vfio.sh" ]; then
+        echo "FATAL: vfio-gpu setup scripts not found under ${VFIO_GPU_SRC}" >&2
         exit 1
     fi
 }
 
 copy_vfio_payload_to_node() {
     local node_name=$1
-    local encoded_assets encoded_setup_script
+    local encoded_assets
 
     encoded_assets=$(encode_vfio_assets)
-    encoded_setup_script=$(encode_file "${VFIO_NODE_SETUP_SCRIPT}")
 
-    echo "Copying fake VFIO payload to ${node_name}..."
+    echo "Copying fake VFIO payload from ${VFIO_GPU_SRC} to ${node_name}..."
     ssh_to_node "${node_name}" "rm -rf '${VFIO_NODE_WORKDIR}' && mkdir -p '${VFIO_NODE_WORKDIR}'"
     ssh_to_node "${node_name}" "printf '%s' '${encoded_assets}' | base64 -d | tar -xz -C '${VFIO_NODE_WORKDIR}'"
-    ssh_to_node "${node_name}" "printf '%s' '${encoded_setup_script}' | base64 -d > '${VFIO_NODE_WORKDIR}/setup_node_vfio.sh' && chmod +x '${VFIO_NODE_WORKDIR}/setup_node_vfio.sh'"
+    ssh_to_node "${node_name}" "chmod +x '${VFIO_NODE_WORKDIR}/setup-node-vfio.sh' '${VFIO_NODE_WORKDIR}/setup-fake-pci-host.sh'"
 }
 
 run_node_vfio_setup() {
@@ -92,7 +100,7 @@ run_node_vfio_setup() {
         FAKE_PCI_VENDOR_ID='${FAKE_PCI_VENDOR_ID:-}' \
         FAKE_PCI_DEVICE_ID='${FAKE_PCI_DEVICE_ID:-}' \
         FAKE_IOMMU='${FAKE_IOMMU}' \
-        bash '${VFIO_NODE_WORKDIR}/setup_node_vfio.sh'"
+        bash '${VFIO_NODE_WORKDIR}/setup-node-vfio.sh'"
 }
 
 configure_node_vfio() {
