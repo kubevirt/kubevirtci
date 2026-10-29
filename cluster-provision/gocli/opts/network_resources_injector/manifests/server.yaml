@@ -32,7 +32,7 @@ spec:
       serviceAccount: network-resources-injector-sa
       containers:
       - name: webhook-server
-        image: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.9.0
+        image: ghcr.io/k8snetworkplumbingwg/network-resources-injector:239ce933a74cfcc0843dd64e514a4b72146634d7
         imagePullPolicy: Always
         command:
         - webhook
@@ -70,14 +70,28 @@ spec:
             memory: "200Mi"
             cpu: "500m"
         livenessProbe:
+          failureThreshold: 3
           httpGet:
             path: /healthz
             port: 8444
-          initialDelaySeconds: 10
-          periodSeconds: 5
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readyz
+            port: 8444
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
       initContainers:
       - name: installer
-        image: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.9.0
+        image: ghcr.io/k8snetworkplumbingwg/network-resources-injector:239ce933a74cfcc0843dd64e514a4b72146634d7
         imagePullPolicy: Always
         command:
         - installer

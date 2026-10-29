@@ -158,6 +158,9 @@ export KUBEVIRTCI_GOCLI_CONTAINER=quay.io/kubevirtci/gocli:latest
             echo "Sanity check cluster-up of single stack cluster"
             make cluster-down
             export KUBEVIRT_WITH_CNAO=false
+            # NRI /readyz waits on NAD informer sync; without CNAO/Multus the NAD CRD
+            # is missing and rollout hangs. Disable NRI whenever CNAO is off.
+            export KUBEVIRT_DEPLOY_NETWORK_RESOURCES_INJECTOR=false
             export KUBEVIRT_DEPLOY_ISTIO=false
             export KUBEVIRT_DEPLOY_PROMETHEUS=false
             export KUBEVIRT_DEPLOY_PROMETHEUS_ALERTMANAGER=false
