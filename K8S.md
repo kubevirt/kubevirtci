@@ -41,6 +41,13 @@ make cluster-up
 When enabled, cluster-up will install Multus CNI and configure each cluster node QEMU instance
 to use emulated SR-IOV Physical Function (PF), and create Virtual Functions (VF).
 
+To build and install the fake vGPU mediated-device driver on worker nodes during cluster-up:
+(This requires `KUBEVIRT_PROVIDER` `k8s-1.37` or newer)
+```
+export KUBEVIRT_WITH_VGPU_MDEV=true
+make cluster-up
+```
+
 Optional: to use DRA path in SR-IOV setup, add this before cluster-up:
 ```
 export KUBEVIRT_USE_DRA=true
