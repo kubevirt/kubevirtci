@@ -2,8 +2,6 @@ FROM quay.io/centos/centos:stream9 AS base
 
 ARG BUILDARCH=x86_64
 
-RUN dnf -y install epel-release
-
 RUN dnf -y install \
     bind-utils \
     dnsmasq \
@@ -14,9 +12,9 @@ RUN dnf -y install \
     iputils \
     openssh-clients \
     qemu-kvm-core \
-    screen \
     socat \
     tcpdump \
+    tmux \
     $([ "$BUILDARCH" = "s390x" ] && echo "s390utils-core") && \
     dnf clean all
 

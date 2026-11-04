@@ -94,19 +94,19 @@ export KUBEVIRT_SINGLE_STACK=true KUBEVIRT_PROVIDER=k8s-1.33
 make cluster-up
 ```
 
-## Attach to node console with screen and pty
-```                                                  
-# Attach to node01 console                           
-docker exec -it ${KUBEVIRT_PROVIDER}-node01 screen /dev/pts/0
-```                                                 
+## Attach to node console with tmux and pty
+```
+# Attach to node01 console
+docker exec -it ${KUBEVIRT_PROVIDER}-node01 tmux new-session -t /dev/pts/0
+```
 Use `cloud-user:cloud-user` or `root:root` to login.
 Note: it is sometimes `/dev/pts/1` or `/dev/pts/2`, try them in case you don't get a prompt.
 
-Make sure you don't leave open screens, else the next screen will be messed up.  
-`screen -ls` shows the open screens.  
-`screen -XS <session-id> quit` closes an open session.
-Close all zombies and shutdown screen gracefully if you plan to open a new one instead.
-Ctrl+A and Ctrl+D will detach your screen session and `screen -r <session-id>` reattach to a detached screen session.
+Make sure you don't leave open sessions, else the next tmux will be messed up.
+`tmux list-sessions` shows the open sessions.
+`tmux kill-session -t <session-id>` closes an open session.
+Close all zombies and shutdown tmux gracefully if you plan to open a new one instead.
+Ctrl+B and Ctrl+D will detach your tmux session and `tmux attach-session -t <session-id>` reattach to a detached tmux session.
 
 ## Container image cache
 In order to have a local cache of container images:
