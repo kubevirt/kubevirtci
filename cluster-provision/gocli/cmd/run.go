@@ -630,7 +630,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 			Image: utils.NFSServerImage,
 			Env: []string{
 				"NFS_DIR=/data/nfs",
-				"NFS_OPTION=fsid=0,rw,sync,insecure,no_root_squash,no_subtree_check,nohide",
+				"NFS_OPTION=fsid=0,rw,insecure,no_root_squash,no_subtree_check,nohide",
 			},
 		}, &container.HostConfig{
 			Mounts: []mount.Mount{
