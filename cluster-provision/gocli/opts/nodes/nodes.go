@@ -9,6 +9,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/sirupsen/logrus"
 
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/common"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/extranics"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 )
@@ -20,6 +21,7 @@ const (
 var versionRegex = regexp.MustCompile(`.*([0-9]+\.[0-9]+)`)
 
 type nodesProvisioner struct {
+	nodeName              string
 	k8sVersion            string
 	sshClient             libssh.Client
 	singleStack           bool
@@ -29,7 +31,7 @@ type nodesProvisioner struct {
 	reservedSystemCPUs    string
 }
 
-func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack bool, extraNICsConfig extranics.Config, topologyManagerPolicy, reservedSystemCPUs string) *nodesProvisioner {
+func NewNodesProvisioner(nodeName, k8sVersion string, sc libssh.Client, singleStack bool, extraNICsConfig extranics.Config, topologyManagerPolicy, reservedSystemCPUs string) *nodesProvisioner {
 	submatches := versionRegex.FindStringSubmatch(k8sVersion)
 	if len(submatches) != 2 {
 		logrus.Infof("not a parseable semver contained in %q. Trying the %q environment variable", k8sVersion, kubevirtProviderEnv)
@@ -47,6 +49,7 @@ func NewNodesProvisioner(k8sVersion string, sc libssh.Client, singleStack bool, 
 		logrus.Fatalf("not a parseable semver contained in %q", k8sVersion)
 	}
 	return &nodesProvisioner{
+		nodeName:              nodeName,
 		sshClient:             sc,
 		singleStack:           singleStack,
 		k8sVersion:            k8sVersion,
@@ -84,7 +87,7 @@ func (n *nodesProvisioner) Exec() error {
 	}
 	cmds := []string{
 		"source /var/lib/kubevirtci/shared_vars.sh",
-		`timeout=30; interval=5; while ! hostnamectl | grep Transient; do echo "Waiting for dhclient to set the hostname from dnsmasq"; sleep $interval; timeout=$((timeout - interval)); [ $timeout -le 0 ] && exit 1; done`,
+		common.WaitForHostnameCommand(n.nodeName),
 		`echo "KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --fail-swap-on=false ` + nodeIP + " " + n.featureGatesFlag() + kubeletCpuManagerArgs + kubeletTopologyManagerArgs + kubeletReservedSystemCPUsArgs + `" | tee /etc/sysconfig/kubelet > /dev/null`,
 		"systemctl daemon-reload &&  service kubelet restart",
 		"swapoff -a",
