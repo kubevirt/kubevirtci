@@ -1131,7 +1131,7 @@ func provisionNode(sshClient libssh.Client, n *nodesconfig.NodeLinuxConfig) erro
 			bindVfioOpt := bindvfio.NewBindVfioOpt(sshClient, gpuDeviceID)
 			opts = append(opts, bindVfioOpt)
 		}
-		n := nodesprovision.NewNodesProvisioner(n.K8sVersion, sshClient, n.SingleStack, n.ExtraNICsConfig, n.TopologyManagerPolicy, n.ReservedSystemCPUs)
+		n := nodesprovision.NewNodesProvisioner(nodeName, n.K8sVersion, sshClient, n.SingleStack, n.ExtraNICsConfig, n.TopologyManagerPolicy, n.ReservedSystemCPUs)
 		opts = append(opts, n)
 	}
 

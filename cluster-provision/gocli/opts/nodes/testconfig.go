@@ -1,11 +1,15 @@
 package nodes
 
-import kubevirtcimocks "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/mock"
+import (
+	"go.uber.org/mock/gomock"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/common"
+	kubevirtcimocks "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/mock"
+)
 
 func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient) {
 	cmds := []string{
 		"source /var/lib/kubevirtci/shared_vars.sh",
-		`timeout=30; interval=5; while ! hostnamectl | grep Transient; do echo "Waiting for dhclient to set the hostname from dnsmasq"; sleep $interval; timeout=$((timeout - interval)); [ $timeout -le 0 ] && exit 1; done`,
+		common.WaitForHostnameCommand("node02"),
 		`echo "KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --fail-swap-on=false  --feature-gates=NodeSwap=true --cpu-manager-policy=static --kube-reserved=cpu=500m --system-reserved=cpu=500m" | tee /etc/sysconfig/kubelet > /dev/null`,
 		"systemctl daemon-reload &&  service kubelet restart",
 		"swapoff -a",
@@ -16,7 +20,9 @@ func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient) {
 		"chcon -t container_file_t /var/lib/rook",
 	}
 
+	calls := make([]any, 0, len(cmds))
 	for _, cmd := range cmds {
-		sshClient.EXPECT().Command(cmd)
+		calls = append(calls, sshClient.EXPECT().Command(cmd))
 	}
+	gomock.InOrder(calls...)
 }

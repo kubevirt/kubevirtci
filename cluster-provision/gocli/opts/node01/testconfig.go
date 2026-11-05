@@ -3,6 +3,8 @@ package node01
 import (
 	"fmt"
 
+	"go.uber.org/mock/gomock"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/common"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/pkg/libssh"
 	kubevirtcimocks "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/mock"
 )
@@ -10,7 +12,7 @@ import (
 func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient) {
 	cmds := []string{
 		fmt.Sprintf(`if [ -f /home/%s/enable_audit ]; then echo '%s' | tee /etc/kubernetes/audit/adv-audit.yaml > /dev/null; fi`, libssh.GetSSHUser(), string(advAudit)),
-		`timeout=30; interval=5; while ! hostnamectl | grep Transient; do echo "Waiting for dhclient to set the hostname from dnsmasq"; sleep $interval; timeout=$((timeout - interval)); [ $timeout -le 0 ] && exit 1; done`,
+		common.WaitForHostnameCommand("node01"),
 		"swapoff -a",
 		"until ip address show dev eth0 | grep global | grep inet6; do sleep 1; done",
 		`timeout=60; interval=5; while ! systemctl status crio | grep -w "active"; do echo "Waiting for cri-o service to be ready"; sleep $interval; timeout=$((timeout - interval)); if [[ $timeout -le 0 ]]; then exit 1; fi; done`,
@@ -24,7 +26,9 @@ func AddExpectCalls(sshClient *kubevirtcimocks.MockSSHClient) {
 		"mkdir -p /var/lib/rook",
 		"chcon -t container_file_t /var/lib/rook",
 	}
+	calls := make([]any, 0, len(cmds))
 	for _, cmd := range cmds {
-		sshClient.EXPECT().Command(cmd)
+		calls = append(calls, sshClient.EXPECT().Command(cmd))
 	}
+	gomock.InOrder(calls...)
 }
