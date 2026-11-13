@@ -91,16 +91,13 @@ function pull_container_retry() {
 # - https://github.com/kubevirt/project-infra/blob/main/hack/mirror-crio.sh
 CRIO_VERSION='1.37'
 CRIO_CHANNEL='stable'
-CRIO_REPO="isv_cri-o_stable_v${CRIO_VERSION}"
-cat >"/etc/yum.repos.d/${CRIO_REPO}.repo" <<EOF
-[${CRIO_REPO}]
-name=CRI-O v${CRIO_VERSION} (Stable) (rpm)
-type=rpm-md
-baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/${CRIO_REPO}
-gpgcheck=1
-gpgkey=https://download.opensuse.org/repositories/isv:/cri-o:/${CRIO_CHANNEL}:/v${CRIO_VERSION}/rpm/repodata/repomd.xml.key
-enabled=1
-EOF
+CRIO_REPO="isv_cri-o_${CRIO_CHANNEL}_v${CRIO_VERSION}"
+curl -o "/etc/yum.repos.d/${CRIO_REPO}.repo" \
+  "https://download.opensuse.org/repositories/isv:/cri-o:/${CRIO_CHANNEL}:/v${CRIO_VERSION}/rpm/isv:cri-o:${CRIO_CHANNEL}:v${CRIO_VERSION}.repo"
+# stable versions are installed from the mirror instead of OBS
+if [ "${CRIO_CHANNEL}" = "stable" ]; then
+  sed -i "s|^baseurl=.*|baseurl=https://storage.googleapis.com/kubevirtci-crio-mirror/${CRIO_REPO}|" "/etc/yum.repos.d/${CRIO_REPO}.repo"
+fi
 
 dnf install -y cri-o
 
