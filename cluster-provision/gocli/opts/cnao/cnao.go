@@ -17,20 +17,18 @@ import (
 var f embed.FS
 
 type cnaoOpt struct {
-	client        k8s.K8sDynamicClient
-	sshClient     libssh.Client
-	multusEnabled bool
-	dncEnabled    bool
-	skipCR        bool
+	client     k8s.K8sDynamicClient
+	sshClient  libssh.Client
+	dncEnabled bool
+	skipCR     bool
 }
 
-func NewCnaoOpt(c k8s.K8sDynamicClient, sshClient libssh.Client, multusEnabled, dncEnabled, skipCR bool) *cnaoOpt {
+func NewCnaoOpt(c k8s.K8sDynamicClient, sshClient libssh.Client, dncEnabled, skipCR bool) *cnaoOpt {
 	return &cnaoOpt{
-		client:        c,
-		sshClient:     sshClient,
-		multusEnabled: multusEnabled,
-		skipCR:        skipCR,
-		dncEnabled:    dncEnabled,
+		client:     c,
+		sshClient:  sshClient,
+		skipCR:     skipCR,
+		dncEnabled: dncEnabled,
 	}
 }
 
@@ -53,12 +51,6 @@ func (o *cnaoOpt) Exec() error {
 				if path == "manifests/network-addons-config-example.cr.yaml" {
 					if o.skipCR {
 						continue
-					}
-
-					if o.multusEnabled {
-						re := regexp.MustCompile("(?m)[\r\n]+^.*multus:.*$")
-						res := re.ReplaceAllString(string(yamlDoc), "")
-						yamlDoc = []byte(res)
 					}
 
 					if !o.dncEnabled {

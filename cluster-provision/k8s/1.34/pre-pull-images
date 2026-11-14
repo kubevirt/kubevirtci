@@ -4,7 +4,6 @@ docker.io/calico/node:v3.26.5
 docker.io/grafana/grafana:13.0.2
 ghcr.io/flannel-io/flannel-cni-plugin:v1.7.1-flannel1
 ghcr.io/flannel-io/flannel:v0.27.2
-ghcr.io/k8snetworkplumbingwg/multus-cni:v3.8
 ghcr.io/k8snetworkplumbingwg/multus-cni@sha256:2b9671447f3ea4e7e56730843dbf59445b9307246f393b61386b896d56ae51c9
 ghcr.io/k8snetworkplumbingwg/multus-dynamic-networks-controller@sha256:c7d137a7f4ddd81233b9778d02ae57a496e892ddedf74d49382d86df50ddcc27
 ghcr.io/k8snetworkplumbingwg/network-resources-injector:239ce933a74cfcc0843dd64e514a4b72146634d7

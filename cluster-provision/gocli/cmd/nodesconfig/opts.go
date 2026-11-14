@@ -212,14 +212,6 @@ func WithDNC(dnc bool) K8sConfigFunc {
 	}
 }
 
-// If enabled. Multus V3 will be deployed standalone separate from CNAO.
-// Multus V4 that gets deployed with CNAO will be skipped in case CNAO is enabled
-func WithMultus(multus bool) K8sConfigFunc {
-	return func(n *NodeK8sConfig) {
-		n.Multus = multus
-	}
-}
-
 func WithCdi(cdi bool) K8sConfigFunc {
 	return func(n *NodeK8sConfig) {
 		n.CDI = cdi
