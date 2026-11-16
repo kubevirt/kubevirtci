@@ -38,7 +38,6 @@ import (
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/extranics"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/istio"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/ksm"
-	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/multus"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/network_resources_injector"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nfscsi"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/node01"
@@ -141,7 +140,6 @@ func NewRunCommand() *cobra.Command {
 	run.Flags().Bool("enable-cnao", false, "enable network extensions with istio")
 	run.Flags().Bool("skip-cnao-cr", false, "skip deploying cnao custom resource. if true, only cnao CRDS will be deployed")
 	run.Flags().Bool("deploy-dnc", false, "deploy the dynamic networks controller with CNAO")
-	run.Flags().Bool("deploy-multus", false, "deploy multus")
 	run.Flags().Bool("deploy-cdi", false, "deploy cdi")
 	run.Flags().String("cdi-version", "", "cdi version")
 	run.Flags().String("aaq-version", "", "aaq version")
@@ -444,11 +442,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 	}
 
 	aaqVersion, err := cmd.Flags().GetString("aaq-version")
-	if err != nil {
-		return err
-	}
-
-	deployMultus, err := cmd.Flags().GetBool("deploy-multus")
 	if err != nil {
 		return err
 	}
@@ -961,7 +954,6 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 		nodesconfig.WithCnao(cnaoEnabled),
 		nodesconfig.WithCNAOSkipCR(cnaoSkipCR),
 		nodesconfig.WithDNC(deployDNC),
-		nodesconfig.WithMultus(deployMultus),
 		nodesconfig.WithCdi(deployCdi),
 		nodesconfig.WithCdiVersion(cdiVersion),
 		nodesconfig.WithAAQ(deployAaq),
@@ -1016,13 +1008,8 @@ func provisionK8sOptions(sshClient libssh.Client, k8sClient k8s.K8sDynamicClient
 		opts = append(opts, nfsCsiOpt)
 	}
 
-	if n.Multus {
-		multusOpt := multus.NewMultusOpt(k8sClient, sshClient)
-		opts = append(opts, multusOpt)
-	}
-
 	if n.CNAO {
-		cnaoOpt := cnao.NewCnaoOpt(k8sClient, sshClient, n.Multus, n.DNC, n.CNAOSkipCR)
+		cnaoOpt := cnao.NewCnaoOpt(k8sClient, sshClient, n.DNC, n.CNAOSkipCR)
 		opts = append(opts, cnaoOpt)
 	}
 

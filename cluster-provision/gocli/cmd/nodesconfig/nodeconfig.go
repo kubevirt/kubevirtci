@@ -40,7 +40,6 @@ type NodeK8sConfig struct {
 	NfsCsi                   bool
 	CNAO                     bool
 	CNAOSkipCR               bool
-	Multus                   bool
 	CDI                      bool
 	CDIVersion               string
 	AAQ                      bool

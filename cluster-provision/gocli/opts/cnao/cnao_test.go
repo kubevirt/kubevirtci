@@ -18,13 +18,12 @@ func TestCnaoOpt(t *testing.T) {
 
 var _ = Describe("CnaoOpt", func() {
 	var (
-		mockCtrl      *gomock.Controller
-		client        k8s.K8sDynamicClient
-		sshClient     *kubevirtcimocks.MockSSHClient
-		opt           *cnaoOpt
-		skipCR        bool
-		dncEnabled    bool
-		multusEnabled bool
+		mockCtrl   *gomock.Controller
+		client     k8s.K8sDynamicClient
+		sshClient  *kubevirtcimocks.MockSSHClient
+		opt        *cnaoOpt
+		skipCR     bool
+		dncEnabled bool
 	)
 
 	BeforeEach(func() {
@@ -40,9 +39,8 @@ var _ = Describe("CnaoOpt", func() {
 	It("should execute create CNAO with Multus", func() {
 		skipCR = false
 		dncEnabled = true
-		multusEnabled = false
 
-		opt = NewCnaoOpt(client, sshClient, multusEnabled, dncEnabled, skipCR)
+		opt = NewCnaoOpt(client, sshClient, dncEnabled, skipCR)
 
 		sshClient.EXPECT().Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf wait deployment -n cluster-network-addons cluster-network-addons-operator --for condition=Available --timeout=200s")
 		Expect(opt.Exec()).To(Succeed())
@@ -58,32 +56,11 @@ var _ = Describe("CnaoOpt", func() {
 		Expect(spec).To(HaveKey("multusDynamicNetworks"))
 	})
 
-	It("should execute create CNAO without Multus", func() {
-		skipCR = false
-		dncEnabled = false
-		multusEnabled = true
-
-		opt = NewCnaoOpt(client, sshClient, multusEnabled, dncEnabled, skipCR)
-		sshClient.EXPECT().Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf wait deployment -n cluster-network-addons cluster-network-addons-operator --for condition=Available --timeout=200s")
-		Expect(opt.Exec()).To(Succeed())
-
-		obj, err := client.Get(schema.GroupVersionKind{Group: "networkaddonsoperator.network.kubevirt.io",
-			Version: "v1",
-			Kind:    "NetworkAddonsConfig"}, "cluster", "")
-		Expect(err).NotTo(HaveOccurred())
-
-		spec, ok := obj.Object["spec"].(map[string]interface{})
-		Expect(ok).To(Equal(true))
-		Expect(spec).NotTo(HaveKey("multus"))
-		Expect(spec).NotTo(HaveKey("multusDynamicNetworks"))
-	})
-
 	It("should execute create CNAO with dynamic networks controller", func() {
 		skipCR = false
 		dncEnabled = true
-		multusEnabled = false
 
-		opt = NewCnaoOpt(client, sshClient, multusEnabled, dncEnabled, skipCR)
+		opt = NewCnaoOpt(client, sshClient, dncEnabled, skipCR)
 		sshClient.EXPECT().Command("kubectl --kubeconfig=/etc/kubernetes/admin.conf wait deployment -n cluster-network-addons cluster-network-addons-operator --for condition=Available --timeout=200s")
 		Expect(opt.Exec()).To(Succeed())
 

@@ -35,6 +35,7 @@ Prepare the cluster for the emulated SR-IOV, with device plugin:
 (This requires `KUBEVIRT_PROVIDER` `k8s-1.35` or newer)
 ```
 export KUBEVIRT_PROVIDER=k8s-1.36
+export KUBEVIRT_WITH_CNAO=true
 export KUBEVIRT_WITH_SRIOV=true
 make cluster-up
 ```
