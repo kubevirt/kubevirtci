@@ -207,7 +207,7 @@ if [ "${host_arch}" != "s390x" ] && [ "${NUMA}" != 0 ]; then
         echo "unable to calculate symmetric NUMA topology with vCPUs:${CPU} Memory:${MEMORY} NUMA:${NUMA}"
         exit 1
     fi
-    node_mem="$((numa_mem_value / NUMA))${numa_mem_unit}"
+    node_mem="$((numa_mem_value / NUMA))${numa_mem_unit:-M}"
     node_first_cpu=0
     node_cpu_step=$((CPU / NUMA - 1))
     for node_id in $(seq 0 $((NUMA - 1))); do
