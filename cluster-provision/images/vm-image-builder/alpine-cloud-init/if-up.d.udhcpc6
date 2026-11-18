@@ -1,0 +1,11 @@
+#!/bin/sh
+# Start DHCPv6 when eth0 comes up. Lives here so cloud-init can own
+# /etc/network/interfaces without wiping this config.
+[ "$IFACE" = "eth0" ] || exit 0
+# ifupdown-ng may invoke once per address family; run only for inet.
+[ -z "$ADDRFAM" ] || [ "$ADDRFAM" = "inet" ] || exit 0
+
+# Background so a missing/failing DHCPv6 server cannot block ifup/login.
+# -n: exit after retries instead of looping forever in the background.
+/usr/bin/udhcpc6 -n -t 3 -p /var/run/udhcpc6.eth0.pid -i eth0 -s /etc/udhcpc6.script &
+exit 0
