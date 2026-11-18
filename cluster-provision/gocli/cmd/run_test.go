@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"errors"
+	"runtime"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/cmd/nodesconfig"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/aaq"
 	bindvfio "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/bind-vfio"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/common"
 	etcdinmemory "kubevirt.io/kubevirtci/cluster-provision/gocli/opts/etcd"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/istio"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/nfscsi"
@@ -62,6 +66,24 @@ var _ = Describe("Node Provisioning", func() {
 			err := provisionNode(sshClient, n)
 			Expect(err).NotTo(HaveOccurred())
 		})
+
+		DescribeTable("passes the expected worker hostname and stops before kubeadm on readiness failure",
+			func(nodeIdx int, expectedHostname string) {
+				if runtime.GOARCH != "s390x" {
+					bindvfio.AddExpectCalls(sshClient, "8086:2668")
+					bindvfio.AddExpectCalls(sshClient, "8086:293e")
+				}
+				gomock.InOrder(
+					sshClient.EXPECT().Command("source /var/lib/kubevirtci/shared_vars.sh"),
+					sshClient.EXPECT().Command(common.WaitForHostnameCommand(expectedHostname)).Return(errors.New("hostname not ready")),
+				)
+
+				n := nodesconfig.NewNodeLinuxConfig(nodeIdx, "k8s-1.36", nil)
+				Expect(provisionNode(sshClient, n)).To(MatchError(ContainSubstring("hostname not ready")))
+			},
+			Entry("node02", 2, "node02"),
+			Entry("node03", 3, "node03"),
+		)
 	})
 
 	Describe("ProvisionNodeK8sOpts", func() {
