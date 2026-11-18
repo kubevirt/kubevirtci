@@ -53,14 +53,30 @@ KUBVIRT_WITH_CNAO_SKIP_CONFIG=${KUBVIRT_WITH_CNAO_SKIP_CONFIG:-false}
 export KUBEVIRT_PROVIDER
 export KUBEVIRT_MEMORY_SIZE
 
+append_kernel_args() {
+    local kernel_args="${1}"
+    local quoted_kernel_arg_pattern="^(.*)--kernel-args='([^']*)'(.*)$"
+    local double_quoted_kernel_arg_pattern='^(.*)--kernel-args="([^"]*)"(.*)$'
+    local unquoted_kernel_arg_pattern="^(.*)--kernel-args=([^[:space:]]+)(.*)$"
+    KUBEVIRT_PROVIDER_EXTRA_ARGS="${KUBEVIRT_PROVIDER_EXTRA_ARGS:-}"
+    if [[ "${KUBEVIRT_PROVIDER_EXTRA_ARGS}" =~ ${quoted_kernel_arg_pattern} ]]; then
+        KUBEVIRT_PROVIDER_EXTRA_ARGS="${BASH_REMATCH[1]}--kernel-args='${BASH_REMATCH[2]} ${kernel_args}'${BASH_REMATCH[3]}"
+    elif [[ "${KUBEVIRT_PROVIDER_EXTRA_ARGS}" =~ ${double_quoted_kernel_arg_pattern} ]]; then
+        KUBEVIRT_PROVIDER_EXTRA_ARGS="${BASH_REMATCH[1]}--kernel-args='${BASH_REMATCH[2]} ${kernel_args}'${BASH_REMATCH[3]}"
+    elif [[ "${KUBEVIRT_PROVIDER_EXTRA_ARGS}" =~ ${unquoted_kernel_arg_pattern} ]]; then
+        KUBEVIRT_PROVIDER_EXTRA_ARGS="${BASH_REMATCH[1]}--kernel-args='${BASH_REMATCH[2]} ${kernel_args}'${BASH_REMATCH[3]}"
+    else
+        KUBEVIRT_PROVIDER_EXTRA_ARGS="${KUBEVIRT_PROVIDER_EXTRA_ARGS} --kernel-args='${kernel_args}'"
+    fi
+    export KUBEVIRT_PROVIDER_EXTRA_ARGS
+}
+
 # Work around the QEMU 10.1.5 CET/xstate issue described here:
 # https://lists.openwall.net/linux-kernel/2026/04/03/1182
 # Disable guest user shadow stacks to avoid process crashes.
 # The guest appears to see user shadow stacks without the required CET_USER xstate,
 # causing process crashes.
-if [[ "${KUBEVIRT_WITH_VGPU_MDEV}" == "true" ]]; then
-    export KUBEVIRT_PROVIDER_EXTRA_ARGS="${KUBEVIRT_PROVIDER_EXTRA_ARGS:-} --kernel-args=nousershstk"
-fi
+append_kernel_args "nousershstk"
 
 # If on a developer setup, expose ocp on 8443, so that the openshift web console can be used (the port is important because of auth redirects)
 # http and https ports are accessed by testing framework and should not be randomized

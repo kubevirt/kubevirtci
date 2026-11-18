@@ -2,7 +2,7 @@
 set -e
 
 if [ "${KUBEVIRT_CGROUPV2}" == "false" ]; then
-    export KUBEVIRT_PROVIDER_EXTRA_ARGS="${KUBEVIRT_PROVIDER_EXTRA_ARGS} --kernel-args='systemd.unified_cgroup_hierarchy=0'"
+    append_kernel_args "systemd.unified_cgroup_hierarchy=0"
 fi
 
 # shellcheck disable=SC1090
