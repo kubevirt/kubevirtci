@@ -11,6 +11,9 @@ Start a multi-node k8s cluster with one secondary NIC (eth0 + eth1).
 `KUBEVIRT_SECONDARY_IFACES_TO_BRIDGE` / `KUBEVIRT_SECONDARY_IFACES_TO_IP` only configure them.
 Configuring ethN requires `KUBEVIRT_NUM_SECONDARY_NICS >= N`.
 
+Secondary NICs advertise `VIRTIO_F_IOMMU_PLATFORM` (`iommu_platform=on`), so the
+guest can bind them to `vfio-pci` and drive them from userspace, e.g. with DPDK.
+
 `KUBEVIRT_SECONDARY_IFACES_TO_BRIDGE=eth1` creates bridge `br1` and enslaves `eth1` to it
 (`br1` is the master, `eth1` is the slave):
 ```

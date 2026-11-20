@@ -692,7 +692,7 @@ func run(cmd *cobra.Command, args []string) (retErr error) {
 						secondaryNicRootPortBaseChass+i,
 						numaNode)
 				}
-				nodeQemuArgs = fmt.Sprintf("%s%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s,bus=%s -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no",
+				nodeQemuArgs = fmt.Sprintf("%s%s -device %s,netdev=secondarynet%s,mac=52:55:00:d1:56:%s,bus=%s,iommu_platform=on,ats=on,disable-legacy=on -netdev tap,id=secondarynet%s,ifname=stap%s,script=no,downscript=no",
 					nodeQemuArgs,
 					rootPortArgs,
 					qemuNetDevice,
