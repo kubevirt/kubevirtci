@@ -95,7 +95,10 @@ function cluster::install_dra_example_driver() {
 
     (
         cd "${DRA_EXAMPLE_DRIVER_DIR}"
-        bash demo/build-driver.sh
+        # The checkout sits inside this repo, so Go finds kubevirt's go.work and
+        # enables workspace mode. make generate then fails: go tool -modfile
+        # cannot be used in workspace mode.
+        GOWORK=off bash demo/build-driver.sh
     )
 
     if [[ "${CONTAINER_TOOL}" = "podman" ]]; then
