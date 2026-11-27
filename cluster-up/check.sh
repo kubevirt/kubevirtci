@@ -35,8 +35,12 @@ elif [ -f "/sys/module/kvm_amd/parameters/nested" ]; then
 	KVM_ARCH="amd"
 elif [ -f "/sys/module/kvm/parameters/nested" ]; then
 	KVM_NESTED=$( cat /sys/module/kvm/parameters/nested )
-	KVM_ARCH="s390x"
-	KVM_HPAGE=$( cat /sys/module/kvm/parameters/hpage )
+	if [ "$(uname -m)" = "ppc64le" ]; then
+		KVM_ARCH="ppc64le"
+	else
+		KVM_ARCH="s390x"
+		KVM_HPAGE=$( cat /sys/module/kvm/parameters/hpage )
+	fi
 fi
 
 function is_enabled() {
@@ -61,4 +65,8 @@ fi
 
 if is_enabled "$KVM_HPAGE" && [ "$(uname -m)" = "s390x" ]; then
 	echo "[ERR ] $KVM_HPAGE KVM hugepage enabled. It needs to be disabled while nested virtualization is enabled for s390x"
+fi
+
+if [ "$(uname -m)" = "ppc64le" ]; then
+	echo "[ OK ] ppc64le: KVM nested virtualization uses /sys/module/kvm/parameters/nested"
 fi
