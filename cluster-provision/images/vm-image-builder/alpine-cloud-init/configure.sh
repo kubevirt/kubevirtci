@@ -19,7 +19,19 @@ sed -Ei \
 	-e 's/^[# ](unicode)=.*/\1=YES/' \
 	/etc/rc.conf
 
+step 'Install udhcpc6 script'
+cat udhcpc6.script > /etc/udhcpc6.script
+chmod 755 /etc/udhcpc6.script
+
+step 'Install udhcpc6 network hooks'
+# Do not edit /etc/network/interfaces — cloud-init regenerates it.
+mkdir -p /etc/network/if-up.d /etc/network/if-down.d
+cat if-up.d.udhcpc6 > /etc/network/if-up.d/udhcpc6
+cat if-down.d.udhcpc6 > /etc/network/if-down.d/udhcpc6
+chmod 755 /etc/network/if-up.d/udhcpc6 /etc/network/if-down.d/udhcpc6
+
 step 'Enable services'
+rc-update add syslog boot
 rc-update add qemu-guest-agent default
 rc-update add cloud-init default
 rc-update add cloud-init-local default

@@ -1,0 +1,13 @@
+#!/bin/sh
+logger -t udhcpc6 "action: '$1', ipv6: '$ipv6'"
+
+if [ -n "$ipv6" ]; then
+    CLEAN_ADDR=$(echo "$ipv6" | cut -d/ -f1)
+    ip -6 addr add ${CLEAN_ADDR}/64 dev ${interface:-eth0} 2>/dev/null
+fi
+
+if [ -n "$router" ]; then
+    ip -6 route add default via ${router} dev ${interface:-eth0} 2>/dev/null
+fi
+
+exit 0
