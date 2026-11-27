@@ -1,12 +1,14 @@
 package nodes
 
 import (
+	"errors"
 	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
+	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/common"
 	"kubevirt.io/kubevirtci/cluster-provision/gocli/opts/extranics"
 	kubevirtcimocks "kubevirt.io/kubevirtci/cluster-provision/gocli/utils/mock"
 )
@@ -27,8 +29,7 @@ var _ = Describe("nodes", func() {
 		BeforeEach(func() {
 			mockCtrl = gomock.NewController(GinkgoT())
 			sshClient = kubevirtcimocks.NewMockSSHClient(mockCtrl)
-			opt = NewNodesProvisioner("k8s-1.32", sshClient, false, extranics.Config{}, "", "")
-			AddExpectCalls(sshClient)
+			opt = NewNodesProvisioner("node02", "k8s-1.32", sshClient, false, extranics.Config{}, "", "")
 		})
 
 		AfterEach(func() {
@@ -36,14 +37,23 @@ var _ = Describe("nodes", func() {
 		})
 
 		It("should execute NodesProvisioner successfully", func() {
+			AddExpectCalls(sshClient)
 			err := opt.Exec()
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should stop before kubeadm join when hostname readiness fails", func() {
+			gomock.InOrder(
+				sshClient.EXPECT().Command("source /var/lib/kubevirtci/shared_vars.sh"),
+				sshClient.EXPECT().Command(common.WaitForHostnameCommand("node02")).Return(errors.New("hostname not ready")),
+			)
+			Expect(opt.Exec()).To(MatchError(ContainSubstring("hostname not ready")))
 		})
 	})
 
 	DescribeTable("calling featureGateFlag",
 		func(k8sVersion, expectedValue string) {
-			np := NewNodesProvisioner(k8sVersion, nil, false, extranics.Config{}, "", "")
+			np := NewNodesProvisioner("node02", k8sVersion, nil, false, extranics.Config{}, "", "")
 			Expect(np.featureGatesFlag()).To(BeEquivalentTo(expectedValue))
 		},
 		Entry("should not add new fg if 1.32", "k8s-1.32", "--feature-gates=NodeSwap=true"),
@@ -63,7 +73,7 @@ var _ = Describe("nodes", func() {
 					}
 				})
 
-				np := NewNodesProvisioner("name-with-no-version", nil, false, extranics.Config{}, "", "")
+				np := NewNodesProvisioner("node02", "name-with-no-version", nil, false, extranics.Config{}, "", "")
 				Expect(np.featureGatesFlag()).To(BeEquivalentTo(expectedValue))
 			},
 			Entry("should not add new fg if 1.32", "k8s-1.32", "--feature-gates=NodeSwap=true"),
