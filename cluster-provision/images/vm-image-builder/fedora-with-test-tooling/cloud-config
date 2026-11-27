@@ -71,6 +71,10 @@ write_files:
     - path: /etc/cloud/cloud.cfg.d/99-kubevirt-datasource.cfg
       content: |
         datasource_list: [NoCloud, ConfigDrive, None]
+    - path: /etc/systemd/system/NetworkManager-wait-online.service.d/override.conf
+      content: |
+        [Service]
+        TimeoutStartSec=20s
 runcmd:
   # Fedora 43+ uses predictable network interface names (e.g. enp1s0).
   # Many KubeVirt tests assume "eth0". Restore classic naming.
